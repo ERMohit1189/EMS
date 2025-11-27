@@ -203,23 +203,30 @@ export default function POGeneration() {
                 <div className="grid gap-3 max-h-96 overflow-y-auto">
                   {availableSites.map((site) => {
                     const vendor = vendors.find(v => v.id === site.vendorId);
+                    const isDisabled = !site.siteAmount;
                     return (
                       <div
                         key={site.id}
-                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                        onClick={() => handleSiteSelection(site.id)}
+                        className={`flex items-center gap-3 p-3 border rounded-lg ${
+                          isDisabled 
+                            ? "opacity-50 cursor-not-allowed bg-gray-50" 
+                            : "hover:bg-muted/50 cursor-pointer"
+                        }`}
+                        onClick={() => !isDisabled && handleSiteSelection(site.id)}
                       >
                         <input
                           type="checkbox"
                           checked={selectedSites.has(site.id)}
-                          onChange={() => handleSiteSelection(site.id)}
-                          className="w-4 h-4"
+                          onChange={() => !isDisabled && handleSiteSelection(site.id)}
+                          disabled={isDisabled}
+                          className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <div className="flex-1">
                           <p className="font-semibold">{site.hopAB || site.siteId}</p>
                           <p className="text-sm text-muted-foreground">
-                            Plan: {site.planId} | Vendor: {vendor?.name} | Amount: ₹{site.siteAmount}
+                            Plan: {site.planId} | Vendor: {vendor?.name} | Amount: {site.siteAmount ? `₹${site.siteAmount}` : "Not Set"}
                           </p>
+                          {isDisabled && <p className="text-xs text-red-600 mt-1">⚠ Site Amount is required</p>}
                         </div>
                       </div>
                     );
