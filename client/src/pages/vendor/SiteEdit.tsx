@@ -26,12 +26,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 
 const siteSchema = z.object({
-  vendorId: z.string().min(1, 'Vendor is required'),
+  vendorId: z.string().optional(),
   zoneId: z.string().optional(),
-  siteId: z.string().min(2, 'Site ID is required'),
+  siteId: z.string().optional(),
   sno: z.string().optional(),
   circle: z.string().optional(),
-  planId: z.string().min(2, 'Plan ID is required'),
+  planId: z.string().optional(),
   nominalAop: z.string().optional(),
   hopType: z.string().optional(),
   hopAB: z.string().optional(),
