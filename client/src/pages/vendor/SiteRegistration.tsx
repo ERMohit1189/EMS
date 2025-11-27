@@ -130,24 +130,33 @@ const renderField = (form: any, name: string, label: string, type: 'text' | 'dat
 );
 
 export default function SiteRegistration() {
-  const { addSite, vendors } = useStore();
+  const { addSite } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [zones, setZones] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchZones = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/zones?pageSize=10000');
-        if (response.ok) {
-          const data = await response.json();
+        const [zonesRes, vendorsRes] = await Promise.all([
+          fetch('/api/zones?pageSize=10000'),
+          fetch('/api/vendors?pageSize=10000'),
+        ]);
+        
+        if (zonesRes.ok) {
+          const data = await zonesRes.json();
           setZones(data.data || []);
         }
+        if (vendorsRes.ok) {
+          const data = await vendorsRes.json();
+          setVendors(data.data || []);
+        }
       } catch (error) {
-        console.error('Failed to load zones');
+        console.error('Failed to load zones or vendors');
       }
     };
-    fetchZones();
+    fetchData();
   }, []);
 
   const form = useForm<z.infer<typeof siteSchema>>({
