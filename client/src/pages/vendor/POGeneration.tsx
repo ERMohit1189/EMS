@@ -88,7 +88,7 @@ export default function POGeneration() {
           poNumber: `PO-${Date.now()}-${index + 1}`,
           description: `Installation and commissioning for ${site.hopAB || site.siteId}`,
           quantity: 1,
-          unitPrice: site.vendorAmount?.toString() || "0",
+          unitPrice: site.siteAmount?.toString() || "0",
         };
       });
 
@@ -175,7 +175,7 @@ export default function POGeneration() {
                       <div className="flex-1">
                         <p className="font-semibold">{site.hopAB || site.siteId}</p>
                         <p className="text-sm text-muted-foreground">
-                          Plan: {site.planId} | Vendor: {vendor?.name} | Amount: ₹{site.vendorAmount}
+                          Plan: {site.planId} | Vendor: {vendor?.name} | Amount: ₹{site.siteAmount}
                         </p>
                       </div>
                     </div>
