@@ -42,6 +42,7 @@ export interface IStorage {
   getSiteByPlanId(planId: string): Promise<Site | undefined>;
   getSites(limit: number, offset: number): Promise<Site[]>;
   getSitesByVendor(vendorId: string): Promise<Site[]>;
+  getSitesForPOGeneration(): Promise<Site[]>;
   updateSite(id: string, site: Partial<InsertSite>): Promise<Site>;
   upsertSiteByPlanId(site: InsertSite): Promise<Site>;
   deleteSite(id: string): Promise<void>;
