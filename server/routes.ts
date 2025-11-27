@@ -474,7 +474,7 @@ export async function registerRoutes(
       
       if (existing) {
         return res.status(409).json({ 
-          error: `Payment configuration already exists for this Site, Plan, Vendor, and Antenna Size combination` 
+          message: `This configuration already exists. A payment setting has already been created for the selected Site, Plan ID, Vendor, and Antenna Size combination.` 
         });
       }
       
@@ -521,7 +521,7 @@ export async function registerRoutes(
         
         if (existing && existing.id !== req.params.id) {
           return res.status(409).json({ 
-            error: `Payment configuration already exists for this Site, Plan, Vendor, and Antenna Size combination` 
+            message: `This configuration already exists. A payment setting has already been created for the selected Site, Plan ID, Vendor, and Antenna Size combination.` 
           });
         }
       }
