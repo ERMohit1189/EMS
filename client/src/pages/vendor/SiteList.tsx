@@ -117,70 +117,167 @@ export default function SiteList() {
             </CardHeader>
 
             {expandedSite === site.id && (
-              <CardContent className="border-t pt-6 pb-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Site ID</label>
-                    <p className="text-sm font-mono mt-1">{site.siteId}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Vendor</label>
-                    <p className="text-sm mt-1">{getVendorName(site.vendorId)}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Plan ID</label>
-                    <p className="text-sm font-mono mt-1">{site.planId}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Antenna Size</label>
-                    <p className="text-sm mt-1">{site.antennaSize}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Installation Date</label>
-                    <p className="text-sm mt-1">{site.incDate}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">State</label>
-                    <p className="text-sm mt-1">{site.state}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Region</label>
-                    <p className="text-sm mt-1">{site.region}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Zone</label>
-                    <p className="text-sm mt-1">{site.zone}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Installation Type</label>
-                    <p className="text-sm mt-1">{site.inside ? "Inside" : "Outside"}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Form No</label>
-                    <p className="text-sm font-mono mt-1">{site.formNo}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Site Amount</label>
-                    <p className="text-sm font-mono mt-1">{site.siteAmount ? `₹${parseFloat(site.siteAmount).toFixed(2)}` : "—"}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-muted-foreground">Vendor Amount</label>
-                    <p className="text-sm font-mono mt-1">{site.vendorAmount ? `₹${parseFloat(site.vendorAmount).toFixed(2)}` : "—"}</p>
-                  </div>
-                  <div className="col-span-2 md:col-span-3">
-                    <label className="text-sm font-semibold text-muted-foreground">Software AT Remark</label>
-                    <p className="text-sm mt-1">{site.softAtRemark || "—"}</p>
-                  </div>
-                  <div className="col-span-2 md:col-span-3">
-                    <label className="text-sm font-semibold text-muted-foreground">Physical AT Remark</label>
-                    <p className="text-sm mt-1">{site.phyAtRemark || "—"}</p>
-                  </div>
-                  <div className="col-span-2 md:col-span-3">
-                    <label className="text-sm font-semibold text-muted-foreground">ATP Remark</label>
-                    <p className="text-sm mt-1">{site.atpRemark || "—"}</p>
+              <CardContent className="border-t pt-6 pb-6 space-y-6">
+                {/* Basic Information */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-4 text-foreground">Basic Information</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Site ID</label>
+                      <p className="text-sm font-mono font-semibold mt-1 break-all">{site.siteId}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Vendor</label>
+                      <p className="text-sm font-semibold mt-1">{getVendorName(site.vendorId)}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
+                      <p className="text-sm font-mono font-semibold mt-1 break-all">{site.planId}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Circle</label>
+                      <p className="text-sm font-semibold mt-1">{site.circle || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">HOP A-B</label>
+                      <p className="text-sm font-semibold mt-1">{site.hopAB || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Form No</label>
+                      <p className="text-sm font-mono font-semibold mt-1">{site.formNo || "—"}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-6 pt-4 border-t">
+
+                {/* Location Details */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-4 text-foreground">Location Details</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">State</label>
+                      <p className="text-sm font-semibold mt-1">{site.state || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Region</label>
+                      <p className="text-sm font-semibold mt-1">{site.region || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Zone</label>
+                      <p className="text-sm font-semibold mt-1">{site.zone || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">District</label>
+                      <p className="text-sm font-semibold mt-1">{site.district || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Installation Type</label>
+                      <p className="text-sm font-semibold mt-1">{site.inside ? "Inside" : "Outside"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Installation Date</label>
+                      <p className="text-sm font-semibold mt-1">{site.incDate || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Antenna & Technical */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-4 text-foreground">Antenna & Technical Details</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Max Antenna Size</label>
+                      <p className="text-sm font-semibold mt-1">{site.maxAntSize || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">HOP Type</label>
+                      <p className="text-sm font-semibold mt-1">{site.hopType || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Project</label>
+                      <p className="text-sm font-semibold mt-1">{site.project || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
+                      <p className="text-sm font-semibold mt-1">{site.siteAName || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Site B Name</label>
+                      <p className="text-sm font-semibold mt-1">{site.siteBName || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <label className="text-xs font-medium text-muted-foreground">Partner Name</label>
+                      <p className="text-sm font-semibold mt-1">{site.partnerName || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AT Status */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-4 text-foreground">AT Status</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-900">
+                      <label className="text-xs font-medium text-blue-700 dark:text-blue-400">Software AT Status</label>
+                      <p className="text-sm font-semibold mt-1 text-blue-900 dark:text-blue-300">{site.softAtStatus || "—"}</p>
+                    </div>
+                    <div className="bg-green-50/50 dark:bg-green-950/20 p-3 rounded-md border border-green-200 dark:border-green-900">
+                      <label className="text-xs font-medium text-green-700 dark:text-green-400">Physical AT Status</label>
+                      <p className="text-sm font-semibold mt-1 text-green-900 dark:text-green-300">{site.phyAtStatus || "—"}</p>
+                    </div>
+                    <div className="bg-purple-50/50 dark:bg-purple-950/20 p-3 rounded-md border border-purple-200 dark:border-purple-900">
+                      <label className="text-xs font-medium text-purple-700 dark:text-purple-400">Both AT Status</label>
+                      <p className="text-sm font-semibold mt-1 text-purple-900 dark:text-purple-300">{site.bothAtStatus || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-4 text-foreground">Financial Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3 rounded-md border border-amber-200 dark:border-amber-900">
+                      <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Site Amount</label>
+                      <p className="text-sm font-mono font-semibold mt-1 text-amber-900 dark:text-amber-300">{site.siteAmount ? `₹${parseFloat(site.siteAmount).toFixed(2)}` : "—"}</p>
+                    </div>
+                    <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3 rounded-md border border-amber-200 dark:border-amber-900">
+                      <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Vendor Amount</label>
+                      <p className="text-sm font-mono font-semibold mt-1 text-amber-900 dark:text-amber-300">{site.vendorAmount ? `₹${parseFloat(site.vendorAmount).toFixed(2)}` : "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-4 text-foreground">Remarks</h3>
+                  <div className="space-y-3">
+                    {(site.softAtRemark || site.phyAtRemark || site.atpRemark) ? (
+                      <>
+                        {site.softAtRemark && (
+                          <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded-md">
+                            <label className="text-xs font-medium text-muted-foreground">Software AT Remark</label>
+                            <p className="text-sm mt-1">{site.softAtRemark}</p>
+                          </div>
+                        )}
+                        {site.phyAtRemark && (
+                          <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded-md">
+                            <label className="text-xs font-medium text-muted-foreground">Physical AT Remark</label>
+                            <p className="text-sm mt-1">{site.phyAtRemark}</p>
+                          </div>
+                        )}
+                        {site.atpRemark && (
+                          <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded-md">
+                            <label className="text-xs font-medium text-muted-foreground">ATP Remark</label>
+                            <p className="text-sm mt-1">{site.atpRemark}</p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-3">No remarks available</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2 border-t">
                   <Link href={`/vendor/site/edit/${site.id}`}>
                     <Button size="sm" variant="outline" className="gap-2">
                       <Edit className="h-4 w-4" /> Edit
