@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import Dashboard from "@/pages/Dashboard";
 import VendorRegistration from "@/pages/vendor/VendorRegistration";
 import VendorList from "@/pages/vendor/VendorList";
+import VendorEdit from "@/pages/vendor/VendorEdit";
 import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
 import EmployeeList from "@/pages/employee/EmployeeList";
 import SiteRegistration from "@/pages/vendor/SiteRegistration";
@@ -28,6 +29,7 @@ function App() {
           {/* Vendor Routes */}
           <Route path="/vendor/register" component={VendorRegistration} />
           <Route path="/vendor/list" component={VendorList} />
+          <Route path="/vendor/edit/:id" component={VendorEdit} />
           <Route path="/vendor/sites" component={SiteRegistration} />
           <Route path="/vendor/excel-import" component={ExcelImport} />
           <Route path="/vendor/po" component={() => <Placeholder title="PO Generation" />} />

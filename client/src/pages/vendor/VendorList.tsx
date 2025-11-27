@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Edit } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -115,6 +115,11 @@ export default function VendorList() {
                </div>
                <div className="text-sm font-mono">{v.mobile}</div>
                <div className="text-right">
+                 <Link href={`/vendor/edit/${v.id}`}>
+                   <Button variant="ghost" size="sm" className="gap-2">
+                     <Edit className="h-4 w-4" /> Edit
+                   </Button>
+                 </Link>
                </div>
              </div>
            ))
