@@ -3,25 +3,29 @@ import { useStore } from '@/lib/mockData';
 import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
+import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 export default function Dashboard() {
   const { vendors, sites, employees } = useStore();
   const [pendingPOCount, setPendingPOCount] = useState(0);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchPendingPOs = async () => {
+    const fetchData = async () => {
       try {
         const response = await fetch('/api/purchase-orders');
         const data = await response.json();
-        const purchaseOrders = data.data || [];
-        const pending = purchaseOrders.filter((po: any) => po.status === 'Pending').length;
+        const pos = data.data || [];
+        setPurchaseOrders(pos);
+        const pending = pos.filter((po: any) => po.status === 'Pending').length;
         setPendingPOCount(pending);
       } catch (error) {
         console.error('Failed to fetch pending POs:', error);
         setPendingPOCount(0);
+        setPurchaseOrders([]);
       }
     };
-    fetchPendingPOs();
+    fetchData();
   }, []);
 
   const stats = [
@@ -59,6 +63,35 @@ export default function Dashboard() {
     },
   ];
 
+  // Chart data
+  const siteStatusData = [
+    { name: 'Active', value: sites.filter(s => s.status === 'Active').length, fill: '#10b981' },
+    { name: 'Pending', value: sites.filter(s => s.status === 'Pending').length, fill: '#f59e0b' },
+    { name: 'Inactive', value: sites.filter(s => s.status === 'Inactive').length, fill: '#ef4444' },
+  ];
+
+  const vendorStatusData = [
+    { name: 'Active', value: vendors.filter(v => v.status === 'Active').length, fill: '#3b82f6' },
+    { name: 'Pending', value: vendors.filter(v => v.status === 'Pending').length, fill: '#f59e0b' },
+    { name: 'Inactive', value: vendors.filter(v => v.status === 'Inactive').length, fill: '#ef4444' },
+  ];
+
+  const regionData = sites.reduce((acc: any[], site) => {
+    const existing = acc.find(r => r.name === site.region);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      acc.push({ name: site.region || 'Unknown', count: 1 });
+    }
+    return acc;
+  }, []);
+
+  const poStatusData = [
+    { name: 'Draft', value: purchaseOrders.filter(po => po.status === 'Draft').length, fill: '#6366f1' },
+    { name: 'Pending', value: purchaseOrders.filter(po => po.status === 'Pending').length, fill: '#f59e0b' },
+    { name: 'Approved', value: purchaseOrders.filter(po => po.status === 'Approved').length, fill: '#10b981' },
+  ];
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -91,6 +124,112 @@ export default function Dashboard() {
             </Card>
           </a>
         ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Site Status Distribution</CardTitle>
+            <CardDescription>Breakdown of all sites by status</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={siteStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }) => `${name}: ${value}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {siteStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Vendor Status Distribution</CardTitle>
+            <CardDescription>Breakdown of all vendors by status</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={vendorStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }) => `${name}: ${value}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {vendorStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Sites by Region</CardTitle>
+            <CardDescription>Distribution of sites across regions</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={regionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Purchase Order Status</CardTitle>
+            <CardDescription>PO breakdown by status</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={poStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }) => `${name}: ${value}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {poStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
