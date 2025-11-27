@@ -24,15 +24,18 @@ export default function POGeneration() {
   const topRef = useRef<HTMLDivElement>(null);
   const poNumberRef = useRef<HTMLInputElement>(null);
   const [approvedSites, setApprovedSites] = useState<Site[]>([]);
+  const [availableSites, setAvailableSites] = useState<Site[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
   const [poRecords, setPoRecords] = useState<PORecord[]>([]);
+  const [allPOs, setAllPOs] = useState<PORecord[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchApprovedSites();
     fetchVendors();
+    fetchAllPOs();
   }, []);
 
   const fetchApprovedSites = async () => {
@@ -43,6 +46,42 @@ export default function POGeneration() {
       setApprovedSites(result.data || []);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load approved sites", variant: "destructive" });
+    }
+  };
+
+  const fetchAllPOs = async () => {
+    try {
+      const response = await fetch("/api/purchase-orders?pageSize=10000");
+      if (!response.ok) throw new Error("Failed to fetch");
+      const result = await response.json();
+      const pos = result.data || [];
+      
+      // Convert POs to PORecord format
+      const poRecords: PORecord[] = [];
+      for (const po of pos) {
+        const vendor = vendors.find(v => v.id === po.vendorId);
+        const site = approvedSites.find(s => s.id === po.siteId);
+        poRecords.push({
+          id: po.id,
+          siteId: po.siteId,
+          vendorId: po.vendorId,
+          siteName: site?.hopAB || site?.siteId || "Unknown",
+          vendorName: vendor?.name || "Unknown",
+          planId: site?.planId || "Unknown",
+          poNumber: po.poNumber,
+          description: po.description,
+          quantity: po.quantity,
+          unitPrice: po.unitPrice,
+        });
+      }
+      setAllPOs(poRecords);
+      
+      // Filter out sites that already have POs
+      const sitesWithPOs = new Set(pos.map((po: any) => po.siteId));
+      const filtered = approvedSites.filter(site => !sitesWithPOs.has(site.id));
+      setAvailableSites(filtered);
+    } catch (error) {
+      console.log("Note: Some POs may not load - this is normal on first load");
     }
   };
 
@@ -123,6 +162,13 @@ export default function POGeneration() {
       setPoRecords(createdPOs);
       setSelectedSites(new Set());
 
+      // Update available sites and all POs
+      const updatedAvailable = availableSites.filter(
+        site => !selectedSiteIds.includes(site.id)
+      );
+      setAvailableSites(updatedAvailable);
+      setAllPOs([...allPOs, ...createdPOs]);
+
       toast({
         title: "Success",
         description: `${createdPOs.length} PO(s) generated successfully`,
@@ -146,7 +192,7 @@ export default function POGeneration() {
         <p className="text-muted-foreground">Auto-generate POs for sites with approved SOFT-AT and PHY-AT status.</p>
       </div>
 
-      {approvedSites.length === 0 ? (
+      {availableSites.length === 0 && allPOs.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground text-center">No sites available with approved SOFT-AT and PHY-AT status.</p>
@@ -154,48 +200,50 @@ export default function POGeneration() {
         </Card>
       ) : (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Sites for PO Generation</CardTitle>
-              <CardDescription>Choose one or more sites to generate purchase orders</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 max-h-96 overflow-y-auto">
-                {approvedSites.map((site) => {
-                  const vendor = vendors.find(v => v.id === site.vendorId);
-                  return (
-                    <div
-                      key={site.id}
-                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                      onClick={() => handleSiteSelection(site.id)}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedSites.has(site.id)}
-                        onChange={() => handleSiteSelection(site.id)}
-                        className="w-4 h-4"
-                      />
-                      <div className="flex-1">
-                        <p className="font-semibold">{site.hopAB || site.siteId}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Plan: {site.planId} | Vendor: {vendor?.name} | Amount: ₹{site.siteAmount}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <Button onClick={generatePOs} className="mt-4 w-full" disabled={selectedSites.size === 0}>
-                <Plus className="h-4 w-4 mr-2" />
-                Generate POs ({selectedSites.size} selected)
-              </Button>
-            </CardContent>
-          </Card>
-
-          {poRecords.length > 0 && (
+          {availableSites.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Generated Purchase Orders</CardTitle>
+                <CardTitle>Available Sites for PO Generation</CardTitle>
+                <CardDescription>Choose one or more sites to generate purchase orders ({availableSites.length} available)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 max-h-96 overflow-y-auto">
+                  {availableSites.map((site) => {
+                    const vendor = vendors.find(v => v.id === site.vendorId);
+                    return (
+                      <div
+                        key={site.id}
+                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                        onClick={() => handleSiteSelection(site.id)}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedSites.has(site.id)}
+                          onChange={() => handleSiteSelection(site.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold">{site.hopAB || site.siteId}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Plan: {site.planId} | Vendor: {vendor?.name} | Amount: ₹{site.siteAmount}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Button onClick={generatePOs} className="mt-4 w-full" disabled={selectedSites.size === 0}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Generate POs ({selectedSites.size} selected)
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {poRecords.length > 0 && (
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader>
+                <CardTitle className="text-green-700">✓ Just Generated Purchase Orders</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -212,7 +260,50 @@ export default function POGeneration() {
                     </thead>
                     <tbody>
                       {poRecords.map((po) => (
-                        <tr key={po.poNumber} className="border-b hover:bg-muted/50">
+                        <tr key={po.poNumber} className="border-b hover:bg-green-100">
+                          <td className="py-2 font-semibold">{po.poNumber}</td>
+                          <td className="py-2">{po.siteName}</td>
+                          <td className="py-2">{po.vendorName}</td>
+                          <td className="py-2">{po.planId}</td>
+                          <td className="text-right py-2">₹{po.unitPrice}</td>
+                          <td className="text-center py-2">
+                            <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline" className="gap-1">
+                                <Printer className="h-3 w-3" /> Print
+                              </Button>
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {allPOs.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>All Generated Purchase Orders</CardTitle>
+                <CardDescription>Complete list of all purchase orders ({allPOs.length} total)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b">
+                      <tr>
+                        <th className="text-left py-2">PO Number</th>
+                        <th className="text-left py-2">Site</th>
+                        <th className="text-left py-2">Vendor</th>
+                        <th className="text-left py-2">Plan ID</th>
+                        <th className="text-right py-2">Amount</th>
+                        <th className="text-center py-2">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allPOs.map((po) => (
+                        <tr key={po.id} className="border-b hover:bg-muted/50">
                           <td className="py-2 font-semibold">{po.poNumber}</td>
                           <td className="py-2">{po.siteName}</td>
                           <td className="py-2">{po.vendorName}</td>
