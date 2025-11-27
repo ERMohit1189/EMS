@@ -45,8 +45,8 @@ export default function PaymentMaster() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           antennaSize: newMaster.antennaSize,
-          siteAmount: parseFloat(newMaster.siteAmount),
-          vendorAmount: parseFloat(newMaster.vendorAmount),
+          siteAmount: newMaster.siteAmount,
+          vendorAmount: newMaster.vendorAmount,
         }),
       });
 
