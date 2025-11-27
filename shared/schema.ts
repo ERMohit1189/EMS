@@ -240,7 +240,13 @@ export const invoices = pgTable("invoices", {
 // Payment Master Table - Site & Vendor Amount Configuration by Antenna Size
 export const paymentMasters = pgTable("payment_masters", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  antennaSize: varchar("antenna_size").notNull().unique(), // 0.6, 0.9, 1.2 kVA
+  siteId: varchar("site_id")
+    .notNull()
+    .references(() => sites.id),
+  vendorId: varchar("vendor_id")
+    .notNull()
+    .references(() => vendors.id),
+  antennaSize: varchar("antenna_size").notNull(), // 0.6, 0.9, 1.2 kVA
   siteAmount: decimal("site_amount", 12, 2).notNull(),
   vendorAmount: decimal("vendor_amount", 12, 2).notNull(),
   createdAt: timestamp("created_at").defaultNow(),

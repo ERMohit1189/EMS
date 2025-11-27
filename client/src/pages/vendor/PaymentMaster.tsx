@@ -78,7 +78,7 @@ export default function PaymentMaster() {
   };
 
   const handleSave = async () => {
-    if (!newMaster.antennaSize || !newMaster.siteAmount || !newMaster.vendorAmount) {
+    if (!newMaster.antennaSize || !newMaster.siteAmount || !newMaster.vendorAmount || !selectedSite || !selectedVendor) {
       toast({ title: "Error", description: "All fields required", variant: "destructive" });
       return;
     }
@@ -91,6 +91,8 @@ export default function PaymentMaster() {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          siteId: selectedSite,
+          vendorId: selectedVendor,
           antennaSize: newMaster.antennaSize,
           siteAmount: newMaster.siteAmount,
           vendorAmount: newMaster.vendorAmount,
@@ -260,24 +262,28 @@ export default function PaymentMaster() {
               <p className="text-muted-foreground text-center py-8">No payment masters configured yet.</p>
             ) : (
               <div className="grid gap-3">
-                {masters.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
-                    <div className="flex-1">
-                      <p className="font-semibold">{m.antennaSize} kVA</p>
-                      <p className="text-sm text-muted-foreground">
-                        Site: ₹{m.siteAmount} | Vendor: ₹{m.vendorAmount}
-                      </p>
+                {masters.map((m) => {
+                  const siteData = sites.find(s => s.id === m.siteId);
+                  const vendorData = vendors.find(v => v.id === m.vendorId);
+                  return (
+                    <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                      <div className="flex-1">
+                        <p className="font-semibold">{siteData?.hopAB || 'N/A'} - {vendorData?.name || 'N/A'} ({m.antennaSize} kVA)</p>
+                        <p className="text-sm text-muted-foreground">
+                          Site Amount: ₹{m.siteAmount} | Vendor Amount: ₹{m.vendorAmount}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(m)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(m)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
