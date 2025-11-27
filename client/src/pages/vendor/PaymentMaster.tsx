@@ -120,7 +120,8 @@ export default function PaymentMaster() {
       topRef.current?.scrollIntoView({ behavior: "smooth" });
       setTimeout(() => antennaSelectRef.current?.focus(), 300);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to save", variant: "destructive" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to save";
+      toast({ title: "Alert", description: errorMessage, variant: "destructive" });
     }
   };
 
