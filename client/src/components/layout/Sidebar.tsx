@@ -32,9 +32,9 @@ const menuItems = [
     href: '/vendor/sites',
   },
   {
-    title: 'Employees',
-    icon: HardHat,
-    href: '/employee/list',
+    title: 'Excel Upload',
+    icon: Upload,
+    href: '/vendor/excel-import',
   },
 ];
 
