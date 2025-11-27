@@ -11,11 +11,19 @@ interface InvoiceRecord {
   id: string;
   invoiceNumber: string;
   poNumber: string;
+  poDate: string;
+  poDueDate: string;
   vendorName: string;
+  vendorEmail?: string;
+  siteName: string;
+  description: string;
+  quantity: number;
+  unitPrice: string;
   amount: string;
   gst: string;
   totalAmount: string;
   invoiceDate: string;
+  invoiceDueDate: string;
   status: string;
 }
 
@@ -33,22 +41,25 @@ export default function InvoiceGeneration() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const [posRes, vendorsRes, invoicesRes] = await Promise.all([
+        const [posRes, vendorsRes, sitesRes, invoicesRes] = await Promise.all([
           fetch("/api/purchase-orders?pageSize=10000"),
           fetch("/api/vendors?pageSize=10000"),
+          fetch("/api/sites?pageSize=10000"),
           fetch("/api/invoices?pageSize=10000"),
         ]);
 
-        if (!posRes.ok || !vendorsRes.ok || !invoicesRes.ok) {
+        if (!posRes.ok || !vendorsRes.ok || !sitesRes.ok || !invoicesRes.ok) {
           throw new Error("Failed to fetch data");
         }
 
         const posData = await posRes.json();
         const vendorsData = await vendorsRes.json();
+        const sitesData = await sitesRes.json();
         const invoicesData = await invoicesRes.json();
 
         const pos = posData.data || [];
         const vendorsList = vendorsData.data || [];
+        const sites = sitesData.data || [];
         const invoices = invoicesData.data || [];
 
         setVendors(vendorsList);
@@ -58,15 +69,24 @@ export default function InvoiceGeneration() {
         for (const invoice of invoices) {
           const po = pos.find((p: any) => p.id === invoice.poId);
           const vendor = vendorsList.find(v => v.id === invoice.vendorId);
+          const site = sites.find((s: any) => s.id === po?.siteId);
           invoiceRecords.push({
             id: invoice.id,
             invoiceNumber: invoice.invoiceNumber,
             poNumber: po?.poNumber || "Unknown",
+            poDate: po?.poDate || "",
+            poDueDate: po?.dueDate || "",
             vendorName: vendor?.name || "Unknown",
+            vendorEmail: vendor?.email,
+            siteName: site?.hopAB || site?.siteId || "Unknown",
+            description: po?.description || "N/A",
+            quantity: po?.quantity || 0,
+            unitPrice: po?.unitPrice?.toString() || "0",
             amount: invoice.amount,
             gst: invoice.gst,
             totalAmount: invoice.totalAmount,
             invoiceDate: invoice.invoiceDate,
+            invoiceDueDate: invoice.dueDate,
             status: invoice.status,
           });
         }
@@ -100,64 +120,159 @@ export default function InvoiceGeneration() {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 15;
+    const margin = 12;
     let yPosition = margin;
 
-    // Header
-    doc.setFontSize(20);
-    doc.text("INVOICE", pageWidth / 2, yPosition, { align: "center" });
-    yPosition += 10;
+    // Colors
+    const primaryColor = [0, 51, 102]; // Dark blue
+    const lightGray = [245, 245, 245];
+    const darkGray = [80, 80, 80];
 
-    // Invoice details
+    // Header Background
+    doc.setFillColor(...lightGray);
+    doc.rect(0, 0, pageWidth, 25, "F");
+
+    // Company Title
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(22);
+    doc.text("INVOICE", margin, 16, { align: "left" });
+
+    // Reset position
+    yPosition = 30;
+
+    // Two Column Layout - Invoice Details & Dates
+    const col1X = margin;
+    const col2X = pageWidth / 2 + 5;
+
+    // Left Column - Invoice Details
     doc.setFontSize(10);
-    doc.text(`Invoice No: ${invoice.invoiceNumber}`, margin, yPosition);
-    yPosition += 6;
-    doc.text(`Invoice Date: ${invoice.invoiceDate}`, margin, yPosition);
-    yPosition += 6;
-    doc.text(`PO Number: ${invoice.poNumber}`, margin, yPosition);
-    yPosition += 10;
+    doc.setTextColor(100, 100, 100);
+    doc.text("INVOICE DETAILS", col1X, yPosition);
+    yPosition += 5;
 
-    // Vendor details section
-    doc.setFontSize(11);
-    doc.text("Bill To:", margin, yPosition);
-    yPosition += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(...darkGray);
+    doc.text(`Invoice #: ${invoice.invoiceNumber}`, col1X, yPosition);
+    yPosition += 4;
+    doc.text(`Invoice Date: ${invoice.invoiceDate}`, col1X, yPosition);
+    yPosition += 4;
+    doc.text(`Due Date: ${invoice.invoiceDueDate}`, col1X, yPosition);
+
+    // Right Column - PO References
+    yPosition = 35;
     doc.setFontSize(10);
-    doc.text(`Vendor: ${invoice.vendorName}`, margin + 5, yPosition);
-    yPosition += 10;
+    doc.setTextColor(100, 100, 100);
+    doc.text("PURCHASE ORDER", col2X, yPosition);
+    yPosition += 5;
 
-    // Line separator
-    doc.setDrawColor(200, 200, 200);
+    doc.setFontSize(9);
+    doc.setTextColor(...darkGray);
+    doc.text(`PO #: ${invoice.poNumber}`, col2X, yPosition);
+    yPosition += 4;
+    doc.text(`PO Date: ${invoice.poDate}`, col2X, yPosition);
+    yPosition += 4;
+    doc.text(`PO Due: ${invoice.poDueDate}`, col2X, yPosition);
+
+    // Separator
+    yPosition = 52;
+    doc.setDrawColor(0, 51, 102);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 8;
 
-    // Amount details table
+    // Vendor Details Section
     doc.setFontSize(10);
-    doc.text("Amount (₹):", margin, yPosition);
-    doc.text(invoice.amount, pageWidth - margin - 20, yPosition, { align: "right" });
+    doc.setTextColor(...primaryColor);
+    doc.text("BILL TO:", margin, yPosition);
     yPosition += 6;
 
-    doc.text(`GST (${(parseFloat(invoice.gst) / parseFloat(invoice.amount) * 100).toFixed(0)}%):`, margin, yPosition);
-    doc.text(parseFloat(invoice.gst).toFixed(2), pageWidth - margin - 20, yPosition, { align: "right" });
-    yPosition += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(...darkGray);
+    doc.text(`Vendor: ${invoice.vendorName}`, margin + 2, yPosition);
+    yPosition += 4;
+    if (invoice.vendorEmail) {
+      doc.text(`Email: ${invoice.vendorEmail}`, margin + 2, yPosition);
+      yPosition += 4;
+    }
+    doc.text(`Site: ${invoice.siteName}`, margin + 2, yPosition);
+    yPosition += 8;
 
-    // Total line
-    doc.setDrawColor(0, 0, 0);
-    doc.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-    doc.setFontSize(11);
-    doc.text("Total Amount (₹):", margin, yPosition + 3);
-    doc.text(parseFloat(invoice.totalAmount).toFixed(2), pageWidth - margin - 20, yPosition + 3, { align: "right" });
+    // Item Details Section
+    doc.setFontSize(10);
+    doc.setTextColor(...primaryColor);
+    doc.text("ITEM DETAILS", margin, yPosition);
+    yPosition += 5;
+
+    // Table Headers
+    doc.setFillColor(...lightGray);
+    doc.rect(margin, yPosition - 3, pageWidth - 2 * margin, 6, "F");
+    
+    doc.setFontSize(8);
+    doc.setTextColor(...primaryColor);
+    doc.text("Description", margin + 2, yPosition + 1);
+    doc.text("Qty", pageWidth / 2 + 10, yPosition + 1);
+    doc.text("Unit Rate (₹)", pageWidth / 2 + 30, yPosition + 1);
+    doc.text("Amount (₹)", pageWidth - margin - 22, yPosition + 1, { align: "right" });
+
+    yPosition += 8;
+
+    // Item Row
+    doc.setFontSize(9);
+    doc.setTextColor(...darkGray);
+    
+    const descLines = doc.splitTextToSize(invoice.description, 50);
+    doc.text(descLines, margin + 2, yPosition);
+    
+    doc.text(invoice.quantity.toString(), pageWidth / 2 + 10, yPosition);
+    doc.text(parseFloat(invoice.unitPrice).toFixed(2), pageWidth / 2 + 30, yPosition);
+    doc.text(parseFloat(invoice.unitPrice) * invoice.quantity, pageWidth - margin - 22, yPosition, { align: "right" });
+
     yPosition += 12;
 
-    // Status
+    // Summary Section
+    doc.setDrawColor(0, 51, 102);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 6;
+
+    // Subtotal
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Status: ${invoice.status}`, margin, yPosition);
+    doc.text("Subtotal:", pageWidth / 2, yPosition, { align: "right" });
+    doc.setTextColor(...darkGray);
+    doc.text(`₹${parseFloat(invoice.amount).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
+    yPosition += 5;
+
+    // GST
+    const gstPercent = (parseFloat(invoice.gst) / parseFloat(invoice.amount) * 100).toFixed(1);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`GST (${gstPercent}%):`, pageWidth / 2, yPosition, { align: "right" });
+    doc.setTextColor(...darkGray);
+    doc.text(`₹${parseFloat(invoice.gst).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
+    yPosition += 5;
+
+    // Total
+    doc.setFillColor(...lightGray);
+    doc.rect(pageWidth / 2 - 5, yPosition - 3, pageWidth / 2 - margin + 3, 6, "F");
+    
+    doc.setFontSize(11);
+    doc.setTextColor(...primaryColor);
+    doc.text("TOTAL AMOUNT:", pageWidth / 2, yPosition + 1, { align: "right" });
+    doc.text(`₹${parseFloat(invoice.totalAmount).toFixed(2)}`, pageWidth - margin - 2, yPosition + 1, { align: "right" });
+
+    // Status Badge
+    yPosition += 10;
+    doc.setFontSize(8);
+    const statusColor = invoice.status === "Draft" ? [255, 193, 7] : [76, 175, 80];
+    doc.setFillColor(...statusColor);
+    doc.rect(pageWidth / 2 - 5, yPosition - 2, 30, 5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Status: ${invoice.status}`, pageWidth / 2 - 3, yPosition + 0.5, { align: "center" });
 
     // Footer
-    yPosition = pageHeight - 15;
-    doc.setFontSize(8);
+    yPosition = pageHeight - 12;
+    doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
-    doc.text("This is an electronically generated document", pageWidth / 2, yPosition, { align: "center" });
+    doc.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+    doc.text("This is an electronically generated document. No signature required.", pageWidth / 2, yPosition + 1, { align: "center" });
 
     // Save PDF
     doc.save(`${invoice.invoiceNumber}.pdf`);
