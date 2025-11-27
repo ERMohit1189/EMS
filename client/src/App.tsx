@@ -13,6 +13,7 @@ import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
 import EmployeeList from "@/pages/employee/EmployeeList";
 import SiteRegistration from "@/pages/vendor/SiteRegistration";
 import SiteList from "@/pages/vendor/SiteList";
+import SiteEdit from "@/pages/vendor/SiteEdit";
 import ExcelImport from "@/pages/vendor/ExcelImport";
 import SalaryStructure from "@/pages/employee/SalaryStructure";
 import NotFound from "@/pages/not-found";
@@ -44,6 +45,7 @@ function App() {
               <Route path="/vendor/payment-master" component={PaymentMaster} />
               <Route path="/vendor/sites" component={SiteList} />
               <Route path="/vendor/site/register" component={SiteRegistration} />
+              <Route path="/vendor/site/edit/:id" component={SiteEdit} />
               <Route path="/vendor/excel-import" component={ExcelImport} />
               <Route path="/vendor/po" component={POGeneration} />
               <Route path="/vendor/invoices" component={InvoiceGeneration} />

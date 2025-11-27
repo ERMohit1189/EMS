@@ -1,6 +1,6 @@
 import { useStore } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import {
   Select,
@@ -179,6 +179,30 @@ export default function SiteList() {
                     <label className="text-sm font-semibold text-muted-foreground">ATP Remark</label>
                     <p className="text-sm mt-1">{site.atpRemark || "—"}</p>
                   </div>
+                </div>
+                <div className="flex gap-2 mt-6 pt-4 border-t">
+                  <Link href={`/vendor/site/edit/${site.id}`}>
+                    <Button size="sm" variant="outline" className="gap-2">
+                      <Edit className="h-4 w-4" /> Edit
+                    </Button>
+                  </Link>
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="gap-2"
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to delete this site?')) {
+                        try {
+                          await fetch(`/api/sites/${site.id}`, { method: 'DELETE' });
+                          setSites(sites.filter(s => s.id !== site.id));
+                        } catch (error) {
+                          console.error('Failed to delete site:', error);
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </Button>
                 </div>
               </CardContent>
             )}
