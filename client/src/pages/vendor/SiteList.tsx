@@ -44,6 +44,106 @@ export default function SiteList() {
     return vendors.find(v => v.id === vendorId)?.name || "N/A";
   };
 
+  const columnHeaders = {
+    siteId: "Site ID",
+    sno: "S.No",
+    circle: "Circle",
+    planId: "Plan ID",
+    nominalAop: "Nominal AOP",
+    hopType: "HOP Type",
+    hopAB: "HOP A-B",
+    hopBA: "HOP B-A",
+    district: "District",
+    project: "Project",
+    state: "State",
+    region: "Region",
+    inside: "Inside/Outside",
+    zoneName: "Zone Name",
+    siteAAntDia: "Site A Antenna Dia",
+    siteBAntDia: "Site B Antenna Dia",
+    maxAntSize: "Max Antenna Size",
+    siteAName: "Site A Name",
+    tocoVendorA: "TOCO Vendor A",
+    tocoIdA: "TOCO ID A",
+    siteBName: "Site B Name",
+    tocoVendorB: "TOCO Vendor B",
+    tocoIdB: "TOCO ID B",
+    mediaAvailabilityStatus: "Media Availability Status",
+    srNoSiteA: "SR No Site A",
+    srDateSiteA: "SR Date Site A",
+    srNoSiteB: "SR No Site B",
+    srDateSiteB: "SR Date Site B",
+    hopSrDate: "HOP SR Date",
+    spDateSiteA: "SP Date Site A",
+    spDateSiteB: "SP Date Site B",
+    hopSpDate: "HOP SP Date",
+    soReleasedDateSiteA: "SO Released Date Site A",
+    soReleasedDateSiteB: "SO Released Date Site B",
+    hopSoDate: "HOP SO Date",
+    rfaiOfferedDateSiteA: "RFAI Offered Date Site A",
+    rfaiOfferedDateSiteB: "RFAI Offered Date Site B",
+    actualHopRfaiOfferedDate: "Actual HOP RFAI Offered Date",
+    partnerName: "Partner Name",
+    rfaiSurveyCompletionDate: "RFAI Survey Completion Date",
+    moNumberSiteA: "MO Number Site A",
+    materialTypeSiteA: "Material Type Site A",
+    moDateSiteA: "MO Date Site A",
+    moNumberSiteB: "MO Number Site B",
+    materialTypeSiteB: "Material Type Site B",
+    moDateSiteB: "MO Date Site B",
+    srnRmoNumber: "SRN RMO Number",
+    srnRmoDate: "SRN RMO Date",
+    hopMoDate: "HOP MO Date",
+    hopMaterialDispatchDate: "HOP Material Dispatch Date",
+    hopMaterialDeliveryDate: "HOP Material Delivery Date",
+    materialDeliveryStatus: "Material Delivery Status",
+    siteAInstallationDate: "Site A Installation Date",
+    ptwNumberSiteA: "PTW Number Site A",
+    ptwStatusA: "PTW Status A",
+    siteBInstallationDate: "Site B Installation Date",
+    ptwNumberSiteB: "PTW Number Site B",
+    ptwStatusB: "PTW Status B",
+    hopIcDate: "HOP IC Date",
+    alignmentDate: "Alignment Date",
+    hopInstallationRemarks: "HOP Installation Remarks",
+    visibleInNms: "Visible In NMS",
+    nmsVisibleDate: "NMS Visible Date",
+    softAtOfferDate: "Soft AT Offer Date",
+    softAtAcceptanceDate: "Soft AT Acceptance Date",
+    softAtStatus: "Soft AT Status",
+    softAtRemark: "Soft AT Remark",
+    phyAtOfferDate: "Physical AT Offer Date",
+    phyAtAcceptanceDate: "Physical AT Acceptance Date",
+    phyAtStatus: "Physical AT Status",
+    phyAtRemark: "Physical AT Remark",
+    bothAtStatus: "Both AT Status",
+    atpRemark: "ATP Remark",
+    priIssueCategory: "PRI Issue Category",
+    priSiteId: "PRI Site ID",
+    priOpenDate: "PRI Open Date",
+    priCloseDate: "PRI Close Date",
+    priHistory: "PRI History",
+    rfiSurveyAllocationDate: "RFI Survey Allocation Date",
+    descope: "Descope",
+    reasonOfExtraVisit: "Reason of Extra Visit",
+    wccReceived80Percent: "WCC Received 80%",
+    wccReceivedDate80Percent: "WCC Received Date 80%",
+    wccReceived20Percent: "WCC Received 20%",
+    wccReceivedDate20Percent: "WCC Received Date 20%",
+    wccReceivedDate100Percent: "WCC Received Date 100%",
+    survey: "Survey",
+    finalPartnerSurvey: "Final Partner Survey",
+    surveyDate: "Survey Date",
+    status: "Status",
+    siteAmount: "Site Amount",
+    vendorAmount: "Vendor Amount",
+    antennaSize: "Antenna Size",
+    incDate: "Inception Date",
+    formNo: "Form No",
+    createdAt: "Created At",
+    updatedAt: "Updated At"
+  };
+
   const handleExportByDateRange = async () => {
     try {
       if (!startDate || !endDate) {
@@ -61,7 +161,21 @@ export default function SiteList() {
         return;
       }
       
-      const ws = XLSX.utils.json_to_sheet(data);
+      // Transform data with user-friendly column names
+      const transformedData = data.map((site: any) => {
+        const newRow: any = {};
+        Object.keys(site).forEach(key => {
+          const displayName = (columnHeaders as any)[key] || key;
+          newRow[displayName] = site[key];
+        });
+        return newRow;
+      });
+      
+      const ws = XLSX.utils.json_to_sheet(transformedData);
+      // Auto-adjust column widths
+      const colWidths = Object.values(columnHeaders).map(() => 15);
+      ws['!cols'] = colWidths;
+      
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sites");
       XLSX.writeFile(wb, `sites_export_${startDate}_to_${endDate}.xlsx`);
