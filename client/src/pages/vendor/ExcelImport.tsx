@@ -433,6 +433,21 @@ export default function ExcelImport() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete All Data
+            </CardTitle>
+            <CardDescription>Permanently remove all imported site data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={deleteAllData} variant="destructive" className="w-full" data-testid="button-delete-all-data">
+              Delete All Sites
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
