@@ -28,6 +28,7 @@ export interface IStorage {
   getVendors(limit: number, offset: number): Promise<Vendor[]>;
   updateVendor(id: string, vendor: Partial<InsertVendor>): Promise<Vendor>;
   deleteVendor(id: string): Promise<void>;
+  deleteAllVendors(): Promise<void>;
   getVendorCount(): Promise<number>;
 
   // Site operations
@@ -37,6 +38,7 @@ export interface IStorage {
   getSitesByVendor(vendorId: string): Promise<Site[]>;
   updateSite(id: string, site: Partial<InsertSite>): Promise<Site>;
   deleteSite(id: string): Promise<void>;
+  deleteAllSites(): Promise<void>;
   getSiteCount(): Promise<number>;
 
   // Employee operations
@@ -108,6 +110,10 @@ export class DrizzleStorage implements IStorage {
     await db.delete(vendors).where(eq(vendors.id, id));
   }
 
+  async deleteAllVendors(): Promise<void> {
+    await db.delete(vendors);
+  }
+
   async getVendorCount(): Promise<number> {
     const result = await db.select({ count: count() }).from(vendors);
     return Number(result[0]?.count) || 0;
@@ -148,6 +154,10 @@ export class DrizzleStorage implements IStorage {
   async getSiteCount(): Promise<number> {
     const result = await db.select({ count: count() }).from(sites);
     return Number(result[0]?.count) || 0;
+  }
+
+  async deleteAllSites(): Promise<void> {
+    await db.delete(sites);
   }
 
   // Employee operations

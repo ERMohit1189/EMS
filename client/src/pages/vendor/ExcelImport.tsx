@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface RawRowData {
@@ -320,6 +320,32 @@ export default function ExcelImport() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Sites');
     XLSX.writeFile(workbook, 'site_import_template.xlsx');
+  };
+
+  const deleteAllData = async () => {
+    if (!confirm('Are you sure you want to delete ALL imported site data? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/sites', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: 'All site data has been deleted.',
+        });
+      } else {
+        throw new Error('Failed to delete data');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete site data',
+      });
+    }
   };
 
   const downloadCurrentData = () => {

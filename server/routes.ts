@@ -86,6 +86,15 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/vendors", async (req, res) => {
+    try {
+      await storage.deleteAllVendors();
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Site routes
   app.post("/api/sites", async (req, res) => {
     try {
@@ -152,6 +161,15 @@ export async function registerRoutes(
   app.delete("/api/sites/:id", async (req, res) => {
     try {
       await storage.deleteSite(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/sites", async (req, res) => {
+    try {
+      await storage.deleteAllSites();
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
