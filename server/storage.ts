@@ -23,6 +23,7 @@ import {
   type PaymentMaster,
 } from "@shared/schema";
 import { eq, count, and } from "drizzle-orm";
+import { type InferSelectModel } from "drizzle-orm";
 
 export interface IStorage {
   // Vendor operations
@@ -188,12 +189,126 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSitesForPOGeneration(): Promise<Site[]> {
-    return await db.select().from(sites).where(
-      and(
-        eq(sites.softAtStatus, "Approved"),
-        eq(sites.phyAtStatus, "Approved")
+    const result = await db
+      .select({
+        id: sites.id,
+        siteId: sites.siteId,
+        vendorId: sites.vendorId,
+        planId: sites.planId,
+        antennaSize: sites.antennaSize,
+        incDate: sites.incDate,
+        state: sites.state,
+        region: sites.region,
+        zone: sites.zone,
+        inside: sites.inside,
+        formNo: sites.formNo,
+        siteAmount: paymentMasters.siteAmount,
+        vendorAmount: sites.vendorAmount,
+        softAtRemark: sites.softAtRemark,
+        phyAtRemark: sites.phyAtRemark,
+        atpRemark: sites.atpRemark,
+        sno: sites.sno,
+        circle: sites.circle,
+        nominalAop: sites.nominalAop,
+        hopType: sites.hopType,
+        hopAB: sites.hopAB,
+        hopBA: sites.hopBA,
+        district: sites.district,
+        project: sites.project,
+        siteAAntDia: sites.siteAAntDia,
+        siteBAntDia: sites.siteBAntDia,
+        maxAntSize: sites.maxAntSize,
+        siteAName: sites.siteAName,
+        tocoVendorA: sites.tocoVendorA,
+        tocoIdA: sites.tocoIdA,
+        siteBName: sites.siteBName,
+        tocoVendorB: sites.tocoVendorB,
+        tocoIdB: sites.tocoIdB,
+        mediaAvailabilityStatus: sites.mediaAvailabilityStatus,
+        srNoSiteA: sites.srNoSiteA,
+        srDateSiteA: sites.srDateSiteA,
+        srNoSiteB: sites.srNoSiteB,
+        srDateSiteB: sites.srDateSiteB,
+        hopSrDate: sites.hopSrDate,
+        spDateSiteA: sites.spDateSiteA,
+        spDateSiteB: sites.spDateSiteB,
+        hopSpDate: sites.hopSpDate,
+        soReleasedDateSiteA: sites.soReleasedDateSiteA,
+        soReleasedDateSiteB: sites.soReleasedDateSiteB,
+        hopSoDate: sites.hopSoDate,
+        rfaiOfferedDateSiteA: sites.rfaiOfferedDateSiteA,
+        rfaiOfferedDateSiteB: sites.rfaiOfferedDateSiteB,
+        actualHopRfaiOfferedDate: sites.actualHopRfaiOfferedDate,
+        partnerName: sites.partnerName,
+        rfaiSurveyCompletionDate: sites.rfaiSurveyCompletionDate,
+        moNumberSiteA: sites.moNumberSiteA,
+        materialTypeSiteA: sites.materialTypeSiteA,
+        moDateSiteA: sites.moDateSiteA,
+        moNumberSiteB: sites.moNumberSiteB,
+        materialTypeSiteB: sites.materialTypeSiteB,
+        moDateSiteB: sites.moDateSiteB,
+        srnRmoNumber: sites.srnRmoNumber,
+        srnRmoDate: sites.srnRmoDate,
+        hopMoDate: sites.hopMoDate,
+        hopMaterialDispatchDate: sites.hopMaterialDispatchDate,
+        hopMaterialDeliveryDate: sites.hopMaterialDeliveryDate,
+        materialDeliveryStatus: sites.materialDeliveryStatus,
+        siteAInstallationDate: sites.siteAInstallationDate,
+        ptwNumberSiteA: sites.ptwNumberSiteA,
+        ptwStatusA: sites.ptwStatusA,
+        siteBInstallationDate: sites.siteBInstallationDate,
+        ptwNumberSiteB: sites.ptwNumberSiteB,
+        ptwStatusB: sites.ptwStatusB,
+        hopIcDate: sites.hopIcDate,
+        alignmentDate: sites.alignmentDate,
+        hopInstallationRemarks: sites.hopInstallationRemarks,
+        visibleInNms: sites.visibleInNms,
+        nmsVisibleDate: sites.nmsVisibleDate,
+        softAtOfferDate: sites.softAtOfferDate,
+        softAtAcceptanceDate: sites.softAtAcceptanceDate,
+        softAtStatus: sites.softAtStatus,
+        phyAtOfferDate: sites.phyAtOfferDate,
+        phyAtAcceptanceDate: sites.phyAtAcceptanceDate,
+        phyAtStatus: sites.phyAtStatus,
+        bothAtStatus: sites.bothAtStatus,
+        priIssueCategory: sites.priIssueCategory,
+        priSiteId: sites.priSiteId,
+        priOpenDate: sites.priOpenDate,
+        priCloseDate: sites.priCloseDate,
+        priHistory: sites.priHistory,
+        rfiSurveyAllocationDate: sites.rfiSurveyAllocationDate,
+        descope: sites.descope,
+        reasonOfExtraVisit: sites.reasonOfExtraVisit,
+        wccReceived80Percent: sites.wccReceived80Percent,
+        wccReceivedDate80Percent: sites.wccReceivedDate80Percent,
+        wccReceived20Percent: sites.wccReceived20Percent,
+        wccReceivedDate20Percent: sites.wccReceivedDate20Percent,
+        wccReceivedDate100Percent: sites.wccReceivedDate100Percent,
+        survey: sites.survey,
+        finalPartnerSurvey: sites.finalPartnerSurvey,
+        surveyDate: sites.surveyDate,
+        status: sites.status,
+        createdAt: sites.createdAt,
+        updatedAt: sites.updatedAt,
+      })
+      .from(sites)
+      .leftJoin(
+        paymentMasters,
+        and(
+          eq(sites.id, paymentMasters.siteId),
+          eq(sites.planId, paymentMasters.planId),
+          eq(sites.vendorId, paymentMasters.vendorId),
+          eq(sites.antennaSize, paymentMasters.antennaSize)
+        )
       )
-    );
+      .where(
+        and(
+          eq(sites.softAtStatus, "Approved"),
+          eq(sites.phyAtStatus, "Approved")
+        )
+      );
+    
+    return result as Site[];
   }
 
   async updateSite(id: string, site: Partial<InsertSite>): Promise<Site> {
