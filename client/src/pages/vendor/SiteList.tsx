@@ -161,11 +161,11 @@ export default function SiteList() {
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-muted-foreground">Site Amount</label>
-                    <p className="text-sm font-mono mt-1">₹{site.siteAmount.toFixed(2)}</p>
+                    <p className="text-sm font-mono mt-1">{site.siteAmount ? `₹${parseFloat(site.siteAmount).toFixed(2)}` : "—"}</p>
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-muted-foreground">Vendor Amount</label>
-                    <p className="text-sm font-mono mt-1">₹{site.vendorAmount.toFixed(2)}</p>
+                    <p className="text-sm font-mono mt-1">{site.vendorAmount ? `₹${parseFloat(site.vendorAmount).toFixed(2)}` : "—"}</p>
                   </div>
                   <div className="col-span-2 md:col-span-3">
                     <label className="text-sm font-semibold text-muted-foreground">Software AT Remark</label>
