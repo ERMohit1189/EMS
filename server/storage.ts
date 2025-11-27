@@ -298,7 +298,7 @@ export class DrizzleStorage implements IStorage {
           eq(sites.id, paymentMasters.siteId),
           eq(sites.planId, paymentMasters.planId),
           eq(sites.vendorId, paymentMasters.vendorId),
-          eq(sites.antennaSize, paymentMasters.antennaSize)
+          eq(sites.maxAntSize, paymentMasters.antennaSize)
         )
       )
       .where(
