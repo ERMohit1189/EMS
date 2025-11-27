@@ -224,7 +224,7 @@ export default function InvoiceGeneration() {
     
     doc.text(invoice.quantity.toString(), pageWidth / 2 + 10, yPosition);
     doc.text(parseFloat(invoice.unitPrice).toFixed(2), pageWidth / 2 + 30, yPosition);
-    doc.text(parseFloat(invoice.unitPrice) * invoice.quantity, pageWidth - margin - 22, yPosition, { align: "right" });
+    doc.text((parseFloat(invoice.unitPrice) * invoice.quantity).toFixed(2), pageWidth - margin - 22, yPosition, { align: "right" });
 
     yPosition += 12;
 
