@@ -233,13 +233,25 @@ export default function SiteRegistration() {
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredStates.length > 0 ? (
                             filteredStates.map((state, idx) => (
-                              <SelectItem 
-                                key={state} 
-                                value={state}
-                                className={stateHighlight === idx ? 'bg-accent' : ''}
+                              <div
+                                key={state}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    field.onChange(state);
+                                    setStateSearch('');
+                                    setStateHighlight(-1);
+                                  }
+                                }}
+                                onMouseEnter={() => setStateHighlight(idx)}
                               >
-                                {state}
-                              </SelectItem>
+                                <SelectItem 
+                                  value={state}
+                                  className={stateHighlight === idx ? 'bg-accent' : ''}
+                                >
+                                  {state}
+                                </SelectItem>
+                              </div>
                             ))
                           ) : (
                             <div className="px-2 py-1 text-sm text-muted-foreground">No states found</div>
