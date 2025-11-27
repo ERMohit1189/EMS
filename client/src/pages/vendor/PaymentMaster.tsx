@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { Plus, Edit2, Trash2 } from "lucide-react";
 import type { PaymentMaster } from "@shared/schema";
 
 export default function PaymentMaster() {
+  const topRef = useRef<HTMLDivElement>(null);
+  const antennaSelectRef = useRef<HTMLSelectElement>(null);
   const [masters, setMasters] = useState<PaymentMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PaymentMaster | null>(null);
@@ -60,6 +62,10 @@ export default function PaymentMaster() {
       setNewMaster({ antennaSize: "", siteAmount: "", vendorAmount: "" });
       setEditing(null);
       fetchMasters();
+
+      // Scroll to top and focus first control
+      topRef.current?.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => antennaSelectRef.current?.focus(), 300);
     } catch (error) {
       toast({ title: "Error", description: "Failed to save", variant: "destructive" });
     }
@@ -91,7 +97,7 @@ export default function PaymentMaster() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={topRef}>
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Payment Master</h2>
         <p className="text-muted-foreground">Configure site and vendor amounts by antenna size.</p>
@@ -105,6 +111,7 @@ export default function PaymentMaster() {
           <div>
             <label className="text-sm font-medium">Antenna Size (kVA)</label>
             <select
+              ref={antennaSelectRef}
               value={newMaster.antennaSize}
               onChange={(e) => setNewMaster({ ...newMaster, antennaSize: e.target.value })}
               className="w-full mt-2 px-3 py-2 border rounded-md"
