@@ -198,6 +198,7 @@ export class DrizzleStorage implements IStorage {
         id: sites.id,
         siteId: sites.siteId,
         vendorId: sites.vendorId,
+        zoneId: sites.zoneId,
         planId: sites.planId,
         antennaSize: sites.antennaSize,
         incDate: sites.incDate,
