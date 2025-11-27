@@ -4,14 +4,20 @@ import {
   sites,
   employees,
   salaryStructures,
+  purchaseOrders,
+  invoices,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
   type InsertSalary,
+  type InsertPO,
+  type InsertInvoice,
   type Vendor,
   type Site,
   type Employee,
   type SalaryStructure,
+  type PurchaseOrder,
+  type Invoice,
 } from "@shared/schema";
 import { eq, and, or, ilike } from "drizzle-orm";
 
@@ -52,6 +58,25 @@ export interface IStorage {
     id: string,
     salary: Partial<InsertSalary>
   ): Promise<SalaryStructure>;
+
+  // Purchase Order operations
+  createPO(po: InsertPO): Promise<PurchaseOrder>;
+  getPO(id: string): Promise<PurchaseOrder | undefined>;
+  getPOs(limit: number, offset: number): Promise<PurchaseOrder[]>;
+  getPOsByVendor(vendorId: string): Promise<PurchaseOrder[]>;
+  updatePO(id: string, po: Partial<InsertPO>): Promise<PurchaseOrder>;
+  deletePO(id: string): Promise<void>;
+  getPOCount(): Promise<number>;
+
+  // Invoice operations
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  getInvoice(id: string): Promise<Invoice | undefined>;
+  getInvoices(limit: number, offset: number): Promise<Invoice[]>;
+  getInvoicesByVendor(vendorId: string): Promise<Invoice[]>;
+  getInvoicesByPO(poId: string): Promise<Invoice[]>;
+  updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice>;
+  deleteInvoice(id: string): Promise<void>;
+  getInvoiceCount(): Promise<number>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -203,6 +228,107 @@ export class DrizzleStorage implements IStorage {
       .where(eq(salaryStructures.id, id))
       .returning();
     return result;
+  }
+
+  // Purchase Order operations
+  async createPO(po: InsertPO): Promise<PurchaseOrder> {
+    const [result] = await db.insert(purchaseOrders).values(po).returning();
+    return result;
+  }
+
+  async getPO(id: string): Promise<PurchaseOrder | undefined> {
+    const [result] = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.id, id));
+    return result;
+  }
+
+  async getPOs(limit: number, offset: number): Promise<PurchaseOrder[]> {
+    return await db
+      .select()
+      .from(purchaseOrders)
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getPOsByVendor(vendorId: string): Promise<PurchaseOrder[]> {
+    return await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.vendorId, vendorId));
+  }
+
+  async updatePO(id: string, po: Partial<InsertPO>): Promise<PurchaseOrder> {
+    const [result] = await db
+      .update(purchaseOrders)
+      .set(po)
+      .where(eq(purchaseOrders.id, id))
+      .returning();
+    return result;
+  }
+
+  async deletePO(id: string): Promise<void> {
+    await db.delete(purchaseOrders).where(eq(purchaseOrders.id, id));
+  }
+
+  async getPOCount(): Promise<number> {
+    const result = await db
+      .select({ count: db.sql`count(*)` })
+      .from(purchaseOrders);
+    return Number(result[0]?.count) || 0;
+  }
+
+  // Invoice operations
+  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    const [result] = await db.insert(invoices).values(invoice).returning();
+    return result;
+  }
+
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    const [result] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, id));
+    return result;
+  }
+
+  async getInvoices(limit: number, offset: number): Promise<Invoice[]> {
+    return await db.select().from(invoices).limit(limit).offset(offset);
+  }
+
+  async getInvoicesByVendor(vendorId: string): Promise<Invoice[]> {
+    return await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.vendorId, vendorId));
+  }
+
+  async getInvoicesByPO(poId: string): Promise<Invoice[]> {
+    return await db.select().from(invoices).where(eq(invoices.poId, poId));
+  }
+
+  async updateInvoice(
+    id: string,
+    invoice: Partial<InsertInvoice>
+  ): Promise<Invoice> {
+    const [result] = await db
+      .update(invoices)
+      .set(invoice)
+      .where(eq(invoices.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteInvoice(id: string): Promise<void> {
+    await db.delete(invoices).where(eq(invoices.id, id));
+  }
+
+  async getInvoiceCount(): Promise<number> {
+    const result = await db
+      .select({ count: db.sql`count(*)` })
+      .from(invoices);
+    return Number(result[0]?.count) || 0;
   }
 }
 

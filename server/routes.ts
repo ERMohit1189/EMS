@@ -6,6 +6,8 @@ import {
   insertSiteSchema,
   insertEmployeeSchema,
   insertSalarySchema,
+  insertPOSchema,
+  insertInvoiceSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(
@@ -261,6 +263,157 @@ export async function registerRoutes(
       res.json(salary);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Purchase Order routes
+  app.post("/api/purchase-orders", async (req, res) => {
+    try {
+      const data = insertPOSchema.parse(req.body);
+      const po = await storage.createPO(data);
+      res.json(po);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/purchase-orders", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const offset = (page - 1) * pageSize;
+
+      const data = await storage.getPOs(pageSize, offset);
+      const totalCount = await storage.getPOCount();
+
+      res.json({
+        data,
+        totalCount,
+        pageNumber: page,
+        pageSize,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/purchase-orders/:id", async (req, res) => {
+    try {
+      const po = await storage.getPO(req.params.id);
+      if (!po) {
+        return res.status(404).json({ error: "PO not found" });
+      }
+      res.json(po);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vendors/:vendorId/purchase-orders", async (req, res) => {
+    try {
+      const pos = await storage.getPOsByVendor(req.params.vendorId);
+      res.json({ data: pos });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/purchase-orders/:id", async (req, res) => {
+    try {
+      const data = insertPOSchema.partial().parse(req.body);
+      const po = await storage.updatePO(req.params.id, data);
+      res.json(po);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/purchase-orders/:id", async (req, res) => {
+    try {
+      await storage.deletePO(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Invoice routes
+  app.post("/api/invoices", async (req, res) => {
+    try {
+      const data = insertInvoiceSchema.parse(req.body);
+      const invoice = await storage.createInvoice(data);
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/invoices", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const offset = (page - 1) * pageSize;
+
+      const data = await storage.getInvoices(pageSize, offset);
+      const totalCount = await storage.getInvoiceCount();
+
+      res.json({
+        data,
+        totalCount,
+        pageNumber: page,
+        pageSize,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/invoices/:id", async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vendors/:vendorId/invoices", async (req, res) => {
+    try {
+      const invoices = await storage.getInvoicesByVendor(req.params.vendorId);
+      res.json({ data: invoices });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/purchase-orders/:poId/invoices", async (req, res) => {
+    try {
+      const invoices = await storage.getInvoicesByPO(req.params.poId);
+      res.json({ data: invoices });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/invoices/:id", async (req, res) => {
+    try {
+      const data = insertInvoiceSchema.partial().parse(req.body);
+      const invoice = await storage.updateInvoice(req.params.id, data);
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/invoices/:id", async (req, res) => {
+    try {
+      await storage.deleteInvoice(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

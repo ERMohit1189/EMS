@@ -106,6 +106,54 @@ export const salaryStructures = pgTable("salary_structures", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Purchase Orders Table
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  poNumber: varchar("po_number").notNull().unique(),
+  vendorId: varchar("vendor_id")
+    .notNull()
+    .references(() => vendors.id),
+  siteId: varchar("site_id")
+    .notNull()
+    .references(() => sites.id),
+  description: text("description").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", 12, 2).notNull(),
+  totalAmount: decimal("total_amount", 12, 2).notNull(),
+  poDate: date("po_date").notNull(),
+  dueDate: date("due_date").notNull(),
+  status: varchar("status").notNull().default("Draft"), // Draft, Approved, Issued, Completed, Cancelled
+  approvedBy: varchar("approved_by"),
+  approvalDate: date("approval_date"),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Invoices Table
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: varchar("invoice_number").notNull().unique(),
+  vendorId: varchar("vendor_id")
+    .notNull()
+    .references(() => vendors.id),
+  poId: varchar("po_id")
+    .notNull()
+    .references(() => purchaseOrders.id),
+  invoiceDate: date("invoice_date").notNull(),
+  dueDate: date("due_date").notNull(),
+  amount: decimal("amount", 12, 2).notNull(),
+  gst: decimal("gst", 12, 2).notNull().default(0),
+  totalAmount: decimal("total_amount", 12, 2).notNull(),
+  status: varchar("status").notNull().default("Draft"), // Draft, Submitted, Approved, Paid, Rejected
+  paymentMethod: varchar("payment_method"),
+  paymentDate: date("payment_date"),
+  bankDetails: text("bank_details"),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Zod Schemas
 export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
@@ -131,6 +179,18 @@ export const insertSalarySchema = createInsertSchema(salaryStructures).omit({
   updatedAt: true,
 });
 
+export const insertPOSchema = createInsertSchema(purchaseOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type Definitions
 export type Vendor = typeof vendors.$inferSelect;
 export type InsertVendor = z.infer<typeof insertVendorSchema>;
@@ -143,3 +203,9 @@ export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 
 export type SalaryStructure = typeof salaryStructures.$inferSelect;
 export type InsertSalary = z.infer<typeof insertSalarySchema>;
+
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPO = z.infer<typeof insertPOSchema>;
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
