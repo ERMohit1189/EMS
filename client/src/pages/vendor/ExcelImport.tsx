@@ -160,8 +160,20 @@ export default function ExcelImport() {
           };
 
           if (siteData.siteId && siteData.planId) {
-            addSite(siteData);
-            imported++;
+            try {
+              const response = await fetch('/api/sites/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(siteData),
+              });
+              if (response.ok) {
+                imported++;
+              } else {
+                importErrors.push(`Row ${idx + 2}: Failed to import site`);
+              }
+            } catch (err) {
+              importErrors.push(`Row ${idx + 2}: Network error`);
+            }
           }
         } else if (importType === 'vendor') {
           // Map all columns for vendor

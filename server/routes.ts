@@ -106,6 +106,16 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/sites/upsert", async (req, res) => {
+    try {
+      const data = insertSiteSchema.parse(req.body);
+      const site = await storage.upsertSiteByPlanId(data);
+      res.json(site);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/sites", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;

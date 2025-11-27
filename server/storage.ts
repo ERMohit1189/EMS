@@ -34,9 +34,11 @@ export interface IStorage {
   // Site operations
   createSite(site: InsertSite): Promise<Site>;
   getSite(id: string): Promise<Site | undefined>;
+  getSiteByPlanId(planId: string): Promise<Site | undefined>;
   getSites(limit: number, offset: number): Promise<Site[]>;
   getSitesByVendor(vendorId: string): Promise<Site[]>;
   updateSite(id: string, site: Partial<InsertSite>): Promise<Site>;
+  upsertSiteByPlanId(site: InsertSite): Promise<Site>;
   deleteSite(id: string): Promise<void>;
   deleteAllSites(): Promise<void>;
   getSiteCount(): Promise<number>;
@@ -130,6 +132,11 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async getSiteByPlanId(planId: string): Promise<Site | undefined> {
+    const [result] = await db.select().from(sites).where(eq(sites.planId, planId));
+    return result;
+  }
+
   async getSites(limit: number, offset: number): Promise<Site[]> {
     return await db.select().from(sites).limit(limit).offset(offset);
   }
@@ -145,6 +152,26 @@ export class DrizzleStorage implements IStorage {
       .where(eq(sites.id, id))
       .returning();
     return result;
+  }
+
+  async upsertSiteByPlanId(site: InsertSite): Promise<Site> {
+    // Check if site with this planId already exists
+    const existingSite = await this.getSiteByPlanId(site.planId);
+    
+    if (existingSite) {
+      // Update existing site (exclude planId from update)
+      const { planId, ...updateData } = site;
+      const [result] = await db
+        .update(sites)
+        .set(updateData)
+        .where(eq(sites.planId, site.planId))
+        .returning();
+      return result;
+    } else {
+      // Insert new site
+      const [result] = await db.insert(sites).values(site).returning();
+      return result;
+    }
   }
 
   async deleteSite(id: string): Promise<void> {
