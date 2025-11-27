@@ -15,6 +15,11 @@ import {
 } from 'lucide-react';
 import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
 
+interface SidebarProps {
+  isLoggedIn?: boolean;
+  setIsLoggedIn?: (value: boolean) => void;
+}
+
 const menuItems = [
   {
     title: 'Dashboard',
@@ -38,8 +43,15 @@ const menuItems = [
   },
 ];
 
-export function Sidebar() {
-  const [location] = useLocation();
+export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
+  const [location, setLocation] = useLocation();
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('user');
+    setIsLoggedIn?.(false);
+    setLocation('/login');
+  };
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -77,7 +89,10 @@ export function Sidebar() {
             Publish
           </button>
         </a>
-        <button className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <button 
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:text-red-600"
+        >
           <LogOut className="h-4 w-4" />
           Sign Out
         </button>

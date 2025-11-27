@@ -1,6 +1,8 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { Layout } from "@/components/layout/Layout";
+import { useEffect, useState } from "react";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import VendorRegistration from "@/pages/vendor/VendorRegistration";
 import VendorList from "@/pages/vendor/VendorList";
@@ -27,15 +29,47 @@ const Placeholder = ({ title }: { title: string }) => (
 );
 
 function App() {
+  const [location] = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    setIsLoggedIn(loggedIn);
+    setLoading(false);
+  }, []);
+
+  // Show loading while checking auth
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  // If not logged in and not on login page, redirect to login
+  if (!isLoggedIn && location !== '/login') {
+    return (
+      <>
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route component={Login} />
+        </Switch>
+        <Toaster />
+      </>
+    );
+  }
+
   return (
     <>
       <Switch>
+        {/* Login Route */}
+        <Route path="/login" component={Login} />
+
         {/* Print Routes - No Layout */}
         <Route path="/vendor/po/print/:id" component={POPrint} />
         
         {/* All other routes with Layout */}
         <Route>
-          <Layout>
+          <Layout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
             <Switch>
               <Route path="/" component={Dashboard} />
               
