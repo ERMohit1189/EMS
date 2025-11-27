@@ -32,6 +32,16 @@ export default function PaymentMaster() {
     }
   }, [loading]);
 
+  useEffect(() => {
+    // Auto-select vendor when site is selected
+    if (selectedSite) {
+      const site = sites.find((s) => s.id === selectedSite);
+      if (site && site.vendorId) {
+        setSelectedVendor(site.vendorId);
+      }
+    }
+  }, [selectedSite, sites]);
+
   const fetchMasters = async () => {
     try {
       const response = await fetch("/api/payment-masters");
