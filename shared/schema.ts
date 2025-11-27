@@ -33,16 +33,30 @@ export const vendors = pgTable("vendors", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Sites Table - Comprehensive HOP Management
+// Sites Table - Comprehensive HOP Management (81 columns)
 export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   siteId: varchar("site_id").notNull().unique(),
   vendorId: varchar("vendor_id")
     .notNull()
     .references(() => vendors.id),
+  // Original fields
+  planId: varchar("plan_id").notNull(),
+  antennaSize: varchar("antenna_size"),
+  incDate: date("inc_date"),
+  state: varchar("state"),
+  region: varchar("region"),
+  zone: varchar("zone"),
+  inside: boolean("inside").default(false),
+  formNo: varchar("form_no"),
+  siteAmount: decimal("site_amount", 10, 2),
+  vendorAmount: decimal("vendor_amount", 10, 2),
+  softAtRemark: text("soft_at_remark"),
+  phyAtRemark: text("phy_at_remark"),
+  atpRemark: text("atp_remark"),
+  // New 81 Excel columns
   sno: integer("s_no"),
   circle: varchar("circle"),
-  planId: varchar("plan_id").notNull(),
   nominalAop: varchar("nominal_aop"),
   hopType: varchar("hop_type"),
   hopAB: varchar("hop_a_b"),
