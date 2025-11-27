@@ -224,11 +224,11 @@ export default function SiteRegistration() {
                 name="zoneId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Zone</FormLabel>
+                    <FormLabel>Circle</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select Zone" />
+                          <SelectValue placeholder="Select Circle" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
