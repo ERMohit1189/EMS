@@ -1,18 +1,21 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { EmployeeService } from '../../../core/services/employee.service';
 import { Employee } from '../../../core/models/employee.model';
+import { IndianStates, getCitiesByState } from '../../../assets/india-data';
 
 @Component({
   selector: 'app-employee-register',
   templateUrl: './employee-register.component.html',
   styleUrls: ['./employee-register.component.scss']
 })
-export class EmployeeRegisterComponent {
+export class EmployeeRegisterComponent implements OnInit {
   employeeForm: FormGroup;
   isLoading = false;
   bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+  states = IndianStates;
+  cities: string[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -20,6 +23,13 @@ export class EmployeeRegisterComponent {
     private router: Router
   ) {
     this.employeeForm = this.createForm();
+  }
+
+  ngOnInit(): void {
+    this.employeeForm.get('state')?.valueChanges.subscribe(state => {
+      this.cities = getCitiesByState(state);
+      this.employeeForm.get('city')?.reset();
+    });
   }
 
   createForm(): FormGroup {

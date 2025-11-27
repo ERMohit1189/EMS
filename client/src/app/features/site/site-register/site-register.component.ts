@@ -5,6 +5,7 @@ import { SiteService } from '../../../core/services/site.service';
 import { VendorService } from '../../../core/services/vendor.service';
 import { Site } from '../../../core/models/site.model';
 import { Vendor } from '../../../core/models/vendor.model';
+import { IndianStates } from '../../../assets/india-data';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -17,6 +18,7 @@ export class SiteRegisterComponent implements OnInit {
   vendors$: Observable<Vendor[]>;
   isLoading = false;
   antennaSizes = ['0.6m', '1.2m', '1.8m', '2.4m'];
+  states = IndianStates;
 
   constructor(
     private fb: FormBuilder,

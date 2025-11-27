@@ -19,7 +19,7 @@ import {
   type PurchaseOrder,
   type Invoice,
 } from "@shared/schema";
-import { eq, and, or, ilike } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 
 export interface IStorage {
   // Vendor operations
@@ -109,7 +109,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getVendorCount(): Promise<number> {
-    const result = await db.select({ count: db.sql`count(*)` }).from(vendors);
+    const result = await db.select({ count: count() }).from(vendors);
     return Number(result[0]?.count) || 0;
   }
 
@@ -146,7 +146,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSiteCount(): Promise<number> {
-    const result = await db.select({ count: db.sql`count(*)` }).from(sites);
+    const result = await db.select({ count: count() }).from(sites);
     return Number(result[0]?.count) || 0;
   }
 
@@ -186,7 +186,7 @@ export class DrizzleStorage implements IStorage {
 
   async getEmployeeCount(): Promise<number> {
     const result = await db
-      .select({ count: db.sql`count(*)` })
+      .select({ count: count() })
       .from(employees);
     return Number(result[0]?.count) || 0;
   }
@@ -274,7 +274,7 @@ export class DrizzleStorage implements IStorage {
 
   async getPOCount(): Promise<number> {
     const result = await db
-      .select({ count: db.sql`count(*)` })
+      .select({ count: count() })
       .from(purchaseOrders);
     return Number(result[0]?.count) || 0;
   }
@@ -326,7 +326,7 @@ export class DrizzleStorage implements IStorage {
 
   async getInvoiceCount(): Promise<number> {
     const result = await db
-      .select({ count: db.sql`count(*)` })
+      .select({ count: count() })
       .from(invoices);
     return Number(result[0]?.count) || 0;
   }

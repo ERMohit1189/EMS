@@ -1,17 +1,20 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { VendorService } from '../../../core/services/vendor.service';
 import { Vendor } from '../../../core/models/vendor.model';
+import { IndianStates, getCitiesByState } from '../../../assets/india-data';
 
 @Component({
   selector: 'app-vendor-register',
   templateUrl: './vendor-register.component.html',
   styleUrls: ['./vendor-register.component.scss']
 })
-export class VendorRegisterComponent {
+export class VendorRegisterComponent implements OnInit {
   vendorForm: FormGroup;
   isLoading = false;
+  states = IndianStates;
+  cities: string[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -19,6 +22,13 @@ export class VendorRegisterComponent {
     private router: Router
   ) {
     this.vendorForm = this.createForm();
+  }
+
+  ngOnInit(): void {
+    this.vendorForm.get('state')?.valueChanges.subscribe(state => {
+      this.cities = getCitiesByState(state);
+      this.vendorForm.get('city')?.reset();
+    });
   }
 
   createForm(): FormGroup {
