@@ -12,11 +12,11 @@ export default function SiteList() {
   const [loading, setLoading] = useState(true);
   const [expandedSite, setExpandedSite] = useState<string | null>(null);
   
-  // Initialize startDate to 90 days ago, endDate to today
+  // Initialize startDate to 1 year ago, endDate to today
   const today = new Date().toISOString().split('T')[0];
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
-  const [startDate, setStartDate] = useState(ninetyDaysAgo);
+  const [startDate, setStartDate] = useState(oneYearAgo);
   const [endDate, setEndDate] = useState(today);
 
   useEffect(() => {
