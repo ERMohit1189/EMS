@@ -19,30 +19,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Simple validation
-      if (!email || !password) {
-        toast({
-          title: 'Error',
-          description: 'Please enter email and password',
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Basic email validation
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        toast({
-          title: 'Error',
-          description: 'Please enter a valid email',
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
-
       // Store login info in localStorage
-      const userData = { email, name: email.split('@')[0] };
+      const userData = { email, name: email.split('@')[0] || 'User' };
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('isLoggedIn', 'true');
 
@@ -91,12 +69,10 @@ export default function Login() {
                 Email Address
               </label>
               <Input
-                type="email"
-                placeholder="admin@ems.com"
+                placeholder="Email or any text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                disabled={loading}
               />
             </div>
 
@@ -107,12 +83,10 @@ export default function Login() {
                 Password
               </label>
               <Input
-                type="password"
-                placeholder="••••••••"
+                placeholder="Any password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                disabled={loading}
               />
             </div>
 
@@ -125,14 +99,9 @@ export default function Login() {
               {loading ? 'Logging in...' : 'Login'}
             </Button>
 
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-xs font-semibold text-amber-900 mb-2">Demo Credentials:</p>
-              <div className="space-y-1 text-xs text-amber-800">
-                <p>Email: <span className="font-mono bg-white px-2 py-1 rounded">admin@ems.com</span></p>
-                <p>Password: <span className="font-mono bg-white px-2 py-1 rounded">password</span></p>
-              </div>
-              <p className="text-xs text-amber-700 mt-2">Use any email and password to login</p>
+            {/* Info */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700 mt-2">Enter any credentials to login</p>
             </div>
           </form>
         </CardContent>
