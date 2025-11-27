@@ -4,6 +4,8 @@ import * as z from 'zod';
 import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { useState, useEffect } from 'react';
+import { IndianStates, getCitiesByState } from '@/assets/india-data';
 import {
   Form,
   FormControl,
@@ -49,6 +51,7 @@ export default function EmployeeRegistration() {
   const { addEmployee } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
+  const [cities, setCities] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
@@ -58,6 +61,16 @@ export default function EmployeeRegistration() {
       maritalStatus: 'Single',
     },
   });
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.state) {
+        setCities(getCitiesByState(value.state));
+        form.setValue('city', '');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   function onSubmit(values: z.infer<typeof employeeSchema>) {
     addEmployee({
@@ -218,26 +231,44 @@ export default function EmployeeRegistration() {
               />
               <FormField
                 control={form.control}
-                name="city"
+                name="state"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                      <Input placeholder="City" {...field} />
-                    </FormControl>
+                    <FormLabel>State</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select State" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {IndianStates.map(state => (
+                          <SelectItem key={state} value={state}>{state}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="state"
+                name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>State</FormLabel>
-                    <FormControl>
-                      <Input placeholder="State" {...field} />
-                    </FormControl>
+                    <FormLabel>City</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select City" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {cities.map(city => (
+                          <SelectItem key={city} value={city}>{city}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
