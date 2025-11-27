@@ -8,6 +8,7 @@ import { Plus, Download, Eye, Printer } from "lucide-react";
 import type { Site, Vendor } from "@shared/schema";
 
 interface PORecord {
+  id: string;
   siteId: string;
   vendorId: string;
   siteName: string;
@@ -114,7 +115,8 @@ export default function POGeneration() {
         });
 
         if (response.ok) {
-          createdPOs.push(record);
+          const createdPO = await response.json();
+          createdPOs.push({ ...record, id: createdPO.id });
         }
       }
 
@@ -217,7 +219,7 @@ export default function POGeneration() {
                           <td className="py-2">{po.planId}</td>
                           <td className="text-right py-2">₹{po.unitPrice}</td>
                           <td className="text-center py-2">
-                            <a href={`/vendor/po/print/${po.siteId}`} target="_blank" rel="noopener noreferrer">
+                            <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
                               <Button size="sm" variant="outline" className="gap-1">
                                 <Printer className="h-3 w-3" /> Print
                               </Button>
