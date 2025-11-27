@@ -51,6 +51,7 @@ const employeeSchema = z.object({
   nominee: z.string().min(2, 'Nominee is required'),
   ppeKit: z.boolean().default(false),
   kitNo: z.string().optional(),
+  status: z.enum(['Active', 'Inactive']).default('Active'),
 });
 
 export default function EmployeeRegistration() {
@@ -71,6 +72,7 @@ export default function EmployeeRegistration() {
       country: 'India',
       ppeKit: false,
       maritalStatus: 'Single',
+      status: 'Active',
     },
   });
 
@@ -485,6 +487,27 @@ export default function EmployeeRegistration() {
                     <FormControl>
                       <Input placeholder="PAN" maxLength={10} {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employee Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

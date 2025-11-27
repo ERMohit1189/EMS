@@ -79,6 +79,7 @@ export const employees = pgTable("employees", {
   nominee: text("nominee").notNull(),
   ppeKit: boolean("ppe_kit").notNull().default(false),
   kitNo: varchar("kit_no"),
+  status: varchar("status").notNull().default("Active"), // Active, Inactive
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
