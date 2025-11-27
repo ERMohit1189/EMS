@@ -68,15 +68,13 @@ export default function VendorRegistration() {
     },
   });
 
+  const watchedState = form.watch('state');
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (value.state) {
-        setCities(getCitiesByState(value.state));
-        form.setValue('city', '');
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
+    if (watchedState) {
+      setCities(getCitiesByState(watchedState));
+      form.setValue('city', '', { shouldValidate: false });
+    }
+  }, [watchedState, form]);
 
   function onSubmit(values: z.infer<typeof vendorSchema>) {
     addVendor({
