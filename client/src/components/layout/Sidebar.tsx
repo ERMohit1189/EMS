@@ -27,6 +27,7 @@ const menuItems = [
     submenu: [
       { title: 'Registration', href: '/vendor/register' },
       { title: 'All Vendors', href: '/vendor/list' },
+      { title: 'Payment Master', href: '/vendor/payment-master' },
       { title: 'Site Management', href: '/vendor/sites' },
       { title: 'Excel Import', href: '/vendor/excel-import' },
       { title: 'PO Generation', href: '/vendor/po' },
