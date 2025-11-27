@@ -53,35 +53,16 @@ export default function POPrint() {
   if (!po) return <div className="p-8 text-center">PO not found</div>;
 
   return (
-    <>
+    <div className="w-full bg-white">
       <style>{`
         @media print {
-          * {
-            margin: 0;
-            padding: 0;
-          }
           body {
             margin: 0;
             padding: 0;
             background: white;
           }
-          html, body, #root {
-            height: 100%;
-            width: 100%;
-          }
-          .no-print,
-          nav,
-          [role="navigation"],
-          .sidebar,
-          .layout-sidebar,
-          aside {
+          .no-print {
             display: none !important;
-          }
-          .layout,
-          .main-content,
-          main {
-            margin: 0 !important;
-            padding: 0 !important;
           }
           @page {
             margin: 0.5in;
@@ -90,8 +71,8 @@ export default function POPrint() {
         }
       `}</style>
       
-      <div className="min-h-screen bg-white p-8 no-print">
-        <div className="flex gap-4 mb-8">
+      <div className="min-h-screen bg-white">
+        <div className="no-print flex gap-4 p-8 border-b">
           <Button variant="outline" onClick={() => window.history.back()}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
@@ -99,9 +80,8 @@ export default function POPrint() {
             <Printer className="h-4 w-4 mr-2" /> Print
           </Button>
         </div>
-      </div>
 
-      <div ref={printRef} className="max-w-4xl mx-auto bg-white p-8">
+        <div ref={printRef} className="max-w-4xl mx-auto bg-white p-8">
         {/* Header */}
         <div className="border-b-2 border-gray-800 pb-4 mb-6">
           <h1 className="text-3xl font-bold mb-2">PURCHASE ORDER</h1>
@@ -211,6 +191,7 @@ export default function POPrint() {
           <p className="mt-2">Enterprise Management System (EMS) Portal</p>
         </div>
       </div>
-    </>
+    </div>
+    </div>
   );
 }

@@ -25,34 +25,41 @@ const Placeholder = ({ title }: { title: string }) => (
 function App() {
   return (
     <>
-      <Layout>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          
-          {/* Vendor Routes */}
-          <Route path="/vendor/register" component={VendorRegistration} />
-          <Route path="/vendor/list" component={VendorList} />
-          <Route path="/vendor/edit/:id" component={VendorEdit} />
-          <Route path="/vendor/payment-master" component={PaymentMaster} />
-          <Route path="/vendor/sites" component={SiteRegistration} />
-          <Route path="/vendor/excel-import" component={ExcelImport} />
-          <Route path="/vendor/po" component={POGeneration} />
-          <Route path="/vendor/po/print/:id" component={POPrint} />
-          <Route path="/vendor/invoices" component={() => <Placeholder title="Invoice Generation" />} />
-          
-          {/* Employee Routes */}
-          <Route path="/employee/register" component={EmployeeRegistration} />
-          <Route path="/employee/list" component={EmployeeList} />
-          <Route path="/employee/salary" component={SalaryStructure} />
-          <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
-          <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
-          
-          {/* Reports */}
-          <Route path="/reports" component={() => <Placeholder title="Reports" />} />
-          
-          <Route component={NotFound} />
-        </Switch>
-      </Layout>
+      <Switch>
+        {/* Print Routes - No Layout */}
+        <Route path="/vendor/po/print/:id" component={POPrint} />
+        
+        {/* All other routes with Layout */}
+        <Route>
+          <Layout>
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              
+              {/* Vendor Routes */}
+              <Route path="/vendor/register" component={VendorRegistration} />
+              <Route path="/vendor/list" component={VendorList} />
+              <Route path="/vendor/edit/:id" component={VendorEdit} />
+              <Route path="/vendor/payment-master" component={PaymentMaster} />
+              <Route path="/vendor/sites" component={SiteRegistration} />
+              <Route path="/vendor/excel-import" component={ExcelImport} />
+              <Route path="/vendor/po" component={POGeneration} />
+              <Route path="/vendor/invoices" component={() => <Placeholder title="Invoice Generation" />} />
+              
+              {/* Employee Routes */}
+              <Route path="/employee/register" component={EmployeeRegistration} />
+              <Route path="/employee/list" component={EmployeeList} />
+              <Route path="/employee/salary" component={SalaryStructure} />
+              <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
+              <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
+              
+              {/* Reports */}
+              <Route path="/reports" component={() => <Placeholder title="Reports" />} />
+              
+              <Route component={NotFound} />
+            </Switch>
+          </Layout>
+        </Route>
+      </Switch>
       <Toaster />
     </>
   );
