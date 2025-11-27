@@ -92,6 +92,16 @@ export default function Dashboard() {
     { name: 'Approved', value: purchaseOrders.filter(po => po.status === 'Approved').length, fill: '#10b981' },
   ];
 
+  // Dummy monthly data for trend chart
+  const monthlyData = [
+    { month: 'Jan', installations: 24, revenue: 2400 },
+    { month: 'Feb', installations: 32, revenue: 2210 },
+    { month: 'Mar', installations: 28, revenue: 2290 },
+    { month: 'Apr', installations: 45, revenue: 2000 },
+    { month: 'May', installations: 38, revenue: 2181 },
+    { month: 'Jun', installations: 52, revenue: 2500 },
+  ];
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -231,6 +241,27 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Monthly Performance Trend</CardTitle>
+          <CardDescription>Site installations and revenue by month</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis yAxisId="left" />
+              <YAxis yAxisId="right" orientation="right" />
+              <Tooltip />
+              <Legend />
+              <Line yAxisId="left" type="monotone" dataKey="installations" stroke="#3b82f6" strokeWidth={2} name="Installations" />
+              <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Revenue (₹K)" />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
