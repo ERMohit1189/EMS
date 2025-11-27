@@ -30,7 +30,6 @@ const siteSchema = z.object({
   vendorId: z.string().optional(),
   zoneId: z.string().optional(),
   siteId: z.string().optional(),
-  sno: z.string().optional(),
   circle: z.string().optional(),
   planId: z.string().optional(),
   nominalAop: z.string().optional(),
@@ -218,7 +217,6 @@ export default function SiteRegistration() {
                 )}
               />
               {renderField(form, 'siteId', 'Site ID')}
-              {renderField(form, 'sno', 'S.No.')}
               <FormField
                 control={form.control}
                 name="zoneId"
