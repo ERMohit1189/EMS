@@ -103,47 +103,84 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Overview of your enterprise operations.</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/vendor/register" className="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90">
-            Add Vendor
-          </Link>
-          <Link href="/employee/register" className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-secondary/80">
-            Add Employee
-          </Link>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-8 text-white shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-4xl font-bold tracking-tight mb-2">Dashboard</h2>
+            <p className="text-blue-100">Overview of your enterprise operations.</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/vendor/register" className="bg-white text-blue-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors">
+              Add Vendor
+            </Link>
+            <Link href="/employee/register" className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors">
+              Add Employee
+            </Link>
+          </div>
         </div>
       </div>
 
+      {/* KPI Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <a key={stat.title} href={stat.href} className="no-underline">
-            <Card className="hover:shadow-lg hover:border-primary cursor-pointer transition-all duration-200 h-full">
+            <Card className="hover:shadow-xl hover:border-primary cursor-pointer transition-all duration-300 h-full border-l-4 border-l-transparent hover:border-l-primary">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${stat.color} bg-opacity-10`}>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold hover:text-primary transition-colors">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+                <div className="text-3xl font-bold text-primary">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
               </CardContent>
             </Card>
           </a>
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Site Status Distribution</CardTitle>
-            <CardDescription>Breakdown of all sites by status</CardDescription>
+      {/* Performance Trend - Full Width */}
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Monthly Performance Trend</CardTitle>
+              <CardDescription>Site installations and revenue trajectory</CardDescription>
+            </div>
+            <div className="text-xs font-medium px-3 py-1 bg-blue-100 text-blue-700 rounded-full">6 Months</div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <ResponsiveContainer width="100%" height={350}>
+            <LineChart data={monthlyData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="month" stroke="#6b7280" />
+              <YAxis yAxisId="left" stroke="#6b7280" />
+              <YAxis yAxisId="right" orientation="right" stroke="#6b7280" />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                cursor={{ stroke: '#3b82f6', strokeWidth: 2 }}
+              />
+              <Legend wrapperStyle={{ paddingTop: '20px' }} />
+              <Line yAxisId="left" type="monotone" dataKey="installations" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 5 }} activeDot={{ r: 7 }} name="Installations" />
+              <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 5 }} activeDot={{ r: 7 }} name="Revenue (₹K)" />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Analytics Grid - 3 Columns */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="shadow-md">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-t-lg">
+            <CardTitle className="text-base">Site Status</CardTitle>
+            <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="flex justify-center pt-4">
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={siteStatusData}
@@ -151,7 +188,7 @@ export default function Dashboard() {
                   cy="50%"
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -165,13 +202,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Vendor Status Distribution</CardTitle>
-            <CardDescription>Breakdown of all vendors by status</CardDescription>
+        <Card className="shadow-md">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-t-lg">
+            <CardTitle className="text-base">Vendor Status</CardTitle>
+            <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="flex justify-center pt-4">
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={vendorStatusData}
@@ -179,7 +216,7 @@ export default function Dashboard() {
                   cy="50%"
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -192,34 +229,14 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sites by Region</CardTitle>
-            <CardDescription>Distribution of sites across regions</CardDescription>
+        <Card className="shadow-md">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-t-lg">
+            <CardTitle className="text-base">PO Status</CardTitle>
+            <CardDescription className="text-xs">Purchase order breakdown</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={regionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Purchase Order Status</CardTitle>
-            <CardDescription>PO breakdown by status</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="flex justify-center pt-4">
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={poStatusData}
@@ -227,7 +244,7 @@ export default function Dashboard() {
                   cy="50%"
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -242,83 +259,83 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Performance Trend</CardTitle>
-          <CardDescription>Site installations and revenue by month</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip />
-              <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="installations" stroke="#3b82f6" strokeWidth={2} name="Installations" />
-              <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Revenue (₹K)" />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Bottom Section - Activity & Approvals */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Sites by Region */}
+        <Card className="shadow-md md:col-span-2">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-t-lg">
+            <CardTitle className="text-base">Sites by Region</CardTitle>
+            <CardDescription className="text-xs">Geographic distribution</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={regionData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" />
+                <YAxis stroke="#6b7280" />
+                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Site Activity</CardTitle>
-            <CardDescription>Latest updates from field sites.</CardDescription>
+        {/* Activity & Approvals Row */}
+        <Card className="shadow-md">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-t-lg">
+            <CardTitle className="text-base">Recent Site Activity</CardTitle>
+            <CardDescription className="text-xs">Latest updates</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 max-h-64 overflow-y-auto">
               {sites.slice(0, 5).map((site) => (
-                <div key={site.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-4">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-full ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                      <Activity className="h-5 w-5" />
+                <div key={site.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                      <Activity className="h-4 w-4" />
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">Site {site.siteId} updated</p>
-                      <p className="text-xs text-muted-foreground">{site.region} • {site.state}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-none truncate">Site {site.siteId}</p>
+                      <p className="text-xs text-muted-foreground truncate">{site.region} • {site.state}</p>
                     </div>
                   </div>
-                  <div className={`text-sm font-medium ${site.status === 'Active' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0 ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                     {site.status}
-                  </div>
+                  </span>
                 </div>
               ))}
               {sites.length === 0 && (
-                 <div className="text-center py-4 text-muted-foreground text-sm">No sites registered yet.</div>
+                 <div className="text-center py-4 text-muted-foreground text-sm">No sites registered.</div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Pending Approvals</CardTitle>
-            <CardDescription>Vendors waiting for verification.</CardDescription>
+        <Card className="shadow-md">
+          <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100 rounded-t-lg">
+            <CardTitle className="text-base">Pending Approvals</CardTitle>
+            <CardDescription className="text-xs">Vendors awaiting verification</CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="space-y-4">
+             <div className="space-y-3 max-h-64 overflow-y-auto">
               {vendors.filter(v => v.status === 'Pending').slice(0, 5).map((vendor) => (
-                <div key={vendor.id} className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                     <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                <div key={vendor.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                   <div className="flex items-center gap-3 flex-1 min-w-0">
+                     <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
                         {vendor.name.substring(0,2).toUpperCase()}
                      </div>
-                     <div>
-                        <p className="text-sm font-medium">{vendor.name}</p>
-                        <p className="text-xs text-muted-foreground">{vendor.category}</p>
+                     <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{vendor.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{vendor.category}</p>
                      </div>
                    </div>
-                   <Link href="/vendor/list" className="text-xs text-primary hover:underline flex items-center gap-1">
+                   <Link href="/vendor/list" className="text-xs text-primary hover:text-primary/80 hover:underline flex items-center gap-1 flex-shrink-0 font-medium">
                       Review <ArrowUpRight className="h-3 w-3" />
                    </Link>
                 </div>
               ))}
                {vendors.filter(v => v.status === 'Pending').length === 0 && (
-                 <div className="text-center py-4 text-muted-foreground text-sm">No pending approvals.</div>
+                 <div className="text-center py-4 text-muted-foreground text-sm">No pending vendors.</div>
               )}
              </div>
           </CardContent>
