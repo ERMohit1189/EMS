@@ -7,6 +7,7 @@ import VendorList from "@/pages/vendor/VendorList";
 import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
 import EmployeeList from "@/pages/employee/EmployeeList";
 import SiteRegistration from "@/pages/vendor/SiteRegistration";
+import ExcelImport from "@/pages/vendor/ExcelImport";
 import SalaryStructure from "@/pages/employee/SalaryStructure";
 import NotFound from "@/pages/not-found";
 
@@ -28,6 +29,7 @@ function App() {
           <Route path="/vendor/register" component={VendorRegistration} />
           <Route path="/vendor/list" component={VendorList} />
           <Route path="/vendor/sites" component={SiteRegistration} />
+          <Route path="/vendor/excel-import" component={ExcelImport} />
           <Route path="/vendor/po" component={() => <Placeholder title="PO Generation" />} />
           <Route path="/vendor/invoices" component={() => <Placeholder title="Invoice Generation" />} />
           

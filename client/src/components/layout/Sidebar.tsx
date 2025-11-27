@@ -10,7 +10,8 @@ import {
   ClipboardCheck,
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  Upload
 } from 'lucide-react';
 import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
 
@@ -27,6 +28,7 @@ const menuItems = [
       { title: 'Registration', href: '/vendor/register' },
       { title: 'All Vendors', href: '/vendor/list' },
       { title: 'Site Management', href: '/vendor/sites' },
+      { title: 'Excel Import', href: '/vendor/excel-import' },
       { title: 'PO Generation', href: '/vendor/po' },
       { title: 'Invoices', href: '/vendor/invoices' },
     ],
