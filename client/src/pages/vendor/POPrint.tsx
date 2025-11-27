@@ -117,10 +117,10 @@ export default function POPrint() {
           <div>
             <p className="text-xs font-semibold text-gray-600 mb-2">SITE</p>
             <p className="font-semibold">{po.site?.hopAB}</p>
+            <p className="text-sm text-gray-600">Site ID: {po.siteId}</p>
             <p className="text-sm text-gray-600">Plan ID: {po.site?.planId}</p>
             <p className="text-sm text-gray-600">Circle: {po.site?.circle}</p>
             <p className="text-sm text-gray-600">District: {po.site?.district}</p>
-            <p className="text-sm text-gray-600">Site ID: {po.site?.siteId}</p>
           </div>
         </div>
 
