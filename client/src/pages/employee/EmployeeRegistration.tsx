@@ -470,7 +470,7 @@ export default function EmployeeRegistration() {
                   <FormItem>
                     <FormLabel>Aadhar No</FormLabel>
                     <FormControl>
-                      <Input placeholder="Aadhar" {...field} />
+                      <Input placeholder="Aadhar" maxLength={12} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -483,7 +483,7 @@ export default function EmployeeRegistration() {
                   <FormItem>
                     <FormLabel>PAN No</FormLabel>
                     <FormControl>
-                      <Input placeholder="PAN" {...field} />
+                      <Input placeholder="PAN" maxLength={10} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -442,7 +442,7 @@ export default function VendorRegistration() {
                   <FormItem>
                     <FormLabel>Aadhar Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="12-digit Aadhar" {...field} />
+                      <Input placeholder="12-digit Aadhar" maxLength={12} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -456,7 +456,7 @@ export default function VendorRegistration() {
                   <FormItem>
                     <FormLabel>PAN Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="10-digit PAN" {...field} />
+                      <Input placeholder="10-digit PAN" maxLength={10} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -470,7 +470,7 @@ export default function VendorRegistration() {
                   <FormItem>
                     <FormLabel>GSTIN (Optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="GST Number" {...field} />
+                      <Input placeholder="GST Number" maxLength={15} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
