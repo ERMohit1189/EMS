@@ -4,7 +4,7 @@ import * as z from 'zod';
 import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IndianStates } from '@/assets/india-data';
 import {
   Form,
@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 const siteSchema = z.object({
   vendorId: z.string().min(1, 'Vendor is required'),
+  zoneId: z.string().optional(),
   siteId: z.string().min(2, 'Site ID is required'),
   sno: z.string().optional(),
   circle: z.string().optional(),
@@ -132,6 +133,22 @@ export default function SiteRegistration() {
   const { addSite, vendors } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
+  const [zones, setZones] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const response = await fetch('/api/zones?pageSize=10000');
+        if (response.ok) {
+          const data = await response.json();
+          setZones(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to load zones');
+      }
+    };
+    fetchZones();
+  }, []);
 
   const form = useForm<z.infer<typeof siteSchema>>({
     resolver: zodResolver(siteSchema),
@@ -193,7 +210,28 @@ export default function SiteRegistration() {
               />
               {renderField(form, 'siteId', 'Site ID *')}
               {renderField(form, 'sno', 'S.No.')}
-              {renderField(form, 'circle', 'Circle')}
+              <FormField
+                control={form.control}
+                name="zoneId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zone</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Zone" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {zones.map(zone => (
+                          <SelectItem key={zone.id} value={zone.id}>{zone.name} ({zone.shortName})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               {renderField(form, 'planId', 'Plan ID *')}
               {renderField(form, 'project', 'Project')}
             </CardContent>

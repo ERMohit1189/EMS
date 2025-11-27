@@ -40,6 +40,7 @@ export const sites = pgTable("sites", {
   vendorId: varchar("vendor_id")
     .notNull()
     .references(() => vendors.id),
+  zoneId: varchar("zone_id").references(() => zones.id),
   // Original fields
   planId: varchar("plan_id").notNull(),
   antennaSize: varchar("antenna_size"),
