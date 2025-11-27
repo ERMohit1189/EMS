@@ -88,13 +88,55 @@ export default function SiteList() {
         {sites.map((site) => (
           <Card key={site.id} className="overflow-hidden">
             <CardHeader 
-              className="cursor-pointer hover:bg-muted/50 transition-colors py-3"
+              className="cursor-pointer hover:bg-muted/50 transition-colors py-4"
               onClick={() => setExpandedSite(expandedSite === site.id ? null : site.id)}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
+              <div className="space-y-3">
+                <div>
                   <CardTitle className="text-lg">{site.siteId}</CardTitle>
                   <p className="text-sm text-muted-foreground">{getVendorName(site.vendorId)} • {site.state} • {site.zone}</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
+                    <p className="text-sm font-mono font-semibold mt-0.5">{site.planId || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Antenna Size</label>
+                    <p className="text-sm font-semibold mt-0.5">{site.maxAntSize || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Soft AT</label>
+                    <p className="text-sm font-semibold mt-0.5">
+                      <span className={site.softAtStatus === "Approved" ? "text-green-600" : site.softAtStatus === "Pending" ? "text-amber-600" : "text-red-600"}>
+                        {site.softAtStatus || "—"}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Physical AT</label>
+                    <p className="text-sm font-semibold mt-0.5">
+                      <span className={site.phyAtStatus === "Approved" ? "text-green-600" : site.phyAtStatus === "Pending" ? "text-amber-600" : "text-red-600"}>
+                        {site.phyAtStatus || "—"}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Site Amount</label>
+                    <p className="text-sm font-semibold mt-0.5">{site.siteAmount ? `₹${Number(site.siteAmount).toFixed(2)}` : "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Vendor Amount</label>
+                    <p className="text-sm font-semibold mt-0.5">{site.vendorAmount ? `₹${Number(site.vendorAmount).toFixed(2)}` : "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Circle</label>
+                    <p className="text-sm font-semibold mt-0.5">{site.circle || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">HOP Type</label>
+                    <p className="text-sm font-semibold mt-0.5">{site.hopType || "—"}</p>
+                  </div>
                 </div>
               </div>
             </CardHeader>
