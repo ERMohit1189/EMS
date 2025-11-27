@@ -131,7 +131,7 @@ export default function SiteList() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Circle</label>
-                    <p className="text-sm font-semibold mt-0.5">{site.zoneName || "—"}</p>
+                    <p className="text-sm font-semibold mt-0.5">{site.zoneName || site.circle || "—"}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">HOP Type</label>
@@ -161,7 +161,7 @@ export default function SiteList() {
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
                       <label className="text-xs font-medium text-muted-foreground">Circle</label>
-                      <p className="text-sm font-semibold mt-1">{site.zoneName || "—"}</p>
+                      <p className="text-sm font-semibold mt-1">{site.zoneName || site.circle || "—"}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
                       <label className="text-xs font-medium text-muted-foreground">HOP A-B</label>
