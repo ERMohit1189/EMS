@@ -282,37 +282,50 @@ export default function POGeneration() {
                 <CardDescription>Complete list of all purchase orders ({allPOs.length} total)</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="border-b">
-                      <tr>
-                        <th className="text-left py-2">PO Number</th>
-                        <th className="text-left py-2">Site</th>
-                        <th className="text-left py-2">Vendor</th>
-                        <th className="text-left py-2">Plan ID</th>
-                        <th className="text-right py-2">Amount</th>
-                        <th className="text-center py-2">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allPOs.map((po) => (
-                        <tr key={po.id} className="border-b hover:bg-muted/50">
-                          <td className="py-2 font-semibold">{po.poNumber}</td>
-                          <td className="py-2">{po.siteName}</td>
-                          <td className="py-2">{po.vendorName}</td>
-                          <td className="py-2">{po.planId}</td>
-                          <td className="text-right py-2">₹{po.unitPrice}</td>
-                          <td className="text-center py-2">
-                            <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
-                              <Button size="sm" variant="outline" className="gap-1">
-                                <Printer className="h-3 w-3" /> Print
-                              </Button>
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  {allPOs.map((po) => (
+                    <div
+                      key={po.id}
+                      className="border rounded-lg p-4 hover:shadow-md hover:border-primary/50 transition-all"
+                    >
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">PO Number</p>
+                          <p className="text-base font-bold text-blue-600">{po.poNumber}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Site</p>
+                            <p className="text-sm font-semibold">{po.siteName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Vendor</p>
+                            <p className="text-sm font-semibold">{po.vendorName}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Plan ID</p>
+                            <p className="text-sm text-gray-700 truncate">{po.planId}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Amount</p>
+                            <p className="text-sm font-bold text-green-600">₹{po.unitPrice}</p>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t">
+                          <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" variant="outline" className="w-full gap-1">
+                              <Printer className="h-3 w-3" /> Print PO
+                            </Button>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
