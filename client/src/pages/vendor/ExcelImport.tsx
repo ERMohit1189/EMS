@@ -102,9 +102,14 @@ export default function ExcelImport() {
           const toDate = excelDateToISO;
 
           // Map all 81 columns for site from Excel
+          if (!vendors || vendors.length === 0) {
+            importErrors.push(`Row ${idx + 2}: No vendors found in the system. Please create a vendor first.`);
+            continue;
+          }
+
           const siteData = {
             siteId: toString(row['PLAN ID']) || `SITE-${idx}`,
-            vendorId: vendors[0]?.id || '1',
+            vendorId: vendors[0].id,
             sno: Number(row['S.No.']) || undefined,
             circle: toString(row['Circle']),
             planId: toString(row['PLAN ID']),
