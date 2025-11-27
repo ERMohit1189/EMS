@@ -4,7 +4,7 @@ import * as z from 'zod';
 import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { IndianStates } from '@/assets/india-data';
 import {
   Form,
@@ -51,6 +51,7 @@ export default function SiteRegistration() {
   const [_, setLocation] = useLocation();
   const [stateSearch, setStateSearch] = useState('');
   const [stateHighlight, setStateHighlight] = useState(-1);
+  const stateInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof siteSchema>>({
     resolver: zodResolver(siteSchema),
@@ -203,6 +204,7 @@ export default function SiteRegistration() {
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
                         <div className="p-2" onClick={(e) => e.stopPropagation()}>
                           <Input 
+                            ref={stateInputRef}
                             autoFocus
                             placeholder="Search states..." 
                             value={stateSearch}
@@ -222,6 +224,7 @@ export default function SiteRegistration() {
                                 field.onChange(filteredStates[stateHighlight]);
                                 setStateSearch('');
                                 setStateHighlight(-1);
+                                setTimeout(() => stateInputRef.current?.focus(), 100);
                               } else if (e.key === 'Escape') {
                                 setStateSearch('');
                                 setStateHighlight(-1);
@@ -241,9 +244,16 @@ export default function SiteRegistration() {
                                     field.onChange(state);
                                     setStateSearch('');
                                     setStateHighlight(-1);
+                                    setTimeout(() => stateInputRef.current?.focus(), 100);
                                   }
                                 }}
                                 onMouseEnter={() => setStateHighlight(idx)}
+                                onClick={() => {
+                                  field.onChange(state);
+                                  setStateSearch('');
+                                  setStateHighlight(-1);
+                                  setTimeout(() => stateInputRef.current?.focus(), 100);
+                                }}
                               >
                                 <SelectItem 
                                   value={state}

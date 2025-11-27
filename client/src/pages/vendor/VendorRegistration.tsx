@@ -4,7 +4,7 @@ import * as z from 'zod';
 import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IndianStates, getCitiesByState } from '@/assets/india-data';
 import {
   Form,
@@ -53,6 +53,8 @@ export default function VendorRegistration() {
   const [citySearch, setCitySearch] = useState('');
   const [stateHighlight, setStateHighlight] = useState(-1);
   const [cityHighlight, setCityHighlight] = useState(-1);
+  const stateInputRef = useRef<HTMLInputElement>(null);
+  const cityInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
@@ -231,6 +233,7 @@ export default function VendorRegistration() {
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
                         <div className="p-2" onClick={(e) => e.stopPropagation()}>
                           <Input 
+                            ref={stateInputRef}
                             autoFocus
                             placeholder="Search states..." 
                             value={stateSearch}
@@ -250,6 +253,7 @@ export default function VendorRegistration() {
                                 field.onChange(filteredStates[stateHighlight]);
                                 setStateSearch('');
                                 setStateHighlight(-1);
+                                setTimeout(() => stateInputRef.current?.focus(), 100);
                               } else if (e.key === 'Escape') {
                                 setStateSearch('');
                                 setStateHighlight(-1);
@@ -269,9 +273,16 @@ export default function VendorRegistration() {
                                     field.onChange(state);
                                     setStateSearch('');
                                     setStateHighlight(-1);
+                                    setTimeout(() => stateInputRef.current?.focus(), 100);
                                   }
                                 }}
                                 onMouseEnter={() => setStateHighlight(idx)}
+                                onClick={() => {
+                                  field.onChange(state);
+                                  setStateSearch('');
+                                  setStateHighlight(-1);
+                                  setTimeout(() => stateInputRef.current?.focus(), 100);
+                                }}
                               >
                                 <SelectItem 
                                   value={state}
@@ -307,6 +318,7 @@ export default function VendorRegistration() {
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
                         <div className="p-2" onClick={(e) => e.stopPropagation()}>
                           <Input 
+                            ref={cityInputRef}
                             autoFocus
                             placeholder="Search cities..." 
                             value={citySearch}
@@ -326,6 +338,7 @@ export default function VendorRegistration() {
                                 field.onChange(filteredCities[cityHighlight]);
                                 setCitySearch('');
                                 setCityHighlight(-1);
+                                setTimeout(() => cityInputRef.current?.focus(), 100);
                               } else if (e.key === 'Escape') {
                                 setCitySearch('');
                                 setCityHighlight(-1);
@@ -345,9 +358,16 @@ export default function VendorRegistration() {
                                     field.onChange(city);
                                     setCitySearch('');
                                     setCityHighlight(-1);
+                                    setTimeout(() => cityInputRef.current?.focus(), 100);
                                   }
                                 }}
                                 onMouseEnter={() => setCityHighlight(idx)}
+                                onClick={() => {
+                                  field.onChange(city);
+                                  setCitySearch('');
+                                  setCityHighlight(-1);
+                                  setTimeout(() => cityInputRef.current?.focus(), 100);
+                                }}
                               >
                                 <SelectItem 
                                   value={city}
