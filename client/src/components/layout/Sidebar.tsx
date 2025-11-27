@@ -27,14 +27,14 @@ const menuItems = [
     href: '/vendor/list',
   },
   {
+    title: 'Site Management',
+    icon: Building2,
+    href: '/vendor/sites',
+  },
+  {
     title: 'Employees',
     icon: HardHat,
     href: '/employee/list',
-  },
-  {
-    title: 'Reports',
-    icon: BarChart3,
-    href: '/reports',
   },
 ];
 
