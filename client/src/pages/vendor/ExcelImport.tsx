@@ -62,13 +62,14 @@ export default function ExcelImport() {
     reader.readAsArrayBuffer(file);
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (importedData.length === 0) return;
 
     let imported = 0;
     const importErrors: string[] = [];
 
-    importedData.forEach((row, idx) => {
+    for (let idx = 0; idx < importedData.length; idx++) {
+      const row = importedData[idx];
       try {
         if (importType === 'site') {
           // Map all 81 columns for site from Excel
@@ -160,19 +161,15 @@ export default function ExcelImport() {
           };
 
           if (siteData.siteId && siteData.planId) {
-            try {
-              const response = await fetch('/api/sites/upsert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(siteData),
-              });
-              if (response.ok) {
-                imported++;
-              } else {
-                importErrors.push(`Row ${idx + 2}: Failed to import site`);
-              }
-            } catch (err) {
-              importErrors.push(`Row ${idx + 2}: Network error`);
+            const response = await fetch('/api/sites/upsert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(siteData),
+            });
+            if (response.ok) {
+              imported++;
+            } else {
+              importErrors.push(`Row ${idx + 2}: Failed to import site`);
             }
           }
         } else if (importType === 'vendor') {
