@@ -226,7 +226,7 @@ export default function ExcelImport() {
       } catch (err) {
         importErrors.push(`Row ${idx + 2}: Error processing data`);
       }
-    });
+    }
 
     toast({
       title: 'Import Complete',
