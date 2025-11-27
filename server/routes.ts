@@ -463,6 +463,21 @@ export async function registerRoutes(
   app.post("/api/payment-masters", async (req, res) => {
     try {
       const data = insertPaymentMasterSchema.parse(req.body);
+      
+      // Check if composite key already exists
+      const existing = await storage.getPaymentMasterByCompositeKey(
+        data.siteId,
+        data.planId,
+        data.vendorId,
+        data.antennaSize
+      );
+      
+      if (existing) {
+        return res.status(409).json({ 
+          error: `Payment configuration already exists for this Site, Plan, Vendor, and Antenna Size combination` 
+        });
+      }
+      
       const pm = await storage.createPaymentMaster(data);
       res.json(pm);
     } catch (error: any) {
@@ -494,6 +509,23 @@ export async function registerRoutes(
   app.put("/api/payment-masters/:id", async (req, res) => {
     try {
       const data = insertPaymentMasterSchema.partial().parse(req.body);
+      
+      // Check if composite key already exists (excluding current record)
+      if (data.siteId && data.planId && data.vendorId && data.antennaSize) {
+        const existing = await storage.getPaymentMasterByCompositeKey(
+          data.siteId,
+          data.planId,
+          data.vendorId,
+          data.antennaSize
+        );
+        
+        if (existing && existing.id !== req.params.id) {
+          return res.status(409).json({ 
+            error: `Payment configuration already exists for this Site, Plan, Vendor, and Antenna Size combination` 
+          });
+        }
+      }
+      
       const pm = await storage.updatePaymentMaster(req.params.id, data);
       res.json(pm);
     } catch (error: any) {

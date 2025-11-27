@@ -22,7 +22,7 @@ import {
   type Invoice,
   type PaymentMaster,
 } from "@shared/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, and } from "drizzle-orm";
 
 export interface IStorage {
   // Vendor operations
@@ -92,6 +92,7 @@ export interface IStorage {
   getPaymentMaster(id: string): Promise<PaymentMaster | undefined>;
   getPaymentMasterByAntennaSize(antennaSize: string): Promise<PaymentMaster | undefined>;
   getPaymentMasters(): Promise<PaymentMaster[]>;
+  getPaymentMasterByCompositeKey(siteId: string, planId: string, vendorId: string, antennaSize: string): Promise<PaymentMaster | undefined>;
   updatePaymentMaster(id: string, pm: Partial<InsertPaymentMaster>): Promise<PaymentMaster>;
   deletePaymentMaster(id: string): Promise<void>;
 }
@@ -432,6 +433,21 @@ export class DrizzleStorage implements IStorage {
 
   async getPaymentMasters(): Promise<PaymentMaster[]> {
     return await db.select().from(paymentMasters);
+  }
+
+  async getPaymentMasterByCompositeKey(siteId: string, planId: string, vendorId: string, antennaSize: string): Promise<PaymentMaster | undefined> {
+    const [result] = await db
+      .select()
+      .from(paymentMasters)
+      .where(
+        and(
+          eq(paymentMasters.siteId, siteId),
+          eq(paymentMasters.planId, planId),
+          eq(paymentMasters.vendorId, vendorId),
+          eq(paymentMasters.antennaSize, antennaSize)
+        )
+      );
+    return result;
   }
 
   async updatePaymentMaster(id: string, pm: Partial<InsertPaymentMaster>): Promise<PaymentMaster> {
