@@ -33,70 +33,63 @@ export default function POGeneration() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchApprovedSites();
-    fetchVendors();
-    fetchAllPOs();
-  }, []);
+    const loadInitialData = async () => {
+      try {
+        const [sitesRes, vendorsRes, posRes] = await Promise.all([
+          fetch("/api/sites/for-po-generation"),
+          fetch("/api/vendors?pageSize=10000"),
+          fetch("/api/purchase-orders?pageSize=10000"),
+        ]);
 
-  const fetchApprovedSites = async () => {
-    try {
-      const response = await fetch("/api/sites/for-po-generation");
-      if (!response.ok) throw new Error("Failed to fetch");
-      const result = await response.json();
-      setApprovedSites(result.data || []);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to load approved sites", variant: "destructive" });
-    }
-  };
+        if (!sitesRes.ok || !vendorsRes.ok || !posRes.ok) {
+          throw new Error("Failed to fetch data");
+        }
 
-  const fetchAllPOs = async () => {
-    try {
-      const response = await fetch("/api/purchase-orders?pageSize=10000");
-      if (!response.ok) throw new Error("Failed to fetch");
-      const result = await response.json();
-      const pos = result.data || [];
-      
-      // Convert POs to PORecord format
-      const poRecords: PORecord[] = [];
-      for (const po of pos) {
-        const vendor = vendors.find(v => v.id === po.vendorId);
-        const site = approvedSites.find(s => s.id === po.siteId);
-        poRecords.push({
-          id: po.id,
-          siteId: po.siteId,
-          vendorId: po.vendorId,
-          siteName: site?.hopAB || site?.siteId || "Unknown",
-          vendorName: vendor?.name || "Unknown",
-          planId: site?.planId || "Unknown",
-          poNumber: po.poNumber,
-          description: po.description,
-          quantity: po.quantity,
-          unitPrice: po.unitPrice,
-        });
+        const sitesData = await sitesRes.json();
+        const vendorsData = await vendorsRes.json();
+        const posData = await posRes.json();
+
+        const sites = sitesData.data || [];
+        const vendorsList = vendorsData.data || [];
+        const pos = posData.data || [];
+
+        // Set vendors and sites
+        setApprovedSites(sites);
+        setVendors(vendorsList);
+
+        // Convert POs to PORecord format
+        const poRecords: PORecord[] = [];
+        for (const po of pos) {
+          const vendor = vendorsList.find(v => v.id === po.vendorId);
+          const site = sites.find(s => s.id === po.siteId);
+          poRecords.push({
+            id: po.id,
+            siteId: po.siteId,
+            vendorId: po.vendorId,
+            siteName: site?.hopAB || site?.siteId || "Unknown",
+            vendorName: vendor?.name || "Unknown",
+            planId: site?.planId || "Unknown",
+            poNumber: po.poNumber,
+            description: po.description,
+            quantity: po.quantity,
+            unitPrice: po.unitPrice,
+          });
+        }
+        setAllPOs(poRecords);
+
+        // Filter out sites that already have POs
+        const sitesWithPOs = new Set(pos.map((po: any) => po.siteId));
+        const filtered = sites.filter(site => !sitesWithPOs.has(site.id));
+        setAvailableSites(filtered);
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to load data", variant: "destructive" });
+      } finally {
+        setLoading(false);
       }
-      setAllPOs(poRecords);
-      
-      // Filter out sites that already have POs
-      const sitesWithPOs = new Set(pos.map((po: any) => po.siteId));
-      const filtered = approvedSites.filter(site => !sitesWithPOs.has(site.id));
-      setAvailableSites(filtered);
-    } catch (error) {
-      console.log("Note: Some POs may not load - this is normal on first load");
-    }
-  };
+    };
 
-  const fetchVendors = async () => {
-    try {
-      const response = await fetch("/api/vendors?pageSize=10000");
-      if (!response.ok) throw new Error("Failed to fetch");
-      const result = await response.json();
-      setVendors(result.data || []);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to load vendors", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadInitialData();
+  }, []);
 
   const handleSiteSelection = (siteId: string) => {
     const newSet = new Set(selectedSites);
