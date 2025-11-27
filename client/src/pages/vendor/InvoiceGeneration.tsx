@@ -152,11 +152,11 @@ export default function InvoiceGeneration() {
 
     doc.setFontSize(9);
     doc.setTextColor(...darkGray);
-    doc.text(`Invoice #: ${invoice.invoiceNumber}`, col1X, yPosition);
+    doc.text(`Invoice #: ${String(invoice.invoiceNumber)}`, col1X, yPosition);
     yPosition += 4;
-    doc.text(`Invoice Date: ${invoice.invoiceDate}`, col1X, yPosition);
+    doc.text(`Invoice Date: ${String(invoice.invoiceDate)}`, col1X, yPosition);
     yPosition += 4;
-    doc.text(`Due Date: ${invoice.invoiceDueDate}`, col1X, yPosition);
+    doc.text(`Due Date: ${String(invoice.invoiceDueDate)}`, col1X, yPosition);
 
     // Right Column - PO References
     yPosition = 35;
@@ -167,11 +167,11 @@ export default function InvoiceGeneration() {
 
     doc.setFontSize(9);
     doc.setTextColor(...darkGray);
-    doc.text(`PO #: ${invoice.poNumber}`, col2X, yPosition);
+    doc.text(`PO #: ${String(invoice.poNumber)}`, col2X, yPosition);
     yPosition += 4;
-    doc.text(`PO Date: ${invoice.poDate}`, col2X, yPosition);
+    doc.text(`PO Date: ${String(invoice.poDate)}`, col2X, yPosition);
     yPosition += 4;
-    doc.text(`PO Due: ${invoice.poDueDate}`, col2X, yPosition);
+    doc.text(`PO Due: ${String(invoice.poDueDate)}`, col2X, yPosition);
 
     // Separator
     yPosition = 52;
@@ -187,13 +187,13 @@ export default function InvoiceGeneration() {
 
     doc.setFontSize(9);
     doc.setTextColor(...darkGray);
-    doc.text(`Vendor: ${invoice.vendorName}`, margin + 2, yPosition);
+    doc.text(`Vendor: ${String(invoice.vendorName)}`, margin + 2, yPosition);
     yPosition += 4;
     if (invoice.vendorEmail) {
-      doc.text(`Email: ${invoice.vendorEmail}`, margin + 2, yPosition);
+      doc.text(`Email: ${String(invoice.vendorEmail)}`, margin + 2, yPosition);
       yPosition += 4;
     }
-    doc.text(`Site: ${invoice.siteName}`, margin + 2, yPosition);
+    doc.text(`Site: ${String(invoice.siteName)}`, margin + 2, yPosition);
     yPosition += 8;
 
     // Item Details Section
