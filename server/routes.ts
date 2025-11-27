@@ -8,6 +8,7 @@ import {
   insertSalarySchema,
   insertPOSchema,
   insertInvoiceSchema,
+  insertPaymentMasterSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(
@@ -452,6 +453,57 @@ export async function registerRoutes(
   app.delete("/api/invoices/:id", async (req, res) => {
     try {
       await storage.deleteInvoice(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Payment Master routes
+  app.post("/api/payment-masters", async (req, res) => {
+    try {
+      const data = insertPaymentMasterSchema.parse(req.body);
+      const pm = await storage.createPaymentMaster(data);
+      res.json(pm);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/payment-masters", async (req, res) => {
+    try {
+      const data = await storage.getPaymentMasters();
+      res.json({ data });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/payment-masters/:id", async (req, res) => {
+    try {
+      const pm = await storage.getPaymentMaster(req.params.id);
+      if (!pm) {
+        return res.status(404).json({ error: "Payment Master not found" });
+      }
+      res.json(pm);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/payment-masters/:id", async (req, res) => {
+    try {
+      const data = insertPaymentMasterSchema.partial().parse(req.body);
+      const pm = await storage.updatePaymentMaster(req.params.id, data);
+      res.json(pm);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/payment-masters/:id", async (req, res) => {
+    try {
+      await storage.deletePaymentMaster(req.params.id);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

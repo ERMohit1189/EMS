@@ -1,0 +1,196 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Edit2, Trash2 } from "lucide-react";
+import type { PaymentMaster } from "@shared/schema";
+
+export default function PaymentMaster() {
+  const [masters, setMasters] = useState<PaymentMaster[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<PaymentMaster | null>(null);
+  const [newMaster, setNewMaster] = useState({ antennaSize: "", siteAmount: "", vendorAmount: "" });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchMasters();
+  }, []);
+
+  const fetchMasters = async () => {
+    try {
+      const response = await fetch("/api/payment-masters");
+      if (!response.ok) throw new Error("Failed to fetch");
+      const result = await response.json();
+      setMasters(result.data || []);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load payment masters", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!newMaster.antennaSize || !newMaster.siteAmount || !newMaster.vendorAmount) {
+      toast({ title: "Error", description: "All fields required", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const url = editing ? `/api/payment-masters/${editing.id}` : "/api/payment-masters";
+      const method = editing ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          antennaSize: newMaster.antennaSize,
+          siteAmount: parseFloat(newMaster.siteAmount),
+          vendorAmount: parseFloat(newMaster.vendorAmount),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save");
+
+      toast({
+        title: "Success",
+        description: editing ? "Updated successfully" : "Created successfully",
+      });
+
+      setNewMaster({ antennaSize: "", siteAmount: "", vendorAmount: "" });
+      setEditing(null);
+      fetchMasters();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save", variant: "destructive" });
+    }
+  };
+
+  const handleEdit = (master: PaymentMaster) => {
+    setEditing(master);
+    setNewMaster({
+      antennaSize: master.antennaSize,
+      siteAmount: master.siteAmount.toString(),
+      vendorAmount: master.vendorAmount.toString(),
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this payment master?")) return;
+    try {
+      const response = await fetch(`/api/payment-masters/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed");
+      toast({ title: "Success", description: "Deleted successfully" });
+      fetchMasters();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Payment Master</h2>
+        <p className="text-muted-foreground">Configure site and vendor amounts by antenna size.</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{editing ? "Edit" : "Add New"} Payment Configuration</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-4">
+          <div>
+            <label className="text-sm font-medium">Antenna Size (kVA)</label>
+            <select
+              value={newMaster.antennaSize}
+              onChange={(e) => setNewMaster({ ...newMaster, antennaSize: e.target.value })}
+              className="w-full mt-2 px-3 py-2 border rounded-md"
+              disabled={editing !== null}
+            >
+              <option value="">Select Size</option>
+              <option value="0.6">0.6 kVA</option>
+              <option value="0.9">0.9 kVA</option>
+              <option value="1.2">1.2 kVA</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Site Amount (₹)</label>
+            <Input
+              type="number"
+              placeholder="Enter amount"
+              value={newMaster.siteAmount}
+              onChange={(e) => setNewMaster({ ...newMaster, siteAmount: e.target.value })}
+              className="mt-2"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Vendor Amount (₹)</label>
+            <Input
+              type="number"
+              placeholder="Enter amount"
+              value={newMaster.vendorAmount}
+              onChange={(e) => setNewMaster({ ...newMaster, vendorAmount: e.target.value })}
+              className="mt-2"
+            />
+          </div>
+
+          <div className="flex gap-2 items-end">
+            <Button onClick={handleSave} className="w-full">
+              {editing ? "Update" : "Add"}
+            </Button>
+            {editing && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditing(null);
+                  setNewMaster({ antennaSize: "", siteAmount: "", vendorAmount: "" });
+                }}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Configurations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {masters.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No payment masters configured yet.</p>
+            ) : (
+              <div className="grid gap-3">
+                {masters.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                    <div className="flex-1">
+                      <p className="font-semibold">{m.antennaSize} kVA</p>
+                      <p className="text-sm text-muted-foreground">
+                        Site: ₹{m.siteAmount} | Vendor: ₹{m.vendorAmount}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(m)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

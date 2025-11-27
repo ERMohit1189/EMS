@@ -237,6 +237,16 @@ export const invoices = pgTable("invoices", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Payment Master Table - Site & Vendor Amount Configuration by Antenna Size
+export const paymentMasters = pgTable("payment_masters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  antennaSize: varchar("antenna_size").notNull().unique(), // 0.6, 0.9, 1.2 kVA
+  siteAmount: decimal("site_amount", 12, 2).notNull(),
+  vendorAmount: decimal("vendor_amount", 12, 2).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Zod Schemas
 export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
@@ -274,6 +284,12 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   updatedAt: true,
 });
 
+export const insertPaymentMasterSchema = createInsertSchema(paymentMasters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type Definitions
 export type Vendor = typeof vendors.$inferSelect;
 export type InsertVendor = z.infer<typeof insertVendorSchema>;
@@ -292,3 +308,6 @@ export type InsertPO = z.infer<typeof insertPOSchema>;
 
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+
+export type PaymentMaster = typeof paymentMasters.$inferSelect;
+export type InsertPaymentMaster = z.infer<typeof insertPaymentMasterSchema>;

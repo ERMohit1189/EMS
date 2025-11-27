@@ -6,18 +6,21 @@ import {
   salaryStructures,
   purchaseOrders,
   invoices,
+  paymentMasters,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
   type InsertSalary,
   type InsertPO,
   type InsertInvoice,
+  type InsertPaymentMaster,
   type Vendor,
   type Site,
   type Employee,
   type SalaryStructure,
   type PurchaseOrder,
   type Invoice,
+  type PaymentMaster,
 } from "@shared/schema";
 import { eq, count } from "drizzle-orm";
 
@@ -83,6 +86,14 @@ export interface IStorage {
   updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice>;
   deleteInvoice(id: string): Promise<void>;
   getInvoiceCount(): Promise<number>;
+
+  // Payment Master operations
+  createPaymentMaster(pm: InsertPaymentMaster): Promise<PaymentMaster>;
+  getPaymentMaster(id: string): Promise<PaymentMaster | undefined>;
+  getPaymentMasterByAntennaSize(antennaSize: string): Promise<PaymentMaster | undefined>;
+  getPaymentMasters(): Promise<PaymentMaster[]>;
+  updatePaymentMaster(id: string, pm: Partial<InsertPaymentMaster>): Promise<PaymentMaster>;
+  deletePaymentMaster(id: string): Promise<void>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -395,6 +406,45 @@ export class DrizzleStorage implements IStorage {
       .select({ count: count() })
       .from(invoices);
     return Number(result[0]?.count) || 0;
+  }
+
+  // Payment Master operations
+  async createPaymentMaster(pm: InsertPaymentMaster): Promise<PaymentMaster> {
+    const [result] = await db.insert(paymentMasters).values(pm).returning();
+    return result;
+  }
+
+  async getPaymentMaster(id: string): Promise<PaymentMaster | undefined> {
+    const [result] = await db
+      .select()
+      .from(paymentMasters)
+      .where(eq(paymentMasters.id, id));
+    return result;
+  }
+
+  async getPaymentMasterByAntennaSize(antennaSize: string): Promise<PaymentMaster | undefined> {
+    const [result] = await db
+      .select()
+      .from(paymentMasters)
+      .where(eq(paymentMasters.antennaSize, antennaSize));
+    return result;
+  }
+
+  async getPaymentMasters(): Promise<PaymentMaster[]> {
+    return await db.select().from(paymentMasters);
+  }
+
+  async updatePaymentMaster(id: string, pm: Partial<InsertPaymentMaster>): Promise<PaymentMaster> {
+    const [result] = await db
+      .update(paymentMasters)
+      .set(pm)
+      .where(eq(paymentMasters.id, id))
+      .returning();
+    return result;
+  }
+
+  async deletePaymentMaster(id: string): Promise<void> {
+    await db.delete(paymentMasters).where(eq(paymentMasters.id, id));
   }
 }
 
