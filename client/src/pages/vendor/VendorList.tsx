@@ -4,9 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Link } from "wouter";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function VendorList() {
-  const { vendors } = useStore();
+  const { vendors, updateVendorStatus } = useStore();
   
   return (
     <div className="space-y-6">
@@ -43,13 +50,19 @@ export default function VendorList() {
                <div className="text-sm">{v.city}, {v.state}</div>
                <div className="text-sm">{v.category}</div>
                <div>
-                 <Badge variant={v.status === 'Approved' ? 'default' : v.status === 'Rejected' ? 'destructive' : 'secondary'}>
-                   {v.status}
-                 </Badge>
+                 <Select value={v.status} onValueChange={(status) => updateVendorStatus(v.id, status as 'Pending' | 'Approved' | 'Rejected')}>
+                   <SelectTrigger className="w-[120px]">
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="Pending">Pending</SelectItem>
+                     <SelectItem value="Approved">Approved</SelectItem>
+                     <SelectItem value="Rejected">Rejected</SelectItem>
+                   </SelectContent>
+                 </Select>
                </div>
                <div className="text-sm font-mono">{v.mobile}</div>
                <div className="text-right">
-                 <Button variant="ghost" size="sm">View</Button>
                </div>
              </div>
            ))
