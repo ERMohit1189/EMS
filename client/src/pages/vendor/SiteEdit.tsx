@@ -149,18 +149,23 @@ export default function SiteEdit() {
           fetch('/api/vendors?pageSize=10000'),
         ]);
         
+        let loadedZones: any[] = [];
+        let loadedVendors: any[] = [];
+
         if (zonesRes.ok) {
           const data = await zonesRes.json();
-          setZones(data.data || []);
+          loadedZones = data.data || [];
+          setZones(loadedZones);
         }
         if (vendorsRes.ok) {
           const data = await vendorsRes.json();
-          setVendors(data.data || []);
+          loadedVendors = data.data || [];
+          setVendors(loadedVendors);
         }
         
-        // Then fetch the site
+        // Then fetch the site with loaded zones data
         if (id) {
-          await fetchSite();
+          await fetchSite(loadedZones);
         }
       } catch (error) {
         console.error('Failed to load data');
@@ -169,16 +174,16 @@ export default function SiteEdit() {
     loadData();
   }, [id]);
 
-  const fetchSite = async () => {
+  const fetchSite = async (loadedZones: any[] = []) => {
     try {
       const response = await fetch(`/api/sites/${id}`);
       if (!response.ok) throw new Error('Site not found');
       const site = await response.json();
       
-      // Fallback: if zoneId is not set but circle value matches a zone's short name, set zoneId
+      // Match circle by short name with circles loaded from Circle Master
       let finalZoneId = site.zoneId;
-      if (!finalZoneId && site.circle && zones.length > 0) {
-        const matchedZone = zones.find(z => z.shortName === site.circle);
+      if (!finalZoneId && site.circle && loadedZones.length > 0) {
+        const matchedZone = loadedZones.find(z => z.shortName === site.circle);
         if (matchedZone) {
           finalZoneId = matchedZone.id;
         }
