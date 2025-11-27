@@ -175,6 +175,7 @@ export default function PaymentMaster() {
               value={selectedVendor}
               onChange={(e) => setSelectedVendor(e.target.value)}
               className="w-full mt-2 px-3 py-2 border rounded-md"
+              disabled={!!selectedSite}
             >
               <option value="">All Vendors</option>
               {vendors.map((v) => (
