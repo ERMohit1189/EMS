@@ -2,9 +2,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useStore } from '@/lib/mockData';
 import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight } from 'lucide-react';
 import { Link } from 'wouter';
+import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
   const { vendors, sites, employees } = useStore();
+  const [pendingPOCount, setPendingPOCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPendingPOs = async () => {
+      try {
+        const response = await fetch('/api/purchase-orders');
+        const data = await response.json();
+        const purchaseOrders = data.data || [];
+        const pending = purchaseOrders.filter((po: any) => po.status === 'Pending').length;
+        setPendingPOCount(pending);
+      } catch (error) {
+        console.error('Failed to fetch pending POs:', error);
+        setPendingPOCount(0);
+      }
+    };
+    fetchPendingPOs();
+  }, []);
 
   const stats = [
     {
@@ -33,7 +51,7 @@ export default function Dashboard() {
     },
     {
       title: 'Pending POs',
-      value: '12',
+      value: pendingPOCount,
       description: 'Requires approval',
       icon: DollarSign,
       color: 'text-purple-500',
