@@ -77,11 +77,12 @@ export default function Dashboard() {
   ];
 
   const regionData = sites.reduce((acc: any[], site) => {
-    const existing = acc.find(r => r.name === site.region);
+    const location = site.district || site.region || 'Unknown';
+    const existing = acc.find(r => r.name === location);
     if (existing) {
       existing.count += 1;
     } else {
-      acc.push({ name: site.region || 'Unknown', count: 1 });
+      acc.push({ name: location, count: 1 });
     }
     return acc;
   }, []);
@@ -261,11 +262,11 @@ export default function Dashboard() {
 
       {/* Bottom Section - Activity & Approvals */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Sites by Region */}
+        {/* Sites by District */}
         <Card className="shadow-md md:col-span-2">
           <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-t-lg">
-            <CardTitle className="text-base">Sites by Region</CardTitle>
-            <CardDescription className="text-xs">Geographic distribution</CardDescription>
+            <CardTitle className="text-base">Sites by District</CardTitle>
+            <CardDescription className="text-xs">Geographic distribution across districts</CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
             <ResponsiveContainer width="100%" height={280}>
