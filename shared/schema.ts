@@ -256,6 +256,15 @@ export const paymentMasters = pgTable("payment_masters", {
   compositeKey: sql`UNIQUE(${table.siteId}, ${table.planId}, ${table.vendorId}, ${table.antennaSize})`
 }));
 
+// Zones Table - Zone Master with Short Names
+export const zones = pgTable("zones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  shortName: varchar("short_name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Zod Schemas
 export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
@@ -299,6 +308,12 @@ export const insertPaymentMasterSchema = createInsertSchema(paymentMasters).omit
   updatedAt: true,
 });
 
+export const insertZoneSchema = createInsertSchema(zones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type Definitions
 export type Vendor = typeof vendors.$inferSelect;
 export type InsertVendor = z.infer<typeof insertVendorSchema>;
@@ -320,3 +335,6 @@ export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 
 export type PaymentMaster = typeof paymentMasters.$inferSelect;
 export type InsertPaymentMaster = z.infer<typeof insertPaymentMasterSchema>;
+
+export type Zone = typeof zones.$inferSelect;
+export type InsertZone = z.infer<typeof insertZoneSchema>;

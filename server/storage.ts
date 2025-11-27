@@ -7,6 +7,7 @@ import {
   purchaseOrders,
   invoices,
   paymentMasters,
+  zones,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
@@ -14,6 +15,7 @@ import {
   type InsertPO,
   type InsertInvoice,
   type InsertPaymentMaster,
+  type InsertZone,
   type Vendor,
   type Site,
   type Employee,
@@ -21,6 +23,7 @@ import {
   type PurchaseOrder,
   type Invoice,
   type PaymentMaster,
+  type Zone,
 } from "@shared/schema";
 import { eq, count, and } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
@@ -97,6 +100,15 @@ export interface IStorage {
   getPaymentMasterByCompositeKey(siteId: string, planId: string, vendorId: string, antennaSize: string): Promise<PaymentMaster | undefined>;
   updatePaymentMaster(id: string, pm: Partial<InsertPaymentMaster>): Promise<PaymentMaster>;
   deletePaymentMaster(id: string): Promise<void>;
+
+  // Zone operations
+  createZone(zone: InsertZone): Promise<Zone>;
+  getZone(id: string): Promise<Zone | undefined>;
+  getZones(limit: number, offset: number): Promise<Zone[]>;
+  getZoneByName(name: string): Promise<Zone | undefined>;
+  updateZone(id: string, zone: Partial<InsertZone>): Promise<Zone>;
+  deleteZone(id: string): Promise<void>;
+  getZoneCount(): Promise<number>;
 }
 
 export class DrizzleStorage implements IStorage {
