@@ -25,6 +25,8 @@ export interface IStorage {
   // Vendor operations
   createVendor(vendor: InsertVendor): Promise<Vendor>;
   getVendor(id: string): Promise<Vendor | undefined>;
+  getVendorByName(name: string): Promise<Vendor | undefined>;
+  getOrCreateVendorByName(name: string): Promise<Vendor>;
   getVendors(limit: number, offset: number): Promise<Vendor[]>;
   updateVendor(id: string, vendor: Partial<InsertVendor>): Promise<Vendor>;
   deleteVendor(id: string): Promise<void>;
@@ -93,6 +95,33 @@ export class DrizzleStorage implements IStorage {
   async getVendor(id: string): Promise<Vendor | undefined> {
     const [result] = await db.select().from(vendors).where(eq(vendors.id, id));
     return result;
+  }
+
+  async getVendorByName(name: string): Promise<Vendor | undefined> {
+    const result = await db.select().from(vendors).where(eq(vendors.name, name));
+    return result[0];
+  }
+
+  async getOrCreateVendorByName(name: string): Promise<Vendor> {
+    // Check if vendor with this name already exists
+    const existing = await this.getVendorByName(name);
+    if (existing) {
+      return existing;
+    }
+
+    // Create a new vendor with minimal required fields
+    const newVendor: InsertVendor = {
+      name,
+      email: `${name.replace(/\s+/g, '')}@vendor.local`,
+      mobile: '',
+      address: '',
+      city: '',
+      state: '',
+      pincode: '',
+      aadhar: `TEMP${Date.now()}`,
+      pan: `TEMP${Date.now()}`,
+    };
+    return await this.createVendor(newVendor);
   }
 
   async getVendors(limit: number, offset: number): Promise<Vendor[]> {

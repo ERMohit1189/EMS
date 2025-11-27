@@ -86,6 +86,19 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/vendors/find-or-create", async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Vendor name is required" });
+      }
+      const vendor = await storage.getOrCreateVendorByName(name);
+      res.json(vendor);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.delete("/api/vendors", async (req, res) => {
     try {
       await storage.deleteAllVendors();

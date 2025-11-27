@@ -102,14 +102,33 @@ export default function ExcelImport() {
           const toDate = excelDateToISO;
 
           // Map all 81 columns for site from Excel
-          if (!vendors || vendors.length === 0) {
-            importErrors.push(`Row ${idx + 2}: No vendors found in the system. Please create a vendor first.`);
+          // Get vendor from Partner Name column, creating if needed
+          const partnerName = toString(row['PARTNER NAME']);
+          if (!partnerName) {
+            importErrors.push(`Row ${idx + 2}: Partner Name (vendor) is required`);
+            continue;
+          }
+
+          let vendorId: string;
+          try {
+            const vendorResponse = await fetch('/api/vendors/find-or-create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: partnerName }),
+            });
+            if (!vendorResponse.ok) {
+              throw new Error('Failed to find or create vendor');
+            }
+            const vendor = await vendorResponse.json();
+            vendorId = vendor.id;
+          } catch (err) {
+            importErrors.push(`Row ${idx + 2}: Failed to process vendor "${partnerName}"`);
             continue;
           }
 
           const siteData = {
             siteId: toString(row['PLAN ID']) || `SITE-${idx}`,
-            vendorId: vendors[0].id,
+            vendorId,
             sno: Number(row['S.No.']) || undefined,
             circle: toString(row['Circle']),
             planId: toString(row['PLAN ID']),
@@ -143,7 +162,7 @@ export default function ExcelImport() {
             rfaiOfferedDateSiteA: toDate(row['RFAI OFFERED DATE SITE A']),
             rfaiOfferedDateSiteB: toDate(row['RFAI OFFERED DATE SITE B']),
             actualHopRfaiOfferedDate: toDate(row['ACTUAL HOP RFAI OFFERED DATE']),
-            partnerName: toString(row['PARTNER NAME']),
+            partnerName: partnerName,
             rfaiSurveyCompletionDate: toDate(row['RFAI SURVEY COMPLETION DATE']),
             moNumberSiteA: toString(row['MO NUMBER SITE A']),
             materialTypeSiteA: toString(row['MATERIAL TYPE SITE A(SRN, FRESH, FRESH+SRN)']),
