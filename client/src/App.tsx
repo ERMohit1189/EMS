@@ -29,7 +29,7 @@ const Placeholder = ({ title }: { title: string }) => (
 );
 
 function App() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +38,16 @@ function App() {
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
     setIsLoggedIn(loggedIn);
     setLoading(false);
-  }, []);
+
+    // Listen for logout events
+    const handleLogout = () => {
+      setIsLoggedIn(false);
+      setLocation('/login');
+    };
+
+    window.addEventListener('logout', handleLogout);
+    return () => window.removeEventListener('logout', handleLogout);
+  }, [setLocation]);
 
   // Show loading while checking auth
   if (loading) {

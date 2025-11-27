@@ -50,7 +50,8 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('user');
     setIsLoggedIn?.(false);
-    setLocation('/login');
+    // Dispatch logout event to App component
+    window.dispatchEvent(new Event('logout'));
   };
 
   return (
