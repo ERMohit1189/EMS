@@ -4,6 +4,7 @@ import * as z from 'zod';
 import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { useState } from 'react';
 import { IndianStates } from '@/assets/india-data';
 import {
   Form,
@@ -49,6 +50,7 @@ export default function SiteRegistration() {
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [stateSearch, setStateSearch] = useState('');
+  const [stateHighlight, setStateHighlight] = useState(-1);
 
   const form = useForm<z.infer<typeof siteSchema>>({
     resolver: zodResolver(siteSchema),
@@ -199,7 +201,7 @@ export default function SiteRegistration() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
-                        <div className="p-2" onKeyDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                        <div className="p-2" onClick={(e) => e.stopPropagation()}>
                           <Input 
                             autoFocus
                             placeholder="Search states..." 
@@ -207,8 +209,22 @@ export default function SiteRegistration() {
                             onChange={(e) => setStateSearch(e.target.value)}
                             onKeyDown={(e) => {
                               e.stopPropagation();
-                              if (e.key === 'Escape') {
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setStateHighlight(prev => 
+                                  prev < filteredStates.length - 1 ? prev + 1 : prev
+                                );
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setStateHighlight(prev => prev > 0 ? prev - 1 : -1);
+                              } else if (e.key === 'Enter' && stateHighlight >= 0) {
+                                e.preventDefault();
+                                field.onChange(filteredStates[stateHighlight]);
                                 setStateSearch('');
+                                setStateHighlight(-1);
+                              } else if (e.key === 'Escape') {
+                                setStateSearch('');
+                                setStateHighlight(-1);
                               }
                             }}
                             className="mb-2"
@@ -216,8 +232,14 @@ export default function SiteRegistration() {
                         </div>
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredStates.length > 0 ? (
-                            filteredStates.map(state => (
-                              <SelectItem key={state} value={state}>{state}</SelectItem>
+                            filteredStates.map((state, idx) => (
+                              <SelectItem 
+                                key={state} 
+                                value={state}
+                                className={stateHighlight === idx ? 'bg-accent' : ''}
+                              >
+                                {state}
+                              </SelectItem>
                             ))
                           ) : (
                             <div className="px-2 py-1 text-sm text-muted-foreground">No states found</div>

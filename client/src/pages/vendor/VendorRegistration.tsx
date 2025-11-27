@@ -51,6 +51,8 @@ export default function VendorRegistration() {
   const [cities, setCities] = useState<string[]>([]);
   const [stateSearch, setStateSearch] = useState('');
   const [citySearch, setCitySearch] = useState('');
+  const [stateHighlight, setStateHighlight] = useState(-1);
+  const [cityHighlight, setCityHighlight] = useState(-1);
 
   const form = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
@@ -227,7 +229,7 @@ export default function VendorRegistration() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
-                        <div className="p-2" onKeyDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                        <div className="p-2" onClick={(e) => e.stopPropagation()}>
                           <Input 
                             autoFocus
                             placeholder="Search states..." 
@@ -235,8 +237,22 @@ export default function VendorRegistration() {
                             onChange={(e) => setStateSearch(e.target.value)}
                             onKeyDown={(e) => {
                               e.stopPropagation();
-                              if (e.key === 'Escape') {
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setStateHighlight(prev => 
+                                  prev < filteredStates.length - 1 ? prev + 1 : prev
+                                );
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setStateHighlight(prev => prev > 0 ? prev - 1 : -1);
+                              } else if (e.key === 'Enter' && stateHighlight >= 0) {
+                                e.preventDefault();
+                                field.onChange(filteredStates[stateHighlight]);
                                 setStateSearch('');
+                                setStateHighlight(-1);
+                              } else if (e.key === 'Escape') {
+                                setStateSearch('');
+                                setStateHighlight(-1);
                               }
                             }}
                             className="mb-2"
@@ -244,8 +260,14 @@ export default function VendorRegistration() {
                         </div>
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredStates.length > 0 ? (
-                            filteredStates.map(state => (
-                              <SelectItem key={state} value={state}>{state}</SelectItem>
+                            filteredStates.map((state, idx) => (
+                              <SelectItem 
+                                key={state} 
+                                value={state}
+                                className={stateHighlight === idx ? 'bg-accent' : ''}
+                              >
+                                {state}
+                              </SelectItem>
                             ))
                           ) : (
                             <div className="px-2 py-1 text-sm text-muted-foreground">No states found</div>
@@ -271,7 +293,7 @@ export default function VendorRegistration() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
-                        <div className="p-2" onKeyDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                        <div className="p-2" onClick={(e) => e.stopPropagation()}>
                           <Input 
                             autoFocus
                             placeholder="Search cities..." 
@@ -279,8 +301,22 @@ export default function VendorRegistration() {
                             onChange={(e) => setCitySearch(e.target.value)}
                             onKeyDown={(e) => {
                               e.stopPropagation();
-                              if (e.key === 'Escape') {
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setCityHighlight(prev => 
+                                  prev < filteredCities.length - 1 ? prev + 1 : prev
+                                );
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setCityHighlight(prev => prev > 0 ? prev - 1 : -1);
+                              } else if (e.key === 'Enter' && cityHighlight >= 0) {
+                                e.preventDefault();
+                                field.onChange(filteredCities[cityHighlight]);
                                 setCitySearch('');
+                                setCityHighlight(-1);
+                              } else if (e.key === 'Escape') {
+                                setCitySearch('');
+                                setCityHighlight(-1);
                               }
                             }}
                             className="mb-2"
@@ -288,8 +324,14 @@ export default function VendorRegistration() {
                         </div>
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredCities.length > 0 ? (
-                            filteredCities.map(city => (
-                              <SelectItem key={city} value={city}>{city}</SelectItem>
+                            filteredCities.map((city, idx) => (
+                              <SelectItem 
+                                key={city} 
+                                value={city}
+                                className={cityHighlight === idx ? 'bg-accent' : ''}
+                              >
+                                {city}
+                              </SelectItem>
                             ))
                           ) : (
                             <div className="px-2 py-1 text-sm text-muted-foreground">No cities found</div>
