@@ -2,13 +2,6 @@ import { useStore } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link } from "wouter";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -103,16 +96,6 @@ export default function SiteList() {
                   <CardTitle className="text-lg">{site.siteId}</CardTitle>
                   <p className="text-sm text-muted-foreground">{getVendorName(site.vendorId)} • {site.state} • {site.zone}</p>
                 </div>
-                <Select value={site.status} onValueChange={(status) => console.log('Update to:', status)}>
-                  <SelectTrigger className="w-[120px]" onClick={(e) => e.stopPropagation()}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </CardHeader>
 
