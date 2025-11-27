@@ -226,6 +226,15 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/sites/recalculate-status", async (req, res) => {
+    try {
+      const result = await storage.recalculateSiteStatuses();
+      res.json({ success: true, message: `Updated ${result.updated} sites to Approved status` });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Employee routes
   app.post("/api/employees", async (req, res) => {
     try {

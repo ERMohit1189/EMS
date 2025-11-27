@@ -494,6 +494,24 @@ export class DrizzleStorage implements IStorage {
     await db.delete(sites);
   }
 
+  // Recalculate site status for existing sites based on remarks
+  async recalculateSiteStatuses(): Promise<{ updated: number }> {
+    const allSites = await db.select().from(sites);
+    let updatedCount = 0;
+
+    for (const site of allSites) {
+      if (site.softAtRemark === "Approved" && site.phyAtRemark === "Approved" && site.status !== "Approved") {
+        await db
+          .update(sites)
+          .set({ status: "Approved" })
+          .where(eq(sites.id, site.id));
+        updatedCount++;
+      }
+    }
+
+    return { updated: updatedCount };
+  }
+
   async getSitesByDateRange(startDate: string, endDate: string): Promise<Site[]> {
     const result = await db
       .select({
