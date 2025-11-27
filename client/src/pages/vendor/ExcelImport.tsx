@@ -75,7 +75,7 @@ export default function ExcelImport() {
       if (zonesResponse.ok) {
         const zonesData = await zonesResponse.json();
         zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
-          acc[zone.name] = zone.id;
+          acc[zone.shortName] = zone.id;
           return acc;
         }, {});
       }
