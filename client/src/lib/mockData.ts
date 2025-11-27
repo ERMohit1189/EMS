@@ -278,6 +278,9 @@ export const useStore = create<AppState>()(
         set((state) => ({
           vendors: state.vendors.map((v) => (v.id === id ? { ...v, status } : v)),
         })),
+      clearSites: () => set({ sites: [] }),
+      clearVendors: () => set({ vendors: [] }),
+      clearEmployees: () => set({ employees: [] }),
     }),
     {
       name: 'ems-storage',

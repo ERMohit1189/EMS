@@ -13,7 +13,7 @@ interface RawRowData {
 }
 
 export default function ExcelImport() {
-  const { addSite, addVendor, addEmployee, sites, vendors, employees } = useStore();
+  const { addSite, addVendor, addEmployee, clearSites, clearVendors, clearEmployees, sites, vendors, employees } = useStore();
   const { toast } = useToast();
   const [importedData, setImportedData] = useState<RawRowData[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
@@ -333,6 +333,7 @@ export default function ExcelImport() {
       });
 
       if (response.ok) {
+        clearSites();
         toast({
           title: 'Success',
           description: 'All site data has been deleted.',
