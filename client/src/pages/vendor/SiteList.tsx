@@ -130,7 +130,7 @@ export default function SiteList() {
                     <p className="text-sm font-semibold mt-0.5">{site.vendorAmount ? `₹${Number(site.vendorAmount).toFixed(2)}` : "—"}</p>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">Circle</label>
+                    <label className="text-xs font-medium text-muted-foreground">Zone</label>
                     <p className="text-sm font-semibold mt-0.5">{site.circle || "—"}</p>
                   </div>
                   <div>
@@ -160,7 +160,7 @@ export default function SiteList() {
                       <p className="text-sm font-mono font-semibold mt-1 break-all">{site.planId}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
-                      <label className="text-xs font-medium text-muted-foreground">Circle</label>
+                      <label className="text-xs font-medium text-muted-foreground">Zone</label>
                       <p className="text-sm font-semibold mt-1">{site.circle || "—"}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
@@ -191,7 +191,7 @@ export default function SiteList() {
                       <p className="text-sm font-semibold mt-1">{site.zone || "—"}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
-                      <label className="text-xs font-medium text-muted-foreground">District</label>
+                      <label className="text-xs font-medium text-muted-foreground">Region</label>
                       <p className="text-sm font-semibold mt-1">{site.district || "—"}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
