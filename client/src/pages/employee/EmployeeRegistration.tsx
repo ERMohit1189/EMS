@@ -120,7 +120,7 @@ export default function EmployeeRegistration() {
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter name" {...field} />
+                      <Input autoFocus placeholder="Enter name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

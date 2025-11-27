@@ -126,7 +126,7 @@ export default function SiteRegistration() {
                   <FormItem>
                     <FormLabel>Site ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. DL-1001" {...field} />
+                      <Input autoFocus placeholder="e.g. DL-1001" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
