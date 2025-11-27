@@ -154,6 +154,9 @@ interface AppState {
   addSite: (site: Omit<Site, 'id'>) => void;
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
   updateVendorStatus: (id: string, status: Vendor['status']) => void;
+  clearSites: () => void;
+  clearVendors: () => void;
+  clearEmployees: () => void;
 }
 
 export const useStore = create<AppState>()(
