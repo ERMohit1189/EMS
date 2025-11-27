@@ -48,8 +48,27 @@ function App() {
       setLocation('/login');
     };
 
+    // Listen for login events
+    const handleLogin = () => {
+      setIsLoggedIn(true);
+    };
+
+    // Listen for login events (storage changes)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'isLoggedIn') {
+        const newLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        setIsLoggedIn(newLoggedIn);
+      }
+    };
+
     window.addEventListener('logout', handleLogout);
-    return () => window.removeEventListener('logout', handleLogout);
+    window.addEventListener('login', handleLogin);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('logout', handleLogout);
+      window.removeEventListener('login', handleLogin);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [setLocation]);
 
   // Show loading while checking auth

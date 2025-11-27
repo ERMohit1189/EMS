@@ -51,8 +51,13 @@ export default function Login() {
         description: 'Logged in successfully',
       });
 
+      // Dispatch login event to App component
+      window.dispatchEvent(new Event('login'));
+
       // Redirect to dashboard
-      setLocation('/');
+      setTimeout(() => {
+        setLocation('/');
+      }, 100);
     } catch (error) {
       toast({
         title: 'Error',
