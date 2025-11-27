@@ -160,6 +160,22 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/sites/export/by-date-range", async (req, res) => {
+    try {
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: "startDate and endDate are required" });
+      }
+      
+      const sites = await storage.getSitesByDateRange(startDate, endDate);
+      res.json({ data: sites });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/sites/:id", async (req, res) => {
     try {
       const site = await storage.getSite(req.params.id);

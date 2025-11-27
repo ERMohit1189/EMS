@@ -1,15 +1,18 @@
 import { useStore } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Download } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import * as XLSX from "xlsx";
 
 export default function SiteList() {
   const { vendors } = useStore();
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSite, setExpandedSite] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     const fetchSites = async () => {
@@ -30,6 +33,33 @@ export default function SiteList() {
 
   const getVendorName = (vendorId: string) => {
     return vendors.find(v => v.id === vendorId)?.name || "N/A";
+  };
+
+  const handleExportByDateRange = async () => {
+    try {
+      if (!startDate || !endDate) {
+        alert("Please select both start and end dates");
+        return;
+      }
+      
+      const response = await fetch(`/api/sites/export/by-date-range?startDate=${startDate}&endDate=${endDate}`);
+      if (!response.ok) throw new Error("Export failed");
+      
+      const { data } = await response.json();
+      
+      if (!data || data.length === 0) {
+        alert("No sites found for the selected date range");
+        return;
+      }
+      
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sites");
+      XLSX.writeFile(wb, `sites_export_${startDate}_to_${endDate}.xlsx`);
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Failed to export sites");
+    }
   };
 
   if (loading) {
@@ -84,6 +114,39 @@ export default function SiteList() {
         </Link>
       </div>
 
+      {/* Date Range Export Section */}
+      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Start Date</label>
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-1 px-3 py-2 border rounded-md text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">End Date</label>
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)}
+                className="mt-1 px-3 py-2 border rounded-md text-sm"
+              />
+            </div>
+            <Button 
+              onClick={handleExportByDateRange} 
+              className="gap-2 bg-blue-600 hover:bg-blue-700"
+              data-testid="button-export-by-date"
+            >
+              <Download className="h-4 w-4" /> Export by Date Range
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="space-y-4">
         {sites.map((site) => (
           <Card key={site.id} className="overflow-hidden">
@@ -94,7 +157,7 @@ export default function SiteList() {
               <div className="space-y-3">
                 <div>
                   <CardTitle className="text-lg">{site.siteId}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{getVendorName(site.vendorId)} • {site.state} • {site.zone}</p>
+                  <p className="text-sm text-muted-foreground">{getVendorName(site.vendorId)} • {site.state} • {site.zoneName || site.circle || "—"}</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
@@ -187,8 +250,8 @@ export default function SiteList() {
                       <p className="text-sm font-semibold mt-1">{site.region || "—"}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
-                      <label className="text-xs font-medium text-muted-foreground">Zone</label>
-                      <p className="text-sm font-semibold mt-1">{site.zone || "—"}</p>
+                      <label className="text-xs font-medium text-muted-foreground">Circle</label>
+                      <p className="text-sm font-semibold mt-1">{site.zoneName || site.circle || "—"}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
                       <label className="text-xs font-medium text-muted-foreground">Region</label>
