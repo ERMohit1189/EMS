@@ -18,6 +18,7 @@ interface PORecord {
   description: string;
   quantity: number;
   unitPrice: string;
+  maxAntennaSize?: number;
 }
 
 export default function POGeneration() {
@@ -62,6 +63,12 @@ export default function POGeneration() {
         for (const po of pos) {
           const vendor = vendorsList.find(v => v.id === po.vendorId);
           const site = sites.find(s => s.id === po.siteId);
+          const maxAntennaSize = site 
+            ? Math.max(
+                parseFloat(site.siteAAntDia) || 0,
+                parseFloat(site.siteBAntDia) || 0
+              )
+            : 0;
           poRecords.push({
             id: po.id,
             siteId: po.siteId,
@@ -73,6 +80,7 @@ export default function POGeneration() {
             description: po.description,
             quantity: po.quantity,
             unitPrice: po.unitPrice,
+            maxAntennaSize,
           });
         }
         setAllPOs(poRecords);
@@ -113,6 +121,10 @@ export default function POGeneration() {
 
       const records: PORecord[] = sitesData.map((site, index) => {
         const vendor = vendors.find(v => v.id === site.vendorId);
+        const maxAntennaSize = Math.max(
+          parseFloat(site.siteAAntDia) || 0,
+          parseFloat(site.siteBAntDia) || 0
+        );
         return {
           siteId: site.id,
           vendorId: site.vendorId,
@@ -123,6 +135,7 @@ export default function POGeneration() {
           description: `Installation and commissioning for ${site.hopAB || site.siteId}`,
           quantity: 1,
           unitPrice: site.siteAmount?.toString() || "0",
+          maxAntennaSize,
         };
       });
 
@@ -224,7 +237,7 @@ export default function POGeneration() {
                         <div className="flex-1">
                           <p className="font-semibold">{site.hopAB || site.siteId}</p>
                           <p className="text-sm text-muted-foreground">
-                            Plan: {site.planId} | Vendor: {vendor?.name} | Amount: {site.siteAmount ? `₹${site.siteAmount}` : "Not Set"}
+                            Plan: {site.planId} | Vendor: {vendor?.name} | Max Antenna: {Math.max(parseFloat(site.siteAAntDia) || 0, parseFloat(site.siteBAntDia) || 0)} | Amount: {site.siteAmount ? `₹${site.siteAmount}` : "Not Set"}
                           </p>
                           {isDisabled && <p className="text-xs text-red-600 mt-1">⚠ Site Amount is required</p>}
                         </div>
@@ -254,6 +267,7 @@ export default function POGeneration() {
                         <th className="text-left py-2">Site</th>
                         <th className="text-left py-2">Vendor</th>
                         <th className="text-left py-2">Plan ID</th>
+                        <th className="text-center py-2">Max Antenna Size</th>
                         <th className="text-right py-2">Amount</th>
                         <th className="text-center py-2">Action</th>
                       </tr>
@@ -265,6 +279,7 @@ export default function POGeneration() {
                           <td className="py-2">{po.siteName}</td>
                           <td className="py-2">{po.vendorName}</td>
                           <td className="py-2">{po.planId}</td>
+                          <td className="text-center py-2">{po.maxAntennaSize || "-"}</td>
                           <td className="text-right py-2">₹{po.unitPrice}</td>
                           <td className="text-center py-2">
                             <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
@@ -312,10 +327,14 @@ export default function POGeneration() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-3">
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Plan ID</p>
                             <p className="text-sm text-gray-700 truncate">{po.planId}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Max Antenna</p>
+                            <p className="text-sm font-bold text-blue-600">{po.maxAntennaSize || "-"}</p>
                           </div>
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Amount</p>
