@@ -20,17 +20,15 @@ export default function SiteList() {
   const [endDate, setEndDate] = useState(futureDate);
 
   useEffect(() => {
-    const fetchSitesByDateRange = async () => {
+    const fetchSites = async () => {
       try {
         setLoading(true);
-        if (startDate && endDate) {
-          const response = await fetch(`/api/sites/export/by-date-range?startDate=${startDate}&endDate=${endDate}`);
-          if (response.ok) {
-            const { data } = await response.json();
-            setSites(data || []);
-          } else {
-            setSites([]);
-          }
+        const response = await fetch('/api/sites');
+        if (response.ok) {
+          const { data } = await response.json();
+          setSites(data || []);
+        } else {
+          setSites([]);
         }
       } catch (error) {
         console.error('Failed to fetch sites:', error);
@@ -39,8 +37,8 @@ export default function SiteList() {
         setLoading(false);
       }
     };
-    fetchSitesByDateRange();
-  }, [startDate, endDate]);
+    fetchSites();
+  }, []);
 
   const getVendorName = (vendorId: string) => {
     return vendors.find(v => v.id === vendorId)?.name || "N/A";
@@ -53,12 +51,17 @@ export default function SiteList() {
         return;
       }
       
-      if (!sites || sites.length === 0) {
+      const response = await fetch(`/api/sites/export/by-date-range?startDate=${startDate}&endDate=${endDate}`);
+      if (!response.ok) throw new Error("Export failed");
+      
+      const { data } = await response.json();
+      
+      if (!data || data.length === 0) {
         alert("No sites found for the selected date range");
         return;
       }
       
-      const ws = XLSX.utils.json_to_sheet(sites);
+      const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sites");
       XLSX.writeFile(wb, `sites_export_${startDate}_to_${endDate}.xlsx`);
