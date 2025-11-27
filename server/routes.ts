@@ -556,6 +556,20 @@ export async function registerRoutes(
   app.post("/api/zones", async (req, res) => {
     try {
       const data = insertZoneSchema.parse(req.body);
+      
+      // Check for duplicate Zone Name
+      const existingByName = await storage.getZoneByName(data.name);
+      if (existingByName) {
+        return res.status(409).json({ error: `Zone name "${data.name}" already exists` });
+      }
+      
+      // Check for duplicate Short Name
+      const allZones = await storage.getZones(10000, 0);
+      const existingByShortName = allZones.find(z => z.shortName === data.shortName);
+      if (existingByShortName) {
+        return res.status(409).json({ error: `Short name "${data.shortName}" already exists` });
+      }
+      
       const zone = await storage.createZone(data);
       res.json(zone);
     } catch (error: any) {
@@ -598,6 +612,29 @@ export async function registerRoutes(
   app.put("/api/zones/:id", async (req, res) => {
     try {
       const data = insertZoneSchema.partial().parse(req.body);
+      const currentZone = await storage.getZone(req.params.id);
+      
+      if (!currentZone) {
+        return res.status(404).json({ error: "Zone not found" });
+      }
+      
+      // Check for duplicate Zone Name (if name is being changed)
+      if (data.name && data.name !== currentZone.name) {
+        const existingByName = await storage.getZoneByName(data.name);
+        if (existingByName) {
+          return res.status(409).json({ error: `Zone name "${data.name}" already exists` });
+        }
+      }
+      
+      // Check for duplicate Short Name (if short name is being changed)
+      if (data.shortName && data.shortName !== currentZone.shortName) {
+        const allZones = await storage.getZones(10000, 0);
+        const existingByShortName = allZones.find(z => z.shortName === data.shortName && z.id !== req.params.id);
+        if (existingByShortName) {
+          return res.status(409).json({ error: `Short name "${data.shortName}" already exists` });
+        }
+      }
+      
       const zone = await storage.updateZone(req.params.id, data);
       res.json(zone);
     } catch (error: any) {
