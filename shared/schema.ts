@@ -243,6 +243,7 @@ export const paymentMasters = pgTable("payment_masters", {
   siteId: varchar("site_id")
     .notNull()
     .references(() => sites.id),
+  planId: varchar("plan_id").notNull(),
   vendorId: varchar("vendor_id")
     .notNull()
     .references(() => vendors.id),
@@ -251,7 +252,9 @@ export const paymentMasters = pgTable("payment_masters", {
   vendorAmount: decimal("vendor_amount", 12, 2).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  compositeKey: sql`UNIQUE(${table.siteId}, ${table.planId}, ${table.vendorId}, ${table.antennaSize})`
+}));
 
 // Zod Schemas
 export const insertVendorSchema = createInsertSchema(vendors).omit({

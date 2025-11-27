@@ -15,6 +15,7 @@ export default function PaymentMaster() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PaymentMaster | null>(null);
   const [selectedSite, setSelectedSite] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedVendor, setSelectedVendor] = useState("");
   const [newMaster, setNewMaster] = useState({ antennaSize: "", siteAmount: "", vendorAmount: "" });
   const { toast } = useToast();
@@ -33,11 +34,12 @@ export default function PaymentMaster() {
   }, [loading]);
 
   useEffect(() => {
-    // Auto-select vendor when site is selected
+    // Auto-select vendor and planId when site is selected
     if (selectedSite) {
       const site = sites.find((s) => s.id === selectedSite);
-      if (site && site.vendorId) {
+      if (site) {
         setSelectedVendor(site.vendorId);
+        setSelectedPlanId(site.planId || "");
       }
     }
   }, [selectedSite, sites]);
@@ -78,7 +80,7 @@ export default function PaymentMaster() {
   };
 
   const handleSave = async () => {
-    if (!newMaster.antennaSize || !newMaster.siteAmount || !newMaster.vendorAmount || !selectedSite || !selectedVendor) {
+    if (!newMaster.antennaSize || !newMaster.siteAmount || !newMaster.vendorAmount || !selectedSite || !selectedPlanId || !selectedVendor) {
       toast({ title: "Error", description: "All fields required", variant: "destructive" });
       return;
     }
@@ -92,6 +94,7 @@ export default function PaymentMaster() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           siteId: selectedSite,
+          planId: selectedPlanId,
           vendorId: selectedVendor,
           antennaSize: newMaster.antennaSize,
           siteAmount: newMaster.siteAmount,
@@ -154,7 +157,7 @@ export default function PaymentMaster() {
         <CardHeader>
           <CardTitle>Filter by Site & Vendor</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-4 md:grid-cols-3">
           <div>
             <label className="text-sm font-medium">Site</label>
             <select
@@ -162,13 +165,23 @@ export default function PaymentMaster() {
               onChange={(e) => setSelectedSite(e.target.value)}
               className="w-full mt-2 px-3 py-2 border rounded-md"
             >
-              <option value="">All Sites</option>
+              <option value="">Select Site</option>
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.hopAB || s.siteId}
+                  {s.hopAB || s.siteId} ({s.planId})
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Plan ID</label>
+            <input
+              type="text"
+              value={selectedPlanId}
+              readOnly
+              className="w-full mt-2 px-3 py-2 border rounded-md bg-gray-100"
+            />
           </div>
 
           <div>
@@ -268,7 +281,7 @@ export default function PaymentMaster() {
                   return (
                     <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                       <div className="flex-1">
-                        <p className="font-semibold">{siteData?.hopAB || 'N/A'} - {vendorData?.name || 'N/A'} ({m.antennaSize} kVA)</p>
+                        <p className="font-semibold">{siteData?.hopAB || 'N/A'} (Plan: {m.planId}) - {vendorData?.name || 'N/A'} - {m.antennaSize} kVA</p>
                         <p className="text-sm text-muted-foreground">
                           Site Amount: ₹{m.siteAmount} | Vendor Amount: ₹{m.vendorAmount}
                         </p>
