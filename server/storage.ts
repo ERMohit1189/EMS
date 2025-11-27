@@ -600,8 +600,8 @@ export class DrizzleStorage implements IStorage {
       )
       .where(
         and(
-          gte(sites.incDate, startDate),
-          lte(sites.incDate, endDate)
+          gte(sites.siteAInstallationDate, startDate),
+          lte(sites.siteAInstallationDate, endDate)
         )
       );
     
