@@ -1,0 +1,88 @@
+<div class="container">
+  <div class="header">
+    <div>
+      <h2>All Vendors</h2>
+      <p class="subtitle">Manage your registered vendors.</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="addVendor()">
+      <mat-icon>add</mat-icon> Register Vendor
+    </button>
+  </div>
+
+  <mat-card>
+    <mat-card-content>
+      <div *ngIf="isLoading" class="loading">
+        <mat-spinner></mat-spinner>
+      </div>
+
+      <div *ngIf="!isLoading" class="table-wrapper">
+        <table mat-table [dataSource]="vendors" class="vendors-table">
+          
+          <!-- Name Column -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Name</th>
+            <td mat-cell *matCellDef="let vendor">
+              <div>
+                <strong>{{ vendor.name }}</strong>
+                <div class="text-secondary">{{ vendor.email }}</div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Email Column -->
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef>Email</th>
+            <td mat-cell *matCellDef="let vendor">{{ vendor.email }}</td>
+          </ng-container>
+
+          <!-- City Column -->
+          <ng-container matColumnDef="city">
+            <th mat-header-cell *matHeaderCellDef>Location</th>
+            <td mat-cell *matCellDef="let vendor">{{ vendor.city }}, {{ vendor.state }}</td>
+          </ng-container>
+
+          <!-- Category Column -->
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef>Category</th>
+            <td mat-cell *matCellDef="let vendor">
+              <mat-chip>{{ vendor.category }}</mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let vendor">
+              <mat-chip [color]="getStatusColor(vendor.status)">{{ vendor.status }}</mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Mobile Column -->
+          <ng-container matColumnDef="mobile">
+            <th mat-header-cell *matHeaderCellDef>Mobile</th>
+            <td mat-cell *matCellDef="let vendor">{{ vendor.mobile }}</td>
+          </ng-container>
+
+          <!-- Action Column -->
+          <ng-container matColumnDef="action">
+            <th mat-header-cell *matHeaderCellDef>Action</th>
+            <td mat-cell *matCellDef="let vendor">
+              <button mat-icon-button (click)="viewVendor(vendor.id)">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </div>
+
+      <mat-paginator 
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[5, 10, 25, 100]"
+        (page)="onPageChange($event)">
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div>

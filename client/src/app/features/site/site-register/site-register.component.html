@@ -1,0 +1,113 @@
+<div class="container">
+  <h2>Site Registration</h2>
+  <p class="subtitle">Register a new site for installation or maintenance.</p>
+
+  <form [formGroup]="siteForm" (ngSubmit)="onSubmit()" class="form">
+    
+    <!-- Site Details -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Site Details</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="form-grid">
+        
+        <mat-form-field>
+          <mat-label>Select Vendor</mat-label>
+          <mat-select formControlName="vendorId" required>
+            <mat-option *ngFor="let vendor of vendors$ | async" [value]="vendor.id">
+              {{ vendor.name }} ({{ vendor.city }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Site ID</mat-label>
+          <input matInput formControlName="siteId" placeholder="e.g. DL-1001" required>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Plan ID</mat-label>
+          <input matInput formControlName="planId" placeholder="e.g. P-500" required>
+        </mat-form-field>
+
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Technical Details -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Technical & Location</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="form-grid">
+        
+        <mat-form-field>
+          <mat-label>Antenna Size</mat-label>
+          <mat-select formControlName="antennaSize" required>
+            <mat-option *ngFor="let size of antennaSizes" [value]="size">
+              {{ size }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>INC Date</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="incDate" required>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>State</mat-label>
+          <input matInput formControlName="state" required>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Region</mat-label>
+          <input matInput formControlName="region" required>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Zone</mat-label>
+          <input matInput formControlName="zone" required>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Form No</mat-label>
+          <input matInput formControlName="formNo" required>
+        </mat-form-field>
+
+        <mat-checkbox formControlName="inside">Inside Premises</mat-checkbox>
+
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Financial Details -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Financials</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="form-grid">
+        
+        <mat-form-field>
+          <mat-label>Site Amount (₹)</mat-label>
+          <input matInput type="number" formControlName="siteAmount" required>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Vendor Amount (₹)</mat-label>
+          <input matInput type="number" formControlName="vendorAmount" required>
+        </mat-form-field>
+
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="!siteForm.valid || isLoading">
+        Register Site
+      </button>
+    </div>
+
+  </form>
+</div>

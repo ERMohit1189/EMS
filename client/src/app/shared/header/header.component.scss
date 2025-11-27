@@ -1,0 +1,18 @@
+::ng-deep {
+  .mat-toolbar-multiple-rows {
+    padding: 0 16px;
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.search-field {
+  width: 300px;
+  margin: 0 16px;
+}
+
+mat-icon {
+  margin: 0 8px;
+}
