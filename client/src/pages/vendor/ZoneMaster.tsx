@@ -19,9 +19,13 @@ export default function ZoneMaster() {
     fetchZones();
   }, []);
 
+  const focusNameInput = () => {
+    setTimeout(() => nameInputRef.current?.focus(), 50);
+  };
+
   useEffect(() => {
     if (!loading) {
-      setTimeout(() => nameInputRef.current?.focus(), 100);
+      focusNameInput();
     }
   }, [loading]);
 
@@ -66,10 +70,10 @@ export default function ZoneMaster() {
 
       setNewZone({ name: "", shortName: "" });
       setEditing(null);
-      fetchZones();
+      await fetchZones();
 
       topRef.current?.scrollIntoView({ behavior: "smooth" });
-      setTimeout(() => nameInputRef.current?.focus(), 300);
+      focusNameInput();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
@@ -80,7 +84,7 @@ export default function ZoneMaster() {
     setEditing(zone);
     setNewZone({ name: zone.name, shortName: zone.shortName });
     topRef.current?.scrollIntoView({ behavior: "smooth" });
-    setTimeout(() => nameInputRef.current?.focus(), 300);
+    focusNameInput();
   };
 
   const handleDelete = async (id: string) => {
@@ -100,6 +104,7 @@ export default function ZoneMaster() {
   const handleCancel = () => {
     setNewZone({ name: "", shortName: "" });
     setEditing(null);
+    focusNameInput();
   };
 
   if (loading) {
