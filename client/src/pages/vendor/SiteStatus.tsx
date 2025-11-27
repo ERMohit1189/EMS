@@ -196,9 +196,14 @@ export default function SiteStatus() {
                       <TableCell>{site.circle || '-'}</TableCell>
                       <TableCell>{site.district || '-'}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(site.status)}>
-                          {site.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(site.status)}>
+                            {site.status}
+                          </Badge>
+                          {site.softAtRemark === "Approved" && site.phyAtRemark === "Approved" && (
+                            <span className="text-xs text-green-600 font-semibold" title="Auto-approved: Both AT remarks approved">✓</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge className={getAtpStatusColor(site.visibleInNms)}>

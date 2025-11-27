@@ -441,10 +441,19 @@ export class DrizzleStorage implements IStorage {
     return result as Site[];
   }
 
+  // Helper function to auto-update site status based on remarks
+  private autoUpdateSiteStatus(site: Partial<InsertSite>): Partial<InsertSite> {
+    if (site.softAtRemark === "Approved" && site.phyAtRemark === "Approved") {
+      return { ...site, status: "Approved" };
+    }
+    return site;
+  }
+
   async updateSite(id: string, site: Partial<InsertSite>): Promise<Site> {
+    const updateData = this.autoUpdateSiteStatus(site);
     const [result] = await db
       .update(sites)
-      .set(site)
+      .set(updateData)
       .where(eq(sites.id, id))
       .returning();
     return result;
@@ -457,15 +466,17 @@ export class DrizzleStorage implements IStorage {
     if (existingSite) {
       // Update existing site (exclude planId from update)
       const { planId, ...updateData } = site;
+      const finalUpdateData = this.autoUpdateSiteStatus(updateData);
       const [result] = await db
         .update(sites)
-        .set(updateData)
+        .set(finalUpdateData)
         .where(eq(sites.planId, site.planId))
         .returning();
       return result;
     } else {
-      // Insert new site
-      const [result] = await db.insert(sites).values(site).returning();
+      // Insert new site with auto-updated status
+      const finalSite = this.autoUpdateSiteStatus(site);
+      const [result] = await db.insert(sites).values(finalSite).returning();
       return result;
     }
   }
