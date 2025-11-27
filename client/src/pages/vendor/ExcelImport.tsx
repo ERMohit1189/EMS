@@ -78,10 +78,28 @@ export default function ExcelImport() {
             return String(val);
           };
 
-          const toDate = (val: any) => {
+          // Convert Excel serial numbers to ISO date strings
+          const excelDateToISO = (val: any) => {
+            if (val === null || val === undefined || val === '') return null;
+            
+            // Check if it's an Excel serial number (numeric)
+            const num = Number(val);
+            if (!isNaN(num) && num > 0 && num < 100000) {
+              try {
+                // Excel stores dates as days since January 1, 1900
+                const date = new Date((num - 1) * 86400000 + new Date(1900, 0, 1).getTime());
+                return date.toISOString().split('T')[0];
+              } catch (e) {
+                return null;
+              }
+            }
+            
+            // Otherwise treat as string date
             const str = toString(val);
             return str ? str : null;
           };
+
+          const toDate = excelDateToISO;
 
           // Map all 81 columns for site from Excel
           const siteData = {
