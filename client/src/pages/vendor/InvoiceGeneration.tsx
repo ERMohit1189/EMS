@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
+import jsPDF from "jspdf";
 import type { PurchaseOrder, Vendor } from "@shared/schema";
 
 interface InvoiceRecord {
@@ -93,6 +94,74 @@ export default function InvoiceGeneration() {
       newSet.add(poId);
     }
     setSelectedPOs(newSet);
+  };
+
+  const downloadInvoicePDF = (invoice: InvoiceRecord) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPosition = margin;
+
+    // Header
+    doc.setFontSize(20);
+    doc.text("INVOICE", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 10;
+
+    // Invoice details
+    doc.setFontSize(10);
+    doc.text(`Invoice No: ${invoice.invoiceNumber}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Invoice Date: ${invoice.invoiceDate}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`PO Number: ${invoice.poNumber}`, margin, yPosition);
+    yPosition += 10;
+
+    // Vendor details section
+    doc.setFontSize(11);
+    doc.text("Bill To:", margin, yPosition);
+    yPosition += 6;
+    doc.setFontSize(10);
+    doc.text(`Vendor: ${invoice.vendorName}`, margin + 5, yPosition);
+    yPosition += 10;
+
+    // Line separator
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 8;
+
+    // Amount details table
+    doc.setFontSize(10);
+    doc.text("Amount (₹):", margin, yPosition);
+    doc.text(invoice.amount, pageWidth - margin - 20, yPosition, { align: "right" });
+    yPosition += 6;
+
+    doc.text(`GST (${(parseFloat(invoice.gst) / parseFloat(invoice.amount) * 100).toFixed(0)}%):`, margin, yPosition);
+    doc.text(parseFloat(invoice.gst).toFixed(2), pageWidth - margin - 20, yPosition, { align: "right" });
+    yPosition += 6;
+
+    // Total line
+    doc.setDrawColor(0, 0, 0);
+    doc.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+    doc.setFontSize(11);
+    doc.text("Total Amount (₹):", margin, yPosition + 3);
+    doc.text(parseFloat(invoice.totalAmount).toFixed(2), pageWidth - margin - 20, yPosition + 3, { align: "right" });
+    yPosition += 12;
+
+    // Status
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Status: ${invoice.status}`, margin, yPosition);
+
+    // Footer
+    yPosition = pageHeight - 15;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text("This is an electronically generated document", pageWidth / 2, yPosition, { align: "center" });
+
+    // Save PDF
+    doc.save(`${invoice.invoiceNumber}.pdf`);
+    toast({ title: "Success", description: "Invoice downloaded successfully" });
   };
 
   const generateInvoices = async () => {
@@ -284,6 +353,12 @@ export default function InvoiceGeneration() {
                           <p className="text-xs font-medium text-muted-foreground uppercase">Total</p>
                           <p className="text-lg font-bold text-green-600">₹{parseFloat(invoice.totalAmount).toFixed(2)}</p>
                         </div>
+                        <button
+                          onClick={() => downloadInvoicePDF(invoice)}
+                          className="w-full mt-2 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                        >
+                          <Download className="h-4 w-4" /> Download PDF
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -333,6 +408,12 @@ export default function InvoiceGeneration() {
                             {invoice.status}
                           </span>
                         </div>
+                        <button
+                          onClick={() => downloadInvoicePDF(invoice)}
+                          className="w-full mt-2 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                        >
+                          <Download className="h-4 w-4" /> Download PDF
+                        </button>
                       </div>
                     </div>
                   ))}
