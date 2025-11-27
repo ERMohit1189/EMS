@@ -27,12 +27,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 
 const siteSchema = z.object({
-  vendorId: z.string().min(1, 'Vendor is required'),
+  vendorId: z.string().optional(),
   zoneId: z.string().optional(),
-  siteId: z.string().min(2, 'Site ID is required'),
+  siteId: z.string().optional(),
   sno: z.string().optional(),
   circle: z.string().optional(),
-  planId: z.string().min(2, 'Plan ID is required'),
+  planId: z.string().optional(),
   nominalAop: z.string().optional(),
   hopType: z.string().optional(),
   hopAB: z.string().optional(),
@@ -200,7 +200,7 @@ export default function SiteRegistration() {
                 name="vendorId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Select Vendor *</FormLabel>
+                    <FormLabel>Select Vendor</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -217,7 +217,7 @@ export default function SiteRegistration() {
                   </FormItem>
                 )}
               />
-              {renderField(form, 'siteId', 'Site ID *')}
+              {renderField(form, 'siteId', 'Site ID')}
               {renderField(form, 'sno', 'S.No.')}
               <FormField
                 control={form.control}
@@ -241,7 +241,7 @@ export default function SiteRegistration() {
                   </FormItem>
                 )}
               />
-              {renderField(form, 'planId', 'Plan ID *')}
+              {renderField(form, 'planId', 'Plan ID')}
               {renderField(form, 'project', 'Project')}
             </CardContent>
           </Card>
