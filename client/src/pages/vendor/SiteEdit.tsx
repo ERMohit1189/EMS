@@ -141,8 +141,9 @@ export default function SiteEdit() {
   });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
+        // Fetch zones and vendors first
         const [zonesRes, vendorsRes] = await Promise.all([
           fetch('/api/zones?pageSize=10000'),
           fetch('/api/vendors?pageSize=10000'),
@@ -156,15 +157,16 @@ export default function SiteEdit() {
           const data = await vendorsRes.json();
           setVendors(data.data || []);
         }
+        
+        // Then fetch the site
+        if (id) {
+          await fetchSite();
+        }
       } catch (error) {
-        console.error('Failed to load zones or vendors');
+        console.error('Failed to load data');
       }
     };
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    fetchSite();
+    loadData();
   }, [id]);
 
   const fetchSite = async () => {
@@ -172,7 +174,11 @@ export default function SiteEdit() {
       const response = await fetch(`/api/sites/${id}`);
       if (!response.ok) throw new Error('Site not found');
       const site = await response.json();
-      form.reset(site);
+      // Ensure zoneId is properly set even if it's null
+      form.reset({
+        ...site,
+        zoneId: site.zoneId || undefined,
+      });
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to load site', variant: 'destructive' });
       setLocation('/vendor/site-list');
