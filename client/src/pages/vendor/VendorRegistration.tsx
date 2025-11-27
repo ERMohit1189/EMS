@@ -49,6 +49,8 @@ export default function VendorRegistration() {
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);
+  const [stateSearch, setStateSearch] = useState('');
+  const [citySearch, setCitySearch] = useState('');
 
   const form = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
@@ -73,8 +75,17 @@ export default function VendorRegistration() {
     if (watchedState) {
       setCities(getCitiesByState(watchedState));
       form.setValue('city', '', { shouldValidate: false });
+      setCitySearch('');
     }
   }, [watchedState, form]);
+
+  const filteredStates = IndianStates.filter(s => 
+    s.toLowerCase().includes(stateSearch.toLowerCase())
+  );
+  
+  const filteredCities = cities.filter(c => 
+    c.toLowerCase().includes(citySearch.toLowerCase())
+  );
 
   function onSubmit(values: z.infer<typeof vendorSchema>) {
     addVendor({
@@ -209,16 +220,30 @@ export default function VendorRegistration() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>State</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select State" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {IndianStates.map(state => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                        ))}
+                      <SelectContent className="max-h-[200px]">
+                        <div className="p-2">
+                          <Input 
+                            placeholder="Search states..." 
+                            value={stateSearch}
+                            onChange={(e) => setStateSearch(e.target.value)}
+                            className="mb-2"
+                          />
+                        </div>
+                        <div className="max-h-[150px] overflow-y-auto">
+                          {filteredStates.length > 0 ? (
+                            filteredStates.map(state => (
+                              <SelectItem key={state} value={state}>{state}</SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1 text-sm text-muted-foreground">No states found</div>
+                          )}
+                        </div>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -232,16 +257,30 @@ export default function VendorRegistration() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>City</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select City" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {cities.map(city => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
-                        ))}
+                      <SelectContent className="max-h-[200px]">
+                        <div className="p-2">
+                          <Input 
+                            placeholder="Search cities..." 
+                            value={citySearch}
+                            onChange={(e) => setCitySearch(e.target.value)}
+                            className="mb-2"
+                          />
+                        </div>
+                        <div className="max-h-[150px] overflow-y-auto">
+                          {filteredCities.length > 0 ? (
+                            filteredCities.map(city => (
+                              <SelectItem key={city} value={city}>{city}</SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1 text-sm text-muted-foreground">No cities found</div>
+                          )}
+                        </div>
                       </SelectContent>
                     </Select>
                     <FormMessage />

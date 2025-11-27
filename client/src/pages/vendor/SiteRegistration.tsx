@@ -48,6 +48,7 @@ export default function SiteRegistration() {
   const { addSite, vendors } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
+  const [stateSearch, setStateSearch] = useState('');
 
   const form = useForm<z.infer<typeof siteSchema>>({
     resolver: zodResolver(siteSchema),
@@ -55,6 +56,10 @@ export default function SiteRegistration() {
       inside: false,
     },
   });
+
+  const filteredStates = IndianStates.filter(s => 
+    s.toLowerCase().includes(stateSearch.toLowerCase())
+  );
 
   function onSubmit(values: z.infer<typeof siteSchema>) {
     addSite({
@@ -187,16 +192,30 @@ export default function SiteRegistration() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>State</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select State" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {IndianStates.map(state => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                        ))}
+                      <SelectContent className="max-h-[200px]">
+                        <div className="p-2">
+                          <Input 
+                            placeholder="Search states..." 
+                            value={stateSearch}
+                            onChange={(e) => setStateSearch(e.target.value)}
+                            className="mb-2"
+                          />
+                        </div>
+                        <div className="max-h-[150px] overflow-y-auto">
+                          {filteredStates.length > 0 ? (
+                            filteredStates.map(state => (
+                              <SelectItem key={state} value={state}>{state}</SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1 text-sm text-muted-foreground">No states found</div>
+                          )}
+                        </div>
                       </SelectContent>
                     </Select>
                     <FormMessage />
