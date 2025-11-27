@@ -4,19 +4,25 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import type { PaymentMaster } from "@shared/schema";
+import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 
 export default function PaymentMaster() {
   const topRef = useRef<HTMLDivElement>(null);
   const antennaSelectRef = useRef<HTMLSelectElement>(null);
   const [masters, setMasters] = useState<PaymentMaster[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PaymentMaster | null>(null);
+  const [selectedSite, setSelectedSite] = useState("");
+  const [selectedVendor, setSelectedVendor] = useState("");
   const [newMaster, setNewMaster] = useState({ antennaSize: "", siteAmount: "", vendorAmount: "" });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchMasters();
+    fetchSites();
+    fetchVendors();
   }, []);
 
   useEffect(() => {
@@ -34,6 +40,28 @@ export default function PaymentMaster() {
       setMasters(result.data || []);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load payment masters", variant: "destructive" });
+    }
+  };
+
+  const fetchSites = async () => {
+    try {
+      const response = await fetch("/api/sites?pageSize=10000");
+      if (!response.ok) throw new Error("Failed to fetch");
+      const result = await response.json();
+      setSites(result.data || []);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load sites", variant: "destructive" });
+    }
+  };
+
+  const fetchVendors = async () => {
+    try {
+      const response = await fetch("/api/vendors?pageSize=10000");
+      if (!response.ok) throw new Error("Failed to fetch");
+      const result = await response.json();
+      setVendors(result.data || []);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load vendors", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -109,6 +137,45 @@ export default function PaymentMaster() {
         <h2 className="text-3xl font-bold tracking-tight">Payment Master</h2>
         <p className="text-muted-foreground">Configure site and vendor amounts by antenna size.</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Filter by Site & Vendor</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="text-sm font-medium">Site</label>
+            <select
+              value={selectedSite}
+              onChange={(e) => setSelectedSite(e.target.value)}
+              className="w-full mt-2 px-3 py-2 border rounded-md"
+            >
+              <option value="">All Sites</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.siteId} - {s.partnerName || "N/A"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Vendor</label>
+            <select
+              value={selectedVendor}
+              onChange={(e) => setSelectedVendor(e.target.value)}
+              className="w-full mt-2 px-3 py-2 border rounded-md"
+            >
+              <option value="">All Vendors</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
