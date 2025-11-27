@@ -161,20 +161,26 @@ export default function SiteList() {
         return;
       }
       
-      // Transform data with user-friendly column names
+      // Create all column headers with friendly names
+      const allColumnKeys = Object.keys(columnHeaders);
+      const headerRow = allColumnKeys.map(key => (columnHeaders as any)[key]);
+      
+      // Transform data to include all columns in order
       const transformedData = data.map((site: any) => {
-        const newRow: any = {};
-        Object.keys(site).forEach(key => {
-          const displayName = (columnHeaders as any)[key] || key;
-          newRow[displayName] = site[key];
-        });
-        return newRow;
+        return allColumnKeys.map(key => site[key] ?? "");
       });
       
-      const ws = XLSX.utils.json_to_sheet(transformedData);
-      // Auto-adjust column widths
-      const colWidths = Object.values(columnHeaders).map(() => 15);
-      ws['!cols'] = colWidths;
+      // Add header row at the beginning
+      const dataWithHeaders = [headerRow, ...transformedData];
+      
+      // Create worksheet with explicit headers
+      const ws = XLSX.utils.aoa_to_sheet(dataWithHeaders);
+      
+      // Set column widths
+      ws['!cols'] = allColumnKeys.map(() => ({ wch: 18 }));
+      
+      // Freeze the header row
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
       
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sites");
