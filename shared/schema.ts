@@ -36,6 +36,10 @@ export const vendors = pgTable("vendors", {
 // Sites Table - Comprehensive HOP Management
 export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().unique(),
+  vendorId: varchar("vendor_id")
+    .notNull()
+    .references(() => vendors.id),
   sno: integer("s_no"),
   circle: varchar("circle"),
   planId: varchar("plan_id").notNull(),

@@ -25,10 +25,10 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 
 const siteSchema = z.object({
   vendorId: z.string().min(1, 'Vendor is required'),
+  siteId: z.string().min(2, 'Site ID is required'),
   sno: z.string().optional(),
   circle: z.string().optional(),
   planId: z.string().min(2, 'Plan ID is required'),
@@ -112,32 +112,37 @@ const siteSchema = z.object({
   surveyDate: z.string().optional(),
 });
 
+const renderField = (form: any, name: string, label: string, type: 'text' | 'date' | 'number' = 'text') => (
+  <FormField
+    control={form.control}
+    name={name}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>{label}</FormLabel>
+        <FormControl>
+          <Input type={type} placeholder={label} {...field} />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+);
+
 export default function SiteRegistration() {
   const { addSite, vendors } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
-  const [stateSearch, setStateSearch] = useState('');
-  const [stateHighlight, setStateHighlight] = useState(-1);
-  const stateInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof siteSchema>>({
     resolver: zodResolver(siteSchema),
-    defaultValues: {
-      inside: false,
-    },
   });
-
-  const filteredStates = IndianStates.filter(s => 
-    s.toLowerCase().includes(stateSearch.toLowerCase())
-  );
 
   function onSubmit(values: z.infer<typeof siteSchema>) {
     addSite({
       ...values,
+      siteAmount: 0,
+      vendorAmount: 0,
       status: 'Pending',
-      softAtRemark: values.softAtRemark || 'Pending',
-      phyAtRemark: values.phyAtRemark || 'Pending',
-      atpRemark: values.atpRemark || 'Pending',
     });
     
     toast({
@@ -145,30 +150,31 @@ export default function SiteRegistration() {
       description: 'New site has been successfully registered.',
     });
     
-    setLocation('/vendor/sites');
+    setLocation('/vendor/site-list');
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto pb-10">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Site Registration</h2>
-        <p className="text-muted-foreground">Register a new site for installation or maintenance.</p>
+        <p className="text-muted-foreground">Register a new HOP site with comprehensive details.</p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
+          {/* Site Identification */}
           <Card>
             <CardHeader>
-              <CardTitle>Site Details</CardTitle>
+              <CardTitle>Site Identification</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-3">
               <FormField
                 control={form.control}
                 name="vendorId"
                 render={({ field }) => (
-                  <FormItem className="col-span-1">
-                    <FormLabel>Select Vendor</FormLabel>
+                  <FormItem>
+                    <FormLabel>Select Vendor *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -185,274 +191,255 @@ export default function SiteRegistration() {
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="siteId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Site ID</FormLabel>
-                    <FormControl>
-                      <Input autoFocus placeholder="e.g. DL-1001" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="planId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plan ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. P-500" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {renderField(form, 'siteId', 'Site ID *')}
+              {renderField(form, 'sno', 'S.No.')}
+              {renderField(form, 'circle', 'Circle')}
+              {renderField(form, 'planId', 'Plan ID *')}
+              {renderField(form, 'project', 'Project')}
             </CardContent>
           </Card>
 
-          <Card>
-             <CardHeader>
-                <CardTitle>Technical & Location</CardTitle>
-             </CardHeader>
-             <CardContent className="grid gap-6 md:grid-cols-4">
-               <FormField
-                control={form.control}
-                name="antennaSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Antenna Size</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Size" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="0.6m">0.6m</SelectItem>
-                        <SelectItem value="1.2m">1.2m</SelectItem>
-                        <SelectItem value="1.8m">1.8m</SelectItem>
-                        <SelectItem value="2.4m">2.4m</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="incDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>INC Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>State</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select State" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
-                        <div className="p-2" onClick={(e) => e.stopPropagation()}>
-                          <Input 
-                            ref={stateInputRef}
-                            autoFocus
-                            placeholder="Search states..." 
-                            value={stateSearch}
-                            onChange={(e) => setStateSearch(e.target.value)}
-                            onKeyDown={(e) => {
-                              e.stopPropagation();
-                              if (e.key === 'ArrowDown') {
-                                e.preventDefault();
-                                setStateHighlight(prev => 
-                                  prev < filteredStates.length - 1 ? prev + 1 : prev
-                                );
-                              } else if (e.key === 'ArrowUp') {
-                                e.preventDefault();
-                                setStateHighlight(prev => prev > 0 ? prev - 1 : -1);
-                              } else if (e.key === 'Enter' && stateHighlight >= 0) {
-                                e.preventDefault();
-                                field.onChange(filteredStates[stateHighlight]);
-                                setStateSearch('');
-                                setStateHighlight(-1);
-                                setTimeout(() => stateInputRef.current?.focus(), 100);
-                              } else if (e.key === 'Escape') {
-                                setStateSearch('');
-                                setStateHighlight(-1);
-                              }
-                            }}
-                            className="mb-2"
-                          />
-                        </div>
-                        <div className="max-h-[150px] overflow-y-auto">
-                          {filteredStates.length > 0 ? (
-                            filteredStates.map((state, idx) => (
-                              <div
-                                key={state}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    field.onChange(state);
-                                    setStateSearch('');
-                                    setStateHighlight(-1);
-                                    setTimeout(() => stateInputRef.current?.focus(), 100);
-                                  }
-                                }}
-                                onMouseEnter={() => setStateHighlight(idx)}
-                                onClick={() => {
-                                  field.onChange(state);
-                                  setStateSearch('');
-                                  setStateHighlight(-1);
-                                  setTimeout(() => stateInputRef.current?.focus(), 100);
-                                }}
-                              >
-                                <SelectItem 
-                                  value={state}
-                                  className={stateHighlight === idx ? 'bg-accent' : ''}
-                                >
-                                  {state}
-                                </SelectItem>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="px-2 py-1 text-sm text-muted-foreground">No states found</div>
-                          )}
-                        </div>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="region"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Region</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Region" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="zone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Zone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Zone" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="formNo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Form No</FormLabel>
-                    <FormControl>
-                      <Input placeholder="F-100" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="inside"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Inside Premises</FormLabel>
-                      <CardDescription>Is the site inside a building?</CardDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-             </CardContent>
-          </Card>
-
+          {/* Project Details */}
           <Card>
             <CardHeader>
-               <CardTitle>Financials & Remarks</CardTitle>
+              <CardTitle>Project Details</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="siteAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Site Amount (₹)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="vendorAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vendor Amount (₹)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="softAtRemark"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Soft AT Remark</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Remark..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'nominalAop', 'Nominal AOP')}
+              {renderField(form, 'hopType', 'HOP Type')}
+              {renderField(form, 'hopAB', 'HOP A-B')}
+              {renderField(form, 'hopBA', 'HOP B-A')}
+              {renderField(form, 'district', 'District')}
             </CardContent>
           </Card>
 
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => setLocation('/')}>
+          {/* Site A Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Site A Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'siteAName', 'Site A Name')}
+              {renderField(form, 'siteAAntDia', 'Site A Antenna Dia')}
+              {renderField(form, 'tocoVendorA', 'TOCO Vendor A')}
+              {renderField(form, 'tocoIdA', 'TOCO ID A')}
+            </CardContent>
+          </Card>
+
+          {/* Site B Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Site B Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'siteBName', 'Site B Name')}
+              {renderField(form, 'siteBAntDia', 'Site B Antenna Dia')}
+              {renderField(form, 'tocoVendorB', 'TOCO Vendor B')}
+              {renderField(form, 'tocoIdB', 'TOCO ID B')}
+              {renderField(form, 'maxAntSize', 'Max Antenna Size')}
+            </CardContent>
+          </Card>
+
+          {/* SR, SP, SO Dates */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Service Request & Survey Dates</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'srNoSiteA', 'SR No Site A')}
+              {renderField(form, 'srDateSiteA', 'SR Date Site A', 'date')}
+              {renderField(form, 'srNoSiteB', 'SR No Site B')}
+              {renderField(form, 'srDateSiteB', 'SR Date Site B', 'date')}
+              {renderField(form, 'hopSrDate', 'HOP SR Date', 'date')}
+              {renderField(form, 'spDateSiteA', 'SP Date Site A', 'date')}
+              {renderField(form, 'spDateSiteB', 'SP Date Site B', 'date')}
+              {renderField(form, 'hopSpDate', 'HOP SP Date', 'date')}
+            </CardContent>
+          </Card>
+
+          {/* SO & RFAI */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales Order & RFAI</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'soReleasedDateSiteA', 'SO Released Date A', 'date')}
+              {renderField(form, 'soReleasedDateSiteB', 'SO Released Date B', 'date')}
+              {renderField(form, 'hopSoDate', 'HOP SO Date', 'date')}
+              {renderField(form, 'rfaiOfferedDateSiteA', 'RFAI Offered Date A', 'date')}
+              {renderField(form, 'rfaiOfferedDateSiteB', 'RFAI Offered Date B', 'date')}
+              {renderField(form, 'actualHopRfaiOfferedDate', 'Actual HOP RFAI Offered', 'date')}
+              {renderField(form, 'partnerName', 'Partner Name')}
+              {renderField(form, 'rfaiSurveyCompletionDate', 'RFAI Survey Completion', 'date')}
+            </CardContent>
+          </Card>
+
+          {/* Material Orders */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Material Orders</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'moNumberSiteA', 'MO Number Site A')}
+              {renderField(form, 'materialTypeSiteA', 'Material Type Site A')}
+              {renderField(form, 'moDateSiteA', 'MO Date Site A', 'date')}
+              {renderField(form, 'moNumberSiteB', 'MO Number Site B')}
+              {renderField(form, 'materialTypeSiteB', 'Material Type Site B')}
+              {renderField(form, 'moDateSiteB', 'MO Date Site B', 'date')}
+              {renderField(form, 'srnRmoNumber', 'SRN/RMO Number')}
+              {renderField(form, 'srnRmoDate', 'SRN/RMO Date', 'date')}
+              {renderField(form, 'hopMoDate', 'HOP MO Date', 'date')}
+            </CardContent>
+          </Card>
+
+          {/* Material Delivery & Installation */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Material Delivery & Installation</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'hopMaterialDispatchDate', 'HOP Material Dispatch', 'date')}
+              {renderField(form, 'hopMaterialDeliveryDate', 'HOP Material Delivery', 'date')}
+              {renderField(form, 'materialDeliveryStatus', 'Material Delivery Status')}
+              {renderField(form, 'mediaAvailabilityStatus', 'Media Availability Status')}
+              {renderField(form, 'siteAInstallationDate', 'Site A Installation Date', 'date')}
+              {renderField(form, 'ptwNumberSiteA', 'PTW Number Site A')}
+              {renderField(form, 'ptwStatusA', 'PTW Status A')}
+              {renderField(form, 'siteBInstallationDate', 'Site B Installation Date', 'date')}
+            </CardContent>
+          </Card>
+
+          {/* PTW & Alignment */}
+          <Card>
+            <CardHeader>
+              <CardTitle>PTW & Alignment</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'ptwNumberSiteB', 'PTW Number Site B')}
+              {renderField(form, 'ptwStatusB', 'PTW Status B')}
+              {renderField(form, 'hopIcDate', 'HOP I&C Date', 'date')}
+              {renderField(form, 'alignmentDate', 'Alignment Date', 'date')}
+            </CardContent>
+          </Card>
+
+          {/* Installation & NMS */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Installation Remarks & NMS</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <FormField
+                control={form.control}
+                name="hopInstallationRemarks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>HOP Installation Remarks</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter remarks..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid gap-6 md:grid-cols-3">
+                {renderField(form, 'visibleInNms', 'Visible in NMS')}
+                {renderField(form, 'nmsVisibleDate', 'NMS Visible Date', 'date')}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Acceptance Testing */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Acceptance Testing (AT)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'softAtOfferDate', 'SOFT-AT Offer Date', 'date')}
+              {renderField(form, 'softAtAcceptanceDate', 'SOFT-AT Acceptance', 'date')}
+              {renderField(form, 'softAtStatus', 'SOFT-AT Status')}
+              {renderField(form, 'phyAtOfferDate', 'PHY-AT Offer Date', 'date')}
+              {renderField(form, 'phyAtAcceptanceDate', 'PHY-AT Acceptance', 'date')}
+              {renderField(form, 'phyAtStatus', 'PHY-AT Status')}
+              {renderField(form, 'bothAtStatus', 'Both AT Status')}
+            </CardContent>
+          </Card>
+
+          {/* PRI & Survey */}
+          <Card>
+            <CardHeader>
+              <CardTitle>PRI & Survey Information</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'priIssueCategory', 'PRI Issue Category')}
+              {renderField(form, 'priSiteId', 'PRI Site ID')}
+              {renderField(form, 'priOpenDate', 'PRI Open Date', 'date')}
+              {renderField(form, 'priCloseDate', 'PRI Close Date', 'date')}
+              {renderField(form, 'rfiSurveyAllocationDate', 'RFI Survey Allocation', 'date')}
+              {renderField(form, 'descope', 'Descope')}
+              {renderField(form, 'survey', 'Survey')}
+              {renderField(form, 'finalPartnerSurvey', 'Final Partner Survey')}
+            </CardContent>
+          </Card>
+
+          {/* PRI History & Survey Dates */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <FormField
+                control={form.control}
+                name="priHistory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PRI History</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter PRI history..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="reasonOfExtraVisit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason of Extra Visit</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter reason..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid gap-6 md:grid-cols-3">
+                {renderField(form, 'surveyDate', 'Survey Date', 'date')}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* WCC Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>WCC (Work Completion Certificate)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-4">
+              {renderField(form, 'wccReceived80Percent', 'WCC Received 80%')}
+              {renderField(form, 'wccReceivedDate80Percent', 'WCC Date 80%', 'date')}
+              {renderField(form, 'wccReceived20Percent', 'WCC Received 20%')}
+              {renderField(form, 'wccReceivedDate20Percent', 'WCC Date 20%', 'date')}
+              {renderField(form, 'wccReceivedDate100Percent', 'WCC Date 100%', 'date')}
+            </CardContent>
+          </Card>
+
+          <div className="flex gap-4">
+            <Button type="submit" size="lg" data-testid="button-submit">
+              Register Site
+            </Button>
+            <Button type="button" variant="outline" size="lg" onClick={() => setLocation('/vendor/site-list')}>
               Cancel
             </Button>
-            <Button type="submit" size="lg">Register Site</Button>
           </div>
         </form>
       </Form>
