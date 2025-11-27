@@ -47,7 +47,6 @@ export const sites = pgTable("sites", {
   incDate: date("inc_date"),
   state: varchar("state"),
   region: varchar("region"),
-  zone: varchar("zone"),
   inside: boolean("inside").default(false),
   formNo: varchar("form_no"),
   siteAmount: decimal("site_amount", 10, 2),

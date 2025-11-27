@@ -204,7 +204,6 @@ export class DrizzleStorage implements IStorage {
         incDate: sites.incDate,
         state: sites.state,
         region: sites.region,
-        zone: sites.zone,
         zoneName: zones.name,
         inside: sites.inside,
         formNo: sites.formNo,
