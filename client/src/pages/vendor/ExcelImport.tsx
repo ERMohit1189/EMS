@@ -68,6 +68,21 @@ export default function ExcelImport() {
     let imported = 0;
     const importErrors: string[] = [];
 
+    // Fetch all zones for matching Circle column
+    let zonesMap: { [key: string]: string } = {};
+    try {
+      const zonesResponse = await fetch('/api/zones?pageSize=10000');
+      if (zonesResponse.ok) {
+        const zonesData = await zonesResponse.json();
+        zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
+          acc[zone.name] = zone.id;
+          return acc;
+        }, {});
+      }
+    } catch (error) {
+      console.error('Failed to fetch zones');
+    }
+
     for (let idx = 0; idx < importedData.length; idx++) {
       const row = importedData[idx];
       try {
@@ -126,11 +141,16 @@ export default function ExcelImport() {
             continue;
           }
 
+          // Match Circle column with Zone name to get zoneId
+          const circleValue = toString(row['Circle']);
+          const zoneId = circleValue && zonesMap[circleValue] ? zonesMap[circleValue] : undefined;
+
           const siteData = {
             siteId: toString(row['PLAN ID']) || `SITE-${idx}`,
             vendorId,
+            zoneId,
             sno: Number(row['S.No.']) || undefined,
-            circle: toString(row['Circle']),
+            circle: circleValue,
             planId: toString(row['PLAN ID']),
             nominalAop: toString(row['Nominal Aop']),
             hopType: toString(row['HOP TYPE']),
