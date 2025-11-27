@@ -1,9 +1,10 @@
-import { useStore } from "@/lib/mockData";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -11,9 +12,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { Vendor } from "@shared/schema";
 
 export default function VendorList() {
-  const { vendors, updateVendorStatus } = useStore();
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchVendors();
+  }, []);
+
+  const fetchVendors = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/vendors?pageSize=10000');
+      if (!response.ok) throw new Error('Failed to fetch vendors');
+      const result = await response.json();
+      setVendors(result.data || []);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load vendors',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      const response = await fetch(`/api/vendors/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error('Failed to update status');
+      fetchVendors();
+      toast({
+        title: 'Success',
+        description: 'Vendor status updated',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update vendor status',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading vendors...</div>;
+  }
   
   return (
     <div className="space-y-6">
@@ -50,7 +102,7 @@ export default function VendorList() {
                <div className="text-sm">{v.city}, {v.state}</div>
                <div className="text-sm">{v.category}</div>
                <div>
-                 <Select value={v.status} onValueChange={(status) => updateVendorStatus(v.id, status as 'Pending' | 'Approved' | 'Rejected')}>
+                 <Select value={v.status} onValueChange={(status) => updateStatus(v.id, status)}>
                    <SelectTrigger className="w-[120px]">
                      <SelectValue />
                    </SelectTrigger>
