@@ -231,18 +231,26 @@ export default function SiteList() {
                 </div>
 
                 {/* Financial */}
-                <div>
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 p-4 rounded-lg border border-amber-300 dark:border-amber-700">
                   <h3 className="font-semibold text-sm mb-4 text-foreground">Financial Details</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3 rounded-md border border-amber-200 dark:border-amber-900">
-                      <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Site Amount</label>
-                      <p className="text-sm font-mono font-semibold mt-1 text-amber-900 dark:text-amber-300">{site.siteAmount ? `₹${parseFloat(site.siteAmount).toFixed(2)}` : "—"}</p>
+                  {site.siteAmount || site.vendorAmount ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white dark:bg-slate-950 p-4 rounded-md border-2 border-amber-400 dark:border-amber-600">
+                        <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Site Amount</label>
+                        <p className="text-lg font-mono font-bold mt-2 text-amber-900 dark:text-amber-300">{site.siteAmount ? `₹${parseFloat(site.siteAmount).toFixed(2)}` : "—"}</p>
+                      </div>
+                      <div className="bg-white dark:bg-slate-950 p-4 rounded-md border-2 border-amber-400 dark:border-amber-600">
+                        <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Vendor Amount</label>
+                        <p className="text-lg font-mono font-bold mt-2 text-amber-900 dark:text-amber-300">{site.vendorAmount ? `₹${parseFloat(site.vendorAmount).toFixed(2)}` : "—"}</p>
+                      </div>
                     </div>
-                    <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3 rounded-md border border-amber-200 dark:border-amber-900">
-                      <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Vendor Amount</label>
-                      <p className="text-sm font-mono font-semibold mt-1 text-amber-900 dark:text-amber-300">{site.vendorAmount ? `₹${parseFloat(site.vendorAmount).toFixed(2)}` : "—"}</p>
+                  ) : (
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-md border border-blue-300 dark:border-blue-700">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        ℹ️ Amounts not configured yet. Configure amounts in <Link href="/vendor/payment-master" className="font-semibold underline">Payment Master</Link> based on antenna size.
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Remarks */}
