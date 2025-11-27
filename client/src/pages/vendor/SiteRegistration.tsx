@@ -322,29 +322,14 @@ export default function SiteRegistration() {
             </CardContent>
           </Card>
 
-          {/* Installation & NMS */}
+          {/* NMS Visibility */}
           <Card>
             <CardHeader>
-              <CardTitle>Installation Remarks & NMS</CardTitle>
+              <CardTitle>NMS Visibility</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-6">
-              <FormField
-                control={form.control}
-                name="hopInstallationRemarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>HOP Installation Remarks</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Enter remarks..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid gap-6 md:grid-cols-3">
-                {renderField(form, 'visibleInNms', 'Visible in NMS')}
-                {renderField(form, 'nmsVisibleDate', 'NMS Visible Date', 'date')}
-              </div>
+            <CardContent className="grid gap-6 md:grid-cols-3">
+              {renderField(form, 'visibleInNms', 'Visible in NMS')}
+              {renderField(form, 'nmsVisibleDate', 'NMS Visible Date', 'date')}
             </CardContent>
           </Card>
 
@@ -378,44 +363,7 @@ export default function SiteRegistration() {
               {renderField(form, 'descope', 'Descope')}
               {renderField(form, 'survey', 'Survey')}
               {renderField(form, 'finalPartnerSurvey', 'Final Partner Survey')}
-            </CardContent>
-          </Card>
-
-          {/* PRI History & Survey Dates */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-6">
-              <FormField
-                control={form.control}
-                name="priHistory"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PRI History</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Enter PRI history..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="reasonOfExtraVisit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason of Extra Visit</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Enter reason..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid gap-6 md:grid-cols-3">
-                {renderField(form, 'surveyDate', 'Survey Date', 'date')}
-              </div>
+              {renderField(form, 'surveyDate', 'Survey Date', 'date')}
             </CardContent>
           </Card>
 
