@@ -1,0 +1,372 @@
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useStore } from '@/lib/mockData';
+import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const employeeSchema = z.object({
+  name: z.string().min(2, 'Name is required'),
+  dob: z.string().min(1, 'Date of birth is required'),
+  fatherName: z.string().min(2, 'Father name is required'),
+  mobile: z.string().min(10, 'Mobile is required'),
+  alternateNo: z.string().optional(),
+  address: z.string().min(5, 'Address is required'),
+  city: z.string().min(2, 'City is required'),
+  state: z.string().min(2, 'State is required'),
+  country: z.string().default('India'),
+  designation: z.string().min(2, 'Designation is required'),
+  doj: z.string().min(1, 'Date of joining is required'),
+  aadhar: z.string().min(12, 'Aadhar is required'),
+  pan: z.string().min(10, 'PAN is required'),
+  bloodGroup: z.string().min(1, 'Blood group is required'),
+  maritalStatus: z.enum(['Single', 'Married']),
+  nominee: z.string().min(2, 'Nominee is required'),
+  ppeKit: z.boolean().default(false),
+  kitNo: z.string().optional(),
+});
+
+export default function EmployeeRegistration() {
+  const { addEmployee } = useStore();
+  const { toast } = useToast();
+  const [_, setLocation] = useLocation();
+
+  const form = useForm<z.infer<typeof employeeSchema>>({
+    resolver: zodResolver(employeeSchema),
+    defaultValues: {
+      country: 'India',
+      ppeKit: false,
+      maritalStatus: 'Single',
+    },
+  });
+
+  function onSubmit(values: z.infer<typeof employeeSchema>) {
+    addEmployee({
+      ...values,
+      alternateNo: values.alternateNo || '',
+      kitNo: values.kitNo || '',
+    });
+    toast({
+      title: 'Employee Registered',
+      description: 'New employee profile created successfully.',
+    });
+    setLocation('/employee/list');
+  }
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Employee Registration</h2>
+        <p className="text-muted-foreground">Onboard new staff members.</p>
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fatherName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Father's Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Father's Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="dob"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of Birth</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="bloodGroup"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Blood Group</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => (
+                          <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="maritalStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marital Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Single">Single</SelectItem>
+                        <SelectItem value="Married">Married</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact & Address</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-3">
+               <FormField
+                control={form.control}
+                name="mobile"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mobile No.</FormLabel>
+                    <FormControl>
+                      <Input placeholder="9876543210" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="alternateNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Alternate No.</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Optional" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem className="col-span-3">
+                    <FormLabel>Current Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Full Address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input placeholder="City" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>State</FormLabel>
+                    <FormControl>
+                      <Input placeholder="State" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Employment Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-3">
+               <FormField
+                control={form.control}
+                name="designation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Designation</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Field Engineer" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="doj"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of Joining</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="nominee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nominee Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nominee" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="aadhar"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Aadhar No</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Aadhar" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="pan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PAN No</FormLabel>
+                    <FormControl>
+                      <Input placeholder="PAN" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+               <CardTitle>Safety Equipment</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-6">
+              <FormField
+                control={form.control}
+                name="ppeKit"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        PPE Kit Issued?
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+               <FormField
+                control={form.control}
+                name="kitNo"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Kit Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Kit ID (if issued)" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end gap-4">
+            <Button type="button" variant="outline" onClick={() => setLocation('/')}>
+              Cancel
+            </Button>
+            <Button type="submit" size="lg">Onboard Employee</Button>
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
+}
