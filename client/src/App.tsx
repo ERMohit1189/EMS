@@ -1,5 +1,7 @@
 import { Switch, Route, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
+import { ProgressBar } from "@/components/ProgressBar";
+import { useLoadingState } from "@/hooks/useLoadingState";
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 import Login from "@/pages/Login";
@@ -32,6 +34,7 @@ function App() {
   const [location, setLocation] = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isLoading = useLoadingState();
 
   useEffect(() => {
     // Check if user is logged in
@@ -69,6 +72,7 @@ function App() {
 
   return (
     <>
+      <ProgressBar isLoading={isLoading} />
       <Switch>
         {/* Login Route */}
         <Route path="/login" component={Login} />
