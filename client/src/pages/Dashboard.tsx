@@ -13,6 +13,7 @@ export default function Dashboard() {
       description: '+2 from last month',
       icon: Users,
       color: 'text-blue-500',
+      href: '/vendor/list',
     },
     {
       title: 'Active Sites',
@@ -20,6 +21,7 @@ export default function Dashboard() {
       description: '98% operational',
       icon: Building2,
       color: 'text-emerald-500',
+      href: '/vendor/sites',
     },
     {
       title: 'Total Employees',
@@ -27,6 +29,7 @@ export default function Dashboard() {
       description: 'Field & Office Staff',
       icon: HardHat,
       color: 'text-orange-500',
+      href: '/employee/list',
     },
     {
       title: 'Pending POs',
@@ -34,6 +37,7 @@ export default function Dashboard() {
       description: 'Requires approval',
       icon: DollarSign,
       color: 'text-purple-500',
+      href: '/vendor/po',
     },
   ];
 
@@ -56,16 +60,20 @@ export default function Dashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="hover-elevate transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardContent>
-          </Card>
+          <Link key={stat.title} href={stat.href}>
+            <a>
+              <Card className="hover:shadow-lg hover:border-primary cursor-pointer transition-all duration-200 h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold hover:text-primary transition-colors">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground">{stat.description}</p>
+                </CardContent>
+              </Card>
+            </a>
+          </Link>
         ))}
       </div>
 
