@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Eye, Printer } from "lucide-react";
 import type { Site, Vendor } from "@shared/schema";
 
 interface PORecord {
@@ -202,16 +203,26 @@ export default function POGeneration() {
                         <th className="text-left py-2">PO Number</th>
                         <th className="text-left py-2">Site</th>
                         <th className="text-left py-2">Vendor</th>
-                        <th className="text-left py-2">Amount</th>
+                        <th className="text-left py-2">Plan ID</th>
+                        <th className="text-right py-2">Amount</th>
+                        <th className="text-center py-2">Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {poRecords.map((po) => (
                         <tr key={po.poNumber} className="border-b hover:bg-muted/50">
-                          <td className="py-2">{po.poNumber}</td>
+                          <td className="py-2 font-semibold">{po.poNumber}</td>
                           <td className="py-2">{po.siteName}</td>
                           <td className="py-2">{po.vendorName}</td>
-                          <td className="py-2">₹{po.unitPrice}</td>
+                          <td className="py-2">{po.planId}</td>
+                          <td className="text-right py-2">₹{po.unitPrice}</td>
+                          <td className="text-center py-2">
+                            <a href={`/vendor/po/print/${po.siteId}`} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline" className="gap-1">
+                                <Printer className="h-3 w-3" /> Print
+                              </Button>
+                            </a>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
