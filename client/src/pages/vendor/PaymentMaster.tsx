@@ -19,6 +19,13 @@ export default function PaymentMaster() {
     fetchMasters();
   }, []);
 
+  useEffect(() => {
+    // Focus first control on page load
+    if (!loading) {
+      setTimeout(() => antennaSelectRef.current?.focus(), 100);
+    }
+  }, [loading]);
+
   const fetchMasters = async () => {
     try {
       const response = await fetch("/api/payment-masters");
