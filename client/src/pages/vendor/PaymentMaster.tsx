@@ -153,7 +153,7 @@ export default function PaymentMaster() {
               <option value="">All Sites</option>
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.siteId} - {s.partnerName || "N/A"}
+                  {s.hopAB || s.siteId}
                 </option>
               ))}
             </select>
