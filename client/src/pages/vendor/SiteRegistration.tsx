@@ -198,12 +198,19 @@ export default function SiteRegistration() {
                           <SelectValue placeholder="Select State" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="max-h-[200px]">
-                        <div className="p-2">
+                      <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
+                        <div className="p-2" onKeyDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                           <Input 
+                            autoFocus
                             placeholder="Search states..." 
                             value={stateSearch}
                             onChange={(e) => setStateSearch(e.target.value)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation();
+                              if (e.key === 'Escape') {
+                                setStateSearch('');
+                              }
+                            }}
                             className="mb-2"
                           />
                         </div>
