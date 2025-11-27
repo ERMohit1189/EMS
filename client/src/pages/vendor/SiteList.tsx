@@ -11,16 +11,27 @@ export default function SiteList() {
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSite, setExpandedSite] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  
+  // Initialize startDate to today, endDate to today + 30 days
+  const today = new Date().toISOString().split('T')[0];
+  const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(futureDate);
 
   useEffect(() => {
-    const fetchSites = async () => {
+    const fetchSitesByDateRange = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/sites');
-        const data = await response.json();
-        setSites(data.data || []);
+        if (startDate && endDate) {
+          const response = await fetch(`/api/sites/export/by-date-range?startDate=${startDate}&endDate=${endDate}`);
+          if (response.ok) {
+            const { data } = await response.json();
+            setSites(data || []);
+          } else {
+            setSites([]);
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch sites:', error);
         setSites([]);
@@ -28,8 +39,8 @@ export default function SiteList() {
         setLoading(false);
       }
     };
-    fetchSites();
-  }, []);
+    fetchSitesByDateRange();
+  }, [startDate, endDate]);
 
   const getVendorName = (vendorId: string) => {
     return vendors.find(v => v.id === vendorId)?.name || "N/A";
@@ -42,17 +53,12 @@ export default function SiteList() {
         return;
       }
       
-      const response = await fetch(`/api/sites/export/by-date-range?startDate=${startDate}&endDate=${endDate}`);
-      if (!response.ok) throw new Error("Export failed");
-      
-      const { data } = await response.json();
-      
-      if (!data || data.length === 0) {
+      if (!sites || sites.length === 0) {
         alert("No sites found for the selected date range");
         return;
       }
       
-      const ws = XLSX.utils.json_to_sheet(data);
+      const ws = XLSX.utils.json_to_sheet(sites);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sites");
       XLSX.writeFile(wb, `sites_export_${startDate}_to_${endDate}.xlsx`);

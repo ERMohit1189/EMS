@@ -25,7 +25,7 @@ import {
   type PaymentMaster,
   type Zone,
 } from "@shared/schema";
-import { eq, count, and } from "drizzle-orm";
+import { eq, count, and, gte, lte } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
 
 export interface IStorage {
@@ -329,7 +329,7 @@ export class DrizzleStorage implements IStorage {
         incDate: sites.incDate,
         state: sites.state,
         region: sites.region,
-        zone: sites.zone,
+        zoneId: sites.zoneId,
         inside: sites.inside,
         formNo: sites.formNo,
         siteAmount: paymentMasters.siteAmount,
@@ -600,8 +600,8 @@ export class DrizzleStorage implements IStorage {
       )
       .where(
         and(
-          eq(sites.incDate >= new Date(startDate)),
-          eq(sites.incDate <= new Date(endDate))
+          gte(sites.incDate, startDate),
+          lte(sites.incDate, endDate)
         )
       );
     
