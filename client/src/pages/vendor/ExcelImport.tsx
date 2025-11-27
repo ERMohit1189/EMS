@@ -411,33 +411,55 @@ export default function ExcelImport() {
     }
   };
 
-  const downloadCurrentData = () => {
-    let dataToExport: any[] = [];
-    let fileName = '';
+  const downloadCurrentData = async () => {
+    try {
+      let dataToExport: any[] = [];
+      let fileName = '';
+      let endpoint = '';
 
-    if (importType === 'site') {
-      dataToExport = sites;
-      fileName = `sites_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-    } else if (importType === 'vendor') {
-      dataToExport = vendors;
-      fileName = `vendors_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-    } else if (importType === 'employee') {
-      dataToExport = employees;
-      fileName = `employees_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-    }
+      if (importType === 'site') {
+        endpoint = '/api/sites?pageSize=10000';
+        fileName = `sites_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      } else if (importType === 'vendor') {
+        endpoint = '/api/vendors?pageSize=10000';
+        fileName = `vendors_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      } else if (importType === 'employee') {
+        endpoint = '/api/employees?pageSize=10000';
+        fileName = `employees_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      }
 
-    if (dataToExport.length === 0) {
+      // Fetch data from database
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const result = await response.json();
+      dataToExport = result.data || [];
+
+      if (dataToExport.length === 0) {
+        toast({
+          title: 'No data to export',
+          description: `No ${importType}s found in the database`,
+        });
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, importType);
+      XLSX.writeFile(workbook, fileName);
+
       toast({
-        title: 'No data to export',
-        description: `No ${importType}s found`,
+        title: 'Export successful',
+        description: `Exported ${dataToExport.length} ${importType}s`,
       });
-      return;
+    } catch (error) {
+      toast({
+        title: 'Export failed',
+        description: 'Failed to export data',
+      });
     }
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, importType);
-    XLSX.writeFile(workbook, fileName);
   };
 
   return (
