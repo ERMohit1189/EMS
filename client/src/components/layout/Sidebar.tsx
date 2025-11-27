@@ -37,6 +37,11 @@ const menuItems = [
     href: '/vendor/sites',
   },
   {
+    title: 'Site Status',
+    icon: ClipboardCheck,
+    href: '/vendor/sites/status',
+  },
+  {
     title: 'Excel Upload',
     icon: Upload,
     href: '/vendor/excel-import',
