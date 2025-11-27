@@ -205,6 +205,7 @@ export class DrizzleStorage implements IStorage {
         state: sites.state,
         region: sites.region,
         zone: sites.zone,
+        zoneName: zones.name,
         inside: sites.inside,
         formNo: sites.formNo,
         siteAmount: paymentMasters.siteAmount,
@@ -297,6 +298,7 @@ export class DrizzleStorage implements IStorage {
         updatedAt: sites.updatedAt,
       })
       .from(sites)
+      .leftJoin(zones, eq(sites.zoneId, zones.id))
       .leftJoin(
         paymentMasters,
         and(
