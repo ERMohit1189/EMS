@@ -39,8 +39,12 @@ const employeeSchema = z.object({
   designation: z.string().min(2, 'Designation is required'),
   doj: z.string().min(1, 'Date of joining is required'),
   aadhar: z.string()
+    .min(12, 'Aadhar must be at least 12 digits')
+    .max(12, 'Aadhar must not exceed 12 digits')
     .regex(/^\d{12}$/, 'Aadhar must be exactly 12 digits'),
   pan: z.string()
+    .min(10, 'PAN must be at least 10 characters')
+    .max(10, 'PAN must not exceed 10 characters')
     .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN must be in format: AAAAA9999A (5 letters, 4 digits, 1 letter)'),
   bloodGroup: z.string().min(1, 'Blood group is required'),
   maritalStatus: z.enum(['Single', 'Married']),

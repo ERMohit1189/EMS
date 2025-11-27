@@ -38,10 +38,16 @@ const vendorSchema = z.object({
   pincode: z.string().min(6, 'Valid pincode required'),
   country: z.string().default('India'),
   aadhar: z.string()
+    .min(12, 'Aadhar must be at least 12 digits')
+    .max(12, 'Aadhar must not exceed 12 digits')
     .regex(/^\d{12}$/, 'Aadhar must be exactly 12 digits'),
   pan: z.string()
+    .min(10, 'PAN must be at least 10 characters')
+    .max(10, 'PAN must not exceed 10 characters')
     .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN must be in format: AAAAA9999A (5 letters, 4 digits, 1 letter)'),
   gstin: z.string()
+    .min(15, 'GSTIN must be at least 15 characters')
+    .max(15, 'GSTIN must not exceed 15 characters')
     .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'GSTIN must be exactly 15 characters in valid format')
     .optional()
     .or(z.literal('')),
