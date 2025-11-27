@@ -99,7 +99,7 @@ export default function SiteList() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
-                    <p className="text-sm font-mono font-semibold mt-0.5">{site.planId || "—"}</p>
+                    <p className="text-sm font-mono font-semibold mt-0.5 truncate" title={site.planId || undefined}>{site.planId || "—"}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Antenna Size</label>
