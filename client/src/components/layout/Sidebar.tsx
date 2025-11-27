@@ -22,14 +22,14 @@ const menuItems = [
     href: '/',
   },
   {
-    title: 'Vendor Management',
+    title: 'All Vendors',
     icon: Users,
-    href: '/vendor/register',
+    href: '/vendor/list',
   },
   {
-    title: 'Employee Management',
+    title: 'Employees',
     icon: HardHat,
-    href: '/employee/register',
+    href: '/employee/list',
   },
   {
     title: 'Reports',
