@@ -150,6 +150,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/sites/for-po-generation", async (req, res) => {
+    try {
+      const data = await storage.getSitesForPOGeneration();
+      res.json({ data });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/sites/:id", async (req, res) => {
     try {
       const site = await storage.getSite(req.params.id);
@@ -195,15 +204,6 @@ export async function registerRoutes(
     try {
       await storage.deleteAllSites();
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/sites/for-po-generation", async (req, res) => {
-    try {
-      const data = await storage.getSitesForPOGeneration();
-      res.json({ data });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
