@@ -714,6 +714,44 @@ export class DrizzleStorage implements IStorage {
   async deletePaymentMaster(id: string): Promise<void> {
     await db.delete(paymentMasters).where(eq(paymentMasters.id, id));
   }
+
+  // Zone operations
+  async createZone(zone: InsertZone): Promise<Zone> {
+    const [result] = await db.insert(zones).values(zone).returning();
+    return result;
+  }
+
+  async getZone(id: string): Promise<Zone | undefined> {
+    const [result] = await db.select().from(zones).where(eq(zones.id, id));
+    return result;
+  }
+
+  async getZones(limit: number, offset: number): Promise<Zone[]> {
+    return await db.select().from(zones).limit(limit).offset(offset);
+  }
+
+  async getZoneByName(name: string): Promise<Zone | undefined> {
+    const result = await db.select().from(zones).where(eq(zones.name, name));
+    return result[0];
+  }
+
+  async updateZone(id: string, zone: Partial<InsertZone>): Promise<Zone> {
+    const [result] = await db
+      .update(zones)
+      .set(zone)
+      .where(eq(zones.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteZone(id: string): Promise<void> {
+    await db.delete(zones).where(eq(zones.id, id));
+  }
+
+  async getZoneCount(): Promise<number> {
+    const result = await db.select({ count: count() }).from(zones);
+    return Number(result[0]?.count) || 0;
+  }
 }
 
 export const storage = new DrizzleStorage();

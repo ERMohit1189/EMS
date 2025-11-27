@@ -6,6 +6,7 @@ import VendorRegistration from "@/pages/vendor/VendorRegistration";
 import VendorList from "@/pages/vendor/VendorList";
 import VendorEdit from "@/pages/vendor/VendorEdit";
 import PaymentMaster from "@/pages/vendor/PaymentMaster";
+import ZoneMaster from "@/pages/vendor/ZoneMaster";
 import POGeneration from "@/pages/vendor/POGeneration";
 import POPrint from "@/pages/vendor/POPrint";
 import InvoiceGeneration from "@/pages/vendor/InvoiceGeneration";
@@ -43,6 +44,7 @@ function App() {
               <Route path="/vendor/list" component={VendorList} />
               <Route path="/vendor/edit/:id" component={VendorEdit} />
               <Route path="/vendor/payment-master" component={PaymentMaster} />
+              <Route path="/vendor/zone-master" component={ZoneMaster} />
               <Route path="/vendor/sites" component={SiteList} />
               <Route path="/vendor/site/register" component={SiteRegistration} />
               <Route path="/vendor/site/edit/:id" component={SiteEdit} />

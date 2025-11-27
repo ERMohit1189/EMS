@@ -30,6 +30,7 @@ const menuItems = [
       { title: 'Site Management', href: '/vendor/sites' },
       { title: 'Excel Import', href: '/vendor/excel-import' },
       { title: 'Payment Master', href: '/vendor/payment-master' },
+      { title: 'Zone Master', href: '/vendor/zone-master' },
       { title: 'PO Generation', href: '/vendor/po' },
       { title: 'Invoices', href: '/vendor/invoices' },
     ],

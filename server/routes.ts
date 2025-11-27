@@ -9,6 +9,7 @@ import {
   insertPOSchema,
   insertInvoiceSchema,
   insertPaymentMasterSchema,
+  insertZoneSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(
@@ -545,6 +546,68 @@ export async function registerRoutes(
   app.delete("/api/payment-masters/:id", async (req, res) => {
     try {
       await storage.deletePaymentMaster(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Zone routes
+  app.post("/api/zones", async (req, res) => {
+    try {
+      const data = insertZoneSchema.parse(req.body);
+      const zone = await storage.createZone(data);
+      res.json(zone);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/zones", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const offset = (page - 1) * pageSize;
+
+      const data = await storage.getZones(pageSize, offset);
+      const totalCount = await storage.getZoneCount();
+
+      res.json({
+        data,
+        totalCount,
+        pageNumber: page,
+        pageSize,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/zones/:id", async (req, res) => {
+    try {
+      const zone = await storage.getZone(req.params.id);
+      if (!zone) {
+        return res.status(404).json({ error: "Zone not found" });
+      }
+      res.json(zone);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/zones/:id", async (req, res) => {
+    try {
+      const data = insertZoneSchema.partial().parse(req.body);
+      const zone = await storage.updateZone(req.params.id, data);
+      res.json(zone);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/zones/:id", async (req, res) => {
+    try {
+      await storage.deleteZone(req.params.id);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
