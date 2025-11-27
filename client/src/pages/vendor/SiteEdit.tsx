@@ -174,10 +174,19 @@ export default function SiteEdit() {
       const response = await fetch(`/api/sites/${id}`);
       if (!response.ok) throw new Error('Site not found');
       const site = await response.json();
-      // Ensure zoneId is properly set even if it's null
+      
+      // Fallback: if zoneId is not set but circle value matches a zone's short name, set zoneId
+      let finalZoneId = site.zoneId;
+      if (!finalZoneId && site.circle && zones.length > 0) {
+        const matchedZone = zones.find(z => z.shortName === site.circle);
+        if (matchedZone) {
+          finalZoneId = matchedZone.id;
+        }
+      }
+      
       form.reset({
         ...site,
-        zoneId: site.zoneId || undefined,
+        zoneId: finalZoneId || undefined,
       });
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to load site', variant: 'destructive' });
