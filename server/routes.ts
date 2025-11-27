@@ -200,6 +200,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/sites/for-po-generation", async (req, res) => {
+    try {
+      const data = await storage.getSitesForPOGeneration();
+      res.json({ data });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Employee routes
   app.post("/api/employees", async (req, res) => {
     try {

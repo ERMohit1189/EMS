@@ -187,6 +187,15 @@ export class DrizzleStorage implements IStorage {
     return await db.select().from(sites).where(eq(sites.vendorId, vendorId));
   }
 
+  async getSitesForPOGeneration(): Promise<Site[]> {
+    return await db.select().from(sites).where(
+      and(
+        eq(sites.softAtStatus, "Approved"),
+        eq(sites.phyAtStatus, "Approved")
+      )
+    );
+  }
+
   async updateSite(id: string, site: Partial<InsertSite>): Promise<Site> {
     const [result] = await db
       .update(sites)

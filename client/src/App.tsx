@@ -6,6 +6,7 @@ import VendorRegistration from "@/pages/vendor/VendorRegistration";
 import VendorList from "@/pages/vendor/VendorList";
 import VendorEdit from "@/pages/vendor/VendorEdit";
 import PaymentMaster from "@/pages/vendor/PaymentMaster";
+import POGeneration from "@/pages/vendor/POGeneration";
 import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
 import EmployeeList from "@/pages/employee/EmployeeList";
 import SiteRegistration from "@/pages/vendor/SiteRegistration";
@@ -34,7 +35,7 @@ function App() {
           <Route path="/vendor/payment-master" component={PaymentMaster} />
           <Route path="/vendor/sites" component={SiteRegistration} />
           <Route path="/vendor/excel-import" component={ExcelImport} />
-          <Route path="/vendor/po" component={() => <Placeholder title="PO Generation" />} />
+          <Route path="/vendor/po" component={POGeneration} />
           <Route path="/vendor/invoices" component={() => <Placeholder title="Invoice Generation" />} />
           
           {/* Employee Routes */}
