@@ -516,10 +516,12 @@ export default function InvoiceGeneration() {
                               <span className="text-slate-600 font-semibold">Amount: </span>
                               <span className="font-bold">₹{parseFloat(po.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div>
-                              <span className="text-orange-600 font-semibold">GST: </span>
-                              <span className="font-bold text-orange-600">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                            </div>
+                            {gstAmount > 0 && (
+                              <div>
+                                <span className="text-orange-600 font-semibold">GST: </span>
+                                <span className="font-bold text-orange-600">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                              </div>
+                            )}
                             <div className="pt-0.5 border-t border-slate-300">
                               <span className="text-green-600 font-semibold">Total: </span>
                               <span className="font-bold text-green-600">₹{(parseFloat(po.totalAmount) + gstAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
