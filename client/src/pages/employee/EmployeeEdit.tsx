@@ -35,6 +35,7 @@ const RequiredLabel = ({ children }: { children: string }) => (
 
 const baseSchema = z.object({
   name: z.string().min(2, 'Full name is required'),
+  email: z.string().email('Valid email is required'),
   dob: z.string().optional(),
   fatherName: z.string().min(2, 'Father name is required'),
   mobile: z.string().min(10, 'Mobile no. is required'),
