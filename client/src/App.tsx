@@ -7,10 +7,12 @@ import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { getStoredApiUrl } from "@/lib/api";
 
-// Lazy load all page components for code splitting
-const Login = lazy(() => import("@/pages/Login"));
-const VendorLogin = lazy(() => import("@/pages/VendorLogin"));
-const EmployeeLogin = lazy(() => import("@/pages/EmployeeLogin"));
+// Eager load login pages for instant display
+import Login from "@/pages/Login";
+import VendorLogin from "@/pages/VendorLogin";
+import EmployeeLogin from "@/pages/EmployeeLogin";
+
+// Lazy load other pages for code splitting
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const ApiConfig = lazy(() => import("@/pages/ApiConfig"));
 const VendorRegistration = lazy(() => import("@/pages/vendor/VendorRegistration"));
@@ -26,8 +28,9 @@ const EmployeeRegistration = lazy(() => import("@/pages/employee/EmployeeRegistr
 const EmployeeEdit = lazy(() => import("@/pages/employee/EmployeeEdit"));
 const EmployeeList = lazy(() => import("@/pages/employee/EmployeeList"));
 const EmployeeCredentials = lazy(() => import("@/pages/employee/EmployeeCredentials"));
-const EmployeePrivacyPolicy = lazy(() => import("@/pages/employee/PrivacyPolicy"));
-const VendorPrivacyPolicy = lazy(() => import("@/pages/vendor/PrivacyPolicy"));
+// Eager load privacy policies for instant access
+import EmployeePrivacyPolicy from "@/pages/employee/PrivacyPolicy";
+import VendorPrivacyPolicy from "@/pages/vendor/PrivacyPolicy";
 const SiteRegistration = lazy(() => import("@/pages/vendor/SiteRegistration"));
 const SiteList = lazy(() => import("@/pages/vendor/SiteList"));
 const SiteEdit = lazy(() => import("@/pages/vendor/SiteEdit"));
@@ -159,12 +162,10 @@ function App() {
   if (isProduction && !getStoredApiUrl() && location !== '/api-config' && location !== '/login') {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
-          <Switch>
-            <Route path="/api-config" component={ApiConfig} />
-            <Route component={ApiConfig} />
-          </Switch>
-        </Suspense>
+        <Switch>
+          <Route path="/api-config" component={ApiConfig} />
+          <Route component={ApiConfig} />
+        </Switch>
         <Toaster />
       </>
     );
@@ -176,16 +177,14 @@ function App() {
     console.log('[App] Rendering login screens block');
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
-          <Switch>
-            <Route path="/login" component={Login} />
-            <Route path="/vendor-login" component={VendorLogin} />
-            <Route path="/employee-login" component={EmployeeLogin} />
-            <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
-            <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-            <Route component={EmployeeLogin} />
-          </Switch>
-        </Suspense>
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/vendor-login" component={VendorLogin} />
+          <Route path="/employee-login" component={EmployeeLogin} />
+          <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+          <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
+          <Route component={EmployeeLogin} />
+        </Switch>
         <Toaster />
       </>
     );
