@@ -167,9 +167,15 @@ export async function registerRoutes(
 
       const data = await storage.getSites(pageSize, offset);
       const totalCount = await storage.getSiteCount();
+      
+      const formattedData = data.map(site => ({
+        ...site,
+        vendorAmount: site.vendorAmount ? parseFloat(site.vendorAmount.toString()) : null,
+        siteAmount: site.siteAmount ? parseFloat(site.siteAmount.toString()) : null,
+      }));
 
       res.json({
-        data,
+        data: formattedData,
         totalCount,
         pageNumber: page,
         pageSize,
@@ -182,7 +188,12 @@ export async function registerRoutes(
   app.get("/api/sites/for-po-generation", async (req, res) => {
     try {
       const data = await storage.getSitesForPOGeneration();
-      res.json({ data });
+      const formattedData = data.map(site => ({
+        ...site,
+        vendorAmount: site.vendorAmount ? parseFloat(site.vendorAmount.toString()) : null,
+        siteAmount: site.siteAmount ? parseFloat(site.siteAmount.toString()) : null,
+      }));
+      res.json({ data: formattedData });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
