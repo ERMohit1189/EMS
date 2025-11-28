@@ -285,8 +285,8 @@ export default function InvoiceGeneration() {
     doc.setTextColor(...primaryColor);
     doc.text("Description", margin + 2, yPosition + 1);
     doc.text("Qty", pageWidth / 2 + 10, yPosition + 1);
-    doc.text("Unit Rate (₹)", pageWidth / 2 + 30, yPosition + 1);
-    doc.text("Amount (₹)", pageWidth - margin - 22, yPosition + 1, { align: "right" });
+    doc.text("Unit Rate (Rs)", pageWidth / 2 + 30, yPosition + 1);
+    doc.text("Amount (Rs)", pageWidth - margin - 22, yPosition + 1, { align: "right" });
 
     yPosition += 8;
 
@@ -313,7 +313,7 @@ export default function InvoiceGeneration() {
     doc.setTextColor(100, 100, 100);
     doc.text("Subtotal:", pageWidth / 2, yPosition, { align: "right" });
     doc.setTextColor(...darkGray);
-    doc.text(`₹${parseFloat(invoice.amount).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
+    doc.text(`Rs ${parseFloat(invoice.amount).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
     yPosition += 5;
 
     // GST - only show if greater than 0
@@ -322,7 +322,7 @@ export default function InvoiceGeneration() {
       doc.setTextColor(100, 100, 100);
       doc.text(`GST (${gstPercent}%):`, pageWidth / 2, yPosition, { align: "right" });
       doc.setTextColor(...darkGray);
-      doc.text(`₹${parseFloat(invoice.gst).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
+      doc.text(`Rs ${parseFloat(invoice.gst).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
       yPosition += 5;
     }
 
@@ -333,7 +333,7 @@ export default function InvoiceGeneration() {
     doc.setFontSize(11);
     doc.setTextColor(...primaryColor);
     doc.text("TOTAL AMOUNT:", pageWidth / 2, yPosition + 1, { align: "right" });
-    doc.text(`₹${parseFloat(invoice.totalAmount).toFixed(2)}`, pageWidth - margin - 2, yPosition + 1, { align: "right" });
+    doc.text(`Rs ${parseFloat(invoice.totalAmount).toFixed(2)}`, pageWidth - margin - 2, yPosition + 1, { align: "right" });
 
     // Status Badge
     yPosition += 10;
