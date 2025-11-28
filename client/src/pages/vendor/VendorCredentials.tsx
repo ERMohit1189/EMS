@@ -8,8 +8,7 @@ import type { Vendor } from "@shared/schema";
 
 export default function VendorCredentials() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [generatedPassword, setGeneratedPassword] = useState<string>("");
-  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+  const [generatedPasswords, setGeneratedPasswords] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const { toast } = useToast();
@@ -48,8 +47,10 @@ export default function VendorCredentials() {
         throw new Error(data.error || "Failed to generate password");
       }
 
-      setGeneratedPassword(data.tempPassword);
-      setSelectedVendorId(vendorId);
+      setGeneratedPasswords(prev => ({
+        ...prev,
+        [vendorId]: data.tempPassword
+      }));
       
       toast({
         title: "Success",
@@ -134,18 +135,18 @@ export default function VendorCredentials() {
                       </span>
                     </td>
                     <td className="px-3 py-2">
-                      {generatedPassword && selectedVendorId === vendor.id ? (
+                      {generatedPasswords[vendor.id] ? (
                         <div className="flex items-center gap-1">
                           <Input
                             type="text"
-                            value={generatedPassword}
+                            value={generatedPasswords[vendor.id]}
                             disabled
                             className="bg-green-50 font-mono h-7 text-xs"
                           />
                           <Button
                             size="sm"
                             variant="default"
-                            onClick={() => copyToClipboard(generatedPassword)}
+                            onClick={() => copyToClipboard(generatedPasswords[vendor.id])}
                             className="px-2 h-7"
                           >
                             <Copy className="h-3 w-3" />
