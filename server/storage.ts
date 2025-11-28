@@ -485,20 +485,29 @@ export class DrizzleStorage implements IStorage {
   }
 
   async bulkUpdateStatus(siteIds: string[], phyAtStatus?: string, softAtStatus?: string): Promise<{ updated: number }> {
+    console.log('[Storage] bulkUpdateStatus called:', { siteIds, phyAtStatus, softAtStatus });
     const updateData: Partial<InsertSite> = {};
     if (phyAtStatus) updateData.phyAtStatus = phyAtStatus;
     if (softAtStatus) updateData.softAtStatus = softAtStatus;
 
     if (Object.keys(updateData).length === 0) {
+      console.log('[Storage] No update data provided');
       return { updated: 0 };
     }
 
-    const result = await db
-      .update(sites)
-      .set(updateData)
-      .where(inArray(sites.id, siteIds));
-    
-    return { updated: siteIds.length };
+    try {
+      console.log('[Storage] Updating sites with data:', updateData);
+      const result = await db
+        .update(sites)
+        .set(updateData)
+        .where(inArray(sites.id, siteIds));
+      console.log('[Storage] Update result:', result);
+      
+      return { updated: siteIds.length };
+    } catch (err) {
+      console.error('[Storage] Error in bulkUpdateStatus:', err);
+      throw err;
+    }
   }
 
   async upsertSiteByPlanId(site: InsertSite): Promise<Site> {
