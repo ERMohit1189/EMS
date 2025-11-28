@@ -392,6 +392,7 @@ export default function POGeneration() {
       const col3X = 130;
       const col4X = 160;
 
+      // TABLE HEADER ROW
       pdf.rect(col1X, y, 80, 7, 'F');
       pdf.text('Description', col1X + 2, y + 4.5);
 
@@ -406,7 +407,7 @@ export default function POGeneration() {
 
       y += 8;
 
-      // Item row
+      // ITEM DATA ROW
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
       pdf.setDrawColor(221, 221, 221);
@@ -417,25 +418,21 @@ export default function POGeneration() {
       const rate = Number(po.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const total = Number(po.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      // Description cell
+      // Description value
       pdf.rect(col1X, y, 80, 8);
-      pdf.text('Description:', col1X + 2, y + 2);
-      pdf.text(desc, col1X + 2, y + 5);
+      pdf.text(desc, col1X + 2, y + 4.5);
 
-      // Quantity cell
+      // Quantity value
       pdf.rect(col2X, y, 30, 8);
-      pdf.text('QTY:', col2X + 2, y + 2);
-      pdf.text(qty, col2X + 10, y + 5);
+      pdf.text(qty, col2X + 12, y + 4.5);
 
-      // Unit Price cell
+      // Unit Price value
       pdf.rect(col3X, y, 25, 8);
-      pdf.text('Price:', col3X + 1, y + 2);
-      pdf.text(`₹${rate}`, col3X + 1, y + 5);
+      pdf.text(`₹${rate}`, col3X + 1, y + 4.5);
 
-      // Amount cell
+      // Amount value
       pdf.rect(col4X, y, 30, 8);
-      pdf.text('Amount:', col4X + 1, y + 2);
-      pdf.text(`₹${total}`, col4X + 1, y + 5);
+      pdf.text(`₹${total}`, col4X + 2, y + 4.5);
 
       y += 14;
 
