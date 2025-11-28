@@ -19,20 +19,27 @@ export default function EmployeeLogin() {
   // Load saved credentials from cookies on mount
   useEffect(() => {
     const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
+    console.log("[EmployeeLogin] Cookies enabled:", cookiesEnabled);
+    console.log("[EmployeeLogin] All cookies:", document.cookie);
+    
     if (cookiesEnabled) {
       const cookies = document.cookie.split("; ");
       const savedCredsCookie = cookies.find(cookie => cookie.startsWith("employeeLoginCredentials="));
+      console.log("[EmployeeLogin] Found saved credentials cookie:", !!savedCredsCookie);
       
       if (savedCredsCookie) {
         try {
           const credsJson = decodeURIComponent(savedCredsCookie.substring("employeeLoginCredentials=".length));
           const creds = JSON.parse(credsJson);
+          console.log("[EmployeeLogin] Loaded credentials:", { email: creds.email });
           setEmail(creds.email || "");
           setPassword(creds.password || "");
           setRememberMe(true);
         } catch (error) {
-          console.error("Failed to load saved credentials:", error);
+          console.error("[EmployeeLogin] Failed to load saved credentials:", error);
         }
+      } else {
+        console.log("[EmployeeLogin] No saved credentials cookie found");
       }
     }
   }, []);
@@ -41,7 +48,10 @@ export default function EmployeeLogin() {
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     const expires = "expires=" + date.toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Strict`;
+    const cookieString = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+    console.log("[EmployeeLogin] Setting cookie:", name, "expires in", days, "days");
+    document.cookie = cookieString;
+    console.log("[EmployeeLogin] Cookie set. Current cookies:", document.cookie);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -88,7 +98,10 @@ export default function EmployeeLogin() {
 
       // Save credentials to cookies if Remember Me is checked and cookies are enabled
       const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
+      console.log("[EmployeeLogin] Remember Me:", rememberMe, "Cookies enabled:", cookiesEnabled);
+      
       if (rememberMe && cookiesEnabled) {
+        console.log("[EmployeeLogin] Saving credentials to cookie...");
         setCookie(
           "employeeLoginCredentials",
           JSON.stringify({ email, password }),
@@ -96,9 +109,10 @@ export default function EmployeeLogin() {
         );
         toast({
           title: "Success",
-          description: "Login successful! Credentials saved to cookies",
+          description: "Login successful! Credentials saved for 7 days",
         });
       } else {
+        console.log("[EmployeeLogin] NOT saving credentials. rememberMe:", rememberMe, "cookiesEnabled:", cookiesEnabled);
         toast({
           title: "Success",
           description: "Login successful!",
