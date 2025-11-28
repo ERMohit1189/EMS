@@ -376,94 +376,140 @@ export default function SiteStatus() {
 
     try {
       const pdf = new jsPDF('l', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageWidth = pdf.internal.pageSize.getWidth() - 20; // 20mm margins
       const pageHeight = pdf.internal.pageSize.getHeight();
-      let yPosition = 10;
 
-      // Add title
-      pdf.setFontSize(14);
-      pdf.text('Site Status Report', 10, yPosition);
-      yPosition += 8;
-
-      // Add metadata
-      pdf.setFontSize(10);
-      pdf.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 10, yPosition);
-      yPosition += 6;
-      pdf.text(`Total Records: ${filteredSites.length}`, 10, yPosition);
-      yPosition += 10;
-
-      // Column headers
-      const columns = [
-        'Plan ID', 'Circle', 'District', 'Status', 'Phy AT Status', 
-        'Soft AT Status', 'Both AT Status', 'Descope'
+      // Get all 81 columns
+      const columnHeaders = [
+        'ID', 'Site ID', 'Vendor ID', 'Zone ID', 'Plan ID', 'Site Amount', 'Vendor Amount', 'S.No',
+        'Circle', 'Nominal AOP', 'HOP Type', 'HOP A-B', 'HOP B-A', 'District', 'Project',
+        'Site A Ant Dia', 'Site B Ant Dia', 'Max Ant Size', 'Site A Name', 'TOCO Vendor A', 'TOCO ID A',
+        'Site B Name', 'TOCO Vendor B', 'TOCO ID B', 'Media Availability Status',
+        'SR No Site A', 'SR Date Site A', 'SR No Site B', 'SR Date Site B', 'HOP SR Date',
+        'SP Date Site A', 'SP Date Site B', 'HOP SP Date', 'SO Released Date Site A',
+        'SO Released Date Site B', 'HOP SO Date', 'RFAI Offered Date Site A', 'RFAI Offered Date Site B',
+        'Actual HOP RFAI Offered Date', 'Partner Name', 'RFAI Survey Completion Date',
+        'MO Number Site A', 'Material Type Site A', 'MO Date Site A', 'MO Number Site B',
+        'Material Type Site B', 'MO Date Site B', 'SRN RMO Number', 'SRN RMO Date', 'HOP MO Date',
+        'HOP Material Dispatch Date', 'HOP Material Delivery Date', 'Material Delivery Status',
+        'Site A Installation Date', 'PTW Number Site A', 'PTW Status A', 'Site B Installation Date',
+        'PTW Number Site B', 'PTW Status B', 'HOP IC Date', 'Alignment Date',
+        'HOP Installation Remarks', 'Visible in NMS', 'NMS Visible Date', 'Soft AT Offer Date',
+        'Soft AT Acceptance Date', 'Soft AT Status', 'Phy AT Offer Date', 'Phy AT Acceptance Date',
+        'Phy AT Status', 'Both AT Status', 'PRI Issue Category', 'PRI Site ID', 'PRI Open Date',
+        'PRI Close Date', 'PRI History', 'RFI Survey Allocation Date', 'Descope', 'Reason of Extra Visit',
+        'WCC Received 80%', 'WCC Received Date 80%', 'WCC Received 20%', 'WCC Received Date 20%',
+        'WCC Received Date 100%', 'Survey', 'Final Partner Survey', 'Survey Date', 'Status',
+        'Created At', 'Updated At'
       ];
 
-      // Table data - only key columns for readability
-      const tableData = filteredSites.map(site => [
-        site.planId?.substring(0, 15) || '-',
-        site.circle || '-',
-        site.district || '-',
-        site.status,
-        site.phyAtStatus || '-',
-        site.softAtStatus || '-',
-        site.bothAtStatus || '-',
-        site.descope || '-',
-      ]);
+      const getColumnValue = (site: SiteStatusData, colIndex: number): string => {
+        const values = [
+          site.id, site.siteId, site.vendorId, site.zoneId, site.planId, site.siteAmount, 
+          site.vendorAmount, site.sno, site.circle, site.nominalAop, site.hopType, site.hopAB,
+          site.hopBA, site.district, site.project, site.siteAAntDia, site.siteBAntDia, site.maxAntSize,
+          site.siteAName, site.tocoVendorA, site.tocoIdA, site.siteBName, site.tocoVendorB, site.tocoIdB,
+          site.mediaAvailabilityStatus, site.srNoSiteA, site.srDateSiteA, site.srNoSiteB, site.srDateSiteB,
+          site.hopSrDate, site.spDateSiteA, site.spDateSiteB, site.hopSpDate, site.soReleasedDateSiteA,
+          site.soReleasedDateSiteB, site.hopSoDate, site.rfaiOfferedDateSiteA, site.rfaiOfferedDateSiteB,
+          site.actualHopRfaiOfferedDate, site.partnerName, site.rfaiSurveyCompletionDate, site.moNumberSiteA,
+          site.materialTypeSiteA, site.moDateSiteA, site.moNumberSiteB, site.materialTypeSiteB, site.moDateSiteB,
+          site.srnRmoNumber, site.srnRmoDate, site.hopMoDate, site.hopMaterialDispatchDate,
+          site.hopMaterialDeliveryDate, site.materialDeliveryStatus, site.siteAInstallationDate,
+          site.ptwNumberSiteA, site.ptwStatusA, site.siteBInstallationDate, site.ptwNumberSiteB,
+          site.ptwStatusB, site.hopIcDate, site.alignmentDate, site.hopInstallationRemarks, site.visibleInNms,
+          site.nmsVisibleDate, site.softAtOfferDate, site.softAtAcceptanceDate, site.softAtStatus,
+          site.phyAtOfferDate, site.phyAtAcceptanceDate, site.phyAtStatus, site.bothAtStatus,
+          site.priIssueCategory, site.priSiteId, site.priOpenDate, site.priCloseDate, site.priHistory,
+          site.rfiSurveyAllocationDate, site.descope, site.reasonOfExtraVisit, site.wccReceived80Percent,
+          site.wccReceivedDate80Percent, site.wccReceived20Percent, site.wccReceivedDate20Percent,
+          site.wccReceivedDate100Percent, site.survey, site.finalPartnerSurvey, site.surveyDate, site.status,
+          site.createdAt, site.updatedAt
+        ];
+        return String(values[colIndex] || '-').substring(0, 10);
+      };
 
-      // Use autoTable plugin style - manual implementation
-      const startY = yPosition;
-      const colWidths = [25, 18, 18, 15, 18, 18, 18, 12];
-      const rowHeight = 7;
-      let currentY = startY;
-
-      // Draw header
-      pdf.setFillColor(200, 200, 200);
-      pdf.setFontSize(9);
-      let currentX = 10;
-      
-      columns.forEach((col, idx) => {
-        pdf.rect(currentX, currentY, colWidths[idx], rowHeight, 'F');
-        pdf.text(col, currentX + 1, currentY + 5);
-        currentX += colWidths[idx];
-      });
-      
-      currentY += rowHeight;
-
-      // Draw rows
-      pdf.setFillColor(255, 255, 255);
-      tableData.forEach((row, rowIdx) => {
-        if (currentY + rowHeight > pageHeight - 10) {
-          pdf.addPage();
-          currentY = 10;
-          
-          // Redraw header on new page
-          pdf.setFillColor(200, 200, 200);
-          let headerX = 10;
-          columns.forEach((col, idx) => {
-            pdf.rect(headerX, currentY, colWidths[idx], rowHeight, 'F');
-            pdf.text(col, headerX + 1, currentY + 5);
-            headerX += colWidths[idx];
-          });
-          currentY += rowHeight;
-          pdf.setFillColor(255, 255, 255);
-        }
-
-        currentX = 10;
-        row.forEach((cell, idx) => {
-          pdf.rect(currentX, currentY, colWidths[idx], rowHeight);
-          const cellText = String(cell).substring(0, 12);
-          pdf.setFontSize(8);
-          pdf.text(cellText, currentX + 1, currentY + 4);
-          currentX += colWidths[idx];
+      // Split columns into chunks that fit on a page (8 columns per chunk in landscape)
+      const colsPerPage = 8;
+      const colChunks = [];
+      for (let i = 0; i < columnHeaders.length; i += colsPerPage) {
+        colChunks.push({
+          start: i,
+          end: Math.min(i + colsPerPage, columnHeaders.length),
+          headers: columnHeaders.slice(i, Math.min(i + colsPerPage, columnHeaders.length))
         });
-        currentY += rowHeight;
-      });
+      }
+
+      // Generate PDF with multiple sections
+      let isFirstPage = true;
+
+      for (const chunk of colChunks) {
+        if (!isFirstPage) pdf.addPage();
+        isFirstPage = false;
+
+        let yPosition = 10;
+
+        // Add title and metadata
+        pdf.setFontSize(12);
+        pdf.text(`Site Status Report - Columns ${chunk.start + 1}-${chunk.end}`, 10, yPosition);
+        yPosition += 6;
+
+        pdf.setFontSize(8);
+        pdf.text(`Generated: ${new Date().toLocaleString()} | Total Records: ${filteredSites.length}`, 10, yPosition);
+        yPosition += 8;
+
+        // Column widths for 8 columns per page
+        const colWidth = (pageWidth - 20) / chunk.headers.length;
+        const rowHeight = 5;
+
+        // Draw header
+        pdf.setFillColor(200, 200, 200);
+        let headerX = 10;
+        chunk.headers.forEach(header => {
+          pdf.rect(headerX, yPosition, colWidth, rowHeight, 'F');
+          pdf.setFontSize(7);
+          pdf.text(header.substring(0, 12), headerX + 1, yPosition + 3);
+          headerX += colWidth;
+        });
+        yPosition += rowHeight;
+
+        // Draw rows
+        pdf.setFillColor(255, 255, 255);
+        filteredSites.forEach((site, siteIdx) => {
+          if (yPosition + rowHeight > pageHeight - 10) {
+            pdf.addPage();
+            yPosition = 10;
+
+            // Redraw header on new page
+            pdf.setFillColor(200, 200, 200);
+            let hx = 10;
+            chunk.headers.forEach(header => {
+              pdf.rect(hx, yPosition, colWidth, rowHeight, 'F');
+              pdf.setFontSize(7);
+              pdf.text(header.substring(0, 12), hx + 1, yPosition + 3);
+              hx += colWidth;
+            });
+            yPosition += rowHeight;
+            pdf.setFillColor(255, 255, 255);
+          }
+
+          let cellX = 10;
+          for (let c = chunk.start; c < chunk.end; c++) {
+            pdf.rect(cellX, yPosition, colWidth, rowHeight);
+            pdf.setFontSize(6);
+            const cellText = getColumnValue(site, c);
+            pdf.text(cellText, cellX + 1, yPosition + 2);
+            cellX += colWidth;
+          }
+          yPosition += rowHeight;
+        });
+      }
 
       pdf.save(`site-status-${new Date().getTime()}.pdf`);
-      toast({ title: 'Success', description: 'Data exported to PDF' });
+      toast({ title: 'Success', description: 'All 81 columns exported to PDF' });
     } catch (error) {
       console.error('PDF export error:', error);
-      toast({ title: 'Error', description: 'Failed to export PDF - try Excel instead', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
     }
   };
 
