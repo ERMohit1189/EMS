@@ -49,18 +49,24 @@ export default function VendorLogin() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/vendors/login`, {
+      const apiUrl = `${getApiBaseUrl()}/api/vendors/login`;
+      console.log('Login attempt to:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        const errorMsg = data.error || `API Error: ${response.status} ${response.statusText}`;
+        console.error('Login error:', errorMsg);
         toast({
           title: "Login Failed",
-          description: data.error || "Invalid credentials",
+          description: errorMsg,
           variant: "destructive",
         });
         return;
