@@ -334,3 +334,23 @@ export type InsertPaymentMaster = z.infer<typeof insertPaymentMasterSchema>;
 
 export type Zone = typeof zones.$inferSelect;
 export type InsertZone = z.infer<typeof insertZoneSchema>;
+
+// Export Header Settings Table
+export const exportHeaders = pgTable("export_headers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: text("company_name"),
+  reportTitle: text("report_title"),
+  footerText: text("footer_text"),
+  showGeneratedDate: boolean("show_generated_date").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertExportHeaderSchema = createInsertSchema(exportHeaders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ExportHeader = typeof exportHeaders.$inferSelect;
+export type InsertExportHeader = z.infer<typeof insertExportHeaderSchema>;
