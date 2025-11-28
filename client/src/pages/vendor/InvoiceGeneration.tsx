@@ -191,7 +191,7 @@ export default function InvoiceGeneration() {
     }
   };
 
-  const downloadInvoicePDF = (invoice: InvoiceRecord) => {
+  const generateInvoicePDF = (invoice: InvoiceRecord) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -351,9 +351,25 @@ export default function InvoiceGeneration() {
     doc.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
     doc.text("This is an electronically generated document. No signature required.", pageWidth / 2, yPosition + 1, { align: "center" });
 
-    // Save PDF
+    return doc;
+  };
+
+  const downloadInvoicePDF = (invoice: InvoiceRecord) => {
+    const doc = generateInvoicePDF(invoice);
     doc.save(`${invoice.invoiceNumber}.pdf`);
     toast({ title: "Success", description: "Invoice downloaded successfully" });
+  };
+
+  const printInvoice = (invoice: InvoiceRecord) => {
+    const doc = generateInvoicePDF(invoice);
+    const pdfUrl = doc.output("bloburi");
+    const printWindow = window.open(pdfUrl);
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+    toast({ title: "Success", description: "Print dialog opened" });
   };
 
   const generateInvoices = async () => {
@@ -599,7 +615,7 @@ export default function InvoiceGeneration() {
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button
-                            onClick={() => window.print()}
+                            onClick={() => printInvoice(invoice)}
                             variant="outline"
                             className="flex-1 h-8 text-xs gap-1"
                             size="sm"
@@ -696,7 +712,7 @@ export default function InvoiceGeneration() {
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button
-                            onClick={() => window.print()}
+                            onClick={() => printInvoice(invoice)}
                             variant="outline"
                             className="flex-1 h-8 text-xs gap-1"
                             size="sm"
