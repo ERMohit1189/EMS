@@ -10,45 +10,107 @@ export default function Dashboard() {
   const { vendors, sites, employees } = useStore();
   const [pendingPOCount, setPendingPOCount] = useState(0);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [allSites, setAllSites] = useState<any[]>([]);
+  const [allVendors, setAllVendors] = useState<any[]>([]);
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/purchase-orders`);
-        const data = await response.json();
-        const pos = data.data || [];
+        // Fetch Purchase Orders
+        const posResponse = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`);
+        const posData = await posResponse.json();
+        const pos = posData.data || [];
         setPurchaseOrders(pos);
         const pending = pos.filter((po: any) => po.status === 'Pending').length;
         setPendingPOCount(pending);
+
+        // Fetch Invoices
+        const invResponse = await fetch(`${getApiBaseUrl()}/api/invoices?pageSize=10000`);
+        const invData = await invResponse.json();
+        const invs = invData.data || [];
+        setInvoices(invs);
+
+        // Fetch All Sites
+        const sitesResponse = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
+        const sitesData = await sitesResponse.json();
+        setAllSites(sitesData.data || []);
+
+        // Fetch All Vendors
+        const vendorsResponse = await fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`);
+        const vendorsData = await vendorsResponse.json();
+        setAllVendors(vendorsData.data || []);
+
+        // Fetch All Employees
+        const empResponse = await fetch(`${getApiBaseUrl()}/api/employees?pageSize=10000`);
+        const empData = await empResponse.json();
+        setAllEmployees(empData.data || []);
+
+        // Generate monthly data from POs
+        const monthlyMap: { [key: string]: { installations: number; revenue: number } } = {};
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        pos.forEach((po: any) => {
+          const monthIndex = new Date(po.createdAt || new Date()).getMonth();
+          const monthName = months[monthIndex];
+          if (!monthlyMap[monthName]) {
+            monthlyMap[monthName] = { installations: 0, revenue: 0 };
+          }
+          monthlyMap[monthName].installations += 1;
+          monthlyMap[monthName].revenue += (po.totalAmount || 0) / 1000; // Convert to K
+        });
+
+        invs.forEach((inv: any) => {
+          const monthIndex = new Date(inv.createdAt || new Date()).getMonth();
+          const monthName = months[monthIndex];
+          if (!monthlyMap[monthName]) {
+            monthlyMap[monthName] = { installations: 0, revenue: 0 };
+          }
+          monthlyMap[monthName].revenue += (inv.totalAmount || 0) / 1000; // Convert to K
+        });
+
+        const chartData = months.slice(0, 6).map(month => ({
+          month,
+          installations: monthlyMap[month]?.installations || 0,
+          revenue: parseFloat((monthlyMap[month]?.revenue || 0).toFixed(2)),
+        }));
+        setMonthlyData(chartData);
       } catch (error) {
-        console.error('Failed to fetch pending POs:', error);
+        console.error('Failed to fetch dashboard data:', error);
         setPendingPOCount(0);
         setPurchaseOrders([]);
+        setInvoices([]);
       }
     };
     fetchData();
   }, []);
 
+  const activeSites = allSites.length > 0 ? allSites.filter(s => s.status === 'Active').length : sites.filter(s => s.status === 'Active').length;
+  const totalSites = allSites.length > 0 ? allSites.length : sites.length;
+  const operationalPercentage = totalSites > 0 ? Math.round((activeSites / totalSites) * 100) : 0;
+
   const stats = [
     {
       title: 'Total Vendors',
-      value: vendors.length,
-      description: '+2 from last month',
+      value: allVendors.length > 0 ? allVendors.length : vendors.length,
+      description: `${allVendors.filter(v => v.status === 'Approved').length || vendors.filter(v => v.status === 'Approved').length} approved`,
       icon: Users,
       color: 'text-blue-500',
       href: '/vendor/list',
     },
     {
       title: 'Active Sites',
-      value: sites.filter(s => s.status === 'Active').length,
-      description: '98% operational',
+      value: activeSites,
+      description: `${operationalPercentage}% operational`,
       icon: Building2,
       color: 'text-emerald-500',
       href: '/vendor/sites',
     },
     {
       title: 'Total Employees',
-      value: employees.length,
+      value: allEmployees.length > 0 ? allEmployees.length : employees.length,
       description: 'Field & Office Staff',
       icon: HardHat,
       color: 'text-orange-500',
@@ -57,28 +119,31 @@ export default function Dashboard() {
     {
       title: 'Pending POs',
       value: pendingPOCount,
-      description: 'Requires approval',
+      description: `${purchaseOrders.length} total`,
       icon: DollarSign,
       color: 'text-purple-500',
       href: '/vendor/po',
     },
   ];
 
-  // Chart data
+  // Chart data - All Dynamic
+  const siteData = allSites.length > 0 ? allSites : sites;
+  const vendorData = allVendors.length > 0 ? allVendors : vendors;
+
   const siteStatusData = [
-    { name: 'Active', value: sites.filter(s => s.status === 'Active').length, fill: '#10b981' },
-    { name: 'Pending', value: sites.filter(s => s.status === 'Pending').length, fill: '#f59e0b' },
-    { name: 'Inactive', value: sites.filter(s => s.status === 'Inactive').length, fill: '#ef4444' },
+    { name: 'Active', value: siteData.filter(s => s.status === 'Active').length, fill: '#10b981' },
+    { name: 'Pending', value: siteData.filter(s => s.status === 'Pending').length, fill: '#f59e0b' },
+    { name: 'Inactive', value: siteData.filter(s => s.status === 'Inactive').length, fill: '#ef4444' },
   ];
 
   const vendorStatusData = [
-    { name: 'Active', value: vendors.filter(v => v.status === 'Active').length, fill: '#3b82f6' },
-    { name: 'Pending', value: vendors.filter(v => v.status === 'Pending').length, fill: '#f59e0b' },
-    { name: 'Inactive', value: vendors.filter(v => v.status === 'Inactive').length, fill: '#ef4444' },
+    { name: 'Approved', value: vendorData.filter(v => v.status === 'Approved').length, fill: '#3b82f6' },
+    { name: 'Pending', value: vendorData.filter(v => v.status === 'Pending').length, fill: '#f59e0b' },
+    { name: 'Rejected', value: vendorData.filter(v => v.status === 'Rejected').length, fill: '#ef4444' },
   ];
 
-  const regionData = sites.reduce((acc: any[], site) => {
-    const location = site.district || site.region || 'Unknown';
+  const regionData = siteData.reduce((acc: any[], site) => {
+    const location = site.district || site.circle || 'Unknown';
     const existing = acc.find(r => r.name === location);
     if (existing) {
       existing.count += 1;
@@ -92,16 +157,6 @@ export default function Dashboard() {
     { name: 'Draft', value: purchaseOrders.filter(po => po.status === 'Draft').length, fill: '#6366f1' },
     { name: 'Pending', value: purchaseOrders.filter(po => po.status === 'Pending').length, fill: '#f59e0b' },
     { name: 'Approved', value: purchaseOrders.filter(po => po.status === 'Approved').length, fill: '#10b981' },
-  ];
-
-  // Dummy monthly data for trend chart
-  const monthlyData = [
-    { month: 'Jan', installations: 24, revenue: 2400 },
-    { month: 'Feb', installations: 32, revenue: 2210 },
-    { month: 'Mar', installations: 28, revenue: 2290 },
-    { month: 'Apr', installations: 45, revenue: 2000 },
-    { month: 'May', installations: 38, revenue: 2181 },
-    { month: 'Jun', installations: 52, revenue: 2500 },
   ];
 
   return (
@@ -290,15 +345,15 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {sites.slice(0, 5).map((site) => (
+              {(allSites.length > 0 ? allSites : sites).slice(0, 5).map((site) => (
                 <div key={site.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
                       <Activity className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-none truncate">Site {site.siteId}</p>
-                      <p className="text-xs text-muted-foreground truncate">{site.region} • {site.state}</p>
+                      <p className="text-sm font-medium leading-none truncate">Site {site.siteId || site.planId}</p>
+                      <p className="text-xs text-muted-foreground truncate">{site.circle || site.district} • {site.state}</p>
                     </div>
                   </div>
                   <span className={`text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0 ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
@@ -306,7 +361,7 @@ export default function Dashboard() {
                   </span>
                 </div>
               ))}
-              {sites.length === 0 && (
+              {(allSites.length > 0 ? allSites : sites).length === 0 && (
                  <div className="text-center py-4 text-muted-foreground text-sm">No sites registered.</div>
               )}
             </div>
@@ -320,7 +375,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
              <div className="space-y-3 max-h-64 overflow-y-auto">
-              {vendors.filter(v => v.status === 'Pending').slice(0, 5).map((vendor) => (
+              {(allVendors.length > 0 ? allVendors : vendors).filter(v => v.status === 'Pending').slice(0, 5).map((vendor) => (
                 <div key={vendor.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
                    <div className="flex items-center gap-3 flex-1 min-w-0">
                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
@@ -328,7 +383,7 @@ export default function Dashboard() {
                      </div>
                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{vendor.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{vendor.category}</p>
+                        <p className="text-xs text-muted-foreground truncate">{vendor.category || 'Individual'}</p>
                      </div>
                    </div>
                    <Link href="/vendor/list" className="text-xs text-primary hover:text-primary/80 hover:underline flex items-center gap-1 flex-shrink-0 font-medium">
@@ -336,7 +391,7 @@ export default function Dashboard() {
                    </Link>
                 </div>
               ))}
-               {vendors.filter(v => v.status === 'Pending').length === 0 && (
+               {(allVendors.length > 0 ? allVendors : vendors).filter(v => v.status === 'Pending').length === 0 && (
                  <div className="text-center py-4 text-muted-foreground text-sm">No pending vendors.</div>
               )}
              </div>
