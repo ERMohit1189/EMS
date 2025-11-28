@@ -106,15 +106,20 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid email or password" });
       }
       
-      req.session.employeeId = employee.id;
-      req.session.employeeEmail = employee.email;
+      // Store in session (for server-side session tracking)
+      if (req.session) {
+        req.session.employeeId = employee.id;
+        req.session.employeeEmail = employee.email;
+      }
       
       const responseData = { 
         success: true, 
         employee: { 
           id: employee.id, 
           name: employee.name, 
-          email: employee.email 
+          email: employee.email,
+          role: employee.role,
+          designation: (employee as any).designation
         } 
       };
       

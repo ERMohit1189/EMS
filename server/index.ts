@@ -74,6 +74,12 @@ app.use((req, res, next) => {
   }
 });
 
+// Add session debugging middleware
+app.use((req, res, next) => {
+  console.log(`[Session Debug] ${req.method} ${req.path} - Has session:`, !!req.session);
+  next();
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
