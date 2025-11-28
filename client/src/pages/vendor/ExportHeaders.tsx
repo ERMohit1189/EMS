@@ -4,6 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { getApiBaseUrl } from "@/lib/api";
 
@@ -308,34 +315,30 @@ export default function ExportHeaders() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="state">State</Label>
-            <select
-              id="state"
-              data-testid="select-state"
-              value={header.state || ''}
-              onChange={(e) => setHeader({ ...header, state: e.target.value })}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select a state</option>
-              {INDIAN_STATES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <Select value={header.state || ''} onValueChange={(value) => setHeader({ ...header, state: value })}>
+              <SelectTrigger id="state" data-testid="select-state" className="mt-1">
+                <SelectValue placeholder="Select a state" />
+              </SelectTrigger>
+              <SelectContent>
+                {INDIAN_STATES.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <Label htmlFor="city">City</Label>
-            <select
-              id="city"
-              data-testid="select-city"
-              value={header.city || ''}
-              onChange={(e) => setHeader({ ...header, city: e.target.value })}
-              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select a city</option>
-              {MAJOR_CITIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <Select value={header.city || ''} onValueChange={(value) => setHeader({ ...header, city: value })}>
+              <SelectTrigger id="city" data-testid="select-city" className="mt-1">
+                <SelectValue placeholder="Select a city" />
+              </SelectTrigger>
+              <SelectContent>
+                {MAJOR_CITIES.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
