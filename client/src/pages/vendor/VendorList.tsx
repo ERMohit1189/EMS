@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -18,6 +18,7 @@ import type { Vendor } from "@shared/schema";
 export default function VendorList() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vendorUsage, setVendorUsage] = useState<{ [key: string]: boolean }>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,6 +33,21 @@ export default function VendorList() {
       if (!response.ok) throw new Error('Failed to fetch vendors');
       const result = await response.json();
       setVendors(result.data || []);
+
+      // Check usage for each vendor
+      const usageMap: { [key: string]: boolean } = {};
+      for (const vendor of result.data || []) {
+        try {
+          const usageRes = await fetch(`${getApiBaseUrl()}/api/vendors/${vendor.id}/usage`);
+          if (usageRes.ok) {
+            const usageData = await usageRes.json();
+            usageMap[vendor.id] = usageData.isUsed;
+          }
+        } catch (e) {
+          usageMap[vendor.id] = true; // Default to used for safety
+        }
+      }
+      setVendorUsage(usageMap);
     } catch (error) {
       toast({
         title: 'Error',
@@ -61,6 +77,30 @@ export default function VendorList() {
       toast({
         title: 'Error',
         description: 'Failed to update vendor status',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteVendor = async (id: string, name: string) => {
+    if (!confirm(`Delete vendor "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const url = `${getApiBaseUrl()}/api/vendors/${id}`;
+      const response = await fetch(url, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete vendor');
+      
+      setVendors(vendors.filter(v => v.id !== id));
+      toast({
+        title: 'Success',
+        description: `Vendor "${name}" has been deleted.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete vendor',
         variant: 'destructive',
       });
     }
@@ -117,12 +157,22 @@ export default function VendorList() {
                  </Select>
                </div>
                <div className="text-sm font-mono">{v.mobile}</div>
-               <div className="text-right">
+               <div className="text-right flex gap-2 justify-end">
                  <Link href={`/vendor/edit/${v.id}`}>
                    <Button variant="ghost" size="sm" className="gap-2">
                      <Edit className="h-4 w-4" /> Edit
                    </Button>
                  </Link>
+                 {!vendorUsage[v.id] && (
+                   <Button 
+                     variant="destructive" 
+                     size="sm" 
+                     className="gap-2"
+                     onClick={() => deleteVendor(v.id, v.name)}
+                   >
+                     <Trash2 className="h-4 w-4" /> Delete
+                   </Button>
+                 )}
                </div>
              </div>
            ))
