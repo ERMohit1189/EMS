@@ -11,7 +11,8 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   LogOut,
-  Upload
+  Upload,
+  Key
 } from 'lucide-react';
 import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
 
@@ -30,6 +31,11 @@ const menuItems = [
     title: 'All Vendors',
     icon: Users,
     href: '/vendor/list',
+  },
+  {
+    title: 'Vendor Credentials',
+    icon: Key,
+    href: '/vendor/credentials',
   },
   {
     title: 'Site Management',
