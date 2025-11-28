@@ -67,6 +67,7 @@ export interface IStorage {
   // Employee operations
   createEmployee(employee: InsertEmployee): Promise<Employee>;
   getEmployee(id: string): Promise<Employee | undefined>;
+  getEmployeeByEmail(email: string): Promise<Employee | undefined>;
   getEmployees(limit: number, offset: number): Promise<Employee[]>;
   updateEmployee(
     id: string,
@@ -74,6 +75,7 @@ export interface IStorage {
   ): Promise<Employee>;
   deleteEmployee(id: string): Promise<void>;
   getEmployeeCount(): Promise<number>;
+  loginEmployee(email: string, password: string): Promise<Employee | null>;
 
   // Salary operations
   createSalary(salary: InsertSalary): Promise<SalaryStructure>;
@@ -218,6 +220,56 @@ export class DrizzleStorage implements IStorage {
     return passwordMatch ? vendor : null;
   }
 
+  // Employee operations
+  async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    const [result] = await db
+      .insert(employees)
+      .values(employee)
+      .returning();
+    return result;
+  }
+
+  async getEmployee(id: string): Promise<Employee | undefined> {
+    const [result] = await db.select().from(employees).where(eq(employees.id, id));
+    return result;
+  }
+
+  async getEmployeeByEmail(email: string): Promise<Employee | undefined> {
+    const [result] = await db.select().from(employees).where(eq(employees.email, email));
+    return result;
+  }
+
+  async getEmployees(limit: number, offset: number): Promise<Employee[]> {
+    return await db.select().from(employees).limit(limit).offset(offset);
+  }
+
+  async updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee> {
+    const [result] = await db
+      .update(employees)
+      .set(employee)
+      .where(eq(employees.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteEmployee(id: string): Promise<void> {
+    await db.delete(employees).where(eq(employees.id, id));
+  }
+
+  async getEmployeeCount(): Promise<number> {
+    const result = await db.select({ count: count() }).from(employees);
+    return Number(result[0]?.count) || 0;
+  }
+
+  async loginEmployee(email: string, password: string): Promise<Employee | null> {
+    const employee = await this.getEmployeeByEmail(email);
+    if (!employee || !employee.password) return null;
+    
+    const bcrypt = require('bcrypt');
+    const passwordMatch = await bcrypt.compare(password, employee.password);
+    return passwordMatch ? employee : null;
+  }
+
   // Department operations
   async createDepartment(dept: { name: string }): Promise<any> {
     const [result] = await db.insert(departments).values(dept).returning();
@@ -245,6 +297,8 @@ export class DrizzleStorage implements IStorage {
   async deleteDesignation(id: string): Promise<void> {
     await db.delete(designations).where(eq(designations.id, id));
   }
+
+  // Note: Employee operations moved above (see loginEmployee and related methods)
 
   // Site operations
   async createSite(site: InsertSite): Promise<Site> {

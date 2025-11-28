@@ -90,6 +90,25 @@ export async function registerRoutes(
     });
   });
 
+  // Employee login route
+  app.post("/api/employees/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password required" });
+      }
+      const employee = await storage.loginEmployee(email, password);
+      if (!employee) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      req.session.employeeId = employee.id;
+      req.session.employeeEmail = employee.email;
+      res.json({ success: true, employee: { id: employee.id, name: employee.name, email: employee.email } });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Department routes
   app.get("/api/departments", async (req, res) => {
     try {
