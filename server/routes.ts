@@ -90,6 +90,26 @@ export async function registerRoutes(
     });
   });
 
+  app.get("/api/vendors", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const offset = (page - 1) * pageSize;
+
+      const data = await storage.getVendors(pageSize, offset);
+      const totalCount = await storage.getVendorCount();
+
+      res.json({
+        data,
+        totalCount,
+        pageNumber: page,
+        pageSize,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/vendors/:id/generate-password", async (req, res) => {
     try {
       const vendor = await storage.getVendor(req.params.id);
@@ -108,26 +128,6 @@ export async function registerRoutes(
         vendor: { id: vendor.id, name: vendor.name, email: vendor.email },
         tempPassword,
         message: `Password generated successfully for ${vendor.email}`
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/vendors", async (req, res) => {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const pageSize = parseInt(req.query.pageSize as string) || 10;
-      const offset = (page - 1) * pageSize;
-
-      const data = await storage.getVendors(pageSize, offset);
-      const totalCount = await storage.getVendorCount();
-
-      res.json({
-        data,
-        totalCount,
-        pageNumber: page,
-        pageSize,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
