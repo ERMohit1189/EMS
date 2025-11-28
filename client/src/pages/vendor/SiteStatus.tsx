@@ -375,47 +375,95 @@ export default function SiteStatus() {
     }
 
     try {
-      const element = document.getElementById('sites-table-export');
-      if (!element) {
-        toast({ title: 'Error', description: 'Table not found', variant: 'destructive' });
-        return;
-      }
-
-      const canvas = await html2canvas(element, { scale: 2, logging: false });
-      const imgData = canvas.toDataURL('image/png');
-      
       const pdf = new jsPDF('l', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
       let yPosition = 10;
+
+      // Add title
+      pdf.setFontSize(14);
       pdf.text('Site Status Report', 10, yPosition);
+      yPosition += 8;
+
+      // Add metadata
+      pdf.setFontSize(10);
+      pdf.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 10, yPosition);
+      yPosition += 6;
+      pdf.text(`Total Records: ${filteredSites.length}`, 10, yPosition);
       yPosition += 10;
+
+      // Column headers
+      const columns = [
+        'Plan ID', 'Circle', 'District', 'Status', 'Phy AT Status', 
+        'Soft AT Status', 'Both AT Status', 'Descope'
+      ];
+
+      // Table data - only key columns for readability
+      const tableData = filteredSites.map(site => [
+        site.planId?.substring(0, 15) || '-',
+        site.circle || '-',
+        site.district || '-',
+        site.status,
+        site.phyAtStatus || '-',
+        site.softAtStatus || '-',
+        site.bothAtStatus || '-',
+        site.descope || '-',
+      ]);
+
+      // Use autoTable plugin style - manual implementation
+      const startY = yPosition;
+      const colWidths = [25, 18, 18, 15, 18, 18, 18, 12];
+      const rowHeight = 7;
+      let currentY = startY;
+
+      // Draw header
+      pdf.setFillColor(200, 200, 200);
+      pdf.setFontSize(9);
+      let currentX = 10;
       
-      if (imgHeight > pageHeight - yPosition) {
-        const pages = Math.ceil(imgHeight / (pageHeight - 20));
-        for (let i = 0; i < pages; i++) {
-          if (i > 0) pdf.addPage();
-          pdf.addImage(
-            imgData,
-            'PNG',
-            10,
-            10,
-            imgWidth,
-            imgHeight
-          );
+      columns.forEach((col, idx) => {
+        pdf.rect(currentX, currentY, colWidths[idx], rowHeight, 'F');
+        pdf.text(col, currentX + 1, currentY + 5);
+        currentX += colWidths[idx];
+      });
+      
+      currentY += rowHeight;
+
+      // Draw rows
+      pdf.setFillColor(255, 255, 255);
+      tableData.forEach((row, rowIdx) => {
+        if (currentY + rowHeight > pageHeight - 10) {
+          pdf.addPage();
+          currentY = 10;
+          
+          // Redraw header on new page
+          pdf.setFillColor(200, 200, 200);
+          let headerX = 10;
+          columns.forEach((col, idx) => {
+            pdf.rect(headerX, currentY, colWidths[idx], rowHeight, 'F');
+            pdf.text(col, headerX + 1, currentY + 5);
+            headerX += colWidths[idx];
+          });
+          currentY += rowHeight;
+          pdf.setFillColor(255, 255, 255);
         }
-      } else {
-        pdf.addImage(imgData, 'PNG', 10, yPosition, imgWidth, imgHeight);
-      }
-      
+
+        currentX = 10;
+        row.forEach((cell, idx) => {
+          pdf.rect(currentX, currentY, colWidths[idx], rowHeight);
+          const cellText = String(cell).substring(0, 12);
+          pdf.setFontSize(8);
+          pdf.text(cellText, currentX + 1, currentY + 4);
+          currentX += colWidths[idx];
+        });
+        currentY += rowHeight;
+      });
+
       pdf.save(`site-status-${new Date().getTime()}.pdf`);
       toast({ title: 'Success', description: 'Data exported to PDF' });
     } catch (error) {
       console.error('PDF export error:', error);
-      toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to export PDF - try Excel instead', variant: 'destructive' });
     }
   };
 
