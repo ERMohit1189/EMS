@@ -78,19 +78,18 @@ function App() {
       const isEmployeeLogout = localStorage.getItem('employeeEmail') !== null;
       console.log('[App] Logout triggered - isEmployeeLogout:', isEmployeeLogout, 'employeeEmail:', localStorage.getItem('employeeEmail'));
       
-      // Clear all employee data from localStorage
+      // Clear session data from localStorage (but keep Remember Me credentials if user had them checked)
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('employeeId');
       localStorage.removeItem('employeeEmail');
       localStorage.removeItem('employeeName');
       localStorage.removeItem('employeeDepartment');
       localStorage.removeItem('employeeDesignation');
-      localStorage.removeItem('rememberMe_email');
-      localStorage.removeItem('rememberMe_password');
+      // NOTE: NOT clearing rememberMe_email and rememberMe_password - they stay saved
       
       setIsLoggedIn(false);
       setIsEmployee(false);
-      console.log('[App] All data cleared. Redirecting...');
+      console.log('[App] Session data cleared. Remember Me credentials preserved. Redirecting...');
       
       // Redirect to appropriate login page based on what we determined earlier
       if (isEmployeeLogout) {
