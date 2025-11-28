@@ -24,6 +24,8 @@ import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
 import EmployeeEdit from "@/pages/employee/EmployeeEdit";
 import EmployeeList from "@/pages/employee/EmployeeList";
 import EmployeeCredentials from "@/pages/employee/EmployeeCredentials";
+import EmployeePrivacyPolicy from "@/pages/employee/PrivacyPolicy";
+import VendorPrivacyPolicy from "@/pages/vendor/PrivacyPolicy";
 import SiteRegistration from "@/pages/vendor/SiteRegistration";
 import SiteList from "@/pages/vendor/SiteList";
 import SiteEdit from "@/pages/vendor/SiteEdit";
@@ -131,6 +133,10 @@ function App() {
         <Route path="/login" component={Login} />
         <Route path="/vendor-login" component={VendorLogin} />
         <Route path="/employee-login" component={EmployeeLogin} />
+        
+        {/* Privacy Policy Routes */}
+        <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+        <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
 
         {/* Print Routes - No Layout */}
         <Route path="/vendor/po/print/:id" component={POPrint} />
@@ -171,6 +177,10 @@ function App() {
               <Route path="/employee/designation-master" component={DesignationMaster} />
               <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
               <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
+              <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+              
+              {/* Vendor Privacy Policy */}
+              <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
               
               {/* Reports */}
               <Route path="/reports" component={() => <Placeholder title="Reports" />} />
