@@ -78,6 +78,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// CRITICAL: Block Vite from intercepting API requests - must be BEFORE registerRoutes
+app.use("/api/", (req, res, next) => {
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("X-API-Route", "protected");
+  next();
+});
+
 (async () => {
   await registerRoutes(httpServer, app);
 
