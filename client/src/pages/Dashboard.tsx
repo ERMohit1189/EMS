@@ -87,15 +87,15 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  const activeSites = allSites.length > 0 ? allSites.filter(s => s.status === 'Active').length : sites.filter(s => s.status === 'Active').length;
-  const totalSites = allSites.length > 0 ? allSites.length : sites.length;
+  const activeSites = allSites.filter(s => s.status === 'Active').length;
+  const totalSites = allSites.length;
   const operationalPercentage = totalSites > 0 ? Math.round((activeSites / totalSites) * 100) : 0;
 
   const stats = [
     {
       title: 'Total Vendors',
-      value: allVendors.length > 0 ? allVendors.length : vendors.length,
-      description: `${allVendors.filter(v => v.status === 'Approved').length || vendors.filter(v => v.status === 'Approved').length} approved`,
+      value: allVendors.length,
+      description: `${allVendors.filter(v => v.status === 'Approved').length} approved`,
       icon: Users,
       color: 'text-blue-500',
       href: '/vendor/list',
@@ -110,7 +110,7 @@ export default function Dashboard() {
     },
     {
       title: 'Total Employees',
-      value: allEmployees.length > 0 ? allEmployees.length : employees.length,
+      value: allEmployees.length,
       description: 'Field & Office Staff',
       icon: HardHat,
       color: 'text-orange-500',
@@ -126,9 +126,9 @@ export default function Dashboard() {
     },
   ];
 
-  // Chart data - All Dynamic
-  const siteData = allSites.length > 0 ? allSites : sites;
-  const vendorData = allVendors.length > 0 ? allVendors : vendors;
+  // Chart data - All Dynamic (database only)
+  const siteData = allSites;
+  const vendorData = allVendors;
 
   const siteStatusData = [
     { name: 'Active', value: siteData.filter(s => s.status === 'Active').length, fill: '#10b981' },
@@ -345,7 +345,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {(allSites.length > 0 ? allSites : sites).slice(0, 5).map((site) => (
+              {allSites.slice(0, 5).map((site) => (
                 <div key={site.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
@@ -361,7 +361,7 @@ export default function Dashboard() {
                   </span>
                 </div>
               ))}
-              {(allSites.length > 0 ? allSites : sites).length === 0 && (
+              {allSites.length === 0 && (
                  <div className="text-center py-4 text-muted-foreground text-sm">No sites registered.</div>
               )}
             </div>
@@ -375,7 +375,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
              <div className="space-y-3 max-h-64 overflow-y-auto">
-              {(allVendors.length > 0 ? allVendors : vendors).filter(v => v.status === 'Pending').slice(0, 5).map((vendor) => (
+              {allVendors.filter(v => v.status === 'Pending').slice(0, 5).map((vendor) => (
                 <div key={vendor.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
                    <div className="flex items-center gap-3 flex-1 min-w-0">
                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
@@ -391,7 +391,7 @@ export default function Dashboard() {
                    </Link>
                 </div>
               ))}
-               {(allVendors.length > 0 ? allVendors : vendors).filter(v => v.status === 'Pending').length === 0 && (
+               {allVendors.filter(v => v.status === 'Pending').length === 0 && (
                  <div className="text-center py-4 text-muted-foreground text-sm">No pending vendors.</div>
               )}
              </div>
