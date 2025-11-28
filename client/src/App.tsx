@@ -37,6 +37,7 @@ import DepartmentMaster from "@/pages/employee/DepartmentMaster";
 import DesignationMaster from "@/pages/employee/DesignationMaster";
 import ExportHeaders from "@/pages/vendor/ExportHeaders";
 import Settings from "@/pages/Settings";
+import EmployeeDashboard from "@/pages/EmployeeDashboard";
 import NotFound from "@/pages/not-found";
 
 const Placeholder = ({ title }: { title: string }) => (
@@ -147,6 +148,8 @@ function App() {
         <Route>
           <Layout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
             <Switch>
+              {/* Dashboard Routes */}
+              <Route path="/employee/dashboard" component={EmployeeDashboard} />
               <Route path="/" component={Dashboard} />
               
               {/* Vendor Routes */}

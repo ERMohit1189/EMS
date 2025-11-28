@@ -99,7 +99,7 @@ export default function EmployeeLogin() {
       }
 
       window.dispatchEvent(new Event("login"));
-      setLocation("/");
+      setLocation("/employee/dashboard");
     } catch (error: any) {
       toast({
         title: "Error",
