@@ -3,6 +3,8 @@ import {
   vendors,
   sites,
   employees,
+  departments,
+  designations,
   salaryStructures,
   purchaseOrders,
   invoices,
@@ -113,6 +115,16 @@ export interface IStorage {
   deletePaymentMaster(id: string): Promise<void>;
   isPaymentMasterUsedInPO(paymentMasterId: string): Promise<boolean>;
 
+  // Department operations
+  createDepartment(dept: { name: string }): Promise<any>;
+  getDepartments(): Promise<any[]>;
+  deleteDepartment(id: string): Promise<void>;
+
+  // Designation operations
+  createDesignation(desig: { name: string }): Promise<any>;
+  getDesignations(): Promise<any[]>;
+  deleteDesignation(id: string): Promise<void>;
+
   // Zone operations
   createZone(zone: InsertZone): Promise<Zone>;
   getZone(id: string): Promise<Zone | undefined>;
@@ -204,6 +216,34 @@ export class DrizzleStorage implements IStorage {
     const bcrypt = require('bcrypt');
     const passwordMatch = await bcrypt.compare(password, vendor.password);
     return passwordMatch ? vendor : null;
+  }
+
+  // Department operations
+  async createDepartment(dept: { name: string }): Promise<any> {
+    const [result] = await db.insert(departments).values(dept).returning();
+    return result;
+  }
+
+  async getDepartments(): Promise<any[]> {
+    return await db.select().from(departments);
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    await db.delete(departments).where(eq(departments.id, id));
+  }
+
+  // Designation operations
+  async createDesignation(desig: { name: string }): Promise<any> {
+    const [result] = await db.insert(designations).values(desig).returning();
+    return result;
+  }
+
+  async getDesignations(): Promise<any[]> {
+    return await db.select().from(designations);
+  }
+
+  async deleteDesignation(id: string): Promise<void> {
+    await db.delete(designations).where(eq(designations.id, id));
   }
 
   // Site operations

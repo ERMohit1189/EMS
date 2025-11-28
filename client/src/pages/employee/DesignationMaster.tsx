@@ -24,9 +24,12 @@ export default function DesignationMaster() {
   const loadDesignations = async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/designations`);
+      if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
-      setDesignations(data || []);
+      setDesignations(Array.isArray(data) ? data : []);
     } catch (error) {
+      console.error("Load error:", error);
+      setDesignations([]);
       toast({ title: "Error", description: "Failed to load designations", variant: "destructive" });
     } finally {
       setPageLoading(false);

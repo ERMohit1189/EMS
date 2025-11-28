@@ -90,6 +90,64 @@ export async function registerRoutes(
     });
   });
 
+  // Department routes
+  app.get("/api/departments", async (req, res) => {
+    try {
+      const data = await storage.getDepartments();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/departments", async (req, res) => {
+    try {
+      const { name } = req.body;
+      const data = await storage.createDepartment({ name });
+      res.json(data);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/departments/:id", async (req, res) => {
+    try {
+      await storage.deleteDepartment(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Designation routes
+  app.get("/api/designations", async (req, res) => {
+    try {
+      const data = await storage.getDesignations();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/designations", async (req, res) => {
+    try {
+      const { name } = req.body;
+      const data = await storage.createDesignation({ name });
+      res.json(data);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/designations/:id", async (req, res) => {
+    try {
+      await storage.deleteDesignation(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/vendors", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;

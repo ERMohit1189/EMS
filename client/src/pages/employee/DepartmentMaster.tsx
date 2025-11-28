@@ -24,9 +24,12 @@ export default function DepartmentMaster() {
   const loadDepartments = async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/departments`);
+      if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
-      setDepartments(data || []);
+      setDepartments(Array.isArray(data) ? data : []);
     } catch (error) {
+      console.error("Load error:", error);
+      setDepartments([]);
       toast({ title: "Error", description: "Failed to load departments", variant: "destructive" });
     } finally {
       setPageLoading(false);
