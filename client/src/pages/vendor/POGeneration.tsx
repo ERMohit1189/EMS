@@ -251,247 +251,236 @@ export default function POGeneration() {
       const exportHeaderSettings = headerRes.ok ? await headerRes.json() : {};
 
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 15;
-      let yPos = margin;
+      const pw = pdf.internal.pageSize.getWidth();
+      const ph = pdf.internal.pageSize.getHeight();
+      const m = 12;
+      
+      let y = m;
 
-      // ========== HEADER SECTION ==========
-      // Left: Company Info
-      pdf.setFontSize(12);
+      // COMPANY HEADER
+      pdf.setFontSize(11);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(0, 0, 0);
-      pdf.text(exportHeaderSettings.companyName || '[Company Name]', margin, yPos);
-      yPos += 6;
+      pdf.text(exportHeaderSettings.companyName || '[Company Name]', m, y);
+      y += 5;
 
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
-      pdf.text(exportHeaderSettings.address || '[Street Address]', margin, yPos);
-      yPos += 4;
-      pdf.text('[City, ST ZIP]', margin, yPos);
-      yPos += 4;
-      pdf.text(`Phone: ${exportHeaderSettings.contactPhone || '(000) 000-0000'}`, margin, yPos);
-      yPos += 4;
-      pdf.text(`Fax: ${exportHeaderSettings.contactPhone ? '(000) 000-0000' : ''}`.trim(), margin, yPos);
-      yPos += 4;
-      pdf.text(`Website: ${exportHeaderSettings.website || ''}`.trim(), margin, yPos);
+      pdf.text(exportHeaderSettings.address || '[Street Address]', m, y);
+      y += 3;
+      pdf.text('[City, ST ZIP]', m, y);
+      y += 3;
+      pdf.text(`Phone: ${exportHeaderSettings.contactPhone || '(000) 000-0000'}`, m, y);
+      y += 3;
+      pdf.text(`Fax: (000) 000-0000`, m, y);
+      y += 3;
+      pdf.text(`Website: ${exportHeaderSettings.website || ''}`, m, y);
 
-      // Right: PO Title and Info
-      pdf.setFontSize(28);
+      // PO TITLE (Right side)
+      pdf.setFontSize(24);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(70, 130, 180);
-      pdf.text('PURCHASE ORDER', pageWidth - margin - 70, margin + 5);
+      pdf.text('PURCHASE ORDER', pw - m - 50, m + 3);
 
-      // Date and PO boxes on right
-      pdf.setFontSize(9);
+      // DATE and PO# boxes
+      pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(0, 0, 0);
-      const rightBoxX = pageWidth - margin - 65;
+      const rx = pw - m - 55;
 
-      pdf.text('DATE', rightBoxX, margin + 20);
-      pdf.rect(rightBoxX, margin + 21, 50, 5);
-      pdf.setFontSize(9);
-      pdf.text(String(po.poDate || ''), rightBoxX + 2, margin + 24);
+      pdf.text('DATE', rx, m + 18);
+      pdf.rect(rx, m + 19, 45, 4);
+      pdf.text(String(po.poDate || ''), rx + 2, m + 22);
 
-      pdf.setFontSize(9);
-      pdf.text('PO #', rightBoxX, margin + 30);
-      pdf.rect(rightBoxX, margin + 31, 50, 5);
-      pdf.text(String(po.poNumber || ''), rightBoxX + 2, margin + 34);
+      pdf.text('PO #', rx, m + 25);
+      pdf.rect(rx, m + 26, 45, 4);
+      pdf.text(String(po.poNumber || ''), rx + 2, m + 29);
 
-      yPos = margin + 42;
+      y = m + 38;
 
-      // ========== VENDOR & SHIP TO SECTION ==========
-      const sectionWidth = (pageWidth - 2 * margin - 2) / 2;
+      // VENDOR & SHIP TO
+      const halfW = (pw - 2 * m - 2) / 2;
 
-      // Vendor header
       pdf.setFillColor(41, 59, 89);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(10);
-      pdf.rect(margin, yPos, sectionWidth, 6, 'F');
-      pdf.text('VENDOR', margin + 3, yPos + 4);
+      pdf.setFontSize(9);
+      
+      pdf.rect(m, y, halfW, 5, 'F');
+      pdf.text('VENDOR', m + 2, y + 3.5);
+      
+      pdf.rect(m + halfW + 2, y, halfW, 5, 'F');
+      pdf.text('SHIP TO', m + halfW + 4, y + 3.5);
 
-      // Ship To header
-      pdf.rect(margin + sectionWidth + 2, yPos, sectionWidth, 6, 'F');
-      pdf.text('SHIP TO', margin + sectionWidth + 5, yPos + 4);
+      y += 6;
 
-      yPos += 8;
-
-      // Vendor details
+      // Vendor info
       pdf.setTextColor(0, 0, 0);
       pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
 
-      const vendorName = vendor?.name || '[Company Name]';
-      const vendorEmail = vendor?.email || '[Contact or Department]';
-      const vendorAddress = vendor?.address || '[Street Address]';
-      const vendorPhone = vendor?.phone || '(000) 000-0000';
+      const vname = vendor?.name || '[Vendor Name]';
+      const vemail = vendor?.email || '';
+      const vphone = vendor?.phone || '';
 
-      pdf.text(vendorName, margin + 2, yPos);
-      yPos += 4;
-      pdf.text(vendorEmail, margin + 2, yPos);
-      yPos += 4;
-      pdf.text(vendorAddress, margin + 2, yPos);
-      yPos += 4;
-      pdf.text('[City, ST ZIP]', margin + 2, yPos);
-      yPos += 4;
-      pdf.text(`Phone: ${vendorPhone}`, margin + 2, yPos);
-      yPos += 4;
-      pdf.text('Fax: (000) 000-0000', margin + 2, yPos);
+      const startY = y;
+      pdf.text(vname, m + 1, y);
+      y += 3;
+      if (vemail) {
+        pdf.text(vemail, m + 1, y);
+        y += 3;
+      }
+      pdf.text('[Street Address]', m + 1, y);
+      y += 3;
+      pdf.text('[City, ST ZIP]', m + 1, y);
+      y += 3;
+      pdf.text(`Phone: ${vphone}`, m + 1, y);
+      y += 3;
+      pdf.text('Fax: (000) 000-0000', m + 1, y);
 
-      // Ship To (same as vendor)
-      let shipY = margin + 50;
-      pdf.text(vendorName, margin + sectionWidth + 5, shipY);
-      shipY += 4;
-      pdf.text(vendorEmail, margin + sectionWidth + 5, shipY);
-      shipY += 4;
-      pdf.text(vendorAddress, margin + sectionWidth + 5, shipY);
-      shipY += 4;
-      pdf.text('[City, ST ZIP]', margin + sectionWidth + 5, shipY);
-      shipY += 4;
-      pdf.text(`Phone: ${vendorPhone}`, margin + sectionWidth + 5, shipY);
+      // Ship To
+      let sy = startY;
+      pdf.text(vname, m + halfW + 3, sy);
+      sy += 3;
+      if (vemail) {
+        pdf.text(vemail, m + halfW + 3, sy);
+        sy += 3;
+      }
+      pdf.text('[Street Address]', m + halfW + 3, sy);
+      sy += 3;
+      pdf.text('[City, ST ZIP]', m + halfW + 3, sy);
 
-      yPos = margin + 80;
+      y = startY + 20;
 
-      // ========== REQUISITIONER / SHIP VIA / F.O.B. / SHIPPING TERMS ==========
+      // REQUISITIONER ROW
       pdf.setFillColor(41, 59, 89);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
 
-      const colW = (pageWidth - 2 * margin - 3) / 4;
-      let colX = margin;
+      const cw = (pw - 2 * m - 3) / 4;
+      let cx = m;
 
-      // Headers
-      pdf.rect(colX, yPos, colW, 5, 'F');
-      pdf.text('REQUISITIONER', colX + 1, yPos + 3.5);
-      colX += colW + 1;
+      pdf.rect(cx, y, cw, 4, 'F');
+      pdf.text('REQUISITIONER', cx + 1, y + 2.5);
+      cx += cw + 1;
 
-      pdf.rect(colX, yPos, colW, 5, 'F');
-      pdf.text('SHIP VIA', colX + 1, yPos + 3.5);
-      colX += colW + 1;
+      pdf.rect(cx, y, cw, 4, 'F');
+      pdf.text('SHIP VIA', cx + 1, y + 2.5);
+      cx += cw + 1;
 
-      pdf.rect(colX, yPos, colW, 5, 'F');
-      pdf.text('F.O.B.', colX + 1, yPos + 3.5);
-      colX += colW + 1;
+      pdf.rect(cx, y, cw, 4, 'F');
+      pdf.text('F.O.B.', cx + 1, y + 2.5);
+      cx += cw + 1;
 
-      pdf.rect(colX, yPos, colW, 5, 'F');
-      pdf.text('SHIPPING TERMS', colX + 1, yPos + 3.5);
+      pdf.rect(cx, y, cw, 4, 'F');
+      pdf.text('SHIPPING TERMS', cx + 1, y + 2.5);
 
-      yPos += 6;
+      y += 5;
 
-      // Empty boxes for details
-      colX = margin;
-      pdf.rect(colX, yPos, colW, 5);
-      colX += colW + 1;
-      pdf.rect(colX, yPos, colW, 5);
-      colX += colW + 1;
-      pdf.rect(colX, yPos, colW, 5);
-      colX += colW + 1;
-      pdf.rect(colX, yPos, colW, 5);
+      // Empty row
+      cx = m;
+      pdf.rect(cx, y, cw, 4);
+      cx += cw + 1;
+      pdf.rect(cx, y, cw, 4);
+      cx += cw + 1;
+      pdf.rect(cx, y, cw, 4);
+      cx += cw + 1;
+      pdf.rect(cx, y, cw, 4);
 
-      yPos += 8;
+      y += 6;
 
-      // ========== ITEMS TABLE ==========
+      // ITEMS TABLE
       pdf.setFillColor(41, 59, 89);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
 
-      const itemColW = (pageWidth - 2 * margin) / 5;
-      let itemX = margin;
+      const icw = (pw - 2 * m) / 5;
+      let ix = m;
 
-      // Table headers
-      const headers = ['ITEM #', 'DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL'];
-      for (const header of headers) {
-        pdf.rect(itemX, yPos, itemColW, 5, 'F');
-        pdf.text(header, itemX + 1, yPos + 3.5);
-        itemX += itemColW;
+      const hdr = ['ITEM #', 'DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL'];
+      for (const h of hdr) {
+        pdf.rect(ix, y, icw, 4, 'F');
+        pdf.text(h, ix + 1, y + 2.5);
+        ix += icw;
       }
 
-      yPos += 6;
+      y += 5;
 
       // Item row
       pdf.setTextColor(0, 0, 0);
       pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
 
-      itemX = margin;
-      pdf.rect(itemX, yPos, itemColW, 5);
-      pdf.text('1', itemX + 2, yPos + 3.5);
-      itemX += itemColW;
+      ix = m;
+      pdf.rect(ix, y, icw, 4);
+      pdf.text('1', ix + 2, y + 2.5);
+      ix += icw;
 
-      pdf.rect(itemX, yPos, itemColW, 5);
-      pdf.text(String(po.description || '').substring(0, 20), itemX + 1, yPos + 3.5);
-      itemX += itemColW;
+      pdf.rect(ix, y, icw, 4);
+      pdf.text(String(po.description || '').substring(0, 18), ix + 1, y + 2.5);
+      ix += icw;
 
-      pdf.rect(itemX, yPos, itemColW, 5);
-      pdf.text(String(po.quantity || ''), itemX + 3, yPos + 3.5);
-      itemX += itemColW;
+      pdf.rect(ix, y, icw, 4);
+      pdf.text(String(po.quantity || ''), ix + 3, y + 2.5);
+      ix += icw;
 
-      pdf.rect(itemX, yPos, itemColW, 5);
-      pdf.text(`₹${Number(po.unitPrice || 0).toFixed(2)}`, itemX + 1, yPos + 3.5);
-      itemX += itemColW;
+      pdf.rect(ix, y, icw, 4);
+      pdf.text(`₹${Number(po.unitPrice || 0).toFixed(2)}`, ix + 1, y + 2.5);
+      ix += icw;
 
-      pdf.rect(itemX, yPos, itemColW, 5);
-      const totalAmount = Number(po.totalAmount || 0).toFixed(2);
-      pdf.text(`₹${totalAmount}`, itemX + 1, yPos + 3.5);
+      pdf.rect(ix, y, icw, 4);
+      const ta = Number(po.totalAmount || 0).toFixed(2);
+      pdf.text(`₹${ta}`, ix + 1, y + 2.5);
 
-      yPos += 6;
+      y += 5;
 
       // Empty rows
       for (let i = 0; i < 8; i++) {
-        itemX = margin;
+        ix = m;
         for (let j = 0; j < 5; j++) {
-          pdf.rect(itemX, yPos, itemColW);
-          itemX += itemColW;
+          pdf.rect(ix, y, icw);
+          ix += icw;
         }
-        yPos += 5;
+        y += 4;
       }
 
-      // ========== COMMENTS AND TOTALS ==========
-      yPos += 2;
+      y += 3;
 
-      // Comments box on left
+      // COMMENTS & TOTALS
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
-      pdf.text('Comments or Special Instructions', margin, yPos);
-      yPos += 4;
-
-      pdf.setFont(undefined, 'normal');
       pdf.setFontSize(8);
-      pdf.rect(margin, yPos, (pageWidth - 2 * margin - 2) / 2, 20);
-      pdf.text('Thank you for your business.', margin + 2, yPos + 3);
+      pdf.text('Comments', m, y);
 
-      // Totals on right
-      const totalsX = margin + (pageWidth - 2 * margin - 2) / 2 + 5;
       pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
+      pdf.setFontSize(7);
+      pdf.rect(m, y + 1, halfW, 15);
+      pdf.text('Thank you for your business.', m + 1, y + 3);
 
-      let totalsY = yPos + 2;
+      // TOTALS
+      const tx = m + halfW + 5;
+      pdf.setFontSize(8);
 
-      pdf.text('SUBTOTAL', totalsX + 5, totalsY);
-      pdf.rect(totalsX + 30, totalsY - 1, 25, 4);
-      pdf.text(`₹${totalAmount}`, totalsX + 32, totalsY + 2);
+      pdf.text('SUBTOTAL', tx, y + 2);
+      pdf.rect(tx + 25, y + 1, 20, 3);
+      pdf.text(`₹${ta}`, tx + 26, y + 3);
 
-      totalsY += 6;
-      pdf.text('TAX', totalsX + 5, totalsY);
-      pdf.rect(totalsX + 30, totalsY - 1, 25, 4);
+      pdf.text('TAX', tx, y + 6);
+      pdf.rect(tx + 25, y + 5, 20, 3);
 
-      totalsY += 6;
-      pdf.text('SHIPPING', totalsX + 5, totalsY);
-      pdf.rect(totalsX + 30, totalsY - 1, 25, 4);
+      pdf.text('SHIPPING', tx, y + 10);
+      pdf.rect(tx + 25, y + 9, 20, 3);
 
-      totalsY += 6;
-      pdf.text('OTHER', totalsX + 5, totalsY);
-      pdf.rect(totalsX + 30, totalsY - 1, 25, 4);
+      pdf.text('OTHER', tx, y + 14);
+      pdf.rect(tx + 25, y + 13, 20, 3);
 
-      totalsY += 6;
       pdf.setFont(undefined, 'bold');
       pdf.setFillColor(41, 128, 185);
       pdf.setTextColor(255, 255, 255);
-      pdf.rect(totalsX + 5, totalsY, 50, 5, 'F');
-      pdf.text('TOTAL', totalsX + 7, totalsY + 3.5);
-      pdf.text(`₹${totalAmount}`, totalsX + 32, totalsY + 3.5);
+      pdf.rect(tx, y + 18, 45, 5, 'F');
+      pdf.text('TOTAL', tx + 2, y + 20.5);
+      pdf.text(`₹${ta}`, tx + 26, y + 20.5);
 
       pdf.save(`PO-${poNumber}.pdf`);
       toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
