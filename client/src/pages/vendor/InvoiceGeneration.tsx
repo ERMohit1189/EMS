@@ -316,13 +316,15 @@ export default function InvoiceGeneration() {
     doc.text(`₹${parseFloat(invoice.amount).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
     yPosition += 5;
 
-    // GST
-    const gstPercent = (parseFloat(invoice.gst) / parseFloat(invoice.amount) * 100).toFixed(1);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`GST (${gstPercent}%):`, pageWidth / 2, yPosition, { align: "right" });
-    doc.setTextColor(...darkGray);
-    doc.text(`₹${parseFloat(invoice.gst).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
-    yPosition += 5;
+    // GST - only show if greater than 0
+    if (parseFloat(invoice.gst) > 0) {
+      const gstPercent = (parseFloat(invoice.gst) / parseFloat(invoice.amount) * 100).toFixed(1);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`GST (${gstPercent}%):`, pageWidth / 2, yPosition, { align: "right" });
+      doc.setTextColor(...darkGray);
+      doc.text(`₹${parseFloat(invoice.gst).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
+      yPosition += 5;
+    }
 
     // Total
     doc.setFillColor(...lightGray);
