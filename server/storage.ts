@@ -25,7 +25,7 @@ import {
   type PaymentMaster,
   type Zone,
 } from "@shared/schema";
-import { eq, count, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, count, and, gte, lte, inArray, getTableColumns } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
 
 export interface IStorage {
@@ -199,7 +199,26 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSites(limit: number, offset: number): Promise<Site[]> {
-    return await db.select().from(sites).limit(limit).offset(offset);
+    const result = await db
+      .select({
+        ...getTableColumns(sites),
+        vendorAmount: paymentMasters.vendorAmount,
+        siteAmount: paymentMasters.siteAmount,
+      })
+      .from(sites)
+      .leftJoin(
+        paymentMasters,
+        and(
+          eq(sites.id, paymentMasters.siteId),
+          eq(sites.planId, paymentMasters.planId),
+          eq(sites.vendorId, paymentMasters.vendorId),
+          eq(sites.maxAntSize, paymentMasters.antennaSize)
+        )
+      )
+      .limit(limit)
+      .offset(offset);
+    
+    return result as Site[];
   }
 
   async getSitesByVendor(vendorId: string): Promise<Site[]> {
@@ -207,15 +226,30 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSitesForPOGeneration(): Promise<Site[]> {
-    return await db
-      .select()
+    const result = await db
+      .select({
+        ...getTableColumns(sites),
+        vendorAmount: paymentMasters.vendorAmount,
+        siteAmount: paymentMasters.siteAmount,
+      })
       .from(sites)
+      .leftJoin(
+        paymentMasters,
+        and(
+          eq(sites.id, paymentMasters.siteId),
+          eq(sites.planId, paymentMasters.planId),
+          eq(sites.vendorId, paymentMasters.vendorId),
+          eq(sites.maxAntSize, paymentMasters.antennaSize)
+        )
+      )
       .where(
         and(
           eq(sites.softAtStatus, "Approved"),
           eq(sites.phyAtStatus, "Approved")
         )
       );
+    
+    return result as Site[];
   }
 
   // Helper function to auto-update site status based on remarks
