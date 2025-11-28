@@ -69,21 +69,19 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="grid gap-1 px-2">
           {menuItems.map((item, index) => (
-            <div key={index} className="mb-1">
-              <Link href={item.href}>
-                <a
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    location === item.href
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground/70'
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.title}
-                </a>
-              </Link>
-            </div>
+            <Link key={index} href={item.href}>
+              <div
+                className={cn(
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  location === item.href
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground/70'
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.title}
+              </div>
+            </Link>
           ))}
         </nav>
       </div>

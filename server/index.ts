@@ -22,6 +22,26 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// CORS middleware for cross-origin requests from Plesk frontend
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = ['https://dummy.qaiinnovation.com', 'http://localhost:5173', 'http://localhost:5000'];
+  
+  if (allowedOrigins.includes(origin || '')) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
