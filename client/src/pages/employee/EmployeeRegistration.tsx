@@ -53,18 +53,20 @@ const employeeSchema = z.object({
   maritalStatus: z.enum(['Single', 'Married']),
   nominee: z.string().optional(),
   ppeKit: z.boolean().default(false),
-  kitNo: z.string().optional().refine(
-    (val, ctx) => {
-      const ppeKit = (ctx as any).parent?.ppeKit;
-      if (ppeKit && !val) {
-        return false;
-      }
-      return true;
-    },
-    { message: 'Kit number is required if PPE kit is issued' }
-  ),
+  kitNo: z.string().optional(),
   status: z.enum(['Active', 'Inactive']).default('Active'),
-});
+}).refine(
+  (data) => {
+    if (data.ppeKit && !data.kitNo) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Kit number is required if PPE kit is issued',
+    path: ['kitNo'],
+  }
+);
 
 interface Department { id: string; name: string; }
 interface Designation { id: string; name: string; }
