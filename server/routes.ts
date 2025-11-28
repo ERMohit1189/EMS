@@ -295,6 +295,30 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/sites/bulk-update-status", async (req, res) => {
+    try {
+      console.log('[API] bulk-update-status called with:', req.body);
+      const { siteIds, phyAtStatus, softAtStatus } = req.body;
+      
+      if (!siteIds || siteIds.length === 0) {
+        console.log('[API] No siteIds provided');
+        return res.status(400).json({ error: "No sites selected" });
+      }
+      if (!phyAtStatus && !softAtStatus) {
+        console.log('[API] No status provided');
+        return res.status(400).json({ error: "Please select at least one status to update" });
+      }
+      
+      console.log('[API] Calling bulkUpdateStatus with:', { siteIds, phyAtStatus, softAtStatus });
+      const result = await storage.bulkUpdateStatus(siteIds, phyAtStatus, softAtStatus);
+      console.log('[API] bulkUpdateStatus result:', result);
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      console.error('[API] bulkUpdateStatus error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Employee routes
   app.post("/api/employees", async (req, res) => {
     try {

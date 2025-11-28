@@ -35,12 +35,14 @@ interface SiteStatusData {
   atpRemark: string | null;
   phyAtRemark: string | null;
   softAtRemark: string | null;
+  phyAtStatus: string | null;
+  softAtStatus: string | null;
   visibleInNms: string | null;
   bothAtStatus: string | null;
   descope: string | null;
 }
 
-const remarkOptions = ['Pending', 'Raised', 'Approved', 'Rejected'];
+const statusOptions = ['Pending', 'Raised', 'Approved', 'Rejected'];
 
 export default function SiteStatus() {
   const { toast } = useToast();
@@ -49,8 +51,8 @@ export default function SiteStatus() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
-  const [bulkPhyAtRemark, setBulkPhyAtRemark] = useState('');
-  const [bulkSoftAtRemark, setBulkSoftAtRemark] = useState('');
+  const [bulkPhyAtStatus, setBulkPhyAtStatus] = useState('');
+  const [bulkSoftAtStatus, setBulkSoftAtStatus] = useState('');
 
   useEffect(() => {
     fetchSites();
@@ -136,20 +138,20 @@ export default function SiteStatus() {
       toast({ title: 'Error', description: 'Please select at least one site', variant: 'destructive' });
       return;
     }
-    if (!bulkPhyAtRemark && !bulkSoftAtRemark) {
-      toast({ title: 'Error', description: 'Please select at least one remark to update', variant: 'destructive' });
+    if (!bulkPhyAtStatus && !bulkSoftAtStatus) {
+      toast({ title: 'Error', description: 'Please select at least one status to update', variant: 'destructive' });
       return;
     }
 
     try {
       const updatePayload = {
         siteIds: Array.from(selectedSites),
-        phyAtRemark: bulkPhyAtRemark || undefined,
-        softAtRemark: bulkSoftAtRemark || undefined,
+        phyAtStatus: bulkPhyAtStatus || undefined,
+        softAtStatus: bulkSoftAtStatus || undefined,
       };
-      console.log('[SiteStatus] Sending bulk update:', updatePayload);
+      console.log('[SiteStatus] Sending bulk status update:', updatePayload);
       
-      const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/bulk-update-remarks`, {
+      const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/bulk-update-status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatePayload),
@@ -166,8 +168,8 @@ export default function SiteStatus() {
       
       toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
       setSelectedSites(new Set());
-      setBulkPhyAtRemark('');
-      setBulkSoftAtRemark('');
+      setBulkPhyAtStatus('');
+      setBulkSoftAtStatus('');
       
       console.log('[SiteStatus] Fetching updated sites...');
       await fetchSites();
@@ -248,32 +250,32 @@ export default function SiteStatus() {
       {filteredSites.length > 0 && (
         <Card className="shadow-md border-blue-200 bg-blue-50">
           <CardHeader>
-            <CardTitle className="text-lg">Bulk Update Remarks</CardTitle>
-            <CardDescription>Update Physical AT and Software AT remarks for selected sites</CardDescription>
+            <CardTitle className="text-lg">Bulk Update Status</CardTitle>
+            <CardDescription>Update Physical AT and Software AT status for selected sites</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Physical AT Remark</label>
-                <Select value={bulkPhyAtRemark} onValueChange={setBulkPhyAtRemark}>
-                  <SelectTrigger data-testid="select-phy-at-remark">
-                    <SelectValue placeholder="Select Physical AT Remark..." />
+                <label className="text-sm font-medium mb-2 block">Physical AT Status</label>
+                <Select value={bulkPhyAtStatus} onValueChange={setBulkPhyAtStatus}>
+                  <SelectTrigger data-testid="select-phy-at-status">
+                    <SelectValue placeholder="Select Physical AT Status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {remarkOptions.map(option => (
+                    {statusOptions.map(option => (
                       <SelectItem key={option} value={option}>{option}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Software AT Remark</label>
-                <Select value={bulkSoftAtRemark} onValueChange={setBulkSoftAtRemark}>
-                  <SelectTrigger data-testid="select-soft-at-remark">
-                    <SelectValue placeholder="Select Software AT Remark..." />
+                <label className="text-sm font-medium mb-2 block">Software AT Status</label>
+                <Select value={bulkSoftAtStatus} onValueChange={setBulkSoftAtStatus}>
+                  <SelectTrigger data-testid="select-soft-at-status">
+                    <SelectValue placeholder="Select Software AT Status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {remarkOptions.map(option => (
+                    {statusOptions.map(option => (
                       <SelectItem key={option} value={option}>{option}</SelectItem>
                     ))}
                   </SelectContent>
@@ -320,11 +322,11 @@ export default function SiteStatus() {
                     <TableHead className="font-semibold">Circle</TableHead>
                     <TableHead className="font-semibold">District</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Phy AT Status</TableHead>
+                    <TableHead className="font-semibold">Soft AT Status</TableHead>
                     <TableHead className="font-semibold">Visible in NMS</TableHead>
                     <TableHead className="font-semibold">Both AT Status</TableHead>
                     <TableHead className="font-semibold">ATP Remark</TableHead>
-                    <TableHead className="font-semibold">Physical AT Remark</TableHead>
-                    <TableHead className="font-semibold">Software AT Remark</TableHead>
                     <TableHead className="font-semibold">Descope</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -342,14 +344,19 @@ export default function SiteStatus() {
                       <TableCell>{site.circle || '-'}</TableCell>
                       <TableCell>{site.district || '-'}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge className={getStatusColor(site.status)}>
-                            {site.status}
-                          </Badge>
-                          {site.softAtRemark === "Approved" && site.phyAtRemark === "Approved" && (
-                            <span className="text-xs text-green-600 font-semibold" title="Auto-approved: Both AT remarks approved">✓</span>
-                          )}
-                        </div>
+                        <Badge className={getStatusColor(site.status)}>
+                          {site.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(site.phyAtStatus || 'pending')}>
+                          {site.phyAtStatus || '-'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(site.softAtStatus || 'pending')}>
+                          {site.softAtStatus || '-'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className={getAtpStatusColor(site.visibleInNms)}>
@@ -371,18 +378,9 @@ export default function SiteStatus() {
                         )}
                       </TableCell>
                       <TableCell className="max-w-xs">
-                        {site.phyAtRemark ? (
-                          <div className="px-2 py-1 rounded text-xs bg-blue-50 text-blue-700">
-                            {site.phyAtRemark}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                        {site.softAtRemark ? (
-                          <div className="px-2 py-1 rounded text-xs bg-purple-50 text-purple-700">
-                            {site.softAtRemark}
+                        {site.atpRemark ? (
+                          <div className={`px-2 py-1 rounded text-xs ${getAtpStatusColor(site.atpRemark)}`}>
+                            {site.atpRemark}
                           </div>
                         ) : (
                           <span className="text-gray-400">-</span>

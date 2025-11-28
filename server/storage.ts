@@ -484,6 +484,23 @@ export class DrizzleStorage implements IStorage {
     return { updated: siteIds.length };
   }
 
+  async bulkUpdateStatus(siteIds: string[], phyAtStatus?: string, softAtStatus?: string): Promise<{ updated: number }> {
+    const updateData: Partial<InsertSite> = {};
+    if (phyAtStatus) updateData.phyAtStatus = phyAtStatus;
+    if (softAtStatus) updateData.softAtStatus = softAtStatus;
+
+    if (Object.keys(updateData).length === 0) {
+      return { updated: 0 };
+    }
+
+    const result = await db
+      .update(sites)
+      .set(updateData)
+      .where(inArray(sites.id, siteIds));
+    
+    return { updated: siteIds.length };
+  }
+
   async upsertSiteByPlanId(site: InsertSite): Promise<Site> {
     // Check if site with this planId already exists
     const existingSite = await this.getSiteByPlanId(site.planId);
