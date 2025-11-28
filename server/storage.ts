@@ -338,7 +338,7 @@ export class DrizzleStorage implements IStorage {
         inside: sites.inside,
         formNo: sites.formNo,
         siteAmount: paymentMasters.siteAmount,
-        vendorAmount: sites.vendorAmount,
+        vendorAmount: paymentMasters.vendorAmount,
         softAtRemark: sites.softAtRemark,
         phyAtRemark: sites.phyAtRemark,
         atpRemark: sites.atpRemark,
