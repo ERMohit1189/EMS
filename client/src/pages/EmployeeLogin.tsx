@@ -21,11 +21,18 @@ export default function EmployeeLogin() {
     const savedEmail = localStorage.getItem("rememberMe_email");
     const savedPassword = localStorage.getItem("rememberMe_password");
     
+    console.log("[EmployeeLogin] Page loaded - checking for saved credentials...");
+    console.log("[EmployeeLogin] Saved email found:", !!savedEmail, savedEmail ? `(${savedEmail})` : "");
+    console.log("[EmployeeLogin] Saved password found:", !!savedPassword);
+    
     if (savedEmail && savedPassword) {
-      console.log("[EmployeeLogin] Loading saved credentials from localStorage");
+      console.log("[EmployeeLogin] ✅ Loading saved credentials from localStorage");
       setEmail(savedEmail);
       setPassword(savedPassword);
       setRememberMe(true);
+      console.log("[EmployeeLogin] ✅ Form pre-filled with saved credentials!");
+    } else {
+      console.log("[EmployeeLogin] No saved credentials found");
     }
   }, []);
 
@@ -78,6 +85,9 @@ export default function EmployeeLogin() {
         console.log("[EmployeeLogin] Saving credentials to localStorage...");
         localStorage.setItem("rememberMe_email", email);
         localStorage.setItem("rememberMe_password", password);
+        console.log("[EmployeeLogin] ✅ Credentials saved successfully!");
+        console.log("[EmployeeLogin] Saved email:", localStorage.getItem("rememberMe_email"));
+        console.log("[EmployeeLogin] Saved password:", localStorage.getItem("rememberMe_password") ? "***[HIDDEN]***" : "NOT SAVED");
         toast({
           title: "Success",
           description: "Login successful! Credentials saved for next time",
