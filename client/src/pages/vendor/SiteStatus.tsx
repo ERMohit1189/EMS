@@ -140,6 +140,8 @@ export default function SiteStatus() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [selectedSingleSite, setSelectedSingleSite] = useState<SiteStatusData | null>(null);
+  const [singleSiteSearchText, setSingleSiteSearchText] = useState('');
 
   useEffect(() => {
     fetchSites();
@@ -366,6 +368,127 @@ export default function SiteStatus() {
     
     XLSX.writeFile(workbook, `site-status-${new Date().getTime()}.xlsx`);
     toast({ title: 'Success', description: 'Data exported to Excel' });
+  };
+
+  const exportSingleSitePDF = async (site: SiteStatusData) => {
+    if (!site) {
+      toast({ title: 'Error', description: 'No site selected', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation
+      const pageWidth = pdf.internal.pageSize.getWidth() - 20;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // All 81 column headers
+      const columnHeaders = [
+        'ID', 'Site ID', 'Vendor ID', 'Zone ID', 'Plan ID', 'Site Amount', 'Vendor Amount', 'S.No',
+        'Circle', 'Nominal AOP', 'HOP Type', 'HOP A-B', 'HOP B-A', 'District', 'Project',
+        'Site A Ant Dia', 'Site B Ant Dia', 'Max Ant Size', 'Site A Name', 'TOCO Vendor A', 'TOCO ID A',
+        'Site B Name', 'TOCO Vendor B', 'TOCO ID B', 'Media Availability Status',
+        'SR No Site A', 'SR Date Site A', 'SR No Site B', 'SR Date Site B', 'HOP SR Date',
+        'SP Date Site A', 'SP Date Site B', 'HOP SP Date', 'SO Released Date Site A',
+        'SO Released Date Site B', 'HOP SO Date', 'RFAI Offered Date Site A', 'RFAI Offered Date Site B',
+        'Actual HOP RFAI Offered Date', 'Partner Name', 'RFAI Survey Completion Date',
+        'MO Number Site A', 'Material Type Site A', 'MO Date Site A', 'MO Number Site B',
+        'Material Type Site B', 'MO Date Site B', 'SRN RMO Number', 'SRN RMO Date', 'HOP MO Date',
+        'HOP Material Dispatch Date', 'HOP Material Delivery Date', 'Material Delivery Status',
+        'Site A Installation Date', 'PTW Number Site A', 'PTW Status A', 'Site B Installation Date',
+        'PTW Number Site B', 'PTW Status B', 'HOP IC Date', 'Alignment Date',
+        'HOP Installation Remarks', 'Visible in NMS', 'NMS Visible Date', 'Soft AT Offer Date',
+        'Soft AT Acceptance Date', 'Soft AT Status', 'Phy AT Offer Date', 'Phy AT Acceptance Date',
+        'Phy AT Status', 'Both AT Status', 'PRI Issue Category', 'PRI Site ID', 'PRI Open Date',
+        'PRI Close Date', 'PRI History', 'RFI Survey Allocation Date', 'Descope', 'Reason of Extra Visit',
+        'WCC Received 80%', 'WCC Received Date 80%', 'WCC Received 20%', 'WCC Received Date 20%',
+        'WCC Received Date 100%', 'Survey', 'Final Partner Survey', 'Survey Date', 'Status',
+        'Created At', 'Updated At'
+      ];
+
+      const getColumnValue = (siteData: SiteStatusData, colIndex: number): string => {
+        const values = [
+          siteData.id, siteData.siteId, siteData.vendorId, siteData.zoneId, siteData.planId, siteData.siteAmount, 
+          siteData.vendorAmount, siteData.sno, siteData.circle, siteData.nominalAop, siteData.hopType, siteData.hopAB,
+          siteData.hopBA, siteData.district, siteData.project, siteData.siteAAntDia, siteData.siteBAntDia, siteData.maxAntSize,
+          siteData.siteAName, siteData.tocoVendorA, siteData.tocoIdA, siteData.siteBName, siteData.tocoVendorB, siteData.tocoIdB,
+          siteData.mediaAvailabilityStatus, siteData.srNoSiteA, siteData.srDateSiteA, siteData.srNoSiteB, siteData.srDateSiteB,
+          siteData.hopSrDate, siteData.spDateSiteA, siteData.spDateSiteB, siteData.hopSpDate, siteData.soReleasedDateSiteA,
+          siteData.soReleasedDateSiteB, siteData.hopSoDate, siteData.rfaiOfferedDateSiteA, siteData.rfaiOfferedDateSiteB,
+          siteData.actualHopRfaiOfferedDate, siteData.partnerName, siteData.rfaiSurveyCompletionDate, siteData.moNumberSiteA,
+          siteData.materialTypeSiteA, siteData.moDateSiteA, siteData.moNumberSiteB, siteData.materialTypeSiteB, siteData.moDateSiteB,
+          siteData.srnRmoNumber, siteData.srnRmoDate, siteData.hopMoDate, siteData.hopMaterialDispatchDate,
+          siteData.hopMaterialDeliveryDate, siteData.materialDeliveryStatus, siteData.siteAInstallationDate,
+          siteData.ptwNumberSiteA, siteData.ptwStatusA, siteData.siteBInstallationDate, siteData.ptwNumberSiteB,
+          siteData.ptwStatusB, siteData.hopIcDate, siteData.alignmentDate, siteData.hopInstallationRemarks, siteData.visibleInNms,
+          siteData.nmsVisibleDate, siteData.softAtOfferDate, siteData.softAtAcceptanceDate, siteData.softAtStatus,
+          siteData.phyAtOfferDate, siteData.phyAtAcceptanceDate, siteData.phyAtStatus, siteData.bothAtStatus,
+          siteData.priIssueCategory, siteData.priSiteId, siteData.priOpenDate, siteData.priCloseDate, siteData.priHistory,
+          siteData.rfiSurveyAllocationDate, siteData.descope, siteData.reasonOfExtraVisit, siteData.wccReceived80Percent,
+          siteData.wccReceivedDate80Percent, siteData.wccReceived20Percent, siteData.wccReceivedDate20Percent,
+          siteData.wccReceivedDate100Percent, siteData.survey, siteData.finalPartnerSurvey, siteData.surveyDate, siteData.status,
+          siteData.createdAt, siteData.updatedAt
+        ];
+        return String(values[colIndex] || '-').substring(0, 8);
+      };
+
+      // Split into 5-column chunks
+      const colsPerPage = 5;
+      const colChunks = [];
+      for (let i = 0; i < columnHeaders.length; i += colsPerPage) {
+        colChunks.push({
+          start: i,
+          end: Math.min(i + colsPerPage, columnHeaders.length),
+          headers: columnHeaders.slice(i, Math.min(i + colsPerPage, columnHeaders.length))
+        });
+      }
+
+      let isFirstPage = true;
+      for (const chunk of colChunks) {
+        if (!isFirstPage) pdf.addPage();
+        isFirstPage = false;
+
+        let yPosition = 10;
+        pdf.setFontSize(11);
+        pdf.text(`Site: ${site.siteId} | Plan ID: ${site.planId} - Columns ${chunk.start + 1}-${chunk.end}`, 10, yPosition);
+        yPosition += 5;
+        pdf.setFontSize(7);
+        pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, yPosition);
+        yPosition += 6;
+
+        const colWidth = pageWidth / chunk.headers.length;
+        const rowHeight = 4;
+
+        // Draw header
+        pdf.setFillColor(200, 200, 200);
+        let headerX = 10;
+        chunk.headers.forEach(header => {
+          pdf.rect(headerX, yPosition, colWidth, rowHeight, 'F');
+          pdf.setFontSize(6);
+          pdf.text(header.substring(0, 10), headerX + 1, yPosition + 2);
+          headerX += colWidth;
+        });
+        yPosition += rowHeight;
+
+        // Draw single site's data row
+        pdf.setFillColor(255, 255, 255);
+        let cellX = 10;
+        for (let c = chunk.start; c < chunk.end; c++) {
+          pdf.rect(cellX, yPosition, colWidth, rowHeight);
+          pdf.setFontSize(5);
+          const cellText = getColumnValue(site, c);
+          pdf.text(cellText, cellX + 1, yPosition + 2);
+          cellX += colWidth;
+        }
+      }
+
+      pdf.save(`site-${site.siteId}-${site.planId}-${new Date().getTime()}.pdf`);
+      toast({ title: 'Success', description: `PDF exported for ${site.siteId}` });
+      setSelectedSingleSite(null);
+      setSingleSiteSearchText('');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
+    }
   };
 
   const exportToPDF = async () => {
