@@ -13,11 +13,22 @@ export default function EmployeeLogin() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [employeeName, setEmployeeName] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Load saved credentials from localStorage on mount
+  // Load saved credentials and check login status on mount
   useEffect(() => {
+    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    const empName = localStorage.getItem("employeeName");
+    
+    if (loggedIn && empName) {
+      setIsLoggedIn(true);
+      setEmployeeName(empName);
+      console.log("[EmployeeLogin] Employee already logged in:", empName);
+    }
+    
     const savedEmail = localStorage.getItem("rememberMe_email");
     const savedPassword = localStorage.getItem("rememberMe_password");
     
@@ -35,6 +46,28 @@ export default function EmployeeLogin() {
       console.log("[EmployeeLogin] No saved credentials found");
     }
   }, []);
+
+  const handleLogout = () => {
+    console.log("[EmployeeLogin] Logging out...");
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("employeeId");
+    localStorage.removeItem("employeeEmail");
+    localStorage.removeItem("employeeName");
+    localStorage.removeItem("employeeDepartment");
+    localStorage.removeItem("employeeDesignation");
+    
+    setIsLoggedIn(false);
+    setEmployeeName("");
+    setEmail("");
+    setPassword("");
+    setRememberMe(false);
+    
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out",
+    });
+    console.log("[EmployeeLogin] ✅ Logout successful");
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,11 +162,43 @@ export default function EmployeeLogin() {
 
         <Card className="shadow-2xl border-0">
           <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg border-b">
-            <CardTitle className="text-2xl text-green-900">Welcome Back</CardTitle>
-            <CardDescription className="text-gray-600">Sign in to access your dashboard</CardDescription>
+            {isLoggedIn ? (
+              <>
+                <CardTitle className="text-2xl text-green-900">Welcome, {employeeName}!</CardTitle>
+                <CardDescription className="text-gray-600">You are currently logged in</CardDescription>
+              </>
+            ) : (
+              <>
+                <CardTitle className="text-2xl text-green-900">Welcome Back</CardTitle>
+                <CardDescription className="text-gray-600">Sign in to access your dashboard</CardDescription>
+              </>
+            )}
           </CardHeader>
           <CardContent className="pt-6">
-            <form onSubmit={handleLogin} className="space-y-5">
+            {isLoggedIn ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                  <p className="text-sm text-gray-700 mb-4">
+                    You are logged in as <strong>{employeeName}</strong>
+                  </p>
+                  <Button
+                    onClick={() => setLocation("/employee/dashboard")}
+                    className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all mb-3"
+                    data-testid="button-go-to-dashboard"
+                  >
+                    Go to Dashboard
+                  </Button>
+                  <Button
+                    onClick={handleLogout}
+                    className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+                    data-testid="button-logout"
+                  >
+                    Logout
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleLogin} className="space-y-5">
               {/* Email Field */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Email Address</label>
@@ -216,6 +281,7 @@ export default function EmployeeLogin() {
                 Protected by enterprise-grade security. Your data is encrypted and secure.
               </p>
             </form>
+            )}
           </CardContent>
         </Card>
 
