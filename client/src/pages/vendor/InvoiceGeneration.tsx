@@ -513,19 +513,19 @@ export default function InvoiceGeneration() {
                             <p className="text-sm font-semibold">{invoice.vendorName}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Amount</p>
-                            <p className="text-sm text-gray-700">₹{invoice.amount}</p>
+                        <div className="space-y-2 border-t pt-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-semibold text-slate-600 uppercase">Amount</span>
+                            <span className="font-bold text-slate-700">₹{parseFloat(invoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">GST</p>
-                            <p className="text-sm text-gray-700">₹{parseFloat(invoice.gst).toFixed(2)}</p>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-semibold text-slate-600 uppercase">GST</span>
+                            <span className="font-bold text-orange-600">₹{parseFloat(invoice.gst).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
-                        </div>
-                        <div className="pt-2 border-t">
-                          <p className="text-xs font-medium text-muted-foreground uppercase">Total</p>
-                          <p className="text-lg font-bold text-green-600">₹{parseFloat(invoice.totalAmount).toFixed(2)}</p>
+                          <div className="flex justify-between items-center bg-green-50 p-2 rounded">
+                            <span className="text-xs font-bold text-slate-700">Total</span>
+                            <span className="text-sm font-bold text-green-600">₹{parseFloat(invoice.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                          </div>
                         </div>
                         <button
                           onClick={() => downloadInvoicePDF(invoice)}
