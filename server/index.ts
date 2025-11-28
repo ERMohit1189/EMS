@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import memoryStore from "memorystore";
 
 const app = express();
 const httpServer = createServer(app);
@@ -24,7 +24,8 @@ declare module "http" {
 }
 
 // Initialize session store
-const sessionStore = new (MemoryStore())({
+const MemoryStoreCreator = memoryStore(session);
+const sessionStore = new MemoryStoreCreator({
   checkPeriod: 86400000, // prune expired entries every 24h
 });
 
