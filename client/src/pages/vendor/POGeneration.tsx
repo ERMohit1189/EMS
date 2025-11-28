@@ -244,6 +244,9 @@ export default function POGeneration() {
       if (!poRes.ok) throw new Error("Failed to fetch PO");
       const po = await poRes.json();
       
+      const siteRes = await fetch(`${baseUrl}/api/sites/${po.siteId}`);
+      const site = siteRes.ok ? await siteRes.json() : null;
+
       const vendorRes = await fetch(`${baseUrl}/api/vendors/${po.vendorId}`);
       const vendor = vendorRes.ok ? await vendorRes.json() : null;
 
@@ -253,135 +256,187 @@ export default function POGeneration() {
       const pdf = new jsPDF('p', 'mm', 'a4');
       let y = 15;
 
-      // PO Title - centered
-      pdf.setFontSize(28);
+      // Header Section
+      pdf.setFontSize(24);
       pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(220, 100, 20);
-      const title = 'Purchase Order';
-      const titleWidth = pdf.getTextWidth(title);
-      pdf.text(title, (210 - titleWidth) / 2, y);
+      pdf.setTextColor(44, 62, 80);
+      pdf.text('PURCHASE ORDER', 15, y);
+
+      // Company name subtitle
+      pdf.setFontSize(10);
+      pdf.setTextColor(153, 153, 153);
+      pdf.text(exportHeaderSettings.companyName || 'Company Name', 15, y + 6);
+
+      // PO Info (Right side)
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('PO No.:', 140, y);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(String(poNumber), 165, y);
+
+      pdf.setFont(undefined, 'bold');
+      pdf.text('PO Date:', 140, y + 7);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(String(po.poDate || ''), 165, y + 7);
+
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Due Date:', 140, y + 14);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(String(po.dueDate || ''), 165, y + 14);
+
+      y += 25;
+
+      // Company details
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(0, 0, 0);
+      if (exportHeaderSettings.companyName) pdf.text(exportHeaderSettings.companyName, 15, y);
+      y += 4;
+      if (exportHeaderSettings.address) pdf.text(exportHeaderSettings.address, 15, y);
+      y += 4;
+      if (exportHeaderSettings.contactPhone) pdf.text(`Phone: ${exportHeaderSettings.contactPhone}`, 15, y);
+      y += 4;
+      if (exportHeaderSettings.website) pdf.text(`Website: ${exportHeaderSettings.website}`, 15, y);
+
+      y += 10;
+
+      // Bill To and Site Information section
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Bill To', 15, y);
+      pdf.text('Site Information', 105, y);
+
+      y += 5;
+
+      // Separators
+      pdf.setDrawColor(221, 221, 221);
+      pdf.line(15, y, 100, y);
+      pdf.line(105, y, 190, y);
+
+      y += 3;
+
+      // Vendor details
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'normal');
+      const vname = vendor?.name || '[Vendor Name]';
+      const vemail = vendor?.email || '';
+      const vaddr = vendor?.address || '';
+      const vcity = vendor?.city || '';
+      const vstate = vendor?.state || '';
+      const vpin = vendor?.pincode || '';
+      const vgstin = vendor?.gstin || '';
+
+      pdf.text(vname, 15, y);
+      y += 4;
+      if (vemail) { pdf.text(vemail, 15, y); y += 4; }
+      pdf.text(vaddr, 15, y);
+      y += 4;
+      if (vcity || vstate || vpin) {
+        pdf.text(`${vcity}, ${vstate} ${vpin}`, 15, y);
+        y += 4;
+      }
+      if (vgstin) { pdf.text(`GSTIN: ${vgstin}`, 15, y); y += 4; }
+      if (vendor?.phone) { pdf.text(`Phone: ${vendor.phone}`, 15, y); y += 4; }
+
+      // Site details (right side)
+      let sitey = y - 16;
+      const sname = site?.hopAB || '[Site Name]';
+      pdf.text(sname, 105, sitey);
+      sitey += 4;
+      pdf.text(`Site ID: ${po.siteId}`, 105, sitey);
+      sitey += 4;
+      if (site?.planId) { pdf.text(`Plan ID: ${site.planId}`, 105, sitey); sitey += 4; }
+      if (site?.circle) { pdf.text(`Circle: ${site.circle}`, 105, sitey); sitey += 4; }
+      if (site?.district) { pdf.text(`District: ${site.district}`, 105, sitey); sitey += 4; }
+      if (site?.state) { pdf.text(`State: ${site.state}`, 105, sitey); sitey += 4; }
 
       y += 12;
 
-      // PO Number and Date - simple
+      // Items Table Header
       pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`No. ${poNumber}`, 20, y);
-      pdf.text(`Issued on ${po.poDate || 'N/A'}`, 20, y + 6);
-
-      y += 20;
-
-      // Items table header
-      pdf.setFontSize(9);
       pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(100, 100, 100);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFillColor(44, 62, 80);
 
-      pdf.text('DESCRIPTION', 20, y);
-      pdf.text('RATE', 110, y);
-      pdf.text('QUANTITY', 140, y);
-      pdf.text('SUBTOTAL', 160, y);
-
-      // Simple separator line
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(20, y + 2, 190, y + 2);
-
-      y += 6;
-
-      // Item row
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
-      pdf.setTextColor(0, 0, 0);
-
-      const desc = String(po.description || 'Item 1').substring(0, 50);
-      const qty = String(po.quantity || 1);
-      const rate = `₹${Number(po.unitPrice || 0).toFixed(2)}`;
-      const subtotal = `₹${Number(po.totalAmount || 0).toFixed(2)}`;
-
-      pdf.text(desc, 20, y);
-      pdf.text(rate, 110, y);
-      pdf.text(qty, 140, y);
-      pdf.text(subtotal, 160, y);
+      pdf.rect(15, y, 100, 6, 'F');
+      pdf.text('Description', 17, y + 4);
+      pdf.rect(115, y, 20, 6, 'F');
+      pdf.text('Quantity', 116, y + 4);
+      pdf.rect(135, y, 25, 6, 'F');
+      pdf.text('Unit Price', 137, y + 4);
+      pdf.rect(160, y, 30, 6, 'F');
+      pdf.text('Amount', 162, y + 4);
 
       y += 7;
 
-      // Bottom separator
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(20, y, 190, y);
+      // Item Row
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setDrawColor(221, 221, 221);
+
+      const desc = String(po.description || '').substring(0, 60);
+      const qty = String(po.quantity || 1);
+      const rate = Number(po.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const total = Number(po.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      pdf.rect(15, y, 100, 6);
+      pdf.text(desc, 17, y + 4);
+      pdf.rect(115, y, 20, 6);
+      pdf.text(qty, 123, y + 4);
+      pdf.rect(135, y, 25, 6);
+      pdf.text(`₹${rate}`, 137, y + 4);
+      pdf.rect(160, y, 30, 6);
+      pdf.text(`₹${total}`, 162, y + 4);
 
       y += 8;
 
-      // Total Due - right aligned
+      // Totals Section
+      const totalsStartX = 135;
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(9);
+
+      pdf.text('Subtotal:', totalsStartX, y);
+      pdf.text(`₹${total}`, 165, y);
+      y += 6;
+
+      pdf.text('Tax:', totalsStartX, y);
+      pdf.text('₹0.00', 165, y);
+      y += 6;
+
+      pdf.text('Shipping:', totalsStartX, y);
+      pdf.text('₹0.00', 165, y);
+      y += 8;
+
+      // Total box
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(220, 100, 20);
-      pdf.text('TOTAL DUE', 140, y);
-      pdf.text(subtotal, 160, y);
+      pdf.setFillColor(44, 62, 80);
+      pdf.setTextColor(255, 255, 255);
+      pdf.rect(totalsStartX - 5, y, 60, 7, 'F');
+      pdf.text('TOTAL:', totalsStartX, y + 5);
+      pdf.text(`₹${total}`, 165, y + 5);
 
       y += 15;
 
-      // Billed to section
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('Billed to', 20, y);
+      // Remarks
+      if (po.remarks) {
+        pdf.setFont(undefined, 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Remarks', 15, y);
+        y += 4;
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(8);
+        pdf.text(po.remarks.substring(0, 100), 15, y);
+      }
 
-      y += 5;
-      pdf.setFont(undefined, 'normal');
+      // Footer
       pdf.setFontSize(8);
-
-      const vendorName = vendor?.name || '[Vendor Name]';
-      const vendorPhone = vendor?.phone || '[Phone]';
-      const vendorAddr = vendor?.address || '[Address]';
-
-      pdf.text(vendorName, 20, y);
-      y += 4;
-      pdf.text(vendorPhone, 20, y);
-      y += 4;
-      pdf.text(vendorAddr, 20, y);
-      y += 4;
-      pdf.text('[City, State ZIP]', 20, y);
-
-      // Payment Details section - right side
-      const payY = y - 12;
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('Payment Details', 110, payY);
-
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(8);
-      let payDetailsY = payY + 5;
-
-      pdf.text(exportHeaderSettings.companyName || '[Company Name]', 110, payDetailsY);
-      payDetailsY += 4;
-      pdf.text(`Account Name: ${exportHeaderSettings.companyName || '[Company Name]'}`, 110, payDetailsY);
-      payDetailsY += 4;
-      pdf.text('Account Number: [Account #]', 110, payDetailsY);
-      payDetailsY += 4;
-      pdf.text('Bank: [Bank Name]', 110, payDetailsY);
-
-      y += 18;
-
-      // Footer - company info centered
-      pdf.setFontSize(8);
-      pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(0, 0, 0);
-      const footerY = 270;
-      const companyName = exportHeaderSettings.companyName || '[Company Name]';
-      const compNameWidth = pdf.getTextWidth(companyName);
-      pdf.text(companyName, (210 - compNameWidth) / 2, footerY);
-
-      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(102, 102, 102);
+      pdf.text('This is a system-generated Purchase Order. No signature required.', 105, 280, { align: 'center' });
       pdf.setFontSize(7);
-      const website = exportHeaderSettings.website || 'www.example.com';
-      const email = exportHeaderSettings.contactEmail || 'info@example.com';
-      
-      const websiteWidth = pdf.getTextWidth(website);
-      const emailWidth = pdf.getTextWidth(email);
-      
-      pdf.text(website, (210 - websiteWidth) / 2, footerY + 4);
-      pdf.text(email, (210 - emailWidth) / 2, footerY + 7);
+      pdf.text(`Status: ${po.status}`, 105, 285, { align: 'center' });
 
       pdf.save(`PO-${poNumber}.pdf`);
       toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
