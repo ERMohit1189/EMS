@@ -124,9 +124,14 @@ export interface Employee {
   lwd?: string;
   bloodGroup: string;
   maritalStatus: 'Single' | 'Married';
+  spouseName?: string;
   nominee: string;
   ppeKit: boolean;
   kitNo?: string;
+  status: 'Active' | 'Inactive';
+  role?: string;
+  departmentId?: string;
+  designationId?: string;
   salary?: SalaryStructure;
 }
 
@@ -154,6 +159,8 @@ interface AppState {
   addSite: (site: Omit<Site, 'id'>) => void;
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
   updateVendorStatus: (id: string, status: Vendor['status']) => void;
+  updateEmployeeStatus: (id: string, status: Employee['status']) => void;
+  deleteEmployee: (id: string) => void;
   clearSites: () => void;
   clearVendors: () => void;
   clearEmployees: () => void;
@@ -239,9 +246,14 @@ export const useStore = create<AppState>()(
           pan: 'ABCDE1111F',
           bloodGroup: 'O+',
           maritalStatus: 'Married',
+          spouseName: 'Priya Singh',
           nominee: 'Spouse',
           ppeKit: true,
           kitNo: 'K-101',
+          status: 'Active',
+          role: 'user',
+          departmentId: '1',
+          designationId: '1',
           salary: {
              basic: 15000,
              hra: 7500,
@@ -280,6 +292,14 @@ export const useStore = create<AppState>()(
       updateVendorStatus: (id, status) =>
         set((state) => ({
           vendors: state.vendors.map((v) => (v.id === id ? { ...v, status } : v)),
+        })),
+      updateEmployeeStatus: (id, status) =>
+        set((state) => ({
+          employees: state.employees.map((e) => (e.id === id ? { ...e, status } : e)),
+        })),
+      deleteEmployee: (id) =>
+        set((state) => ({
+          employees: state.employees.filter((e) => e.id !== id),
         })),
       clearSites: () => set({ sites: [] }),
       clearVendors: () => set({ vendors: [] }),
