@@ -80,7 +80,7 @@ export default function EmployeeRegistration() {
   const [cityHighlight, setCityHighlight] = useState(-1);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
-  const [age, setAge] = useState<number | null>(null);
+  const [age, setAge] = useState<{ years: number; months: number; days: number } | null>(null);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
 
@@ -91,12 +91,23 @@ export default function EmployeeRegistration() {
     }
     const birthDate = new Date(dob);
     const today = new Date();
-    let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      calculatedAge--;
+    
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    let days = today.getDate() - birthDate.getDate();
+    
+    if (days < 0) {
+      months--;
+      const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+      days += prevMonth.getDate();
     }
-    setAge(calculatedAge);
+    
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    
+    setAge({ years, months, days });
   };
 
   useEffect(() => {
@@ -215,18 +226,9 @@ export default function EmployeeRegistration() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date of Birth</FormLabel>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                      </div>
-                      {age !== null && (
-                        <div className="flex items-center px-3 py-2 border border-input rounded-md bg-muted">
-                          <span className="font-semibold text-sm">Age: {age} years</span>
-                        </div>
-                      )}
-                    </div>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -274,6 +276,13 @@ export default function EmployeeRegistration() {
                   </FormItem>
                 )}
               />
+              {age !== null && (
+                <div className="col-span-3 p-4 border border-blue-200 rounded-md bg-blue-50">
+                  <div className="font-semibold text-blue-900">
+                    Age: {age.years}{age.years !== 1 ? ' years' : ' year'}, {age.months}{age.months !== 1 ? ' months' : ' month'}, {age.days}{age.days !== 1 ? ' days' : ' day'}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
