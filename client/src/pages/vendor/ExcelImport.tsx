@@ -74,11 +74,10 @@ export default function ExcelImport() {
     let zonesMap: { [key: string]: string } = {};
     try {
       const zonesData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
-        zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
-          acc[zone.shortName] = zone.id;
-          return acc;
-        }, {});
-      }
+      zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
+        acc[zone.shortName] = zone.id;
+        return acc;
+      }, {});
     } catch (error) {
       console.error('Failed to fetch zones');
     }
