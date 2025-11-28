@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
 import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 
@@ -20,6 +20,7 @@ export default function PaymentMaster() {
   const [selectedVendor, setSelectedVendor] = useState("");
   const [newMaster, setNewMaster] = useState({ antennaSize: "", siteAmount: "", vendorAmount: "" });
   const [usedCombinations, setUsedCombinations] = useState<string[]>([]);
+  const [savingLoading, setSavingLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchMasters = async () => {
@@ -119,6 +120,7 @@ export default function PaymentMaster() {
       return;
     }
 
+    setSavingLoading(true);
     try {
       const baseUrl = getApiBaseUrl();
       const url = editing ? `${baseUrl}/api/payment-masters/${editing.id}` : `${baseUrl}/api/payment-masters`;
@@ -157,6 +159,8 @@ export default function PaymentMaster() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save";
       toast({ title: "Alert", description: errorMessage, variant: "destructive" });
+    } finally {
+      setSavingLoading(false);
     }
   };
 
@@ -291,7 +295,8 @@ export default function PaymentMaster() {
           </div>
 
           <div className="flex gap-2 items-end">
-            <Button onClick={handleSave} className="w-full">
+            <Button onClick={handleSave} className="w-full" disabled={savingLoading}>
+              {savingLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editing ? "Update" : "Add"}
             </Button>
             {editing && (
@@ -301,6 +306,7 @@ export default function PaymentMaster() {
                   setEditing(null);
                   setNewMaster({ antennaSize: "", siteAmount: "", vendorAmount: "" });
                 }}
+                disabled={savingLoading}
               >
                 Cancel
               </Button>
