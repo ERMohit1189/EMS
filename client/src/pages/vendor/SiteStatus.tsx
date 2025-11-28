@@ -435,7 +435,7 @@ export default function SiteStatus() {
       </div>
 
       {/* Bulk Update Section */}
-      {filteredSites.length > 0 && (
+      {filteredSites.length > 0 && cardStatusFilter !== 'Approved' && (
         <Card className="shadow-md border-blue-200 bg-blue-50">
           <CardHeader>
             <CardTitle className="text-lg">Bulk Update AT Status</CardTitle>
@@ -499,13 +499,15 @@ export default function SiteStatus() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
-                    <TableHead className="font-semibold w-12">
-                      <Checkbox 
-                        checked={selectedSites.size === filteredSites.length && filteredSites.length > 0}
-                        onCheckedChange={toggleSelectAll}
-                        data-testid="checkbox-select-all"
-                      />
-                    </TableHead>
+                    {cardStatusFilter !== 'Approved' && (
+                      <TableHead className="font-semibold w-12">
+                        <Checkbox 
+                          checked={selectedSites.size === filteredSites.length && filteredSites.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                          data-testid="checkbox-select-all"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="font-semibold">Plan ID</TableHead>
                     <TableHead className="font-semibold">Circle</TableHead>
                     <TableHead className="font-semibold">District</TableHead>
@@ -521,13 +523,15 @@ export default function SiteStatus() {
                 <TableBody>
                   {filteredSites.map((site) => (
                     <TableRow key={site.id} className={`hover:bg-gray-50 transition-colors ${selectedSites.has(site.id) ? 'bg-blue-100' : ''}`}>
-                      <TableCell>
-                        <Checkbox 
-                          checked={selectedSites.has(site.id)}
-                          onCheckedChange={() => toggleSiteSelection(site.id)}
-                          data-testid={`checkbox-site-${site.id}`}
-                        />
-                      </TableCell>
+                      {cardStatusFilter !== 'Approved' && (
+                        <TableCell>
+                          <Checkbox 
+                            checked={selectedSites.has(site.id)}
+                            onCheckedChange={() => toggleSiteSelection(site.id)}
+                            data-testid={`checkbox-site-${site.id}`}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium text-blue-600 font-mono">{truncateId(site.planId)}</TableCell>
                       <TableCell>{site.circle || '-'}</TableCell>
                       <TableCell>{site.district || '-'}</TableCell>
