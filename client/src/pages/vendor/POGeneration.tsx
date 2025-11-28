@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Trash2, FileText } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
@@ -747,6 +748,66 @@ export default function POGeneration() {
           )}
         </>
       )}
+
+      {/* GST Selection Modal */}
+      <Dialog open={gstModalOpen} onOpenChange={setGstModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select GST Type for PO Export</DialogTitle>
+            <DialogDescription>
+              Choose the applicable GST option as per Indian tax rules
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            <div
+              onClick={() => {
+                setGstType('none');
+                exportPOToPDF(currentExportPOId, currentExportPONumber);
+              }}
+              className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all"
+              data-testid="gst-option-none"
+            >
+              <p className="font-semibold text-gray-900">No GST</p>
+              <p className="text-sm text-gray-600">Export without any tax</p>
+            </div>
+
+            <div
+              onClick={() => {
+                setGstType('igst');
+                exportPOToPDF(currentExportPOId, currentExportPONumber);
+              }}
+              className="p-4 border rounded-lg cursor-pointer hover:bg-green-50 hover:border-green-300 transition-all"
+              data-testid="gst-option-igst"
+            >
+              <p className="font-semibold text-gray-900">IGST (Interstate)</p>
+              <p className="text-sm text-gray-600">Integrated GST @ 18% - For interstate transactions</p>
+            </div>
+
+            <div
+              onClick={() => {
+                setGstType('cgstsgst');
+                exportPOToPDF(currentExportPOId, currentExportPONumber);
+              }}
+              className="p-4 border rounded-lg cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-all"
+              data-testid="gst-option-cgstsgst"
+            >
+              <p className="font-semibold text-gray-900">CGST + SGST (Intrastate)</p>
+              <p className="text-sm text-gray-600">Central GST 9% + State GST 9% - For intrastate transactions</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setGstModalOpen(false)}
+              data-testid="button-cancel-gst"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
