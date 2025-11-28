@@ -267,7 +267,7 @@ export default function SiteStatus() {
                 <label className="text-sm font-medium mb-2 block">Phy AT Status</label>
                 <Select value={bulkPhyAtStatus} onValueChange={setBulkPhyAtStatus}>
                   <SelectTrigger data-testid="select-phy-at-status">
-                    <SelectValue placeholder="Select Physical AT Status..." />
+                    <SelectValue placeholder="Select Phy AT Status..." />
                   </SelectTrigger>
                   <SelectContent>
                     {updateStatusOptions.map(option => (
