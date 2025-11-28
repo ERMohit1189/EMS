@@ -737,86 +737,83 @@ export default function POGeneration() {
                 <CardDescription>Complete list of all purchase orders ({allPOs.length} total)</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {allPOs.map((po) => (
                     <div
                       key={po.id}
-                      className="border-2 border-slate-200 rounded-xl p-5 hover:shadow-lg hover:border-blue-400 transition-all duration-200 bg-gradient-to-br from-slate-50 to-slate-100"
+                      className="border border-slate-300 rounded-lg p-3 hover:shadow-md hover:border-blue-400 transition-all duration-200 bg-white"
                       data-testid={`card-po-${po.id}`}
                     >
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         {/* Header with PO Number and Badge */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Purchase Order</p>
-                            <p className="text-lg font-bold text-slate-900">{po.poNumber}</p>
+                        <div className="flex items-start justify-between gap-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-0.5">PO</p>
+                            <p className="text-sm font-bold text-slate-900 truncate">{po.poNumber}</p>
                           </div>
-                          <div className={`px-3 py-1 rounded-full text-xs font-semibold ${po.gstApply ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                            {po.gstApply ? `${po.gstType === 'igst' ? 'IGST' : 'CGST+SGST'}` : 'No GST'}
+                          <div className={`px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0 ${po.gstApply ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {po.gstApply ? `${po.gstType === 'igst' ? 'IGST' : 'CGST+SGST'}` : 'GST'}
                           </div>
                         </div>
 
                         {/* Site & Vendor Info */}
-                        <div className="space-y-3 border-t border-slate-200 pt-3">
+                        <div className="space-y-1.5 border-t border-slate-200 pt-2">
                           <div>
-                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Site</p>
-                            <p className="text-sm font-semibold text-slate-900 truncate">{po.siteName}</p>
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-0.5">Site</p>
+                            <p className="text-xs font-semibold text-slate-900 truncate">{po.siteName}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Vendor</p>
-                            <p className="text-sm text-slate-700 truncate">{po.vendorName}</p>
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-0.5">Vendor</p>
+                            <p className="text-xs text-slate-700 truncate">{po.vendorName}</p>
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-2 gap-2">
                             <div className="min-w-0">
-                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Plan ID</p>
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-0.5">Plan</p>
                               <p className="text-xs font-mono text-slate-600 truncate" title={po.planId}>{truncateId(po.planId)}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Max Antenna</p>
-                              <p className="text-sm font-bold text-blue-600">{po.maxAntennaSize || "—"}</p>
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-0.5">Antenna</p>
+                              <p className="text-xs font-bold text-blue-600">{po.maxAntennaSize || "—"}</p>
                             </div>
                           </div>
                         </div>
 
                         {/* Amount Section */}
-                        <div className="border-t border-slate-200 pt-3 space-y-2">
-                          <div className="flex justify-between items-end">
-                            <span className="text-xs font-semibold text-slate-600 uppercase">GST Amount</span>
-                            <span className="text-sm font-bold text-orange-600">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                        <div className="border-t border-slate-200 pt-2 space-y-1">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-semibold text-slate-600 uppercase">GST</span>
+                            <span className="font-bold text-orange-600">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
-                          <div className="flex justify-between items-end bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg">
-                            <span className="text-sm font-bold text-slate-700">Total Amount</span>
-                            <span className="text-lg font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                          <div className="flex justify-between items-center bg-green-50 p-2 rounded">
+                            <span className="text-xs font-bold text-slate-700">Total</span>
+                            <span className="text-sm font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="border-t border-slate-200 pt-3 flex gap-2">
+                        <div className="border-t border-slate-200 pt-2 flex gap-1">
                           <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
-                            <Button size="sm" className="w-full gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
-                              <Printer className="h-4 w-4" />
-                              <span className="hidden sm:inline">Print</span>
+                            <Button size="xs" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 h-auto">
+                              <Printer className="h-3 w-3" />
                             </Button>
                           </a>
                           <Button 
-                            size="sm" 
+                            size="xs" 
                             variant="outline"
-                            className="flex-1 gap-1.5 border-slate-300 hover:bg-slate-50"
+                            className="flex-1 border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
                             onClick={() => exportPOToPDF(po.id, po.poNumber)}
                             data-testid={`button-export-pdf-${po.id}`}
                           >
-                            <FileText className="h-4 w-4" />
-                            <span className="hidden sm:inline">Export</span>
+                            <FileText className="h-3 w-3" />
                           </Button>
                           {(!poInvoices[po.id] || poInvoices[po.id].length === 0) && (
                             <Button 
-                              size="sm" 
+                              size="xs" 
                               variant="outline"
-                              className="flex-1 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
+                              className="flex-1 border-red-300 text-red-600 hover:bg-red-50 text-xs py-1 h-auto"
                               onClick={() => deletePO(po.id, po.poNumber)}
                             >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="hidden sm:inline">Delete</span>
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           )}
                         </div>
