@@ -745,15 +745,10 @@ export default function POGeneration() {
                       data-testid={`card-po-${po.id}`}
                     >
                       <div className="space-y-2">
-                        {/* Header with PO Number and Badge */}
-                        <div className="flex items-start justify-between gap-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-0.5">PO</p>
-                            <p className="text-xs font-bold text-slate-900 break-all">{po.poNumber}</p>
-                          </div>
-                          <div className={`px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0 whitespace-nowrap ${po.gstApply ? (po.gstType === 'igst' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700') : 'bg-gray-100 text-gray-700'}`}>
-                            {po.gstApply ? `${po.gstType === 'igst' ? 'IGST' : 'CGST+SGST'}` : 'No Tax'}
-                          </div>
+                        {/* Header with PO Number */}
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-0.5">PO</p>
+                          <p className="text-xs font-bold text-slate-900 break-all">{po.poNumber}</p>
                         </div>
 
                         {/* Site & Vendor Info */}
