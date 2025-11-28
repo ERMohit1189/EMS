@@ -52,6 +52,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEmployee, setIsEmployee] = useState(false);
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const isLoading = useLoadingState();
 
   useEffect(() => {
@@ -97,21 +98,15 @@ function App() {
       setIsEmployee(false);
       console.log('[App] Session data cleared. Remember Me credentials: PRESERVED');
       
-      // Redirect to appropriate login page based on what we determined earlier
+      // Set redirect destination
       if (isEmployeeLogout) {
         console.log('[App] REDIRECTING TO: /employee-login');
         console.log('[App] ====================================');
-        // Use direct navigation to ensure immediate redirect
-        setTimeout(() => {
-          window.location.href = '/employee-login';
-        }, 100);
+        setRedirectTo('/employee-login');
       } else {
         console.log('[App] REDIRECTING TO: /login');
         console.log('[App] ====================================');
-        // Use direct navigation to ensure immediate redirect
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 100);
+        setRedirectTo('/login');
       }
     };
 
@@ -140,6 +135,15 @@ function App() {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [setLocation]);
+
+  // Handle redirects after logout
+  useEffect(() => {
+    if (redirectTo && !isLoggedIn) {
+      console.log('[App] Executing redirect to:', redirectTo);
+      setLocation(redirectTo);
+      setRedirectTo(null);
+    }
+  }, [redirectTo, isLoggedIn, setLocation]);
 
   // Show loading while checking auth
   if (loading) {
