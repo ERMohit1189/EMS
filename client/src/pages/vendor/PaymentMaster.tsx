@@ -19,12 +19,14 @@ export default function PaymentMaster() {
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedVendor, setSelectedVendor] = useState("");
   const [newMaster, setNewMaster] = useState({ antennaSize: "", siteAmount: "", vendorAmount: "" });
+  const [usedPaymentMasters, setUsedPaymentMasters] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
     fetchMasters();
     fetchSites();
     fetchVendors();
+    fetchUsedPaymentMasters();
   }, []);
 
   useEffect(() => {
@@ -77,6 +79,25 @@ export default function PaymentMaster() {
       toast({ title: "Error", description: "Failed to load vendors", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsedPaymentMasters = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`);
+      if (!response.ok) return;
+      const result = await response.json();
+      const pos = result.data || [];
+      
+      const usedSet = new Set<string>();
+      pos.forEach((po: any) => {
+        if (po.vendorId && po.siteId) {
+          usedSet.add(`${po.vendorId}_${po.siteId}`);
+        }
+      });
+      setUsedPaymentMasters(usedSet);
+    } catch (error) {
+      // Silently fail - not critical for UI
     }
   };
 
@@ -296,9 +317,11 @@ export default function PaymentMaster() {
                         <Button size="sm" variant="outline" onClick={() => handleEdit(m)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!usedPaymentMasters.has(`${m.vendorId}_${m.siteId}`) && (
+                          <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
