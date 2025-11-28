@@ -4,41 +4,45 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { Loader } from "@/components/Loader";
 import { useLoadingState } from "@/hooks/useLoadingState";
 import { Layout } from "@/components/layout/Layout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { getStoredApiUrl } from "@/lib/api";
-import Login from "@/pages/Login";
-import VendorLogin from "@/pages/VendorLogin";
-import EmployeeLogin from "@/pages/EmployeeLogin";
-import Dashboard from "@/pages/Dashboard";
-import ApiConfig from "@/pages/ApiConfig";
-import VendorRegistration from "@/pages/vendor/VendorRegistration";
-import VendorList from "@/pages/vendor/VendorList";
-import VendorEdit from "@/pages/vendor/VendorEdit";
-import VendorCredentials from "@/pages/vendor/VendorCredentials";
-import PaymentMaster from "@/pages/vendor/PaymentMaster";
-import CircleMaster from "@/pages/vendor/CircleMaster";
-import POGeneration from "@/pages/vendor/POGeneration";
-import POPrint from "@/pages/vendor/POPrint";
-import InvoiceGeneration from "@/pages/vendor/InvoiceGeneration";
-import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
-import EmployeeEdit from "@/pages/employee/EmployeeEdit";
-import EmployeeList from "@/pages/employee/EmployeeList";
-import EmployeeCredentials from "@/pages/employee/EmployeeCredentials";
-import EmployeePrivacyPolicy from "@/pages/employee/PrivacyPolicy";
-import VendorPrivacyPolicy from "@/pages/vendor/PrivacyPolicy";
-import SiteRegistration from "@/pages/vendor/SiteRegistration";
-import SiteList from "@/pages/vendor/SiteList";
-import SiteEdit from "@/pages/vendor/SiteEdit";
-import SiteStatus from "@/pages/vendor/SiteStatus";
-import SiteManagement from "@/pages/vendor/SiteManagement";
-import ExcelImport from "@/pages/vendor/ExcelImport";
-import SalaryStructure from "@/pages/employee/SalaryStructure";
-import DepartmentMaster from "@/pages/employee/DepartmentMaster";
-import DesignationMaster from "@/pages/employee/DesignationMaster";
-import ExportHeaders from "@/pages/vendor/ExportHeaders";
-import Settings from "@/pages/Settings";
-import EmployeeDashboard from "@/pages/EmployeeDashboard";
-import NotFound from "@/pages/not-found";
+
+// Lazy load all page components for code splitting
+const Login = lazy(() => import("@/pages/Login"));
+const VendorLogin = lazy(() => import("@/pages/VendorLogin"));
+const EmployeeLogin = lazy(() => import("@/pages/EmployeeLogin"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const ApiConfig = lazy(() => import("@/pages/ApiConfig"));
+const VendorRegistration = lazy(() => import("@/pages/vendor/VendorRegistration"));
+const VendorList = lazy(() => import("@/pages/vendor/VendorList"));
+const VendorEdit = lazy(() => import("@/pages/vendor/VendorEdit"));
+const VendorCredentials = lazy(() => import("@/pages/vendor/VendorCredentials"));
+const PaymentMaster = lazy(() => import("@/pages/vendor/PaymentMaster"));
+const CircleMaster = lazy(() => import("@/pages/vendor/CircleMaster"));
+const POGeneration = lazy(() => import("@/pages/vendor/POGeneration"));
+const POPrint = lazy(() => import("@/pages/vendor/POPrint"));
+const InvoiceGeneration = lazy(() => import("@/pages/vendor/InvoiceGeneration"));
+const EmployeeRegistration = lazy(() => import("@/pages/employee/EmployeeRegistration"));
+const EmployeeEdit = lazy(() => import("@/pages/employee/EmployeeEdit"));
+const EmployeeList = lazy(() => import("@/pages/employee/EmployeeList"));
+const EmployeeCredentials = lazy(() => import("@/pages/employee/EmployeeCredentials"));
+const EmployeePrivacyPolicy = lazy(() => import("@/pages/employee/PrivacyPolicy"));
+const VendorPrivacyPolicy = lazy(() => import("@/pages/vendor/PrivacyPolicy"));
+const SiteRegistration = lazy(() => import("@/pages/vendor/SiteRegistration"));
+const SiteList = lazy(() => import("@/pages/vendor/SiteList"));
+const SiteEdit = lazy(() => import("@/pages/vendor/SiteEdit"));
+const SiteStatus = lazy(() => import("@/pages/vendor/SiteStatus"));
+const SiteManagement = lazy(() => import("@/pages/vendor/SiteManagement"));
+const ExcelImport = lazy(() => import("@/pages/vendor/ExcelImport"));
+const SalaryStructure = lazy(() => import("@/pages/employee/SalaryStructure"));
+const DepartmentMaster = lazy(() => import("@/pages/employee/DepartmentMaster"));
+const DesignationMaster = lazy(() => import("@/pages/employee/DesignationMaster"));
+const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
+const PageLoader = () => <div className="flex items-center justify-center h-screen"><Loader /></div>;
 
 const Placeholder = ({ title }: { title: string }) => (
   <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
@@ -155,10 +159,12 @@ function App() {
   if (isProduction && !getStoredApiUrl() && location !== '/api-config' && location !== '/login') {
     return (
       <>
-        <Switch>
-          <Route path="/api-config" component={ApiConfig} />
-          <Route component={ApiConfig} />
-        </Switch>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            <Route path="/api-config" component={ApiConfig} />
+            <Route component={ApiConfig} />
+          </Switch>
+        </Suspense>
         <Toaster />
       </>
     );
@@ -170,14 +176,16 @@ function App() {
     console.log('[App] Rendering login screens block');
     return (
       <>
-        <Switch>
-          <Route path="/login" component={Login} />
-          <Route path="/vendor-login" component={VendorLogin} />
-          <Route path="/employee-login" component={EmployeeLogin} />
-          <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
-          <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-          <Route component={EmployeeLogin} />
-        </Switch>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            <Route path="/login" component={Login} />
+            <Route path="/vendor-login" component={VendorLogin} />
+            <Route path="/employee-login" component={EmployeeLogin} />
+            <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+            <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
+            <Route component={EmployeeLogin} />
+          </Switch>
+        </Suspense>
         <Toaster />
       </>
     );
@@ -187,75 +195,79 @@ function App() {
     <>
       <ProgressBar isLoading={isLoading} />
       <Loader />
-      <Switch>
-        {/* API Config Route */}
-        <Route path="/api-config" component={ApiConfig} />
-        
-        {/* Login Routes */}
-        <Route path="/login" component={Login} />
-        <Route path="/vendor-login" component={VendorLogin} />
-        <Route path="/employee-login" component={EmployeeLogin} />
-        
-        {/* Privacy Policy Routes */}
-        <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
-        <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
+      <Suspense fallback={<PageLoader />}>
+        <Switch>
+          {/* API Config Route */}
+          <Route path="/api-config" component={ApiConfig} />
+          
+          {/* Login Routes */}
+          <Route path="/login" component={Login} />
+          <Route path="/vendor-login" component={VendorLogin} />
+          <Route path="/employee-login" component={EmployeeLogin} />
+          
+          {/* Privacy Policy Routes */}
+          <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+          <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
 
-        {/* Print Routes - No Layout */}
-        <Route path="/vendor/po/print/:id" component={POPrint} />
-        
-        {/* All other routes with Layout */}
-        <Route>
-          <Layout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
-            <Switch>
-              {/* Dashboard Routes */}
-              <Route path="/employee/dashboard" component={EmployeeDashboard} />
-              <Route path="/">
-                {isEmployee ? <EmployeeDashboard /> : <Dashboard />}
-              </Route>
-              
-              {/* Vendor Routes */}
-              <Route path="/vendor/register" component={VendorRegistration} />
-              <Route path="/vendor/list" component={VendorList} />
-              <Route path="/vendor/edit/:id" component={VendorEdit} />
-              <Route path="/vendor/credentials" component={VendorCredentials} />
-              <Route path="/vendor/payment-master" component={PaymentMaster} />
-              <Route path="/vendor/circle-master" component={CircleMaster} />
-              <Route path="/vendor/sites" component={SiteList} />
-              <Route path="/vendor/sites/status" component={SiteStatus} />
-              <Route path="/vendor/export-headers" component={ExportHeaders} />
-              <Route path="/vendor/site/register" component={SiteRegistration} />
-              <Route path="/vendor/site/manage" component={SiteManagement} />
-              <Route path="/vendor/site/edit/:id" component={SiteEdit} />
-              <Route path="/vendor/excel-import" component={ExcelImport} />
-              <Route path="/vendor/po" component={POGeneration} />
-              <Route path="/vendor/invoices" component={InvoiceGeneration} />
-              
-              {/* Settings Route */}
-              <Route path="/settings" component={Settings} />
-              
-              {/* Employee Routes */}
-              <Route path="/employee/register" component={EmployeeRegistration} />
-              <Route path="/employee/edit/:id" component={EmployeeEdit} />
-              <Route path="/employee/list" component={EmployeeList} />
-              <Route path="/employee/credentials" component={EmployeeCredentials} />
-              <Route path="/employee/salary" component={SalaryStructure} />
-              <Route path="/employee/department-master" component={DepartmentMaster} />
-              <Route path="/employee/designation-master" component={DesignationMaster} />
-              <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
-              <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
-              <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
-              
-              {/* Vendor Privacy Policy */}
-              <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-              
-              {/* Reports */}
-              <Route path="/reports" component={() => <Placeholder title="Reports" />} />
-              
-              <Route component={NotFound} />
-            </Switch>
-          </Layout>
-        </Route>
-      </Switch>
+          {/* Print Routes - No Layout */}
+          <Route path="/vendor/po/print/:id" component={POPrint} />
+          
+          {/* All other routes with Layout */}
+          <Route>
+            <Layout isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}>
+              <Suspense fallback={<PageLoader />}>
+                <Switch>
+                  {/* Dashboard Routes */}
+                  <Route path="/employee/dashboard" component={EmployeeDashboard} />
+                  <Route path="/">
+                    {isEmployee ? <EmployeeDashboard /> : <Dashboard />}
+                  </Route>
+                  
+                  {/* Vendor Routes */}
+                  <Route path="/vendor/register" component={VendorRegistration} />
+                  <Route path="/vendor/list" component={VendorList} />
+                  <Route path="/vendor/edit/:id" component={VendorEdit} />
+                  <Route path="/vendor/credentials" component={VendorCredentials} />
+                  <Route path="/vendor/payment-master" component={PaymentMaster} />
+                  <Route path="/vendor/circle-master" component={CircleMaster} />
+                  <Route path="/vendor/sites" component={SiteList} />
+                  <Route path="/vendor/sites/status" component={SiteStatus} />
+                  <Route path="/vendor/export-headers" component={ExportHeaders} />
+                  <Route path="/vendor/site/register" component={SiteRegistration} />
+                  <Route path="/vendor/site/manage" component={SiteManagement} />
+                  <Route path="/vendor/site/edit/:id" component={SiteEdit} />
+                  <Route path="/vendor/excel-import" component={ExcelImport} />
+                  <Route path="/vendor/po" component={POGeneration} />
+                  <Route path="/vendor/invoices" component={InvoiceGeneration} />
+                  
+                  {/* Settings Route */}
+                  <Route path="/settings" component={Settings} />
+                  
+                  {/* Employee Routes */}
+                  <Route path="/employee/register" component={EmployeeRegistration} />
+                  <Route path="/employee/edit/:id" component={EmployeeEdit} />
+                  <Route path="/employee/list" component={EmployeeList} />
+                  <Route path="/employee/credentials" component={EmployeeCredentials} />
+                  <Route path="/employee/salary" component={SalaryStructure} />
+                  <Route path="/employee/department-master" component={DepartmentMaster} />
+                  <Route path="/employee/designation-master" component={DesignationMaster} />
+                  <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
+                  <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
+                  <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+                  
+                  {/* Vendor Privacy Policy */}
+                  <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
+                  
+                  {/* Reports */}
+                  <Route path="/reports" component={() => <Placeholder title="Reports" />} />
+                  
+                  <Route component={NotFound} />
+                </Switch>
+              </Suspense>
+            </Layout>
+          </Route>
+        </Switch>
+      </Suspense>
       <Toaster />
     </>
   );
