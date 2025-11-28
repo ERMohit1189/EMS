@@ -10,6 +10,7 @@ import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 export default function PaymentMaster() {
   const topRef = useRef<HTMLDivElement>(null);
   const antennaSelectRef = useRef<HTMLSelectElement>(null);
+  const siteAmountRef = useRef<HTMLInputElement>(null);
   const [masters, setMasters] = useState<PaymentMaster[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -174,6 +175,8 @@ export default function PaymentMaster() {
       siteAmount: master.siteAmount.toString(),
       vendorAmount: master.vendorAmount.toString(),
     });
+    // Focus on site amount field after edit
+    setTimeout(() => siteAmountRef.current?.focus(), 0);
   };
 
   const handleDelete = async (id: string) => {
@@ -278,6 +281,7 @@ export default function PaymentMaster() {
           <div>
             <label className="text-sm font-medium">Site Amount (₹)</label>
             <Input
+              ref={siteAmountRef}
               type="number"
               placeholder="Enter amount"
               value={newMaster.siteAmount}
