@@ -776,6 +776,10 @@ export default function POGeneration() {
                         {/* Amount Section */}
                         <div className="border-t border-slate-200 pt-2 space-y-1">
                           <div className="flex justify-between items-center text-xs">
+                            <span className="font-semibold text-slate-600 uppercase">Amount</span>
+                            <span className="font-bold text-slate-700">₹{parseFloat(po.unitPrice || '0').toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-slate-600 uppercase">{po.gstApply ? (po.gstType === 'igst' ? 'IGST' : 'CGST+SGST') : 'Tax'}</span>
                             <span className="font-bold text-orange-600">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
