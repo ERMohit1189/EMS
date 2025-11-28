@@ -50,6 +50,26 @@ const menuGroups = [
     ],
   },
   {
+    group: 'Employee Management',
+    items: [
+      {
+        title: 'All Employees',
+        icon: HardHat,
+        href: '/employee/list',
+      },
+      {
+        title: 'Register Employee',
+        icon: Users,
+        href: '/employee/register',
+      },
+      {
+        title: 'Salary Structure',
+        icon: BarChart3,
+        href: '/employee/salary',
+      },
+    ],
+  },
+  {
     group: 'Site Operations',
     items: [
       {
@@ -111,6 +131,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Main: false,
     'Vendor Management': false,
+    'Employee Management': false,
     'Site Operations': false,
     Finance: false,
     Settings: false,
