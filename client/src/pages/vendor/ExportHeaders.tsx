@@ -148,11 +148,14 @@ export default function ExportHeaders() {
             <Input
               id="contact-phone"
               data-testid="input-contact-phone"
+              type="tel"
+              maxLength={10}
               value={header.contactPhone || ''}
               onChange={(e) => setHeader({ ...header, contactPhone: e.target.value })}
-              placeholder="e.g., +91-XXX-XXXX-XXXX"
+              placeholder="e.g., 9876543210"
               className="mt-1"
             />
+            <p className="text-xs text-gray-500 mt-1">Max 10 digits</p>
           </div>
 
           <div>
@@ -160,11 +163,13 @@ export default function ExportHeaders() {
             <Input
               id="contact-email"
               data-testid="input-contact-email"
+              type="email"
               value={header.contactEmail || ''}
               onChange={(e) => setHeader({ ...header, contactEmail: e.target.value })}
               placeholder="e.g., support@company.com"
               className="mt-1"
             />
+            <p className="text-xs text-gray-500 mt-1">Valid email format required</p>
           </div>
 
           <div>
@@ -172,11 +177,13 @@ export default function ExportHeaders() {
             <Input
               id="website"
               data-testid="input-website"
+              type="url"
               value={header.website || ''}
               onChange={(e) => setHeader({ ...header, website: e.target.value })}
-              placeholder="e.g., www.company.com"
+              placeholder="e.g., https://www.company.com"
               className="mt-1"
             />
+            <p className="text-xs text-gray-500 mt-1">Valid URL format required</p>
           </div>
 
           <div>
@@ -184,11 +191,15 @@ export default function ExportHeaders() {
             <Input
               id="gstin"
               data-testid="input-gstin"
+              maxLength={15}
               value={header.gstin || ''}
               onChange={(e) => setHeader({ ...header, gstin: e.target.value })}
               placeholder="e.g., 27AABCT1234H1Z0"
               className="mt-1"
+              pattern="^[0-9A-Z]{15}$"
+              title="GSTIN must be 15 alphanumeric characters"
             />
+            <p className="text-xs text-gray-500 mt-1">15 alphanumeric characters</p>
           </div>
         </div>
 

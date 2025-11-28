@@ -355,6 +355,26 @@ export const insertExportHeaderSchema = createInsertSchema(exportHeaders).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).refine((data) => {
+  if (data.contactPhone && data.contactPhone.length > 10) {
+    throw new Error('Contact phone must be 10 digits or less');
+  }
+  return true;
+}).refine((data) => {
+  if (data.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail)) {
+    throw new Error('Invalid email format');
+  }
+  return true;
+}).refine((data) => {
+  if (data.website && !/^https?:\/\/.+/.test(data.website)) {
+    throw new Error('Website must be a valid URL (starting with http:// or https://)');
+  }
+  return true;
+}).refine((data) => {
+  if (data.gstin && !/^[0-9A-Z]{15}$/.test(data.gstin)) {
+    throw new Error('GSTIN must be exactly 15 alphanumeric characters');
+  }
+  return true;
 });
 
 export type ExportHeader = typeof exportHeaders.$inferSelect;
