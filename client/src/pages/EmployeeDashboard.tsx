@@ -11,7 +11,7 @@ export default function EmployeeDashboard() {
     const employeeId = localStorage.getItem('employeeId');
     const employeeName = localStorage.getItem('employeeName');
     const employeeEmail = localStorage.getItem('employeeEmail');
-    const employeeRole = localStorage.getItem('employeeRole');
+    const employeeDepartment = localStorage.getItem('employeeDepartment');
     const employeeDesignation = localStorage.getItem('employeeDesignation');
 
     if (employeeId) {
@@ -19,7 +19,7 @@ export default function EmployeeDashboard() {
         id: employeeId,
         name: employeeName,
         email: employeeEmail,
-        role: employeeRole || 'Employee',
+        department: employeeDepartment || 'Not Assigned',
         designation: employeeDesignation || 'Not Specified',
       });
     }
@@ -69,8 +69,8 @@ export default function EmployeeDashboard() {
                   <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4 text-slate-500" />
                     <div>
-                      <p className="text-xs text-slate-600">Role</p>
-                      <p className="text-sm font-medium text-slate-900">{userProfile.role}</p>
+                      <p className="text-xs text-slate-600">Department</p>
+                      <p className="text-sm font-medium text-slate-900">{userProfile.department}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

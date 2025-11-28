@@ -118,7 +118,7 @@ export async function registerRoutes(
           id: employee.id, 
           name: employee.name, 
           email: employee.email,
-          role: employee.role,
+          department: (employee as any).departmentName,
           designation: (employee as any).designation
         } 
       };

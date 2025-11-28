@@ -281,6 +281,19 @@ export class DrizzleStorage implements IStorage {
       
       if (passwordMatch) {
         console.log(`[Storage] Login successful for ${email}`);
+        
+        // Get department name if department_id exists
+        if (employee.departmentId) {
+          try {
+            const deptResult = await db.select({ name: departments.name }).from(departments).where(eq(departments.id, employee.departmentId));
+            if (deptResult.length > 0) {
+              (employee as any).departmentName = deptResult[0].name;
+            }
+          } catch (error) {
+            console.error(`[Storage] Failed to fetch department:`, error);
+          }
+        }
+        
         return employee;
       } else {
         console.log(`[Storage] Password mismatch for ${email}`);
