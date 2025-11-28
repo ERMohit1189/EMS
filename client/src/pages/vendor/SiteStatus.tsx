@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X } from 'lucide-react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -57,6 +57,7 @@ export default function SiteStatus() {
   const [cardStatusFilter, setCardStatusFilter] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
     fetchSites();
@@ -359,12 +360,34 @@ export default function SiteStatus() {
         </Card>
       )}
 
+      {/* Advanced Filters Toggle Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        className="mb-4"
+        data-testid="button-advanced-filters"
+      >
+        {showAdvancedFilters ? (
+          <>
+            <ChevronUp className="h-4 w-4 mr-2" />
+            Hide Advanced Filters
+          </>
+        ) : (
+          <>
+            <ChevronDown className="h-4 w-4 mr-2" />
+            Show Advanced Filters
+          </>
+        )}
+      </Button>
+
       {/* Filters */}
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {showAdvancedFilters && (
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle className="text-lg">Advanced Filters</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div>
@@ -419,8 +442,9 @@ export default function SiteStatus() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Results Count */}
       <div className="space-y-2">
