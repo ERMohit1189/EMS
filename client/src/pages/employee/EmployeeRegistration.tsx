@@ -248,27 +248,6 @@ export default function EmployeeRegistration() {
               />
               <FormField
                 control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel><RequiredLabel>Email (Login ID)</RequiredLabel></FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email"
-                        placeholder="employee@company.com" 
-                        {...field}
-                        onBlur={(e) => {
-                          field.onBlur();
-                          form.trigger('email');
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="fatherName"
                 render={({ field }) => (
                   <FormItem>
@@ -438,6 +417,27 @@ export default function EmployeeRegistration() {
                     <FormLabel>Alternate No.</FormLabel>
                     <FormControl>
                       <Input placeholder="Optional" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel><RequiredLabel>Email (Login ID)</RequiredLabel></FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email"
+                        placeholder="employee@company.com" 
+                        {...field}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          form.trigger('email');
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

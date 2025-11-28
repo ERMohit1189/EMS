@@ -269,23 +269,6 @@ export default function EmployeeEdit() {
               />
               <FormField
                 control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel><RequiredLabel>Email (Login ID)</RequiredLabel></FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email"
-                        placeholder="employee@company.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="fatherName"
                 render={({ field }) => (
                   <FormItem>
@@ -448,6 +431,23 @@ export default function EmployeeEdit() {
                     <FormLabel>Alternate No.</FormLabel>
                     <FormControl>
                       <Input placeholder="Optional" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel><RequiredLabel>Email (Login ID)</RequiredLabel></FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email"
+                        placeholder="employee@company.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
