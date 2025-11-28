@@ -173,6 +173,25 @@ export default function POGeneration() {
       // Create POs via API with auto-determined GST type
       const createdPOs = [];
       for (const record of records) {
+        const totalAmount = record.quantity * parseFloat(record.unitPrice);
+        
+        // Calculate GST amounts if enabled
+        let igstPercentage = 0, igstAmount = 0;
+        let cgstPercentage = 0, cgstAmount = 0;
+        let sgstPercentage = 0, sgstAmount = 0;
+        
+        if (applyGstToAll) {
+          if (record.gstType === 'igst') {
+            igstPercentage = 18;
+            igstAmount = Math.round(totalAmount * 0.18 * 100) / 100;
+          } else if (record.gstType === 'cgstsgst') {
+            cgstPercentage = 9;
+            sgstPercentage = 9;
+            cgstAmount = Math.round(totalAmount * 0.09 * 100) / 100;
+            sgstAmount = Math.round(totalAmount * 0.09 * 100) / 100;
+          }
+        }
+        
         const response = await fetch("/api/purchase-orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -183,9 +202,15 @@ export default function POGeneration() {
             description: record.description,
             quantity: record.quantity,
             unitPrice: record.unitPrice,
-            totalAmount: (record.quantity * parseFloat(record.unitPrice)).toString(),
+            totalAmount: totalAmount.toString(),
             gstType: record.gstType,
             gstApply: applyGstToAll,
+            igstPercentage,
+            igstAmount,
+            cgstPercentage,
+            cgstAmount,
+            sgstPercentage,
+            sgstAmount,
             poDate: new Date().toISOString().split('T')[0],
             dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             status: "Draft",
