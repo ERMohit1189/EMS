@@ -153,6 +153,13 @@ export default function POGeneration() {
     return baseAmount + cgst + sgst + igst;
   };
 
+  const getGSTAmount = (po: PORecord) => {
+    const cgst = po.cgstAmount || 0;
+    const sgst = po.sgstAmount || 0;
+    const igst = po.igstAmount || 0;
+    return cgst + sgst + igst;
+  };
+
   const generatePOs = async () => {
     if (selectedSites.size === 0) {
       toast({ title: "Alert", description: "Please select at least one site", variant: "destructive" });
@@ -688,7 +695,8 @@ export default function POGeneration() {
                         <th className="text-left py-2">Plan ID</th>
                         <th className="text-left py-2">Vendor</th>
                         <th className="text-center py-2">Max Antenna Size</th>
-                        <th className="text-right py-2">Amount</th>
+                        <th className="text-right py-2">GST Amount</th>
+                        <th className="text-right py-2">Total Amount</th>
                         <th className="text-center py-2">Action</th>
                       </tr>
                     </thead>
@@ -699,7 +707,8 @@ export default function POGeneration() {
                           <td className="py-2 font-mono text-sm">{truncateId(po.planId)}</td>
                           <td className="py-2">{po.vendorName}</td>
                           <td className="text-center py-2">{po.maxAntennaSize || "-"}</td>
-                          <td className="text-right py-2">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right py-2 text-orange-600 font-semibold">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right py-2 font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                           <td className="text-center py-2">
                             <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
                               <Button size="sm" variant="outline" className="gap-1">
@@ -763,9 +772,14 @@ export default function POGeneration() {
                             <p className="text-sm font-bold text-blue-600">{po.maxAntennaSize || "-"}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Amount</p>
-                            <p className="text-sm font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">GST Amount</p>
+                            <p className="text-sm font-bold text-orange-600">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                           </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground uppercase">Total Amount</p>
+                          <p className="text-base font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                         </div>
 
                         <div className="pt-2 border-t space-y-2">
