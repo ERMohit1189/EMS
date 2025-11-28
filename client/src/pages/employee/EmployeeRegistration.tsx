@@ -201,7 +201,15 @@ export default function EmployeeRegistration() {
                   <FormItem>
                     <FormLabel><RequiredLabel>Full Name</RequiredLabel></FormLabel>
                     <FormControl>
-                      <Input autoFocus placeholder="Enter name" {...field} />
+                      <Input 
+                        autoFocus 
+                        placeholder="Enter name" 
+                        {...field}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          form.trigger('name');
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -214,7 +222,14 @@ export default function EmployeeRegistration() {
                   <FormItem>
                     <FormLabel><RequiredLabel>Father's Name</RequiredLabel></FormLabel>
                     <FormControl>
-                      <Input placeholder="Father's Name" {...field} />
+                      <Input 
+                        placeholder="Father's Name" 
+                        {...field}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          form.trigger('fatherName');
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -298,7 +313,14 @@ export default function EmployeeRegistration() {
                   <FormItem>
                     <FormLabel><RequiredLabel>Mobile No.</RequiredLabel></FormLabel>
                     <FormControl>
-                      <Input placeholder="9876543210" {...field} />
+                      <Input 
+                        placeholder="9876543210" 
+                        {...field}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          form.trigger('mobile');
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -324,7 +346,14 @@ export default function EmployeeRegistration() {
                   <FormItem className="col-span-3">
                     <FormLabel><RequiredLabel>Address</RequiredLabel></FormLabel>
                     <FormControl>
-                      <Input placeholder="Full Address" {...field} />
+                      <Input 
+                        placeholder="Full Address" 
+                        {...field}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          form.trigger('address');
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
