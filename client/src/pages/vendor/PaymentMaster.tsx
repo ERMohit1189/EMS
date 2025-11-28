@@ -59,35 +59,27 @@ export default function PaymentMaster() {
 
   const fetchUsedPaymentMasters = async () => {
     try {
-      const [posRes, sitesRes, pmsRes] = await Promise.all([
+      const [posRes, sitesRes] = await Promise.all([
         fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`),
-        fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`),
-        fetch(`${getApiBaseUrl()}/api/payment-masters`)
+        fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`)
       ]);
 
-      if (!posRes.ok || !sitesRes.ok || !pmsRes.ok) return;
+      if (!posRes.ok || !sitesRes.ok) return;
 
       const posData = await posRes.json();
       const sitesData = await sitesRes.json();
-      const pmsData = await pmsRes.json();
 
       const pos = posData.data || [];
       const allSites = sitesData.data || [];
-      const paymentMasters = pmsData.data || [];
 
       const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
 
       const used: string[] = [];
       pos.forEach((po: any) => {
         const site = siteMap.get(po.siteId);
-        if (po.vendorId && po.siteId && site?.planId) {
-          // Find all payment masters matching this vendor+site+planId combination
-          paymentMasters.forEach((pm: any) => {
-            if (pm.vendorId === po.vendorId && pm.siteId === po.siteId && pm.planId === site.planId) {
-              // Store the full key with antenna size
-              used.push(`${pm.vendorId}_${pm.siteId}_${pm.planId}_${pm.antennaSize}`);
-            }
-          });
+        if (po.vendorId && po.siteId && site?.planId && site?.maxAntSize) {
+          // PO uses vendor+site+planId+maxAntSize combination
+          used.push(`${po.vendorId}_${po.siteId}_${site.planId}_${site.maxAntSize}`);
         }
       });
       setUsedCombinations(used);
