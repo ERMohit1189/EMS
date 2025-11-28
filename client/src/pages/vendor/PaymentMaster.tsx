@@ -335,11 +335,15 @@ export default function PaymentMaster() {
                         <Button size="sm" variant="outline" onClick={() => handleEdit(m)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        {!isUsed && (
-                          <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          onClick={() => handleDelete(m.id)}
+                          disabled={isUsed}
+                          title={isUsed ? "Cannot delete - used in PO generation" : "Delete payment master"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   );
