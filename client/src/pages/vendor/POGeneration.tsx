@@ -428,11 +428,11 @@ export default function POGeneration() {
 
       // Unit Price value
       pdf.rect(col3X, y, 25, 8);
-      pdf.text(`₹${rate}`, col3X + 1, y + 4.5);
+      pdf.text(`Rs. ${rate}`, col3X + 1, y + 4.5);
 
       // Amount value
       pdf.rect(col4X, y, 30, 8);
-      pdf.text(`₹${total}`, col4X + 2, y + 4.5);
+      pdf.text(`Rs. ${total}`, col4X + 2, y + 4.5);
 
       y += 14;
 
@@ -442,15 +442,15 @@ export default function POGeneration() {
       pdf.setFont('Arial', 'normal');
 
       pdf.text('Subtotal:', tX, y);
-      pdf.text(`₹${total}`, col4X + 2, y);
+      pdf.text(`Rs. ${total}`, col4X + 2, y);
       y += 6;
 
       pdf.text('Tax:', tX, y);
-      pdf.text('₹0.00', col4X + 2, y);
+      pdf.text('Rs. 0', col4X + 2, y);
       y += 6;
 
       pdf.text('Shipping:', tX, y);
-      pdf.text('₹0.00', col4X + 2, y);
+      pdf.text('Rs. 0', col4X + 2, y);
       y += 7;
 
       // Total box
@@ -460,7 +460,7 @@ export default function POGeneration() {
       pdf.setTextColor(255, 255, 255);
       pdf.rect(tX, y, 60, 7, 'F');
       pdf.text('TOTAL:', tX + 2, y + 5);
-      pdf.text(`₹${total}`, col4X + 2, y + 5);
+      pdf.text(`Rs. ${total}`, col4X + 2, y + 5);
 
       y += 14;
 
