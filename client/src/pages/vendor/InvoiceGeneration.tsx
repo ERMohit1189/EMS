@@ -463,10 +463,10 @@ export default function InvoiceGeneration() {
                     return (
                       <div
                         key={po.id}
-                        className="p-3 border rounded-lg hover:bg-slate-50 cursor-pointer"
+                        className="p-2 border rounded hover:bg-slate-50 cursor-pointer"
                         onClick={() => handlePOSelection(po.id)}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={selectedPOs.has(po.id)}
@@ -474,24 +474,17 @@ export default function InvoiceGeneration() {
                             className="w-4 h-4"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold">{po.poNumber}</p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              Vendor: {vendor?.name}
+                            <p className="text-xs font-semibold truncate">{po.poNumber}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {vendor?.name}
                             </p>
                           </div>
-                        </div>
-                        <div className="mt-2 ml-7 grid grid-cols-3 gap-2 text-xs">
-                          <div>
-                            <p className="text-slate-600 font-semibold">Amount</p>
-                            <p className="font-bold">₹{parseFloat(po.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-                          </div>
-                          <div>
-                            <p className="text-orange-600 font-semibold">GST</p>
-                            <p className="font-bold text-orange-600">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
-                          </div>
-                          <div>
-                            <p className="text-green-600 font-semibold">Total</p>
-                            <p className="font-bold text-green-600">₹{(parseFloat(po.totalAmount) + gstAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                          <div className="flex gap-2 text-xs">
+                            <div className="text-right">
+                              <p className="text-slate-600 font-semibold">₹{parseFloat(po.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                              <p className="text-orange-600 font-semibold">+₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                              <p className="text-green-600 font-bold">₹{(parseFloat(po.totalAmount) + gstAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
