@@ -566,7 +566,7 @@ export default function InvoiceGeneration() {
                             <p className="text-sm font-semibold">{invoice.siteName}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Max Ant Size</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">ANT</p>
                             <p className="text-sm font-semibold">{invoice.maxAntennaSize || "-"}</p>
                           </div>
                         </div>
@@ -634,7 +634,7 @@ export default function InvoiceGeneration() {
                             <p className="text-sm font-semibold">{invoice.siteName}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Max Ant Size</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">ANT</p>
                             <p className="text-sm font-semibold">{invoice.maxAntennaSize || "-"}</p>
                           </div>
                         </div>
