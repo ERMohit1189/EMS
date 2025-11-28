@@ -269,10 +269,10 @@ export default function SiteStatus() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Software AT Status</label>
+                <label className="text-sm font-medium mb-2 block">Soft AT Status</label>
                 <Select value={bulkSoftAtStatus} onValueChange={setBulkSoftAtStatus}>
                   <SelectTrigger data-testid="select-soft-at-status">
-                    <SelectValue placeholder="Select Software AT Status..." />
+                    <SelectValue placeholder="Select Soft AT Status..." />
                   </SelectTrigger>
                   <SelectContent>
                     {statusOptions.map(option => (
