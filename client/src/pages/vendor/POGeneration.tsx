@@ -251,66 +251,56 @@ export default function POGeneration() {
       const exportHeaderSettings = headerRes.ok ? await headerRes.json() : {};
 
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pw = pdf.internal.pageSize.getWidth();
-      const ph = pdf.internal.pageSize.getHeight();
-      const m = 12;
-      
-      let y = m;
+      let y = 10;
 
-      // COMPANY HEADER
+      // Company Header
       pdf.setFontSize(11);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(0, 0, 0);
-      pdf.text(exportHeaderSettings.companyName || '[Company Name]', m, y);
+      pdf.text(exportHeaderSettings.companyName || '[Company Name]', 10, y);
       y += 5;
 
       pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
-      pdf.text(exportHeaderSettings.address || '[Street Address]', m, y);
+      pdf.text(exportHeaderSettings.address || '[Street Address]', 10, y);
       y += 3;
-      pdf.text('[City, ST ZIP]', m, y);
+      pdf.text('[City, ST ZIP]', 10, y);
       y += 3;
-      pdf.text(`Phone: ${exportHeaderSettings.contactPhone || '(000) 000-0000'}`, m, y);
+      pdf.text(`Phone: ${exportHeaderSettings.contactPhone || '(000) 000-0000'}`, 10, y);
       y += 3;
-      pdf.text(`Fax: (000) 000-0000`, m, y);
+      pdf.text('Fax: (000) 000-0000', 10, y);
       y += 3;
-      pdf.text(`Website: ${exportHeaderSettings.website || ''}`, m, y);
+      pdf.text(`Website: ${exportHeaderSettings.website || ''}`, 10, y);
 
-      // PO TITLE (Right side)
+      // PO Title (right side)
       pdf.setFontSize(24);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(70, 130, 180);
-      pdf.text('PURCHASE ORDER', pw - m - 50, m + 3);
+      pdf.text('PURCHASE ORDER', 120, 15);
 
-      // DATE and PO# boxes
+      // Date and PO#
       pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(0, 0, 0);
-      const rx = pw - m - 55;
+      pdf.text('DATE', 120, 30);
+      pdf.rect(120, 31, 45, 4);
+      pdf.text(String(po.poDate || ''), 122, 34);
 
-      pdf.text('DATE', rx, m + 18);
-      pdf.rect(rx, m + 19, 45, 4);
-      pdf.text(String(po.poDate || ''), rx + 2, m + 22);
+      pdf.text('PO #', 120, 37);
+      pdf.rect(120, 38, 45, 4);
+      pdf.text(String(po.poNumber || ''), 122, 41);
 
-      pdf.text('PO #', rx, m + 25);
-      pdf.rect(rx, m + 26, 45, 4);
-      pdf.text(String(po.poNumber || ''), rx + 2, m + 29);
+      y = 52;
 
-      y = m + 38;
-
-      // VENDOR & SHIP TO
-      const halfW = (pw - 2 * m - 2) / 2;
-
+      // VENDOR & SHIP TO headers
       pdf.setFillColor(41, 59, 89);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(9);
-      
-      pdf.rect(m, y, halfW, 5, 'F');
-      pdf.text('VENDOR', m + 2, y + 3.5);
-      
-      pdf.rect(m + halfW + 2, y, halfW, 5, 'F');
-      pdf.text('SHIP TO', m + halfW + 4, y + 3.5);
+      pdf.rect(10, y, 85, 5, 'F');
+      pdf.text('VENDOR', 12, y + 3.5);
+      pdf.rect(100, y, 85, 5, 'F');
+      pdf.text('SHIP TO', 102, y + 3.5);
 
       y += 6;
 
@@ -319,92 +309,75 @@ export default function POGeneration() {
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(8);
 
-      const vname = vendor?.name || '[Vendor Name]';
-      const vemail = vendor?.email || '';
-      const vphone = vendor?.phone || '';
+      const vn = vendor?.name || '[Vendor Name]';
+      const ve = vendor?.email || '';
+      const vp = vendor?.phone || '';
 
-      const startY = y;
-      pdf.text(vname, m + 1, y);
+      pdf.text(vn, 11, y);
       y += 3;
-      if (vemail) {
-        pdf.text(vemail, m + 1, y);
-        y += 3;
-      }
-      pdf.text('[Street Address]', m + 1, y);
+      if (ve) pdf.text(ve, 11, y);
       y += 3;
-      pdf.text('[City, ST ZIP]', m + 1, y);
+      pdf.text('[Street Address]', 11, y);
       y += 3;
-      pdf.text(`Phone: ${vphone}`, m + 1, y);
+      pdf.text('[City, ST ZIP]', 11, y);
       y += 3;
-      pdf.text('Fax: (000) 000-0000', m + 1, y);
+      pdf.text(`Phone: ${vp}`, 11, y);
+      y += 3;
+      pdf.text('Fax: (000) 000-0000', 11, y);
 
-      // Ship To
-      let sy = startY;
-      pdf.text(vname, m + halfW + 3, sy);
+      // Ship To (same)
+      let sy = 58;
+      pdf.text(vn, 101, sy);
       sy += 3;
-      if (vemail) {
-        pdf.text(vemail, m + halfW + 3, sy);
-        sy += 3;
-      }
-      pdf.text('[Street Address]', m + halfW + 3, sy);
+      if (ve) pdf.text(ve, 101, sy);
       sy += 3;
-      pdf.text('[City, ST ZIP]', m + halfW + 3, sy);
+      pdf.text('[Street Address]', 101, sy);
+      sy += 3;
+      pdf.text('[City, ST ZIP]', 101, sy);
 
-      y = startY + 20;
+      y = 85;
 
-      // REQUISITIONER ROW
+      // Requisitioner row headers
       pdf.setFillColor(41, 59, 89);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(8);
 
-      const cw = (pw - 2 * m - 3) / 4;
-      let cx = m;
-
-      pdf.rect(cx, y, cw, 4, 'F');
-      pdf.text('REQUISITIONER', cx + 1, y + 2.5);
-      cx += cw + 1;
-
-      pdf.rect(cx, y, cw, 4, 'F');
-      pdf.text('SHIP VIA', cx + 1, y + 2.5);
-      cx += cw + 1;
-
-      pdf.rect(cx, y, cw, 4, 'F');
-      pdf.text('F.O.B.', cx + 1, y + 2.5);
-      cx += cw + 1;
-
-      pdf.rect(cx, y, cw, 4, 'F');
-      pdf.text('SHIPPING TERMS', cx + 1, y + 2.5);
+      pdf.rect(10, y, 42, 4, 'F');
+      pdf.text('REQUISITIONER', 11, y + 2.5);
+      pdf.rect(53, y, 42, 4, 'F');
+      pdf.text('SHIP VIA', 54, y + 2.5);
+      pdf.rect(96, y, 42, 4, 'F');
+      pdf.text('F.O.B.', 97, y + 2.5);
+      pdf.rect(139, y, 45, 4, 'F');
+      pdf.text('SHIPPING TERMS', 140, y + 2.5);
 
       y += 5;
 
-      // Empty row
-      cx = m;
-      pdf.rect(cx, y, cw, 4);
-      cx += cw + 1;
-      pdf.rect(cx, y, cw, 4);
-      cx += cw + 1;
-      pdf.rect(cx, y, cw, 4);
-      cx += cw + 1;
-      pdf.rect(cx, y, cw, 4);
+      // Empty requisitioner boxes
+      pdf.rect(10, y, 42, 4);
+      pdf.rect(53, y, 42, 4);
+      pdf.rect(96, y, 42, 4);
+      pdf.rect(139, y, 45, 4);
 
       y += 6;
 
-      // ITEMS TABLE
+      // ITEMS TABLE headers
       pdf.setFillColor(41, 59, 89);
       pdf.setTextColor(255, 255, 255);
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(8);
 
-      const icw = (pw - 2 * m) / 5;
-      let ix = m;
-
-      const hdr = ['ITEM #', 'DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL'];
-      for (const h of hdr) {
-        pdf.rect(ix, y, icw, 4, 'F');
-        pdf.text(h, ix + 1, y + 2.5);
-        ix += icw;
-      }
+      pdf.rect(10, y, 25, 4, 'F');
+      pdf.text('ITEM #', 11, y + 2.5);
+      pdf.rect(35, y, 80, 4, 'F');
+      pdf.text('DESCRIPTION', 36, y + 2.5);
+      pdf.rect(115, y, 25, 4, 'F');
+      pdf.text('QTY', 118, y + 2.5);
+      pdf.rect(140, y, 30, 4, 'F');
+      pdf.text('UNIT PRICE', 141, y + 2.5);
+      pdf.rect(170, y, 25, 4, 'F');
+      pdf.text('TOTAL', 171, y + 2.5);
 
       y += 5;
 
@@ -413,74 +386,66 @@ export default function POGeneration() {
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(8);
 
-      ix = m;
-      pdf.rect(ix, y, icw, 4);
-      pdf.text('1', ix + 2, y + 2.5);
-      ix += icw;
-
-      pdf.rect(ix, y, icw, 4);
-      pdf.text(String(po.description || '').substring(0, 18), ix + 1, y + 2.5);
-      ix += icw;
-
-      pdf.rect(ix, y, icw, 4);
-      pdf.text(String(po.quantity || ''), ix + 3, y + 2.5);
-      ix += icw;
-
-      pdf.rect(ix, y, icw, 4);
-      pdf.text(`₹${Number(po.unitPrice || 0).toFixed(2)}`, ix + 1, y + 2.5);
-      ix += icw;
-
-      pdf.rect(ix, y, icw, 4);
+      pdf.rect(10, y, 25, 4);
+      pdf.text('1', 15, y + 2.5);
+      pdf.rect(35, y, 80, 4);
+      pdf.text(String(po.description || '').substring(0, 30), 36, y + 2.5);
+      pdf.rect(115, y, 25, 4);
+      pdf.text(String(po.quantity || ''), 120, y + 2.5);
+      pdf.rect(140, y, 30, 4);
+      pdf.text(`₹${Number(po.unitPrice || 0).toFixed(2)}`, 141, y + 2.5);
+      pdf.rect(170, y, 25, 4);
       const ta = Number(po.totalAmount || 0).toFixed(2);
-      pdf.text(`₹${ta}`, ix + 1, y + 2.5);
+      pdf.text(`₹${ta}`, 171, y + 2.5);
 
       y += 5;
 
-      // Empty rows
+      // Empty item rows
       for (let i = 0; i < 8; i++) {
-        ix = m;
-        for (let j = 0; j < 5; j++) {
-          pdf.rect(ix, y, icw);
-          ix += icw;
-        }
+        pdf.rect(10, y, 25, 4);
+        pdf.rect(35, y, 80, 4);
+        pdf.rect(115, y, 25, 4);
+        pdf.rect(140, y, 30, 4);
+        pdf.rect(170, y, 25, 4);
         y += 4;
       }
 
       y += 3;
 
-      // COMMENTS & TOTALS
+      // Comments section
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(8);
-      pdf.text('Comments', m, y);
+      pdf.text('Comments or Special Instructions', 10, y);
+      y += 3;
 
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(7);
-      pdf.rect(m, y + 1, halfW, 15);
-      pdf.text('Thank you for your business.', m + 1, y + 3);
+      pdf.rect(10, y, 80, 15);
+      pdf.text('Thank you for your business.', 12, y + 3);
 
-      // TOTALS
-      const tx = m + halfW + 5;
+      // Totals section
       pdf.setFontSize(8);
+      const tx = 95;
 
       pdf.text('SUBTOTAL', tx, y + 2);
-      pdf.rect(tx + 25, y + 1, 20, 3);
-      pdf.text(`₹${ta}`, tx + 26, y + 3);
+      pdf.rect(tx + 30, y + 1, 25, 3);
+      pdf.text(`₹${ta}`, tx + 31, y + 3);
 
       pdf.text('TAX', tx, y + 6);
-      pdf.rect(tx + 25, y + 5, 20, 3);
+      pdf.rect(tx + 30, y + 5, 25, 3);
 
       pdf.text('SHIPPING', tx, y + 10);
-      pdf.rect(tx + 25, y + 9, 20, 3);
+      pdf.rect(tx + 30, y + 9, 25, 3);
 
       pdf.text('OTHER', tx, y + 14);
-      pdf.rect(tx + 25, y + 13, 20, 3);
+      pdf.rect(tx + 30, y + 13, 25, 3);
 
       pdf.setFont(undefined, 'bold');
       pdf.setFillColor(41, 128, 185);
       pdf.setTextColor(255, 255, 255);
-      pdf.rect(tx, y + 18, 45, 5, 'F');
+      pdf.rect(tx, y + 18, 55, 5, 'F');
       pdf.text('TOTAL', tx + 2, y + 20.5);
-      pdf.text(`₹${ta}`, tx + 26, y + 20.5);
+      pdf.text(`₹${ta}`, tx + 31, y + 20.5);
 
       pdf.save(`PO-${poNumber}.pdf`);
       toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
