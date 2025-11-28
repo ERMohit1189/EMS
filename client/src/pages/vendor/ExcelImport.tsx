@@ -127,7 +127,7 @@ export default function ExcelImport() {
 
           let vendorId: string;
           try {
-            const vendorResponse = await fetch('/api/vendors/find-or-create', {
+            const vendorResponse = await fetch(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: partnerName }),
@@ -235,7 +235,7 @@ export default function ExcelImport() {
           };
 
           if (siteData.siteId && siteData.planId) {
-            const response = await fetch('/api/sites/upsert', {
+            const response = await fetch(`${getApiBaseUrl()}/api/sites/upsert`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(siteData),
@@ -411,7 +411,7 @@ export default function ExcelImport() {
     }
 
     try {
-      const response = await fetch('/api/sites', {
+      const response = await fetch(`${getApiBaseUrl()}/api/sites`, {
         method: 'DELETE',
       });
 
@@ -439,13 +439,13 @@ export default function ExcelImport() {
       let endpoint = '';
 
       if (importType === 'site') {
-        endpoint = '/api/sites?pageSize=10000';
+        endpoint = `${getApiBaseUrl()}/api/sites?pageSize=10000`;
         fileName = `sites_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (importType === 'vendor') {
-        endpoint = '/api/vendors?pageSize=10000';
+        endpoint = `${getApiBaseUrl()}/api/vendors?pageSize=10000`;
         fileName = `vendors_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (importType === 'employee') {
-        endpoint = '/api/employees?pageSize=10000';
+        endpoint = `${getApiBaseUrl()}/api/employees?pageSize=10000`;
         fileName = `employees_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       }
 
