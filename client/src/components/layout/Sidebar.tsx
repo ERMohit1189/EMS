@@ -119,12 +119,12 @@ const menuGroups = [
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const [location, setLocation] = useLocation();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    Main: true,
-    'Vendor Management': true,
-    'Site Operations': true,
-    'Data Management': true,
-    Finance: true,
-    Documents: true,
+    Main: false,
+    'Vendor Management': false,
+    'Site Operations': false,
+    'Data Management': false,
+    Finance: false,
+    Documents: false,
     Settings: false,
   });
 
