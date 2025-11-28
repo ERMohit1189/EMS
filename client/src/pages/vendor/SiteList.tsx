@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getApiBaseUrl } from "@/lib/api";
+import { fetchWithLoader } from "@/lib/fetchWithLoader";
 import * as XLSX from "xlsx";
 
 export default function SiteList() {
@@ -516,7 +517,7 @@ export default function SiteList() {
                     onClick={async () => {
                       if (confirm('Are you sure you want to delete this site?')) {
                         try {
-                          await fetch(`/api/sites/${site.id}`, { method: 'DELETE' });
+                          await fetchWithLoader(`${getApiBaseUrl()}/api/sites/${site.id}`, { method: 'DELETE' });
                           setSites(sites.filter(s => s.id !== site.id));
                         } catch (error) {
                           console.error('Failed to delete site:', error);
