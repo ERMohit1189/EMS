@@ -109,6 +109,7 @@ export interface Site {
 export interface Employee {
   id: string;
   name: string;
+  email: string;
   dob: string;
   fatherName: string;
   mobile: string;
