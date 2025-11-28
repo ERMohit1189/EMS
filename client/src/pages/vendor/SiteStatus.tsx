@@ -113,7 +113,7 @@ export default function SiteStatus() {
     }
   };
 
-  const statusOptions = ['All', ...new Set(sites.map(s => s.status))];
+  const statusOptions = ['All', ...Array.from(new Set(sites.map(s => s.status)))];
 
   const toggleSiteSelection = (siteId: string) => {
     const newSelected = new Set(selectedSites);

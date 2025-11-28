@@ -346,7 +346,7 @@ export async function registerRoutes(
         console.log('[API] Auto-approving site status for planIds:', planIds);
         // Update site status to Approved for these plan IDs
         const updateResult = await Promise.all(
-          planIds.map(planId => 
+          planIds.map((planId: string) => 
             db.update(sites)
               .set({ status: 'Approved' })
               .where(eq(sites.planId, planId))
