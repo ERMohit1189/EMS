@@ -149,24 +149,47 @@ export default function SiteStatus() {
         .map(siteId => filteredSites.find(s => s.id === siteId)?.planId)
         .filter(Boolean) as string[];
 
+      if (planIds.length === 0) {
+        throw new Error('No valid plan IDs found');
+      }
+
       const updatePayload = {
         planIds: planIds,
         phyAtStatus: bulkPhyAtStatus || undefined,
         softAtStatus: bulkSoftAtStatus || undefined,
       };
-      console.log('[SiteStatus] Sending bulk status update with planIds:', updatePayload);
       
-      const response = await fetch(`${getApiBaseUrl()}/api/sites/bulk-update-status-by-plan`, {
+      const apiBaseUrl = getApiBaseUrl();
+      const fullUrl = `${apiBaseUrl}/api/sites/bulk-update-status-by-plan`;
+      console.log('[SiteStatus] Making request to:', fullUrl);
+      console.log('[SiteStatus] Payload:', updatePayload);
+      
+      const response = await fetch(fullUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(updatePayload),
       });
 
-      const text = await response.text();
-      console.log('[SiteStatus] Response status:', response.status, 'body:', text.substring(0, 100));
+      console.log('[SiteStatus] Response status:', response.status);
+      console.log('[SiteStatus] Response headers:', {
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SiteStatus] Error response:', errorText.substring(0, 200));
+        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+      }
       
-      if (!response.ok || !text.includes('success')) {
-        throw new Error(`Server error: ${text.substring(0, 100)}`);
+      const text = await response.text();
+      console.log('[SiteStatus] Success response:', text);
+      
+      if (!text.includes('success')) {
+        throw new Error(`Invalid response: ${text.substring(0, 100)}`);
       }
       
       const responseData = JSON.parse(text);
@@ -177,8 +200,8 @@ export default function SiteStatus() {
       
       await fetchSites();
     } catch (error: any) {
-      console.error('[SiteStatus] Bulk update error:', error);
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      console.error('[SiteStatus] Bulk update error:', error.message);
+      toast({ title: 'Error', description: error.message || 'Failed to update sites', variant: 'destructive' });
     }
   };
 
