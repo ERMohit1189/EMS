@@ -89,12 +89,6 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Protect API routes from Vite catch-all - return 404 JSON for unmatched API routes
-  app.use("/api/", (req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.path}` });
-  });
-
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -104,6 +98,12 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
+
+  // Protect API routes from Vite catch-all - MUST be AFTER setupVite to ensure it takes precedence
+  app.use("/api/", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.path}` });
+  });
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
