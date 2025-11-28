@@ -736,6 +736,10 @@ export async function registerRoutes(
 
   app.delete("/api/payment-masters/:id", async (req, res) => {
     try {
+      const isUsed = await storage.isPaymentMasterUsedInPO(req.params.id);
+      if (isUsed) {
+        return res.status(409).json({ error: "Cannot delete this payment master. It is already used in PO generation. Please remove associated POs first." });
+      }
       await storage.deletePaymentMaster(req.params.id);
       res.json({ success: true });
     } catch (error: any) {

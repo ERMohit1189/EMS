@@ -106,6 +106,7 @@ export interface IStorage {
   getPaymentMasterByCompositeKey(siteId: string, planId: string, vendorId: string, antennaSize: string): Promise<PaymentMaster | undefined>;
   updatePaymentMaster(id: string, pm: Partial<InsertPaymentMaster>): Promise<PaymentMaster>;
   deletePaymentMaster(id: string): Promise<void>;
+  isPaymentMasterUsedInPO(paymentMasterId: string): Promise<boolean>;
 
   // Zone operations
   createZone(zone: InsertZone): Promise<Zone>;
@@ -765,6 +766,19 @@ export class DrizzleStorage implements IStorage {
 
   async deletePaymentMaster(id: string): Promise<void> {
     await db.delete(paymentMasters).where(eq(paymentMasters.id, id));
+  }
+
+  async isPaymentMasterUsedInPO(paymentMasterId: string): Promise<boolean> {
+    const pm = await this.getPaymentMaster(paymentMasterId);
+    if (!pm) return false;
+
+    const pos = await db.select().from(purchaseOrders).where(
+      and(
+        eq(purchaseOrders.vendorId, pm.vendorId),
+        eq(purchaseOrders.siteId, pm.siteId)
+      )
+    );
+    return pos.length > 0;
   }
 
   // Zone operations
