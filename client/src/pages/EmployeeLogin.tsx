@@ -96,12 +96,11 @@ export default function EmployeeLogin() {
         designation: localStorage.getItem("employeeDesignation")
       });
 
-      // Save credentials to cookies if Remember Me is checked and cookies are enabled
-      const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
-      console.log("[EmployeeLogin] Remember Me:", rememberMe, "Cookies enabled:", cookiesEnabled);
+      // Save credentials to cookies if Remember Me is checked
+      console.log("[EmployeeLogin] Remember Me checkbox state:", rememberMe);
       
-      if (rememberMe && cookiesEnabled) {
-        console.log("[EmployeeLogin] Saving credentials to cookie...");
+      if (rememberMe) {
+        console.log("[EmployeeLogin] Saving credentials to cookie for 7 days...");
         setCookie(
           "employeeLoginCredentials",
           JSON.stringify({ email, password }),
@@ -112,7 +111,7 @@ export default function EmployeeLogin() {
           description: "Login successful! Credentials saved for 7 days",
         });
       } else {
-        console.log("[EmployeeLogin] NOT saving credentials. rememberMe:", rememberMe, "cookiesEnabled:", cookiesEnabled);
+        console.log("[EmployeeLogin] Remember Me was not checked, credentials NOT saved");
         toast({
           title: "Success",
           description: "Login successful!",
