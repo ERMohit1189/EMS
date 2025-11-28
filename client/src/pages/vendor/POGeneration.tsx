@@ -102,6 +102,11 @@ export default function POGeneration() {
             quantity: po.quantity,
             unitPrice: po.unitPrice,
             maxAntennaSize,
+            cgstAmount: po.cgstAmount ? parseFloat(po.cgstAmount) : 0,
+            sgstAmount: po.sgstAmount ? parseFloat(po.sgstAmount) : 0,
+            igstAmount: po.igstAmount ? parseFloat(po.igstAmount) : 0,
+            gstType: po.gstType,
+            gstApply: po.gstApply,
           });
         }
         setAllPOs(poRecords);
