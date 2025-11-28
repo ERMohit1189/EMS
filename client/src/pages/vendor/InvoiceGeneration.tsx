@@ -459,23 +459,40 @@ export default function InvoiceGeneration() {
                 <div className="grid gap-3 max-h-96 overflow-y-auto">
                   {availablePOs.map((po) => {
                     const vendor = vendors.find(v => v.id === po.vendorId);
+                    const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
                     return (
                       <div
                         key={po.id}
-                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                        className="p-3 border rounded-lg hover:bg-slate-50 cursor-pointer"
                         onClick={() => handlePOSelection(po.id)}
                       >
-                        <input
-                          type="checkbox"
-                          checked={selectedPOs.has(po.id)}
-                          onChange={() => handlePOSelection(po.id)}
-                          className="w-4 h-4"
-                        />
-                        <div className="flex-1">
-                          <p className="font-semibold">{po.poNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Vendor: {vendor?.name} | Amount: ₹{po.totalAmount}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedPOs.has(po.id)}
+                            onChange={() => handlePOSelection(po.id)}
+                            className="w-4 h-4"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold">{po.poNumber}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              Vendor: {vendor?.name}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-2 ml-7 grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <p className="text-slate-600 font-semibold">Amount</p>
+                            <p className="font-bold">₹{parseFloat(po.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-orange-600 font-semibold">GST</p>
+                            <p className="font-bold text-orange-600">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                          </div>
+                          <div>
+                            <p className="text-green-600 font-semibold">Total</p>
+                            <p className="font-bold text-green-600">₹{(parseFloat(po.totalAmount) + gstAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                          </div>
                         </div>
                       </div>
                     );
