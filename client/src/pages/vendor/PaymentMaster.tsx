@@ -59,22 +59,35 @@ export default function PaymentMaster() {
 
   const fetchUsedPaymentMasters = async () => {
     try {
-      const posRes = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`);
-      if (!posRes.ok) return;
-      const posData = await posRes.json();
-      const pos = posData.data || [];
+      const [posRes, sitesRes, pmsRes] = await Promise.all([
+        fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`),
+        fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`),
+        fetch(`${getApiBaseUrl()}/api/payment-masters`)
+      ]);
 
-      const sitesRes = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
-      if (!sitesRes.ok) return;
+      if (!posRes.ok || !sitesRes.ok || !pmsRes.ok) return;
+
+      const posData = await posRes.json();
       const sitesData = await sitesRes.json();
+      const pmsData = await pmsRes.json();
+
+      const pos = posData.data || [];
       const allSites = sitesData.data || [];
+      const paymentMasters = pmsData.data || [];
+
       const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
 
       const used: string[] = [];
       pos.forEach((po: any) => {
         const site = siteMap.get(po.siteId);
         if (po.vendorId && po.siteId && site?.planId) {
-          used.push(`${po.vendorId}_${po.siteId}_${site.planId}`);
+          // Find all payment masters matching this vendor+site+planId combination
+          paymentMasters.forEach((pm: any) => {
+            if (pm.vendorId === po.vendorId && pm.siteId === po.siteId && pm.planId === site.planId) {
+              // Store the full key with antenna size
+              used.push(`${pm.vendorId}_${pm.siteId}_${pm.planId}_${pm.antennaSize}`);
+            }
+          });
         }
       });
       setUsedCombinations(used);
@@ -317,7 +330,7 @@ export default function PaymentMaster() {
                 {masters.map((m) => {
                   const siteData = sites.find(s => s.id === m.siteId);
                   const vendorData = vendors.find(v => v.id === m.vendorId);
-                  const isUsed = usedCombinations.includes(`${m.vendorId}_${m.siteId}_${m.planId}`);
+                  const isUsed = usedCombinations.includes(`${m.vendorId}_${m.siteId}_${m.planId}_${m.antennaSize}`);
                   return (
                     <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                       <div className="flex-1">
