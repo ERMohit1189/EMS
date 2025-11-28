@@ -115,6 +115,30 @@ export default function SiteStatus() {
 
   const statusOptions = ['All', ...Array.from(new Set(sites.map(s => s.status)))];
 
+  const calculateStatusCounts = () => {
+    return {
+      pending: sites.filter(s => s.status === 'Pending').length,
+      approved: sites.filter(s => s.status === 'Approved').length,
+      rejected: sites.filter(s => s.status === 'Rejected').length,
+      raised: sites.filter(s => s.status === 'Raised').length,
+    };
+  };
+
+  const getStatusCountColor = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'bg-yellow-50 border-yellow-200 text-yellow-900';
+      case 'Approved':
+        return 'bg-green-50 border-green-200 text-green-900';
+      case 'Rejected':
+        return 'bg-red-50 border-red-200 text-red-900';
+      case 'Raised':
+        return 'bg-blue-50 border-blue-200 text-blue-900';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-900';
+    }
+  };
+
   const toggleSiteSelection = (siteId: string) => {
     const newSelected = new Set(selectedSites);
     if (newSelected.has(siteId)) {
@@ -230,6 +254,27 @@ export default function SiteStatus() {
             Refresh
           </Button>
         </div>
+      </div>
+
+      {/* Status Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
+          const counts = calculateStatusCounts();
+          const statusKey = status.toLowerCase() as keyof typeof counts;
+          const count = counts[statusKey];
+          
+          return (
+            <Card key={status} className={`shadow-md border-2 ${getStatusCountColor(status)}`}>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
+                  <p className="text-4xl font-bold">{count}</p>
+                  <p className="text-xs opacity-60 mt-2">sites</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Filters */}
