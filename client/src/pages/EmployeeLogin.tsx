@@ -178,7 +178,15 @@ export default function EmployeeLogin() {
                 <Checkbox
                   id="remember-me"
                   checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked as boolean;
+                    setRememberMe(isChecked);
+                    if (isChecked) {
+                      localStorage.setItem("useCredentialsCookies", "true");
+                    } else {
+                      localStorage.removeItem("useCredentialsCookies");
+                    }
+                  }}
                   disabled={loading}
                   data-testid="checkbox-remember-me"
                   className="h-4 w-4 border-gray-300"
