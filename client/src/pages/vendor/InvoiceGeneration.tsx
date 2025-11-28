@@ -575,10 +575,12 @@ export default function InvoiceGeneration() {
                             <span className="font-semibold text-slate-600 uppercase">Amount</span>
                             <span className="font-bold text-slate-700">₹{parseFloat(invoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="font-semibold text-slate-600 uppercase">GST</span>
-                            <span className="font-bold text-orange-600">₹{parseFloat(invoice.gst).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                          </div>
+                          {parseFloat(invoice.gst) > 0 && (
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-semibold text-slate-600 uppercase">GST</span>
+                              <span className="font-bold text-orange-600">₹{parseFloat(invoice.gst).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between items-center bg-green-50 p-2 rounded">
                             <span className="text-xs font-bold text-slate-700">Total</span>
                             <span className="text-sm font-bold text-green-600">₹{parseFloat(invoice.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
@@ -643,10 +645,12 @@ export default function InvoiceGeneration() {
                             <span className="font-semibold text-slate-600 uppercase">Amount</span>
                             <span className="font-bold text-slate-700">₹{parseFloat(invoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="font-semibold text-slate-600 uppercase">GST</span>
-                            <span className="font-bold text-orange-600">₹{parseFloat(invoice.gst).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                          </div>
+                          {parseFloat(invoice.gst) > 0 && (
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-semibold text-slate-600 uppercase">GST</span>
+                              <span className="font-bold text-orange-600">₹{parseFloat(invoice.gst).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between items-center bg-green-50 p-2 rounded">
                             <span className="text-xs font-bold text-slate-700">Total</span>
                             <span className="text-sm font-bold text-green-600">₹{(parseFloat(invoice.amount) + parseFloat(invoice.gst)).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
