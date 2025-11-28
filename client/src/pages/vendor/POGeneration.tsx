@@ -240,168 +240,255 @@ export default function POGeneration() {
   const exportPOToPDF = async (poId: string, poNumber: string) => {
     try {
       const baseUrl = getApiBaseUrl();
-      
-      // Fetch PO details
       const poRes = await fetch(`${baseUrl}/api/purchase-orders/${poId}`);
       if (!poRes.ok) throw new Error("Failed to fetch PO");
       const po = await poRes.json();
       
-      // Fetch site and vendor details
       const siteRes = await fetch(`${baseUrl}/api/sites/${po.siteId}`);
       const site = siteRes.ok ? await siteRes.json() : null;
       
       const vendorRes = await fetch(`${baseUrl}/api/vendors/${po.vendorId}`);
       const vendor = vendorRes.ok ? await vendorRes.json() : null;
 
-      // Fetch export header settings
       const headerRes = await fetch(`${baseUrl}/api/export-headers`);
       const exportHeaderSettings = headerRes.ok ? await headerRes.json() : {};
 
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const contentWidth = pageWidth - (2 * margin);
-      const lineHeight = 5;
+      const margin = 8;
+      const colWidth = (pageWidth - 2 * margin) / 2;
 
       let yPosition = margin;
 
-      // Add company header if settings exist
-      if (exportHeaderSettings.companyName) {
-        pdf.setFillColor(41, 128, 185);
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(10);
-        pdf.rect(margin, yPosition, contentWidth, 7, 'F');
-        pdf.text(exportHeaderSettings.companyName, margin + 5, yPosition + 4.5);
-        yPosition += 10;
-      }
+      // LEFT COLUMN: Company Info
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(exportHeaderSettings.companyName || '[Company Name]', margin, yPosition);
+      yPosition += 5;
 
-      // Add PO header
-      pdf.setFillColor(100, 149, 237);
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(12);
-      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
-      pdf.text(`PURCHASE ORDER`, margin + 5, yPosition + 5);
-      yPosition += 10;
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'normal');
+      const companyLines = [
+        exportHeaderSettings.address || '[Street Address]',
+        exportHeaderSettings.address ? '[City, ST ZIP]' : '',
+        exportHeaderSettings.contactPhone ? `Phone: ${exportHeaderSettings.contactPhone}` : 'Phone: (000) 000-0000',
+        exportHeaderSettings.contactPhone ? 'Fax: (000) 000-0000' : '',
+        exportHeaderSettings.website ? `Website: ${exportHeaderSettings.website}` : 'Website:',
+      ].filter(Boolean);
 
-      // PO details
+      companyLines.forEach(line => {
+        pdf.text(line, margin, yPosition);
+        yPosition += 3;
+      });
+
+      // RIGHT COLUMN: PO Title and Date
+      pdf.setFontSize(20);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(41, 128, 185);
+      pdf.text('PURCHASE ORDER', margin + colWidth + 15, margin + 5);
+
       pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'normal');
       
-      const details = [
-        { label: 'PO Number', value: po.poNumber },
-        { label: 'PO Date', value: po.poDate },
-        { label: 'Due Date', value: po.dueDate },
-        { label: 'Status', value: po.status },
-      ];
+      const dateX = margin + colWidth + 20;
+      pdf.text('DATE', dateX, margin + 15);
+      pdf.rect(dateX, margin + 16, 35, 4);
+      pdf.text(po.poDate || '', dateX + 2, margin + 19);
+      
+      pdf.text('PO #', dateX, margin + 22);
+      pdf.rect(dateX, margin + 23, 35, 4);
+      pdf.text(po.poNumber, dateX + 2, margin + 26);
 
-      for (const detail of details) {
-        if (yPosition + lineHeight > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-        pdf.setFont(undefined, 'bold');
-        pdf.text(detail.label + ':', margin + 2, yPosition + 4);
-        pdf.setFont(undefined, 'normal');
-        pdf.text(String(detail.value), margin + 40, yPosition + 4);
-        yPosition += 6;
-      }
+      yPosition = margin + 35;
 
-      yPosition += 3;
+      // VENDOR and SHIP TO sections
+      const leftX = margin;
+      const rightX = margin + colWidth + 5;
+
+      // VENDOR header
+      pdf.setFillColor(41, 59, 89);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(9);
+      pdf.rect(leftX, yPosition, colWidth - 3, 4, 'F');
+      pdf.text('VENDOR', leftX + 2, yPosition + 3);
+
+      // SHIP TO header
+      pdf.rect(rightX, yPosition, colWidth - 3, 4, 'F');
+      pdf.text('SHIP TO', rightX + 2, yPosition + 3);
+
+      yPosition += 5;
 
       // Vendor details
-      pdf.setFillColor(200, 220, 240);
       pdf.setTextColor(0, 0, 0);
-      pdf.setFont(undefined, 'bold');
-      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
-      pdf.text('VENDOR DETAILS', margin + 5, yPosition + 4);
-      yPosition += 8;
-
-      if (vendor) {
-        const vendorDetails = [
-          { label: 'Name', value: vendor.name },
-          { label: 'Email', value: vendor.email },
-          { label: 'Phone', value: vendor.phone },
-          { label: 'GSTIN', value: vendor.gstin || '-' },
-        ];
-        pdf.setFont(undefined, 'normal');
-        for (const detail of vendorDetails) {
-          if (yPosition + lineHeight > pageHeight - margin) {
-            pdf.addPage();
-            yPosition = margin;
-          }
-          pdf.text(detail.label + ':', margin + 2, yPosition + 4);
-          pdf.text(String(detail.value), margin + 40, yPosition + 4);
-          yPosition += 6;
-        }
-      }
-
-      yPosition += 3;
-
-      // Site details
-      pdf.setFillColor(200, 220, 240);
-      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
-      pdf.setFont(undefined, 'bold');
-      pdf.text('SITE DETAILS', margin + 5, yPosition + 4);
-      yPosition += 8;
-
-      if (site) {
-        const siteDetails = [
-          { label: 'Site ID', value: site.siteId },
-          { label: 'Plan ID', value: site.planId },
-          { label: 'HOP A-B', value: site.hopAB },
-          { label: 'Circle', value: site.circle },
-          { label: 'District', value: site.district },
-        ];
-        pdf.setFont(undefined, 'normal');
-        for (const detail of siteDetails) {
-          if (yPosition + lineHeight > pageHeight - margin) {
-            pdf.addPage();
-            yPosition = margin;
-          }
-          pdf.text(detail.label + ':', margin + 2, yPosition + 4);
-          pdf.text(String(detail.value), margin + 40, yPosition + 4);
-          yPosition += 6;
-        }
-      }
-
-      yPosition += 3;
-
-      // PO Items
-      pdf.setFillColor(200, 220, 240);
-      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
-      pdf.setFont(undefined, 'bold');
-      pdf.text('PO ITEMS', margin + 5, yPosition + 4);
-      yPosition += 8;
-
-      const items = [
-        { label: 'Description', value: po.description },
-        { label: 'Quantity', value: po.quantity },
-        { label: 'Unit Price', value: `₹${Number(po.unitPrice).toLocaleString('en-IN')}` },
-        { label: 'Total Amount', value: `₹${Number(po.totalAmount).toLocaleString('en-IN')}` },
-      ];
       pdf.setFont(undefined, 'normal');
-      for (const item of items) {
-        if (yPosition + lineHeight > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-        pdf.text(item.label + ':', margin + 2, yPosition + 4);
-        pdf.text(String(item.value), margin + 40, yPosition + 4);
-        yPosition += 6;
+      pdf.setFontSize(8);
+      const vendorLines = [
+        vendor?.name || '[Company Name]',
+        vendor?.email || '[Contact or Department]',
+        vendor?.address || '[Street Address]',
+        '[City, ST ZIP]',
+        vendor?.phone ? `Phone: ${vendor.phone}` : 'Phone: (000) 000-0000',
+        vendor?.phone ? 'Fax: (000) 000-0000' : '',
+      ].filter(Boolean);
+
+      vendorLines.forEach(line => {
+        pdf.text(line, leftX, yPosition);
+        yPosition += 3;
+      });
+
+      // Ship To (same as vendor for now)
+      let shipY = margin + 39;
+      vendorLines.forEach(line => {
+        pdf.text(line, rightX, shipY);
+        shipY += 3;
+      });
+
+      yPosition = Math.max(yPosition, shipY) + 3;
+
+      // REQUISITIONER, SHIP VIA, F.O.B., SHIPPING TERMS row
+      pdf.setFillColor(41, 59, 89);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(8);
+      
+      const colWidths = [(pageWidth - 2 * margin) / 4, (pageWidth - 2 * margin) / 4, (pageWidth - 2 * margin) / 4, (pageWidth - 2 * margin) / 4];
+      let xPos = margin;
+      
+      pdf.rect(xPos, yPosition, colWidths[0], 4, 'F');
+      pdf.text('REQUISITIONER', xPos + 2, yPosition + 3);
+      xPos += colWidths[0];
+      
+      pdf.rect(xPos, yPosition, colWidths[1], 4, 'F');
+      pdf.text('SHIP VIA', xPos + 2, yPosition + 3);
+      xPos += colWidths[1];
+      
+      pdf.rect(xPos, yPosition, colWidths[2], 4, 'F');
+      pdf.text('F.O.B.', xPos + 2, yPosition + 3);
+      xPos += colWidths[2];
+      
+      pdf.rect(xPos, yPosition, colWidths[3], 4, 'F');
+      pdf.text('SHIPPING TERMS', xPos + 2, yPosition + 3);
+
+      yPosition += 4;
+      
+      // Empty row for requisitioner details
+      xPos = margin;
+      for (let i = 0; i < 4; i++) {
+        pdf.rect(xPos, yPosition, colWidths[i], 4);
+        xPos += colWidths[i];
       }
 
-      // Add footer if exists
-      if (exportHeaderSettings.footerText) {
-        yPosition += 5;
-        if (yPosition + 10 > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
+      yPosition += 5;
+
+      // ITEMS TABLE
+      pdf.setFillColor(41, 59, 89);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(8);
+
+      const itemColWidths = [20, (pageWidth - 2 * margin - 20 - 20 - 25) / 2, 20, 25];
+      let itemX = margin;
+      
+      pdf.rect(itemX, yPosition, itemColWidths[0], 4, 'F');
+      pdf.text('ITEM #', itemX + 1, yPosition + 3);
+      itemX += itemColWidths[0];
+      
+      pdf.rect(itemX, yPosition, itemColWidths[1], 4, 'F');
+      pdf.text('DESCRIPTION', itemX + 1, yPosition + 3);
+      itemX += itemColWidths[1];
+      
+      pdf.rect(itemX, yPosition, itemColWidths[2], 4, 'F');
+      pdf.text('QTY', itemX + 5, yPosition + 3);
+      itemX += itemColWidths[2];
+      
+      pdf.rect(itemX, yPosition, itemColWidths[3], 4, 'F');
+      pdf.text('UNIT PRICE', itemX + 2, yPosition + 3);
+
+      yPosition += 4;
+
+      // Item rows
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(8);
+
+      itemX = margin;
+      pdf.rect(itemX, yPosition, itemColWidths[0], 4);
+      pdf.text('1', itemX + 2, yPosition + 3);
+      itemX += itemColWidths[0];
+      
+      pdf.rect(itemX, yPosition, itemColWidths[1], 4);
+      pdf.text(po.description.substring(0, 30), itemX + 1, yPosition + 3);
+      itemX += itemColWidths[1];
+      
+      pdf.rect(itemX, yPosition, itemColWidths[2], 4);
+      pdf.text(String(po.quantity), itemX + 8, yPosition + 3);
+      itemX += itemColWidths[2];
+      
+      pdf.rect(itemX, yPosition, itemColWidths[3], 4);
+      pdf.text(`₹${Number(po.unitPrice).toFixed(2)}`, itemX + 2, yPosition + 3);
+
+      yPosition += 4;
+
+      // Empty rows for additional items
+      for (let i = 0; i < 5; i++) {
+        itemX = margin;
+        for (let j = 0; j < 4; j++) {
+          pdf.rect(itemX, yPosition, itemColWidths[j]);
+          itemX += itemColWidths[j];
         }
-        pdf.setFontSize(7);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(exportHeaderSettings.footerText, margin, yPosition, { maxWidth: contentWidth });
+        yPosition += 4;
       }
+
+      yPosition += 2;
+
+      // Comments and Totals
+      const commentX = margin;
+      const totalX = margin + colWidth + 10;
+
+      // Comments section
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(8);
+      pdf.text('Comments or Special Instructions', commentX, yPosition);
+      yPosition += 1;
+      
+      pdf.rect(commentX, yPosition, colWidth - 5, 25);
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(7);
+      pdf.text('Thank you for your business.', commentX + 2, yPosition + 3);
+
+      // Totals on right
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(8);
+      const totalAmount = Number(po.totalAmount);
+
+      let totalsY = yPosition + 2;
+      
+      pdf.text('SUBTOTAL', totalX + 20, totalsY);
+      pdf.rect(totalX + 50, totalsY - 1, 25, 3);
+      pdf.text(`₹${totalAmount.toFixed(2)}`, totalX + 51, totalsY + 1);
+
+      totalsY += 5;
+      pdf.text('TAX', totalX + 20, totalsY);
+      pdf.rect(totalX + 50, totalsY - 1, 25, 3);
+
+      totalsY += 5;
+      pdf.text('SHIPPING', totalX + 20, totalsY);
+      pdf.rect(totalX + 50, totalsY - 1, 25, 3);
+
+      totalsY += 5;
+      pdf.text('OTHER', totalX + 20, totalsY);
+      pdf.rect(totalX + 50, totalsY - 1, 25, 3);
+
+      totalsY += 5;
+      pdf.setFont(undefined, 'bold');
+      pdf.setFillColor(41, 128, 185);
+      pdf.setTextColor(255, 255, 255);
+      pdf.rect(totalX + 20, totalsY, 55, 5, 'F');
+      pdf.text('TOTAL', totalX + 23, totalsY + 3.5);
+      pdf.text(`₹${totalAmount.toFixed(2)}`, totalX + 51, totalsY + 3.5);
 
       pdf.save(`PO-${poNumber}-${new Date().getTime()}.pdf`);
       toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
