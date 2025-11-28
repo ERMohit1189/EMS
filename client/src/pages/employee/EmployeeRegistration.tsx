@@ -33,7 +33,7 @@ const RequiredLabel = ({ children }: { children: string }) => (
   </span>
 );
 
-const employeeSchema = z.object({
+const baseSchema = z.object({
   name: z.string().min(2, 'Full name is required'),
   dob: z.string().optional(),
   fatherName: z.string().min(2, 'Father name is required'),
@@ -51,22 +51,38 @@ const employeeSchema = z.object({
   pan: z.string().optional(),
   bloodGroup: z.string().optional(),
   maritalStatus: z.enum(['Single', 'Married']),
+  spouseName: z.string().optional(),
   nominee: z.string().optional(),
   ppeKit: z.boolean().default(false),
   kitNo: z.string().optional(),
   status: z.enum(['Active', 'Inactive']).default('Active'),
-}).refine(
-  (data) => {
-    if (data.ppeKit && !data.kitNo) {
-      return false;
+});
+
+const employeeSchema = baseSchema
+  .refine(
+    (data) => {
+      if (data.maritalStatus === 'Married' && !data.spouseName) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Spouse name is required if married',
+      path: ['spouseName'],
     }
-    return true;
-  },
-  {
-    message: 'Kit number is required if PPE kit is issued',
-    path: ['kitNo'],
-  }
-);
+  )
+  .refine(
+    (data) => {
+      if (data.ppeKit && !data.kitNo) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Kit number is required if PPE kit is issued',
+      path: ['kitNo'],
+    }
+  );
 
 interface Department { id: string; name: string; }
 interface Designation { id: string; name: string; }
@@ -166,6 +182,7 @@ export default function EmployeeRegistration() {
       ...values,
       alternateNo: values.alternateNo || '',
       kitNo: values.kitNo || '',
+      spouseName: values.spouseName || '',
       dob: values.dob || '2000-01-01',
       city: values.city || 'Not Specified',
       state: values.state || 'Not Specified',
@@ -293,6 +310,28 @@ export default function EmployeeRegistration() {
                   </FormItem>
                 )}
               />
+              {form.watch('maritalStatus') === 'Married' && (
+                <FormField
+                  control={form.control}
+                  name="spouseName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel><RequiredLabel>Spouse Name</RequiredLabel></FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Spouse's Name" 
+                          {...field}
+                          onBlur={(e) => {
+                            field.onBlur();
+                            form.trigger('spouseName');
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               {age !== null && (
                 <div className="col-span-3 p-4 border border-blue-200 rounded-md bg-blue-50">
                   <div className="font-semibold text-blue-900">
