@@ -137,6 +137,7 @@ function App() {
               <Route path="/vendor/register" component={VendorRegistration} />
               <Route path="/vendor/list" component={VendorList} />
               <Route path="/vendor/edit/:id" component={VendorEdit} />
+              <Route path="/vendor/credentials" component={VendorCredentials} />
               <Route path="/vendor/payment-master" component={PaymentMaster} />
               <Route path="/vendor/circle-master" component={CircleMaster} />
               <Route path="/vendor/sites" component={SiteList} />
