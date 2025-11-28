@@ -47,10 +47,11 @@ export default function POGeneration() {
     const loadInitialData = async () => {
       try {
         const baseUrl = getApiBaseUrl();
-        const [sitesRes, vendorsRes, posRes] = await Promise.all([
+        const [sitesRes, vendorsRes, posRes, exportHeaderRes] = await Promise.all([
           fetch(`${baseUrl}/api/sites/for-po-generation`),
           fetch(`${baseUrl}/api/vendors?pageSize=10000`),
           fetch(`${baseUrl}/api/purchase-orders?pageSize=10000`),
+          fetch(`${baseUrl}/api/export-headers`),
         ]);
 
         if (!sitesRes.ok || !vendorsRes.ok || !posRes.ok) {
@@ -60,6 +61,7 @@ export default function POGeneration() {
         const sitesData = await sitesRes.json();
         const vendorsData = await vendorsRes.json();
         const posData = await posRes.json();
+        const exportHeaderData = exportHeaderRes.ok ? await exportHeaderRes.json() : null;
 
         const sites = sitesData.data || [];
         const vendorsList = vendorsData.data || [];
@@ -68,6 +70,11 @@ export default function POGeneration() {
         // Set vendors and sites
         setApprovedSites(sites);
         setVendors(vendorsList);
+        
+        // Store export header state for GST calculation
+        if (exportHeaderData?.state) {
+          localStorage.setItem('exportHeaderState', exportHeaderData.state);
+        }
 
         // Convert POs to PORecord format
         const poRecords: PORecord[] = [];
@@ -144,6 +151,9 @@ export default function POGeneration() {
     try {
       const selectedSiteIds = Array.from(selectedSites);
       const sitesData = approvedSites.filter(s => selectedSiteIds.includes(s.id));
+      
+      // Get export header state for GST determination
+      const exportHeaderState = localStorage.getItem('exportHeaderState');
 
       const records: PORecord[] = sitesData.map((site, index) => {
         const vendor = vendors.find(v => v.id === site.vendorId);
@@ -151,8 +161,8 @@ export default function POGeneration() {
           parseFloat(site.siteAAntDia) || 0,
           parseFloat(site.siteBAntDia) || 0
         );
-        // Auto-determine GST type: IGST if different states, CGST+SGST if same state
-        const gstType = (vendor?.state && site.state && vendor.state !== site.state) ? 'igst' : 'cgstsgst';
+        // Auto-determine GST type: IGST if vendor state != export state, CGST+SGST if same state
+        const gstType = (vendor?.state && exportHeaderState && vendor.state !== exportHeaderState) ? 'igst' : 'cgstsgst';
         return {
           siteId: site.id,
           vendorId: site.vendorId,
