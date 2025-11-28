@@ -220,40 +220,46 @@ export default function InvoiceGeneration() {
     const col1X = margin;
     const col2X = pageWidth / 2 + 5;
 
+    // Two column starting position
+    let leftYPos = yPosition;
+    let rightYPos = yPosition;
+
     // Left Column - Invoice Details
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text("INVOICE DETAILS", col1X, yPosition);
-    yPosition += 5;
+    doc.text("INVOICE DETAILS", col1X, leftYPos);
+    leftYPos += 5;
 
     doc.setFontSize(9);
     doc.setTextColor(...darkGray);
-    doc.text(`Invoice #: ${String(invoice.invoiceNumber)}`, col1X, yPosition);
-    yPosition += 4;
-    doc.text(`Invoice Date: ${String(invoice.invoiceDate)}`, col1X, yPosition);
-    yPosition += 4;
-    doc.text(`Due Date: ${String(invoice.invoiceDueDate)}`, col1X, yPosition);
+    doc.text(`Invoice #: ${String(invoice.invoiceNumber)}`, col1X, leftYPos);
+    leftYPos += 4;
+    doc.text(`Invoice Date: ${String(invoice.invoiceDate)}`, col1X, leftYPos);
+    leftYPos += 4;
+    doc.text(`Due Date: ${String(invoice.invoiceDueDate)}`, col1X, leftYPos);
 
     // Right Column - PO References
-    yPosition = 35;
+    rightYPos = yPosition;
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text("PURCHASE ORDER", col2X, yPosition);
-    yPosition += 5;
+    doc.text("PURCHASE ORDER", col2X, rightYPos);
+    rightYPos += 5;
 
     doc.setFontSize(9);
     doc.setTextColor(...darkGray);
-    doc.text(`PO #: ${String(invoice.poNumber)}`, col2X, yPosition);
-    yPosition += 4;
-    doc.text(`PO Date: ${String(invoice.poDate)}`, col2X, yPosition);
-    yPosition += 4;
-    doc.text(`PO Due: ${String(invoice.poDueDate)}`, col2X, yPosition);
+    doc.text(`PO #: ${String(invoice.poNumber)}`, col2X, rightYPos);
+    rightYPos += 4;
+    doc.text(`PO Date: ${String(invoice.poDate)}`, col2X, rightYPos);
+    rightYPos += 4;
+    doc.text(`PO Due: ${String(invoice.poDueDate)}`, col2X, rightYPos);
+
+    // Move to next section after both columns
+    yPosition = Math.max(leftYPos, rightYPos) + 6;
 
     // Separator
-    yPosition = 52;
     doc.setDrawColor(0, 51, 102);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 8;
+    yPosition += 10;
 
     // Vendor Details Section
     doc.setFontSize(10);
