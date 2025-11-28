@@ -27,6 +27,7 @@ import SiteManagement from "@/pages/vendor/SiteManagement";
 import ExcelImport from "@/pages/vendor/ExcelImport";
 import SalaryStructure from "@/pages/employee/SalaryStructure";
 import ExportHeaders from "@/pages/vendor/ExportHeaders";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
 const Placeholder = ({ title }: { title: string }) => (
@@ -144,6 +145,9 @@ function App() {
               <Route path="/vendor/excel-import" component={ExcelImport} />
               <Route path="/vendor/po" component={POGeneration} />
               <Route path="/vendor/invoices" component={InvoiceGeneration} />
+              
+              {/* Settings Route */}
+              <Route path="/settings" component={Settings} />
               
               {/* Employee Routes */}
               <Route path="/employee/register" component={EmployeeRegistration} />

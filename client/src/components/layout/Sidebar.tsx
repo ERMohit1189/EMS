@@ -9,7 +9,7 @@ import {
   Wallet,
   ClipboardCheck,
   BarChart3,
-  Settings,
+  Settings as SettingsIcon,
   LogOut,
   Upload
 } from 'lucide-react';
@@ -63,8 +63,13 @@ const menuItems = [
   },
   {
     title: 'Export Settings',
-    icon: Settings,
+    icon: SettingsIcon,
     href: '/vendor/export-headers',
+  },
+  {
+    title: 'App Settings',
+    icon: SettingsIcon,
+    href: '/settings',
   },
 ];
 

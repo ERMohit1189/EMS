@@ -44,11 +44,16 @@ export default function POGeneration() {
   const [allPOs, setAllPOs] = useState<PORecord[]>([]);
   const [poInvoices, setPoInvoices] = useState<{ [key: string]: any[] }>({});
   const [applyGstToAll, setApplyGstToAll] = useState(false);
+  const [showGstInput, setShowGstInput] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        // Load GST visibility setting from localStorage
+        const gstSetting = localStorage.getItem('showGstInputInPO') === 'true';
+        setShowGstInput(gstSetting);
+
         const baseUrl = getApiBaseUrl();
         const [sitesRes, vendorsRes, posRes, exportHeaderRes] = await Promise.all([
           fetch(`${baseUrl}/api/sites/for-po-generation`),
