@@ -489,17 +489,17 @@ export default function InvoiceGeneration() {
                               {vendor?.name}
                             </p>
                           </div>
-                          <div className="text-xs space-y-0.5">
-                            <div className="flex gap-1">
-                              <span className="text-slate-600 font-semibold">Amount:</span>
+                          <div className="text-xs space-y-0.5 text-right">
+                            <div>
+                              <span className="text-slate-600 font-semibold">Amount: </span>
                               <span className="font-bold">₹{parseFloat(po.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div className="flex gap-1">
-                              <span className="text-orange-600 font-semibold">GST:</span>
+                            <div>
+                              <span className="text-orange-600 font-semibold">GST: </span>
                               <span className="font-bold text-orange-600">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div className="flex gap-1 pt-0.5 border-t border-slate-300">
-                              <span className="text-green-600 font-semibold">Total:</span>
+                            <div className="pt-0.5 border-t border-slate-300">
+                              <span className="text-green-600 font-semibold">Total: </span>
                               <span className="font-bold text-green-600">₹{(parseFloat(po.totalAmount) + gstAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </div>
                           </div>
@@ -599,11 +599,11 @@ export default function InvoiceGeneration() {
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                          <div>
+                          <div className="text-right">
                             <p className="text-xs font-medium text-muted-foreground uppercase">Amount</p>
                             <p className="text-sm text-gray-700">₹{invoice.amount}</p>
                           </div>
-                          <div>
+                          <div className="text-right">
                             <p className="text-xs font-medium text-muted-foreground uppercase">Total</p>
                             <p className="text-sm font-bold text-green-600">₹{parseFloat(invoice.totalAmount).toFixed(2)}</p>
                           </div>
