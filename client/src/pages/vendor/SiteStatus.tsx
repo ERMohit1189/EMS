@@ -115,12 +115,21 @@ export default function SiteStatus() {
 
   const statusOptions = ['All', ...Array.from(new Set(sites.map(s => s.status)))];
 
-  const calculateStatusCounts = () => {
+  const calculatePhyAtStatusCounts = () => {
     return {
-      pending: sites.filter(s => s.status === 'Pending').length,
-      approved: sites.filter(s => s.status === 'Approved').length,
-      rejected: sites.filter(s => s.status === 'Rejected').length,
-      raised: sites.filter(s => s.status === 'Raised').length,
+      pending: sites.filter(s => s.phyAtStatus === 'Pending').length,
+      approved: sites.filter(s => s.phyAtStatus === 'Approved').length,
+      rejected: sites.filter(s => s.phyAtStatus === 'Rejected').length,
+      raised: sites.filter(s => s.phyAtStatus === 'Raised').length,
+    };
+  };
+
+  const calculateSoftAtStatusCounts = () => {
+    return {
+      pending: sites.filter(s => s.softAtStatus === 'Pending').length,
+      approved: sites.filter(s => s.softAtStatus === 'Approved').length,
+      rejected: sites.filter(s => s.softAtStatus === 'Rejected').length,
+      raised: sites.filter(s => s.softAtStatus === 'Raised').length,
     };
   };
 
@@ -257,24 +266,54 @@ export default function SiteStatus() {
       </div>
 
       {/* Status Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
-          const counts = calculateStatusCounts();
-          const statusKey = status.toLowerCase() as keyof typeof counts;
-          const count = counts[statusKey];
-          
-          return (
-            <Card key={status} className={`shadow-md border-2 ${getStatusCountColor(status)}`}>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
-                  <p className="text-4xl font-bold">{count}</p>
-                  <p className="text-xs opacity-60 mt-2">sites</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="space-y-6">
+        {/* Phy AT Status Summary */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3 text-gray-700">Physical AT Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
+              const counts = calculatePhyAtStatusCounts();
+              const statusKey = status.toLowerCase() as keyof typeof counts;
+              const count = counts[statusKey];
+              
+              return (
+                <Card key={`phy-${status}`} className={`shadow-md border-2 ${getStatusCountColor(status)}`}>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
+                      <p className="text-4xl font-bold">{count}</p>
+                      <p className="text-xs opacity-60 mt-2">sites</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Soft AT Status Summary */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3 text-gray-700">Software AT Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
+              const counts = calculateSoftAtStatusCounts();
+              const statusKey = status.toLowerCase() as keyof typeof counts;
+              const count = counts[statusKey];
+              
+              return (
+                <Card key={`soft-${status}`} className={`shadow-md border-2 ${getStatusCountColor(status)}`}>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
+                      <p className="text-4xl font-bold">{count}</p>
+                      <p className="text-xs opacity-60 mt-2">sites</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
