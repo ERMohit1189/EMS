@@ -200,9 +200,9 @@ export default function InvoiceGeneration() {
     let yPosition = topMargin;
 
     // Colors
-    const primaryColor = [0, 51, 102]; // Dark blue
+    const primaryColor = [0, 0, 0]; // Black
     const lightGray = [245, 245, 245];
-    const darkGray = [80, 80, 80];
+    const darkGray = [0, 0, 0]; // Black
 
     // Header Background
     doc.setFillColor(...lightGray);
@@ -226,7 +226,7 @@ export default function InvoiceGeneration() {
 
     // Left Column - Invoice Details
     doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(0, 0, 0);
     doc.text("INVOICE DETAILS", col1X, leftYPos);
     leftYPos += 5;
 
@@ -241,7 +241,7 @@ export default function InvoiceGeneration() {
     // Right Column - PO References
     rightYPos = yPosition;
     doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(0, 0, 0);
     doc.text("PURCHASE ORDER", col2X, rightYPos);
     rightYPos += 5;
 
@@ -280,7 +280,7 @@ export default function InvoiceGeneration() {
 
     // Item Details Section
     doc.setFontSize(10);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(0, 0, 0);
     doc.text("ITEM DETAILS", margin, yPosition);
     yPosition += 5;
 
@@ -289,7 +289,7 @@ export default function InvoiceGeneration() {
     doc.rect(margin, yPosition - 3, pageWidth - 2 * margin, 6, "F");
     
     doc.setFontSize(8);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(0, 0, 0);
     doc.text("Description", margin + 2, yPosition + 1);
     doc.text("Qty", pageWidth / 2 + 10, yPosition + 1);
     doc.text("Unit Rate (Rs)", pageWidth / 2 + 30, yPosition + 1);
@@ -317,7 +317,7 @@ export default function InvoiceGeneration() {
 
     // Subtotal
     doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(0, 0, 0);
     doc.text("Subtotal:", pageWidth / 2, yPosition, { align: "right" });
     doc.setTextColor(...darkGray);
     doc.text(`Rs ${parseFloat(invoice.amount).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
@@ -326,7 +326,7 @@ export default function InvoiceGeneration() {
     // GST - only show if greater than 0
     if (parseFloat(invoice.gst) > 0) {
       const gstPercent = (parseFloat(invoice.gst) / parseFloat(invoice.amount) * 100).toFixed(1);
-      doc.setTextColor(100, 100, 100);
+      doc.setTextColor(0, 0, 0);
       doc.text(`GST (${gstPercent}%):`, pageWidth / 2, yPosition, { align: "right" });
       doc.setTextColor(...darkGray);
       doc.text(`Rs ${parseFloat(invoice.gst).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
@@ -338,7 +338,7 @@ export default function InvoiceGeneration() {
     doc.rect(pageWidth / 2 - 5, yPosition - 3, pageWidth / 2 - margin + 3, 6, "F");
     
     doc.setFontSize(11);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(0, 0, 0);
     doc.text("TOTAL AMOUNT:", pageWidth / 2, yPosition + 1, { align: "right" });
     doc.text(`Rs ${parseFloat(invoice.totalAmount).toFixed(2)}`, pageWidth - margin - 2, yPosition + 1, { align: "right" });
 
