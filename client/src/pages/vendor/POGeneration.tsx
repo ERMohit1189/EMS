@@ -631,7 +631,7 @@ export default function POGeneration() {
                   />
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800">Apply GST to All POs</p>
-                    <p className="text-xs text-gray-600">GST will be auto-determined based on vendor and site state (IGST for interstate, CGST+SGST for intrastate)</p>
+                    <p className="text-xs text-gray-600">GST will be auto-determined based on vendor state (IGST for interstate, CGST+SGST for intrastate)</p>
                     <p className={`text-sm font-bold mt-2 ${applyGstToAll ? 'text-green-700' : 'text-gray-600'}`}>
                       Status: {applyGstToAll ? '✓ GST ENABLED' : '✗ GST DISABLED'}
                     </p>
