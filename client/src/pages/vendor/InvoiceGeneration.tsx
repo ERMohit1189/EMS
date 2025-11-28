@@ -18,6 +18,7 @@ interface InvoiceRecord {
   vendorName: string;
   vendorEmail?: string;
   siteName: string;
+  maxAntennaSize?: string;
   description: string;
   quantity: number;
   unitPrice: string;
@@ -74,6 +75,10 @@ export default function InvoiceGeneration() {
           const po = pos.find((p: any) => p.id === invoice.poId);
           const vendor = vendorsList.find(v => v.id === invoice.vendorId);
           const site = sites.find((s: any) => s.id === po?.siteId);
+          const maxAntennaSize = Math.max(
+            parseFloat(site?.siteAAntDia) || 0,
+            parseFloat(site?.siteBAntDia) || 0
+          );
           invoiceRecords.push({
             id: invoice.id,
             invoiceNumber: invoice.invoiceNumber,
@@ -83,6 +88,7 @@ export default function InvoiceGeneration() {
             vendorName: vendor?.name || "Unknown",
             vendorEmail: vendor?.email,
             siteName: site?.hopAB || site?.siteId || "Unknown",
+            maxAntennaSize: maxAntennaSize ? maxAntennaSize.toString() : undefined,
             description: po?.description || "N/A",
             quantity: po?.quantity || 0,
             unitPrice: po?.unitPrice?.toString() || "0",
@@ -360,6 +366,11 @@ export default function InvoiceGeneration() {
 
       const records: InvoiceRecord[] = posData.map((po, index) => {
         const vendor = vendors.find(v => v.id === po.vendorId);
+        const site = sites.find((s: any) => s.id === po.siteId);
+        const maxAntennaSize = Math.max(
+          parseFloat(site?.siteAAntDia) || 0,
+          parseFloat(site?.siteBAntDia) || 0
+        );
         const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
         const totalAmount = parseFloat(po.totalAmount.toString()) + gstAmount;
 
@@ -367,11 +378,20 @@ export default function InvoiceGeneration() {
           id: "",
           invoiceNumber: `INV-${Date.now()}-${index + 1}`,
           poNumber: po.poNumber,
+          siteName: site?.hopAB || site?.siteId || "Unknown",
+          maxAntennaSize: maxAntennaSize ? maxAntennaSize.toString() : undefined,
           vendorName: vendor?.name || "Unknown",
+          poDate: po.poDate || "",
+          poDueDate: po.dueDate || "",
+          vendorEmail: vendor?.email,
+          description: po.description || "N/A",
+          quantity: po.quantity || 0,
+          unitPrice: po.unitPrice?.toString() || "0",
           amount: po.totalAmount.toString(),
           gst: gstAmount.toString(),
           totalAmount: totalAmount.toString(),
           invoiceDate: new Date().toISOString().split('T')[0],
+          invoiceDueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           status: "Draft",
         };
       });
@@ -540,6 +560,16 @@ export default function InvoiceGeneration() {
                             <p className="text-sm font-semibold">{invoice.vendorName}</p>
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">HOP A-B</p>
+                            <p className="text-sm font-semibold">{invoice.siteName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Max Ant Size</p>
+                            <p className="text-sm font-semibold">{invoice.maxAntennaSize || "-"}</p>
+                          </div>
+                        </div>
                         <div className="space-y-2 border-t pt-2">
                           <div className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-slate-600 uppercase">Amount</span>
@@ -596,6 +626,16 @@ export default function InvoiceGeneration() {
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Vendor</p>
                             <p className="text-sm font-semibold">{invoice.vendorName}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">HOP A-B</p>
+                            <p className="text-sm font-semibold">{invoice.siteName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Max Ant Size</p>
+                            <p className="text-sm font-semibold">{invoice.maxAntennaSize || "-"}</p>
                           </div>
                         </div>
                         <div className="space-y-2 border-t pt-2">
