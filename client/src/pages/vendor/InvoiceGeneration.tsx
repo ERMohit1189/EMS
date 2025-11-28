@@ -35,7 +35,6 @@ export default function InvoiceGeneration() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPOs, setSelectedPOs] = useState<Set<string>>(new Set());
-  const [gstRate, setGstRate] = useState("18");
   const [invoiceRecords, setInvoiceRecords] = useState<InvoiceRecord[]>([]);
   const [allInvoices, setAllInvoices] = useState<InvoiceRecord[]>([]);
   const { toast } = useToast();
@@ -359,9 +358,8 @@ export default function InvoiceGeneration() {
 
       const records: InvoiceRecord[] = posData.map((po, index) => {
         const vendor = vendors.find(v => v.id === po.vendorId);
-        const poAmount = parseFloat(po.totalAmount.toString());
-        const gstAmount = (poAmount * parseFloat(gstRate)) / 100;
-        const totalAmount = poAmount + gstAmount;
+        const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
+        const totalAmount = parseFloat(po.totalAmount.toString());
 
         return {
           id: "",
@@ -434,7 +432,7 @@ export default function InvoiceGeneration() {
     <div className="space-y-6" ref={topRef}>
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Generate Invoices</h2>
-        <p className="text-muted-foreground">Create invoices for Purchase Orders with automatic GST calculation.</p>
+        <p className="text-muted-foreground">Create invoices for Purchase Orders. GST data is automatically fetched from PO.</p>
       </div>
 
       {availablePOs.length === 0 && allInvoices.length === 0 ? (
@@ -452,17 +450,10 @@ export default function InvoiceGeneration() {
                 <CardDescription>Select POs to generate invoices ({availablePOs.length} available)</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="mb-4">
-                  <label className="text-sm font-medium">GST Rate (%)</label>
-                  <Input
-                    type="number"
-                    value={gstRate}
-                    onChange={(e) => setGstRate(e.target.value)}
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    className="w-24 mt-1"
-                  />
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> GST will be automatically pulled from the selected Purchase Orders. No manual GST rate entry needed.
+                  </p>
                 </div>
 
                 <div className="grid gap-3 max-h-96 overflow-y-auto">
@@ -528,7 +519,7 @@ export default function InvoiceGeneration() {
                             <p className="text-sm text-gray-700">₹{invoice.amount}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">GST ({gstRate}%)</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">GST</p>
                             <p className="text-sm text-gray-700">₹{parseFloat(invoice.gst).toFixed(2)}</p>
                           </div>
                         </div>
