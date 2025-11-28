@@ -670,12 +670,14 @@ export default function InvoiceGeneration() {
                             <span className="text-sm font-bold text-green-600">₹{(parseFloat(invoice.amount) + parseFloat(invoice.gst)).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
                         </div>
-                        <div className="pt-2 border-t">
-                          <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Status</p>
-                          <span className={`text-xs px-2 py-1 rounded-full ${invoice.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                            {invoice.status}
-                          </span>
-                        </div>
+                        {invoice.status !== 'Draft' && (
+                          <div className="pt-2 border-t">
+                            <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Status</p>
+                            <span className={`text-xs px-2 py-1 rounded-full ${invoice.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                              {invoice.status}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex gap-1 mt-2">
                           <button
                             onClick={() => downloadInvoicePDF(invoice)}
