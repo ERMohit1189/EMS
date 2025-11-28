@@ -144,7 +144,7 @@ export default function EmployeeEdit() {
         city: employee.city || '',
         state: employee.state || '',
         country: employee.country || 'India',
-        role: employee.role || 'user',
+        role: employee.role || '',
         departmentId: employee.departmentId || '',
         designationId: employee.designationId || '',
         doj: employee.doj || '',

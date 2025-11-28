@@ -182,6 +182,8 @@ export default function EmployeeRegistration() {
     addEmployee({
       ...values,
       designation: selectedDesignation,
+      role: values.role,
+      designationId: values.designationId,
       alternateNo: values.alternateNo || '',
       kitNo: values.kitNo || '',
       spouseName: values.spouseName || '',
