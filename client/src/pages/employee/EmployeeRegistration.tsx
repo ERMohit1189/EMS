@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
 import { IndianStates, getCitiesByState } from '@/assets/india-data';
+import { getApiBaseUrl } from '@/lib/api';
 import {
   Form,
   FormControl,
@@ -36,7 +37,9 @@ const employeeSchema = z.object({
   city: z.string().min(2, 'City is required'),
   state: z.string().min(2, 'State is required'),
   country: z.string().default('India'),
-  designation: z.string().min(2, 'Designation is required'),
+  role: z.string().min(1, 'Role is required'),
+  departmentId: z.string().optional(),
+  designationId: z.string().min(1, 'Designation is required'),
   doj: z.string().min(1, 'Date of joining is required'),
   aadhar: z.string()
     .min(12, 'Aadhar must be at least 12 digits')
@@ -54,6 +57,9 @@ const employeeSchema = z.object({
   status: z.enum(['Active', 'Inactive']).default('Active'),
 });
 
+interface Department { id: string; name: string; }
+interface Designation { id: string; name: string; }
+
 export default function EmployeeRegistration() {
   const { addEmployee } = useStore();
   const { toast } = useToast();
@@ -63,8 +69,26 @@ export default function EmployeeRegistration() {
   const [citySearch, setCitySearch] = useState('');
   const [stateHighlight, setStateHighlight] = useState(-1);
   const [cityHighlight, setCityHighlight] = useState(-1);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [designations, setDesignations] = useState<Designation[]>([]);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [deptRes, desigRes] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/departments`),
+          fetch(`${getApiBaseUrl()}/api/designations`),
+        ]);
+        if (deptRes.ok) setDepartments(await deptRes.json());
+        if (desigRes.ok) setDesignations(await desigRes.json());
+      } catch (error) {
+        console.error('Failed to load departments/designations', error);
+      }
+    };
+    loadData();
+  }, []);
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
@@ -428,13 +452,65 @@ export default function EmployeeRegistration() {
             <CardContent className="grid gap-6 md:grid-cols-3">
                <FormField
                 control={form.control}
-                name="designation"
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="departmentId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {departments.map(dept => (
+                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="designationId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Designation</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Field Engineer" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Designation" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {designations.map(desig => (
+                          <SelectItem key={desig.id} value={desig.id}>{desig.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
