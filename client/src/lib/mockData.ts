@@ -158,6 +158,7 @@ interface AppState {
   addVendor: (vendor: Omit<Vendor, 'id' | 'createdAt'>) => void;
   addSite: (site: Omit<Site, 'id'>) => void;
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
+  updateEmployee: (id: string, employee: Partial<Employee>) => void;
   updateVendorStatus: (id: string, status: Vendor['status']) => void;
   updateEmployeeStatus: (id: string, status: Employee['status']) => void;
   deleteEmployee: (id: string) => void;
@@ -189,6 +190,10 @@ export const useStore = create<AppState>()(
             ...state.employees,
             { ...employee, id: Math.random().toString(36).substr(2, 9) },
           ],
+        })),
+      updateEmployee: (id, employee) =>
+        set((state) => ({
+          employees: state.employees.map((e) => (e.id === id ? { ...e, ...employee } : e)),
         })),
       updateVendorStatus: (id, status) =>
         set((state) => ({

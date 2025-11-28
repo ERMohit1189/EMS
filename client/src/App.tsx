@@ -20,6 +20,7 @@ import POGeneration from "@/pages/vendor/POGeneration";
 import POPrint from "@/pages/vendor/POPrint";
 import InvoiceGeneration from "@/pages/vendor/InvoiceGeneration";
 import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
+import EmployeeEdit from "@/pages/employee/EmployeeEdit";
 import EmployeeList from "@/pages/employee/EmployeeList";
 import SiteRegistration from "@/pages/vendor/SiteRegistration";
 import SiteList from "@/pages/vendor/SiteList";
@@ -157,6 +158,7 @@ function App() {
               
               {/* Employee Routes */}
               <Route path="/employee/register" component={EmployeeRegistration} />
+              <Route path="/employee/edit/:id" component={EmployeeEdit} />
               <Route path="/employee/list" component={EmployeeList} />
               <Route path="/employee/salary" component={SalaryStructure} />
               <Route path="/employee/department-master" component={DepartmentMaster} />
