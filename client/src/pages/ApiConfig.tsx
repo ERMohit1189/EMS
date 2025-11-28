@@ -16,31 +16,52 @@ export default function ApiConfig() {
       return;
     }
 
-    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-      toast({ title: 'Error', description: 'API URL must start with http:// or https://', variant: 'destructive' });
-      return;
+    let finalUrl = apiUrl.trim();
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = 'https://' + finalUrl;
     }
 
     try {
       setLoading(true);
-      // Test the API connection
-      const testResponse = await fetch(`${apiUrl}/api/vendors?pageSize=1`, {
+      
+      // Remove trailing slash if present
+      finalUrl = finalUrl.replace(/\/$/, '');
+      
+      // Test the API connection with a simple OPTIONS request first
+      const testEndpoint = `${finalUrl}/api/vendors?pageSize=1`;
+      
+      const testResponse = await fetch(testEndpoint, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
       });
 
-      if (!testResponse.ok) {
+      if (!testResponse.ok && testResponse.status !== 304) {
         throw new Error(`API responded with status ${testResponse.status}`);
       }
 
       toast({ title: 'Success', description: 'API connection verified!' });
-      setApiBaseUrl(apiUrl);
+      setApiBaseUrl(finalUrl);
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: `Failed to connect to API: ${error.message}`,
-        variant: 'destructive',
-      });
+      // If test fails, still allow saving but warn user
+      const proceed = window.confirm(
+        `Connection test failed (${error.message}). Do you want to save this URL anyway?\n\nYou can test manually and fix it later.`
+      );
+      
+      if (proceed) {
+        let finalUrl = apiUrl.trim();
+        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+          finalUrl = 'https://' + finalUrl;
+        }
+        finalUrl = finalUrl.replace(/\/$/, '');
+        setApiBaseUrl(finalUrl);
+      } else {
+        toast({
+          title: 'Error',
+          description: `Failed to connect to API: ${error.message}. Please verify your Replit URL.`,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
