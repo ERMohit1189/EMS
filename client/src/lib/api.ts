@@ -1,7 +1,7 @@
 // API base URL configuration - runtime configurable
 let apiBaseUrl = '';
 
-const getApiBaseUrl = () => {
+const _getApiBaseUrlInternal = () => {
   // First check localStorage (user-set configuration)
   const stored = window.localStorage.getItem('API_BASE_URL');
   if (stored) return stored;
@@ -20,10 +20,11 @@ const getApiBaseUrl = () => {
   return '';
 };
 
-export const getAPI_BASE_URL = () => getApiBaseUrl();
+export const getApiBaseUrl = () => _getApiBaseUrlInternal();
+export const getAPI_BASE_URL = () => _getApiBaseUrlInternal();
 
 export const apiCall = async (endpoint: string, options?: RequestInit) => {
-  const url = `${getApiBaseUrl()}${endpoint}`;
+  const url = `${_getApiBaseUrlInternal()}${endpoint}`;
   return fetch(url, options);
 };
 
