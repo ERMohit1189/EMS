@@ -138,6 +138,22 @@ export const sites = pgTable("sites", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Departments Table
+export const departments = pgTable("departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Designations Table
+export const designations = pgTable("designations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Employees Table
 export const employees = pgTable("employees", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -150,7 +166,9 @@ export const employees = pgTable("employees", {
   city: varchar("city").notNull(),
   state: varchar("state").notNull(),
   country: varchar("country").notNull().default("India"),
-  designation: varchar("designation").notNull(),
+  departmentId: varchar("department_id").references(() => departments.id),
+  designationId: varchar("designation_id").references(() => designations.id),
+  role: varchar("role").notNull().default("user"), // admin, user
   doj: date("doj").notNull(),
   aadhar: varchar("aadhar").notNull().unique(),
   pan: varchar("pan").notNull().unique(),

@@ -28,6 +28,8 @@ import SiteStatus from "@/pages/vendor/SiteStatus";
 import SiteManagement from "@/pages/vendor/SiteManagement";
 import ExcelImport from "@/pages/vendor/ExcelImport";
 import SalaryStructure from "@/pages/employee/SalaryStructure";
+import DepartmentMaster from "@/pages/employee/DepartmentMaster";
+import DesignationMaster from "@/pages/employee/DesignationMaster";
 import ExportHeaders from "@/pages/vendor/ExportHeaders";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
@@ -157,6 +159,8 @@ function App() {
               <Route path="/employee/register" component={EmployeeRegistration} />
               <Route path="/employee/list" component={EmployeeList} />
               <Route path="/employee/salary" component={SalaryStructure} />
+              <Route path="/employee/department-master" component={DepartmentMaster} />
+              <Route path="/employee/designation-master" component={DesignationMaster} />
               <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
               <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
               

@@ -67,6 +67,16 @@ const menuGroups = [
         icon: BarChart3,
         href: '/employee/salary',
       },
+      {
+        title: 'Department Master',
+        icon: Building2,
+        href: '/employee/department-master',
+      },
+      {
+        title: 'Designation Master',
+        icon: FileText,
+        href: '/employee/designation-master',
+      },
     ],
   },
   {
