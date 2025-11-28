@@ -1,11 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useStore } from '@/lib/mockData';
-import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight } from 'lucide-react';
+import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight, User, Mail, Briefcase } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
 import { getApiBaseUrl } from '@/lib/api';
 import { fetchJsonWithLoader } from '@/lib/fetchWithLoader';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { Badge } from '@/components/ui/badge';
 
 export default function Dashboard() {
   const { vendors, sites, employees } = useStore();
@@ -16,6 +17,41 @@ export default function Dashboard() {
   const [allSites, setAllSites] = useState<any[]>([]);
   const [allVendors, setAllVendors] = useState<any[]>([]);
   const [allEmployees, setAllEmployees] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    // Load user profile from localStorage
+    const employeeId = localStorage.getItem('employeeId');
+    const vendorId = localStorage.getItem('vendorId');
+    const employeeName = localStorage.getItem('employeeName');
+    const employeeEmail = localStorage.getItem('employeeEmail');
+    const vendorEmail = localStorage.getItem('vendorEmail');
+
+    if (employeeId) {
+      const employee = employees.find(e => e.id === employeeId);
+      if (employee) {
+        setUserProfile({
+          type: 'employee',
+          name: employee.name,
+          email: employee.email,
+          designation: employee.designation,
+          status: employee.status,
+          role: employee.role || 'Employee',
+        });
+      }
+    } else if (vendorId) {
+      const vendor = vendors.find(v => v.id === vendorId);
+      if (vendor) {
+        setUserProfile({
+          type: 'vendor',
+          name: vendor.name,
+          email: vendor.email,
+          status: vendor.status,
+          role: 'Vendor',
+        });
+      }
+    }
+  }, [employees, vendors]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -177,6 +213,54 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* User Profile Card */}
+      {userProfile && (
+        <Card className="border-l-4 border-l-primary shadow-md bg-gradient-to-r from-slate-50 to-slate-100">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900" data-testid="text-profile-name">{userProfile.name}</h3>
+                    <p className="text-sm text-slate-600">{userProfile.role}</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mt-4">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-slate-500" />
+                    <div>
+                      <p className="text-xs text-slate-600">Email</p>
+                      <p className="text-sm font-medium text-slate-900" data-testid="text-profile-email">{userProfile.email}</p>
+                    </div>
+                  </div>
+                  {userProfile.type === 'employee' && userProfile.designation && (
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-slate-500" />
+                      <div>
+                        <p className="text-xs text-slate-600">Designation</p>
+                        <p className="text-sm font-medium text-slate-900">{userProfile.designation}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-slate-500" />
+                    <div>
+                      <p className="text-xs text-slate-600">Status</p>
+                      <Badge variant={userProfile.status === 'Active' ? 'default' : 'secondary'} className="text-xs">
+                        {userProfile.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
