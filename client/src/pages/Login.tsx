@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Lock, Mail } from 'lucide-react';
-import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -74,7 +73,7 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-4 text-center pb-4">
           <div className="flex justify-center">
-            <img src={logo} alt="EMS Logo" className="h-16 w-16 rounded-lg shadow-md" />
+            <img src="/attached_assets/generated_images/abstract_geometric_logo_for_ems_portal.png" alt="EMS Logo" className="h-16 w-16 rounded-lg shadow-md" />
           </div>
           <div>
             <CardTitle className="text-3xl font-bold text-gray-900">EMS Portal</CardTitle>
