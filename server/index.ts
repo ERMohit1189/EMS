@@ -2,6 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { Pool } from "pg";
 
 const app = express();
 const httpServer = createServer(app);
@@ -12,6 +15,17 @@ declare module "http" {
   }
 }
 
+// Initialize PostgreSQL pool for session store
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Initialize session store
+const sessionStore = new (ConnectPgSimple(session))({
+  pool: pgPool,
+  tableName: "session",
+});
+
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -21,6 +35,22 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Session middleware - MUST come before routes
+app.use(
+  session({
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET || "your-secret-key-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      sameSite: "lax",
+    },
+  })
+);
 
 // CORS middleware - Allow requests from any origin for API access
 app.use((req, res, next) => {
