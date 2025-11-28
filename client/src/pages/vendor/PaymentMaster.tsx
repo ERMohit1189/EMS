@@ -317,7 +317,7 @@ export default function PaymentMaster() {
                 {masters.map((m) => {
                   const siteData = sites.find(s => s.id === m.siteId);
                   const vendorData = vendors.find(v => v.id === m.vendorId);
-                  const isUsed = usedCombinations.includes(`${m.vendorId}_${m.siteId}_${m.planId}_${m.antennaSize}`);
+                  const isUsed = usedCombinations.includes(`${m.vendorId}_${m.siteId}_${m.planId}`);
                   return (
                     <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                       <div className="flex-1">
