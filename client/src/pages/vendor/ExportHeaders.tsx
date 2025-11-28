@@ -136,12 +136,16 @@ export default function ExportHeaders() {
       });
 
       if (response.ok) {
-        toast({ title: 'Success', description: 'Export header settings saved' });
+        toast({ title: 'Success', description: 'Export header settings saved', variant: 'default' });
+        setErrors({});
       } else {
-        throw new Error('Failed to save');
+        const errorData = await response.json();
+        const errorMessage = errorData.error || 'Failed to save settings';
+        toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
       }
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' });
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to save settings';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setSaving(false);
     }

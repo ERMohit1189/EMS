@@ -41,10 +41,13 @@ export async function registerRoutes(
 
   app.post("/api/export-headers", async (req, res) => {
     try {
-      const header = await storage.updateExportHeader(req.body);
+      const { insertExportHeaderSchema } = await import("@shared/schema");
+      const validated = insertExportHeaderSchema.parse(req.body);
+      const header = await storage.updateExportHeader(validated);
       res.json(header);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      console.error('Export header save error:', error);
+      res.status(400).json({ error: error.message || 'Failed to save export headers' });
     }
   });
 

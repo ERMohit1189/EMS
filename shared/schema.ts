@@ -356,25 +356,38 @@ export const insertExportHeaderSchema = createInsertSchema(exportHeaders).omit({
   createdAt: true,
   updatedAt: true,
 }).refine((data) => {
-  if (data.contactPhone && data.contactPhone.length > 10) {
-    throw new Error('Contact phone must be 10 digits or less');
+  if (data.contactPhone) {
+    if (data.contactPhone.length > 10) return false;
+    if (!/^\d*$/.test(data.contactPhone)) return false;
   }
   return true;
+}, {
+  message: 'Contact phone must be 10 digits or less',
+  path: ['contactPhone']
 }).refine((data) => {
-  if (data.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail)) {
-    throw new Error('Invalid email format');
+  if (data.contactEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contactEmail)) return false;
   }
   return true;
+}, {
+  message: 'Invalid email format',
+  path: ['contactEmail']
 }).refine((data) => {
-  if (data.website && !/^https?:\/\/.+/.test(data.website)) {
-    throw new Error('Website must be a valid URL (starting with http:// or https://)');
+  if (data.website) {
+    if (!/^https?:\/\/.+/.test(data.website)) return false;
   }
   return true;
+}, {
+  message: 'Website must start with http:// or https://',
+  path: ['website']
 }).refine((data) => {
-  if (data.gstin && !/^[0-9A-Z]{15}$/.test(data.gstin)) {
-    throw new Error('GSTIN must be exactly 15 alphanumeric characters');
+  if (data.gstin) {
+    if (!/^[0-9A-Z]{15}$/.test(data.gstin)) return false;
   }
   return true;
+}, {
+  message: 'GSTIN must be 15 alphanumeric characters',
+  path: ['gstin']
 });
 
 export type ExportHeader = typeof exportHeaders.$inferSelect;
