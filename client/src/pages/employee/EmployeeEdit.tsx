@@ -124,45 +124,41 @@ export default function EmployeeEdit() {
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
-    defaultValues: {
+    defaultValues: employee ? {
+      name: employee.name || '',
+      dob: employee.dob || '',
+      fatherName: employee.fatherName || '',
+      mobile: employee.mobile || '',
+      alternateNo: employee.alternateNo || '',
+      address: employee.address || '',
+      city: employee.city || '',
+      state: employee.state || '',
+      country: employee.country || 'India',
+      role: employee.role || 'user',
+      departmentId: employee.departmentId || '',
+      designationId: employee.designationId || '',
+      doj: employee.doj || '',
+      aadhar: employee.aadhar || '',
+      pan: employee.pan || '',
+      bloodGroup: employee.bloodGroup || '',
+      maritalStatus: employee.maritalStatus || 'Single',
+      spouseName: employee.spouseName || '',
+      nominee: employee.nominee || '',
+      ppeKit: employee.ppeKit || false,
+      kitNo: employee.kitNo || '',
+      status: employee.status || 'Active',
+    } : {
       country: 'India',
       ppeKit: false,
       maritalStatus: 'Single',
       status: 'Active',
+      role: 'user',
     },
   });
 
   useEffect(() => {
-    if (employee) {
-      setTimeout(() => {
-        form.reset({
-          name: employee.name || '',
-          dob: employee.dob || '',
-          fatherName: employee.fatherName || '',
-          mobile: employee.mobile || '',
-          alternateNo: employee.alternateNo || '',
-          address: employee.address || '',
-          city: employee.city || '',
-          state: employee.state || '',
-          country: employee.country || 'India',
-          role: employee.role || 'user',
-          departmentId: employee.departmentId || '',
-          designationId: employee.designationId || '',
-          doj: employee.doj || '',
-          aadhar: employee.aadhar || '',
-          pan: employee.pan || '',
-          bloodGroup: employee.bloodGroup || '',
-          maritalStatus: employee.maritalStatus || 'Single',
-          spouseName: employee.spouseName || '',
-          nominee: employee.nominee || '',
-          ppeKit: employee.ppeKit || false,
-          kitNo: employee.kitNo || '',
-          status: employee.status || 'Active',
-        });
-        calculateAge(employee.dob || '');
-      }, 0);
-    }
-  }, [employee, form]);
+    calculateAge(employee?.dob || '');
+  }, [employee?.dob]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
@@ -249,7 +245,7 @@ export default function EmployeeEdit() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form key={employeeId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           
           <Card>
             <CardHeader>
