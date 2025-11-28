@@ -19,33 +19,8 @@ export default function PaymentMaster() {
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedVendor, setSelectedVendor] = useState("");
   const [newMaster, setNewMaster] = useState({ antennaSize: "", siteAmount: "", vendorAmount: "" });
-  const [usedPaymentMasters, setUsedPaymentMasters] = useState<Set<string>>(new Set());
+  const [usedCombinations, setUsedCombinations] = useState<string[]>([]);
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchMasters();
-    fetchSites();
-    fetchVendors();
-    fetchUsedPaymentMasters();
-  }, []);
-
-  useEffect(() => {
-    // Focus first control on page load
-    if (!loading) {
-      setTimeout(() => antennaSelectRef.current?.focus(), 100);
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    // Auto-select vendor and planId when site is selected
-    if (selectedSite) {
-      const site = sites.find((s) => s.id === selectedSite);
-      if (site) {
-        setSelectedVendor(site.vendorId);
-        setSelectedPlanId(site.planId || "");
-      }
-    }
-  }, [selectedSite, sites]);
 
   const fetchMasters = async () => {
     try {
@@ -84,22 +59,54 @@ export default function PaymentMaster() {
 
   const fetchUsedPaymentMasters = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`);
-      if (!response.ok) return;
-      const result = await response.json();
-      const pos = result.data || [];
-      
-      const usedSet = new Set<string>();
+      const posRes = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`);
+      if (!posRes.ok) return;
+      const posData = await posRes.json();
+      const pos = posData.data || [];
+
+      const sitesRes = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
+      if (!sitesRes.ok) return;
+      const sitesData = await sitesRes.json();
+      const allSites = sitesData.data || [];
+      const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
+
+      const used: string[] = [];
       pos.forEach((po: any) => {
-        if (po.vendorId && po.siteId) {
-          usedSet.add(`${po.vendorId}_${po.siteId}`);
+        const site = siteMap.get(po.siteId);
+        if (po.vendorId && po.siteId && site?.planId) {
+          used.push(`${po.vendorId}_${po.siteId}_${site.planId}`);
         }
       });
-      setUsedPaymentMasters(usedSet);
+      setUsedCombinations(used);
     } catch (error) {
-      // Silently fail - not critical for UI
+      // Silently fail
     }
   };
+
+  useEffect(() => {
+    fetchMasters();
+    fetchSites();
+    fetchVendors();
+    fetchUsedPaymentMasters();
+  }, []);
+
+  useEffect(() => {
+    // Focus first control on page load
+    if (!loading) {
+      setTimeout(() => antennaSelectRef.current?.focus(), 100);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    // Auto-select vendor and planId when site is selected
+    if (selectedSite) {
+      const site = sites.find((s) => s.id === selectedSite);
+      if (site) {
+        setSelectedVendor(site.vendorId);
+        setSelectedPlanId(site.planId || "");
+      }
+    }
+  }, [selectedSite, sites]);
 
   const handleSave = async () => {
     if (!newMaster.antennaSize || !newMaster.siteAmount || !newMaster.vendorAmount || !selectedSite || !selectedPlanId || !selectedVendor) {
@@ -160,12 +167,17 @@ export default function PaymentMaster() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this payment master?")) return;
     try {
-      const response = await fetch(`/api/payment-masters/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed");
+      const response = await fetch(`${getApiBaseUrl()}/api/payment-masters/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete");
+      }
       toast({ title: "Success", description: "Deleted successfully" });
       fetchMasters();
+      fetchUsedPaymentMasters();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -305,6 +317,7 @@ export default function PaymentMaster() {
                 {masters.map((m) => {
                   const siteData = sites.find(s => s.id === m.siteId);
                   const vendorData = vendors.find(v => v.id === m.vendorId);
+                  const isUsed = usedCombinations.includes(`${m.vendorId}_${m.siteId}_${m.planId}_${m.antennaSize}`);
                   return (
                     <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                       <div className="flex-1">
@@ -317,7 +330,7 @@ export default function PaymentMaster() {
                         <Button size="sm" variant="outline" onClick={() => handleEdit(m)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        {!usedPaymentMasters.has(`${m.vendorId}_${m.siteId}`) && (
+                        {!isUsed && (
                           <Button size="sm" variant="destructive" onClick={() => handleDelete(m.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
