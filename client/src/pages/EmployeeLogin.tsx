@@ -16,43 +16,18 @@ export default function EmployeeLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Load saved credentials from cookies on mount
+  // Load saved credentials from localStorage on mount
   useEffect(() => {
-    const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
-    console.log("[EmployeeLogin] Cookies enabled:", cookiesEnabled);
-    console.log("[EmployeeLogin] All cookies:", document.cookie);
+    const savedEmail = localStorage.getItem("rememberMe_email");
+    const savedPassword = localStorage.getItem("rememberMe_password");
     
-    if (cookiesEnabled) {
-      const cookies = document.cookie.split("; ");
-      const savedCredsCookie = cookies.find(cookie => cookie.startsWith("employeeLoginCredentials="));
-      console.log("[EmployeeLogin] Found saved credentials cookie:", !!savedCredsCookie);
-      
-      if (savedCredsCookie) {
-        try {
-          const credsJson = decodeURIComponent(savedCredsCookie.substring("employeeLoginCredentials=".length));
-          const creds = JSON.parse(credsJson);
-          console.log("[EmployeeLogin] Loaded credentials:", { email: creds.email });
-          setEmail(creds.email || "");
-          setPassword(creds.password || "");
-          setRememberMe(true);
-        } catch (error) {
-          console.error("[EmployeeLogin] Failed to load saved credentials:", error);
-        }
-      } else {
-        console.log("[EmployeeLogin] No saved credentials cookie found");
-      }
+    if (savedEmail && savedPassword) {
+      console.log("[EmployeeLogin] Loading saved credentials from localStorage");
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberMe(true);
     }
   }, []);
-
-  const setCookie = (name: string, value: string, days: number = 7) => {
-    const date = new Date();
-    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-    const expires = "expires=" + date.toUTCString();
-    const cookieString = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
-    console.log("[EmployeeLogin] Setting cookie:", name, "expires in", days, "days");
-    document.cookie = cookieString;
-    console.log("[EmployeeLogin] Cookie set. Current cookies:", document.cookie);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,22 +71,21 @@ export default function EmployeeLogin() {
         designation: localStorage.getItem("employeeDesignation")
       });
 
-      // Save credentials to cookies if Remember Me is checked
+      // Save credentials to localStorage if Remember Me is checked
       console.log("[EmployeeLogin] Remember Me checkbox state:", rememberMe);
       
       if (rememberMe) {
-        console.log("[EmployeeLogin] Saving credentials to cookie for 7 days...");
-        setCookie(
-          "employeeLoginCredentials",
-          JSON.stringify({ email, password }),
-          7
-        );
+        console.log("[EmployeeLogin] Saving credentials to localStorage...");
+        localStorage.setItem("rememberMe_email", email);
+        localStorage.setItem("rememberMe_password", password);
         toast({
           title: "Success",
-          description: "Login successful! Credentials saved for 7 days",
+          description: "Login successful! Credentials saved for next time",
         });
       } else {
-        console.log("[EmployeeLogin] Remember Me was not checked, credentials NOT saved");
+        console.log("[EmployeeLogin] Remember Me was not checked, clearing saved credentials");
+        localStorage.removeItem("rememberMe_email");
+        localStorage.removeItem("rememberMe_password");
         toast({
           title: "Success",
           description: "Login successful!",
@@ -192,13 +166,7 @@ export default function EmployeeLogin() {
                   id="remember-me"
                   checked={rememberMe}
                   onCheckedChange={(checked) => {
-                    const isChecked = checked as boolean;
-                    setRememberMe(isChecked);
-                    if (isChecked) {
-                      localStorage.setItem("useCredentialsCookies", "true");
-                    } else {
-                      localStorage.removeItem("useCredentialsCookies");
-                    }
+                    setRememberMe(checked as boolean);
                   }}
                   disabled={loading}
                   data-testid="checkbox-remember-me"
