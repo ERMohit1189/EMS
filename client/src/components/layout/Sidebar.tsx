@@ -53,9 +53,19 @@ const menuGroups = [
     group: 'Site Operations',
     items: [
       {
+        title: 'Excel Upload',
+        icon: Upload,
+        href: '/vendor/excel-import',
+      },
+      {
         title: 'Site Management',
         icon: Building2,
         href: '/vendor/sites',
+      },
+      {
+        title: 'Payment Master',
+        icon: Wallet,
+        href: '/vendor/payment-master',
       },
       {
         title: 'Site Status',
@@ -65,37 +75,17 @@ const menuGroups = [
     ],
   },
   {
-    group: 'Data Management',
-    items: [
-      {
-        title: 'Excel Upload',
-        icon: Upload,
-        href: '/vendor/excel-import',
-      },
-    ],
-  },
-  {
     group: 'Finance',
-    items: [
-      {
-        title: 'Payment Master',
-        icon: Wallet,
-        href: '/vendor/payment-master',
-      },
-      {
-        title: 'Invoice Generation',
-        icon: FileText,
-        href: '/vendor/invoices',
-      },
-    ],
-  },
-  {
-    group: 'Documents',
     items: [
       {
         title: 'PO Generation',
         icon: FileText,
         href: '/vendor/po',
+      },
+      {
+        title: 'Invoice Generation',
+        icon: FileText,
+        href: '/vendor/invoices',
       },
     ],
   },
@@ -122,9 +112,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     Main: false,
     'Vendor Management': false,
     'Site Operations': false,
-    'Data Management': false,
     Finance: false,
-    Documents: false,
     Settings: false,
   });
 
