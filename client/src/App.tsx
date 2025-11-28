@@ -101,11 +101,17 @@ function App() {
       if (isEmployeeLogout) {
         console.log('[App] REDIRECTING TO: /employee-login');
         console.log('[App] ====================================');
-        setLocation('/employee-login');
+        // Use direct navigation to ensure immediate redirect
+        setTimeout(() => {
+          window.location.href = '/employee-login';
+        }, 100);
       } else {
         console.log('[App] REDIRECTING TO: /login');
         console.log('[App] ====================================');
-        setLocation('/login');
+        // Use direct navigation to ensure immediate redirect
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 100);
       }
     };
 
