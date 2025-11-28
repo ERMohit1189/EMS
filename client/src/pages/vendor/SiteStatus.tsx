@@ -158,7 +158,7 @@ export default function SiteStatus() {
       setSelectedSites(new Set());
       setBulkPhyAtRemark('');
       setBulkSoftAtRemark('');
-      fetchSites();
+      await fetchSites();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
