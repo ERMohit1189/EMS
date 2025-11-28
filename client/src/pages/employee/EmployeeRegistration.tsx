@@ -178,8 +178,10 @@ export default function EmployeeRegistration() {
   );
 
   function onSubmit(values: z.infer<typeof employeeSchema>) {
+    const selectedDesignation = designations.find(d => d.id === values.designationId)?.name || 'Not Specified';
     addEmployee({
       ...values,
+      designation: selectedDesignation,
       alternateNo: values.alternateNo || '',
       kitNo: values.kitNo || '',
       spouseName: values.spouseName || '',
