@@ -396,7 +396,7 @@ export default function POGeneration() {
       pdf.text('Description', col1X + 2, y + 4.5);
 
       pdf.rect(col2X, y, 30, 7, 'F');
-      pdf.text('Quantity', col2X + 1, y + 4.5);
+      pdf.text('QTY', col2X + 8, y + 4.5);
 
       pdf.rect(col3X, y, 25, 7, 'F');
       pdf.text('Unit Price', col3X + 1, y + 4.5);
@@ -410,24 +410,32 @@ export default function POGeneration() {
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
       pdf.setDrawColor(221, 221, 221);
-      pdf.setFontSize(11);
+      pdf.setFontSize(10);
 
       const desc = String(po.description || '').substring(0, 60);
       const qty = String(po.quantity || 1);
       const rate = Number(po.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const total = Number(po.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+      // Description cell
       pdf.rect(col1X, y, 80, 8);
+      pdf.text('Description:', col1X + 2, y + 2);
       pdf.text(desc, col1X + 2, y + 5);
 
+      // Quantity cell
       pdf.rect(col2X, y, 30, 8);
-      pdf.text(qty, col2X + 12, y + 5);
+      pdf.text('QTY:', col2X + 2, y + 2);
+      pdf.text(qty, col2X + 10, y + 5);
 
+      // Unit Price cell
       pdf.rect(col3X, y, 25, 8);
+      pdf.text('Price:', col3X + 1, y + 2);
       pdf.text(`₹${rate}`, col3X + 1, y + 5);
 
+      // Amount cell
       pdf.rect(col4X, y, 30, 8);
-      pdf.text(`₹${total}`, col4X + 2, y + 5);
+      pdf.text('Amount:', col4X + 1, y + 2);
+      pdf.text(`₹${total}`, col4X + 1, y + 5);
 
       y += 14;
 
