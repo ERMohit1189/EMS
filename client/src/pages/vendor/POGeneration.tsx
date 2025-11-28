@@ -382,7 +382,7 @@ export default function POGeneration() {
       y += 26;
 
       // ===== ITEMS TABLE =====
-      pdf.setFontSize(10);
+      pdf.setFontSize(11);
       pdf.setFont('Arial', 'bold');
       pdf.setTextColor(255, 255, 255);
       pdf.setFillColor(44, 62, 80);
@@ -392,42 +392,42 @@ export default function POGeneration() {
       const col3X = 130;
       const col4X = 160;
 
-      pdf.rect(col1X, y, 80, 6, 'F');
-      pdf.text('Description', col1X + 2, y + 4);
+      pdf.rect(col1X, y, 80, 7, 'F');
+      pdf.text('Description', col1X + 2, y + 4.5);
 
-      pdf.rect(col2X, y, 30, 6, 'F');
-      pdf.text('Quantity', col2X + 2, y + 4);
+      pdf.rect(col2X, y, 30, 7, 'F');
+      pdf.text('Quantity', col2X + 1, y + 4.5);
 
-      pdf.rect(col3X, y, 25, 6, 'F');
-      pdf.text('Unit Price', col3X + 1, y + 4);
+      pdf.rect(col3X, y, 25, 7, 'F');
+      pdf.text('Unit Price', col3X + 1, y + 4.5);
 
-      pdf.rect(col4X, y, 30, 6, 'F');
-      pdf.text('Amount', col4X + 2, y + 4);
+      pdf.rect(col4X, y, 30, 7, 'F');
+      pdf.text('Amount', col4X + 2, y + 4.5);
 
-      y += 7;
+      y += 8;
 
       // Item row
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
       pdf.setDrawColor(221, 221, 221);
-      pdf.setFontSize(9);
+      pdf.setFontSize(11);
 
       const desc = String(po.description || '').substring(0, 60);
       const qty = String(po.quantity || 1);
       const rate = Number(po.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const total = Number(po.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      pdf.rect(col1X, y, 80, 6);
-      pdf.text(desc, col1X + 2, y + 4);
+      pdf.rect(col1X, y, 80, 8);
+      pdf.text(desc, col1X + 2, y + 5);
 
-      pdf.rect(col2X, y, 30, 6);
-      pdf.text(qty, col2X + 12, y + 4);
+      pdf.rect(col2X, y, 30, 8);
+      pdf.text(qty, col2X + 12, y + 5);
 
-      pdf.rect(col3X, y, 25, 6);
-      pdf.text(`₹${rate}`, col3X + 1, y + 4);
+      pdf.rect(col3X, y, 25, 8);
+      pdf.text(`₹${rate}`, col3X + 1, y + 5);
 
-      pdf.rect(col4X, y, 30, 6);
-      pdf.text(`₹${total}`, col4X + 2, y + 4);
+      pdf.rect(col4X, y, 30, 8);
+      pdf.text(`₹${total}`, col4X + 2, y + 5);
 
       y += 14;
 
