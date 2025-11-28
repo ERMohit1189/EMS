@@ -511,6 +511,15 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/invoices", async (req, res) => {
+    try {
+      await storage.deleteAllInvoices();
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Payment Master routes
   app.post("/api/payment-masters", async (req, res) => {
     try {

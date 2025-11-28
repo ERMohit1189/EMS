@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Trash2 } from "lucide-react";
 import jsPDF from "jspdf";
 import { getApiBaseUrl } from "@/lib/api";
 import type { PurchaseOrder, Vendor } from "@shared/schema";
@@ -116,6 +116,35 @@ export default function InvoiceGeneration() {
       newSet.add(poId);
     }
     setSelectedPOs(newSet);
+  };
+
+  const deleteAllInvoices = async () => {
+    if (!confirm('Are you sure you want to delete ALL invoices? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setAllInvoices([]);
+        setInvoiceRecords([]);
+        toast({
+          title: "Success",
+          description: "All invoices have been deleted.",
+        });
+      } else {
+        throw new Error("Failed to delete invoices");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete invoices",
+        variant: "destructive",
+      });
+    }
   };
 
   const downloadInvoicePDF = (invoice: InvoiceRecord) => {
@@ -486,9 +515,14 @@ export default function InvoiceGeneration() {
 
           {allInvoices.length > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle>All Generated Invoices</CardTitle>
-                <CardDescription>Complete list of all invoices ({allInvoices.length} total)</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle>All Generated Invoices</CardTitle>
+                  <CardDescription>Complete list of all invoices ({allInvoices.length} total)</CardDescription>
+                </div>
+                <Button onClick={deleteAllInvoices} variant="destructive" size="sm" className="gap-2">
+                  <Trash2 className="h-4 w-4" /> Delete All
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

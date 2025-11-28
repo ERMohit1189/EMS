@@ -821,6 +821,10 @@ export class DrizzleStorage implements IStorage {
     await db.delete(invoices).where(eq(invoices.id, id));
   }
 
+  async deleteAllInvoices(): Promise<void> {
+    await db.delete(invoices);
+  }
+
   async getInvoiceCount(): Promise<number> {
     const result = await db
       .select({ count: count() })
