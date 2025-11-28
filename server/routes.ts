@@ -13,6 +13,7 @@ import {
   insertZoneSchema,
   purchaseOrders,
   invoices,
+  sites,
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
