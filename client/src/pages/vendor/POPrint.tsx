@@ -57,6 +57,13 @@ export default function POPrint() {
   if (!po) return <div className="p-8 text-center">PO not found</div>;
 
   const totalAmount = Number(po.totalAmount || 0);
+  
+  // Calculate GST amounts
+  const cgstAmount = Number(po.cgstAmount || 0);
+  const sgstAmount = Number(po.sgstAmount || 0);
+  const igstAmount = Number(po.igstAmount || 0);
+  const totalGst = cgstAmount + sgstAmount + igstAmount;
+  const grandTotal = totalAmount + totalGst;
 
   return (
     <div className="w-full bg-white">
@@ -169,8 +176,8 @@ export default function POPrint() {
               <tr>
                 <td>{po.description}</td>
                 <td className="text-right">{po.quantity}</td>
-                <td className="text-right">₹ {Number(po.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td className="text-right">₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="text-right">Rs. {Number(po.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="text-right">Rs. {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
             </tbody>
           </table>
@@ -180,19 +187,29 @@ export default function POPrint() {
             <div className="totals-table">
               <div className="totals-row">
                 <span>Subtotal:</span>
-                <span>₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>Rs. {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div className="totals-row">
-                <span>Tax:</span>
-                <span>₹ 0.00</span>
-              </div>
-              <div className="totals-row">
-                <span>Shipping:</span>
-                <span>₹ 0.00</span>
-              </div>
+              {igstAmount > 0 && (
+                <div className="totals-row">
+                  <span>IGST (18%):</span>
+                  <span>Rs. {igstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              {cgstAmount > 0 && (
+                <div className="totals-row">
+                  <span>CGST (9%):</span>
+                  <span>Rs. {cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              {sgstAmount > 0 && (
+                <div className="totals-row">
+                  <span>SGST (9%):</span>
+                  <span>Rs. {sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="totals-row total">
                 <span>TOTAL:</span>
-                <span>₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>Rs. {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
