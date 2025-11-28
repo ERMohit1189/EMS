@@ -733,7 +733,7 @@ export default function POGeneration() {
           {allPOs.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>All Generated Purchase Orders</CardTitle>
+                <CardTitle className="text-2xl">All Generated Purchase Orders</CardTitle>
                 <CardDescription>Complete list of all purchase orders ({allPOs.length} total)</CardDescription>
               </CardHeader>
               <CardContent>
@@ -741,69 +741,82 @@ export default function POGeneration() {
                   {allPOs.map((po) => (
                     <div
                       key={po.id}
-                      className="border rounded-lg p-4 hover:shadow-md hover:border-primary/50 transition-all"
+                      className="border-2 border-slate-200 rounded-xl p-5 hover:shadow-lg hover:border-blue-400 transition-all duration-200 bg-gradient-to-br from-slate-50 to-slate-100"
+                      data-testid={`card-po-${po.id}`}
                     >
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">PO Number</p>
-                          <p className="text-base font-bold text-blue-600">{po.poNumber}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase">Site Name</p>
-                          <p className="text-sm font-semibold">{po.siteName}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Vendor</p>
-                            <p className="text-sm font-semibold">{po.vendorName}</p>
+                      <div className="space-y-4">
+                        {/* Header with PO Number and Badge */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Purchase Order</p>
+                            <p className="text-lg font-bold text-slate-900">{po.poNumber}</p>
                           </div>
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Plan ID</p>
-                            <p className="text-sm text-gray-700 truncate font-mono">{po.planId}</p>
+                          <div className={`px-3 py-1 rounded-full text-xs font-semibold ${po.gstApply ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {po.gstApply ? `${po.gstType === 'igst' ? 'IGST' : 'CGST+SGST'}` : 'No GST'}
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* Site & Vendor Info */}
+                        <div className="space-y-3 border-t border-slate-200 pt-3">
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Max Antenna</p>
-                            <p className="text-sm font-bold text-blue-600">{po.maxAntennaSize || "-"}</p>
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Site</p>
+                            <p className="text-sm font-semibold text-slate-900">{po.siteName}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">GST Amount</p>
-                            <p className="text-sm font-bold text-orange-600">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Vendor</p>
+                            <p className="text-sm text-slate-700">{po.vendorName}</p>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Plan ID</p>
+                              <p className="text-xs font-mono text-slate-600">{po.planId}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Max Antenna</p>
+                              <p className="text-sm font-bold text-blue-600">{po.maxAntennaSize || "—"}</p>
+                            </div>
                           </div>
                         </div>
 
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase">Total Amount</p>
-                          <p className="text-base font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                        {/* Amount Section */}
+                        <div className="border-t border-slate-200 pt-3 space-y-2">
+                          <div className="flex justify-between items-end">
+                            <span className="text-xs font-semibold text-slate-600 uppercase">GST Amount</span>
+                            <span className="text-sm font-bold text-orange-600">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between items-end bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg">
+                            <span className="text-sm font-bold text-slate-700">Total Amount</span>
+                            <span className="text-lg font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                          </div>
                         </div>
 
-                        <div className="pt-2 border-t space-y-2">
-                          <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
-                            <Button size="sm" variant="outline" className="w-full gap-1">
-                              <Printer className="h-3 w-3" /> Print PO
+                        {/* Action Buttons */}
+                        <div className="border-t border-slate-200 pt-3 flex gap-2">
+                          <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
+                            <Button size="sm" className="w-full gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
+                              <Printer className="h-4 w-4" />
+                              <span className="hidden sm:inline">Print</span>
                             </Button>
                           </a>
                           <Button 
                             size="sm" 
-                            variant="outline" 
-                            className="w-full gap-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+                            variant="outline"
+                            className="flex-1 gap-1.5 border-slate-300 hover:bg-slate-50"
                             onClick={() => exportPOToPDF(po.id, po.poNumber)}
                             data-testid={`button-export-pdf-${po.id}`}
                           >
-                            <FileText className="h-3 w-3" /> Export PDF
+                            <FileText className="h-4 w-4" />
+                            <span className="hidden sm:inline">Export</span>
                           </Button>
                           {(!poInvoices[po.id] || poInvoices[po.id].length === 0) && (
                             <Button 
                               size="sm" 
-                              variant="destructive" 
-                              className="w-full gap-1"
+                              variant="outline"
+                              className="flex-1 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
                               onClick={() => deletePO(po.id, po.poNumber)}
                             >
-                              <Trash2 className="h-3 w-3" /> Delete PO
+                              <Trash2 className="h-4 w-4" />
+                              <span className="hidden sm:inline">Delete</span>
                             </Button>
                           )}
                         </div>
