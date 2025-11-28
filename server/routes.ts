@@ -273,16 +273,24 @@ export async function registerRoutes(
 
   app.post("/api/sites/bulk-update-remarks", async (req, res) => {
     try {
+      console.log('[API] bulk-update-remarks called with:', req.body);
       const { siteIds, phyAtRemark, softAtRemark } = req.body;
+      
       if (!siteIds || siteIds.length === 0) {
+        console.log('[API] No siteIds provided');
         return res.status(400).json({ error: "No sites selected" });
       }
       if (!phyAtRemark && !softAtRemark) {
+        console.log('[API] No remarks provided');
         return res.status(400).json({ error: "Please select at least one remark to update" });
       }
+      
+      console.log('[API] Calling bulkUpdateRemarks with:', { siteIds, phyAtRemark, softAtRemark });
       const result = await storage.bulkUpdateRemarks(siteIds, phyAtRemark, softAtRemark);
+      console.log('[API] bulkUpdateRemarks result:', result);
       res.json({ success: true, ...result });
     } catch (error: any) {
+      console.error('[API] bulkUpdateRemarks error:', error);
       res.status(400).json({ error: error.message });
     }
   });
