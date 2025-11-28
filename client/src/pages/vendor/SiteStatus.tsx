@@ -279,7 +279,7 @@ export default function SiteStatus() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Phy AT Status Summary */}
         <div>
-          <h3 className="text-sm font-semibold mb-2 text-gray-700">Physical AT Status</h3>
+          <h3 className="text-sm font-semibold mb-2 text-gray-700">Phy AT Status</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
               const counts = calculatePhyAtStatusCounts();
@@ -305,7 +305,7 @@ export default function SiteStatus() {
 
         {/* Soft AT Status Summary */}
         <div>
-          <h3 className="text-sm font-semibold mb-2 text-gray-700">Software AT Status</h3>
+          <h3 className="text-sm font-semibold mb-2 text-gray-700">Soft AT Status</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
               const counts = calculateSoftAtStatusCounts();
