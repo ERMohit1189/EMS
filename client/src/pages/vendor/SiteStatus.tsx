@@ -158,13 +158,17 @@ export default function SiteStatus() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('[SiteStatus] API Error:', errorData);
-        throw new Error(errorData.error || 'Failed to update');
+        const text = await response.text();
+        console.error('[SiteStatus] Response status:', response.status, 'body:', text);
+        try {
+          const errorData = JSON.parse(text);
+          throw new Error(errorData.error || 'Failed to update');
+        } catch (e) {
+          throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
+        }
       }
       
       const responseData = await response.json();
-      console.log('[SiteStatus] Update response:', responseData);
       
       toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
       setSelectedSites(new Set());
