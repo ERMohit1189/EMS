@@ -27,6 +27,9 @@ interface PORecord {
   gstApply?: boolean;
   vendorState?: string;
   siteState?: string;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
 }
 
 export default function POGeneration() {
@@ -142,6 +145,14 @@ export default function POGeneration() {
     setSelectedSites(newSet);
   };
 
+  const getTotalAmount = (po: PORecord) => {
+    const baseAmount = parseFloat(po.unitPrice || '0');
+    const cgst = po.cgstAmount || 0;
+    const sgst = po.sgstAmount || 0;
+    const igst = po.igstAmount || 0;
+    return baseAmount + cgst + sgst + igst;
+  };
+
   const generatePOs = async () => {
     if (selectedSites.size === 0) {
       toast({ title: "Alert", description: "Please select at least one site", variant: "destructive" });
@@ -229,7 +240,14 @@ export default function POGeneration() {
 
         if (response.ok) {
           const createdPO = await response.json();
-          createdPOs.push({ ...record, id: createdPO.id, gstApply: applyGstToAll });
+          createdPOs.push({ 
+            ...record, 
+            id: createdPO.id, 
+            gstApply: applyGstToAll,
+            cgstAmount,
+            sgstAmount,
+            igstAmount
+          });
         }
       }
 
@@ -681,7 +699,7 @@ export default function POGeneration() {
                           <td className="py-2 font-mono text-sm">{truncateId(po.planId)}</td>
                           <td className="py-2">{po.vendorName}</td>
                           <td className="text-center py-2">{po.maxAntennaSize || "-"}</td>
-                          <td className="text-right py-2">₹{po.unitPrice}</td>
+                          <td className="text-right py-2">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                           <td className="text-center py-2">
                             <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
                               <Button size="sm" variant="outline" className="gap-1">
@@ -746,7 +764,7 @@ export default function POGeneration() {
                           </div>
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Amount</p>
-                            <p className="text-sm font-bold text-green-600">₹{po.unitPrice}</p>
+                            <p className="text-sm font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                           </div>
                         </div>
 
