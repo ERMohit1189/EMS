@@ -29,6 +29,25 @@ export async function registerRoutes(
     next();
   });
 
+  // Export Header routes
+  app.get("/api/export-headers", async (req, res) => {
+    try {
+      const header = await storage.getExportHeader();
+      res.json(header || {});
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/export-headers", async (req, res) => {
+    try {
+      const header = await storage.updateExportHeader(req.body);
+      res.json(header);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Vendor routes
   app.post("/api/vendors", async (req, res) => {
     try {

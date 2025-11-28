@@ -818,6 +818,28 @@ export class DrizzleStorage implements IStorage {
     const result = await db.select({ count: count() }).from(zones);
     return Number(result[0]?.count) || 0;
   }
+
+  // Export Header operations
+  async getExportHeader(): Promise<ExportHeader | undefined> {
+    const result = await db.select().from(exportHeaders).limit(1);
+    return result[0];
+  }
+
+  async updateExportHeader(header: InsertExportHeader): Promise<ExportHeader> {
+    const existing = await this.getExportHeader();
+    
+    if (existing) {
+      const [result] = await db
+        .update(exportHeaders)
+        .set(header)
+        .where(eq(exportHeaders.id, existing.id))
+        .returning();
+      return result;
+    } else {
+      const [result] = await db.insert(exportHeaders).values(header).returning();
+      return result;
+    }
+  }
 }
 
 export const storage = new DrizzleStorage();
