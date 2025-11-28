@@ -255,18 +255,19 @@ export default function SiteStatus() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg p-8 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg p-6 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-4xl font-bold tracking-tight mb-2">Site Status</h2>
-            <p className="text-purple-100">View all sites with ATP Remarks and status information</p>
+            <h2 className="text-3xl font-bold tracking-tight mb-1">Site Status</h2>
+            <p className="text-purple-100 text-sm">View all sites with ATP Remarks and status information</p>
           </div>
           <Button 
             onClick={fetchSites} 
             disabled={loading}
             className="bg-white text-purple-600 hover:bg-purple-50"
+            size="sm"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -274,12 +275,12 @@ export default function SiteStatus() {
         </div>
       </div>
 
-      {/* Status Summary Cards */}
-      <div className="space-y-6">
+      {/* Status Summary Cards - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Phy AT Status Summary */}
         <div>
-          <h3 className="text-lg font-semibold mb-3 text-gray-700">Physical AT Status</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <h3 className="text-sm font-semibold mb-2 text-gray-700">Physical AT Status</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
               const counts = calculatePhyAtStatusCounts();
               const statusKey = status.toLowerCase() as keyof typeof counts;
@@ -288,16 +289,14 @@ export default function SiteStatus() {
               return (
                 <Card 
                   key={`phy-${status}`} 
-                  className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow`}
+                  className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow p-3`}
                   onClick={() => setCardStatusFilter(status)}
                 >
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
-                      <p className="text-4xl font-bold">{count}</p>
-                      <p className="text-xs opacity-60 mt-2">sites</p>
-                    </div>
-                  </CardContent>
+                  <div className="text-center">
+                    <p className="text-xs font-medium opacity-75 mb-1">{status}</p>
+                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xs opacity-60 mt-1">sites</p>
+                  </div>
                 </Card>
               );
             })}
@@ -306,8 +305,8 @@ export default function SiteStatus() {
 
         {/* Soft AT Status Summary */}
         <div>
-          <h3 className="text-lg font-semibold mb-3 text-gray-700">Software AT Status</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <h3 className="text-sm font-semibold mb-2 text-gray-700">Software AT Status</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
               const counts = calculateSoftAtStatusCounts();
               const statusKey = status.toLowerCase() as keyof typeof counts;
@@ -316,16 +315,14 @@ export default function SiteStatus() {
               return (
                 <Card 
                   key={`soft-${status}`} 
-                  className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow`}
+                  className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow p-3`}
                   onClick={() => setCardStatusFilter(status)}
                 >
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
-                      <p className="text-4xl font-bold">{count}</p>
-                      <p className="text-xs opacity-60 mt-2">sites</p>
-                    </div>
-                  </CardContent>
+                  <div className="text-center">
+                    <p className="text-xs font-medium opacity-75 mb-1">{status}</p>
+                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xs opacity-60 mt-1">sites</p>
+                  </div>
                 </Card>
               );
             })}
