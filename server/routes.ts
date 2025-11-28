@@ -116,7 +116,8 @@ export async function registerRoutes(
         id: employee.id,
         name: employee.name,
         email: employee.email,
-        designation: (employee as any).designation,
+        designationId: (employee as any).designationId,
+        designationName: (employee as any).designationName,
         departmentId: (employee as any).departmentId,
         departmentName: (employee as any).departmentName
       });
@@ -128,7 +129,7 @@ export async function registerRoutes(
           name: employee.name, 
           email: employee.email,
           department: (employee as any).departmentName || "Not Assigned",
-          designation: (employee as any).designation || "Not Specified"
+          designation: (employee as any).designationName || "Not Specified"
         } 
       };
       

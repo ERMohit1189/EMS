@@ -288,9 +288,23 @@ export class DrizzleStorage implements IStorage {
             const deptResult = await db.select({ name: departments.name }).from(departments).where(eq(departments.id, employee.departmentId));
             if (deptResult.length > 0) {
               (employee as any).departmentName = deptResult[0].name;
+              console.log(`[Storage] Department fetched: ${deptResult[0].name}`);
             }
           } catch (error) {
             console.error(`[Storage] Failed to fetch department:`, error);
+          }
+        }
+        
+        // Get designation name if designation_id exists
+        if (employee.designationId) {
+          try {
+            const desigResult = await db.select({ name: designations.name }).from(designations).where(eq(designations.id, employee.designationId));
+            if (desigResult.length > 0) {
+              (employee as any).designationName = desigResult[0].name;
+              console.log(`[Storage] Designation fetched: ${desigResult[0].name}`);
+            }
+          } catch (error) {
+            console.error(`[Storage] Failed to fetch designation:`, error);
           }
         }
         
