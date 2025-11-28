@@ -378,95 +378,158 @@ export default function SiteStatus() {
 
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth() - 20;
-      const pageHeight = pdf.internal.pageSize.getHeight() - 20;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const contentWidth = pageWidth - (2 * margin);
 
-      // All 81 column headers
-      const columnHeaders = [
-        'ID', 'Site ID', 'Vendor ID', 'Zone ID', 'Plan ID', 'Site Amount', 'Vendor Amount', 'S.No',
-        'Circle', 'Nominal AOP', 'HOP Type', 'HOP A-B', 'HOP B-A', 'District', 'Project',
-        'Site A Ant Dia', 'Site B Ant Dia', 'Max Ant Size', 'Site A Name', 'TOCO Vendor A', 'TOCO ID A',
-        'Site B Name', 'TOCO Vendor B', 'TOCO ID B', 'Media Availability Status',
-        'SR No Site A', 'SR Date Site A', 'SR No Site B', 'SR Date Site B', 'HOP SR Date',
-        'SP Date Site A', 'SP Date Site B', 'HOP SP Date', 'SO Released Date Site A',
-        'SO Released Date Site B', 'HOP SO Date', 'RFAI Offered Date Site A', 'RFAI Offered Date Site B',
-        'Actual HOP RFAI Offered Date', 'Partner Name', 'RFAI Survey Completion Date',
-        'MO Number Site A', 'Material Type Site A', 'MO Date Site A', 'MO Number Site B',
-        'Material Type Site B', 'MO Date Site B', 'SRN RMO Number', 'SRN RMO Date', 'HOP MO Date',
-        'HOP Material Dispatch Date', 'HOP Material Delivery Date', 'Material Delivery Status',
-        'Site A Installation Date', 'PTW Number Site A', 'PTW Status A', 'Site B Installation Date',
-        'PTW Number Site B', 'PTW Status B', 'HOP IC Date', 'Alignment Date',
-        'HOP Installation Remarks', 'Visible in NMS', 'NMS Visible Date', 'Soft AT Offer Date',
-        'Soft AT Acceptance Date', 'Soft AT Status', 'Phy AT Offer Date', 'Phy AT Acceptance Date',
-        'Phy AT Status', 'Both AT Status', 'PRI Issue Category', 'PRI Site ID', 'PRI Open Date',
-        'PRI Close Date', 'PRI History', 'RFI Survey Allocation Date', 'Descope', 'Reason of Extra Visit',
-        'WCC Received 80%', 'WCC Received Date 80%', 'WCC Received 20%', 'WCC Received Date 20%',
-        'WCC Received Date 100%', 'Survey', 'Final Partner Survey', 'Survey Date', 'Status',
-        'Created At', 'Updated At'
+      // All 81 fields in label-value pairs
+      const fields = [
+        { label: 'Site ID', value: site.siteId },
+        { label: 'Plan ID', value: site.planId },
+        { label: 'Vendor ID', value: site.vendorId },
+        { label: 'Zone ID', value: site.zoneId },
+        { label: 'Site Amount', value: site.siteAmount },
+        { label: 'Vendor Amount', value: site.vendorAmount },
+        { label: 'S.No', value: site.sno },
+        { label: 'Circle', value: site.circle },
+        { label: 'Nominal AOP', value: site.nominalAop },
+        { label: 'HOP Type', value: site.hopType },
+        { label: 'HOP A-B', value: site.hopAB },
+        { label: 'HOP B-A', value: site.hopBA },
+        { label: 'District', value: site.district },
+        { label: 'Project', value: site.project },
+        { label: 'Site A Ant Dia', value: site.siteAAntDia },
+        { label: 'Site B Ant Dia', value: site.siteBAntDia },
+        { label: 'Max Ant Size', value: site.maxAntSize },
+        { label: 'Site A Name', value: site.siteAName },
+        { label: 'TOCO Vendor A', value: site.tocoVendorA },
+        { label: 'TOCO ID A', value: site.tocoIdA },
+        { label: 'Site B Name', value: site.siteBName },
+        { label: 'TOCO Vendor B', value: site.tocoVendorB },
+        { label: 'TOCO ID B', value: site.tocoIdB },
+        { label: 'Media Availability', value: site.mediaAvailabilityStatus },
+        { label: 'SR No Site A', value: site.srNoSiteA },
+        { label: 'SR Date Site A', value: site.srDateSiteA },
+        { label: 'SR No Site B', value: site.srNoSiteB },
+        { label: 'SR Date Site B', value: site.srDateSiteB },
+        { label: 'HOP SR Date', value: site.hopSrDate },
+        { label: 'SP Date Site A', value: site.spDateSiteA },
+        { label: 'SP Date Site B', value: site.spDateSiteB },
+        { label: 'HOP SP Date', value: site.hopSpDate },
+        { label: 'SO Released Date A', value: site.soReleasedDateSiteA },
+        { label: 'SO Released Date B', value: site.soReleasedDateSiteB },
+        { label: 'HOP SO Date', value: site.hopSoDate },
+        { label: 'RFAI Offered Date A', value: site.rfaiOfferedDateSiteA },
+        { label: 'RFAI Offered Date B', value: site.rfaiOfferedDateSiteB },
+        { label: 'HOP RFAI Date', value: site.actualHopRfaiOfferedDate },
+        { label: 'Partner Name', value: site.partnerName },
+        { label: 'RFAI Survey Completion', value: site.rfaiSurveyCompletionDate },
+        { label: 'MO Number Site A', value: site.moNumberSiteA },
+        { label: 'Material Type Site A', value: site.materialTypeSiteA },
+        { label: 'MO Date Site A', value: site.moDateSiteA },
+        { label: 'MO Number Site B', value: site.moNumberSiteB },
+        { label: 'Material Type Site B', value: site.materialTypeSiteB },
+        { label: 'MO Date Site B', value: site.moDateSiteB },
+        { label: 'SRN/RMO Number', value: site.srnRmoNumber },
+        { label: 'SRN/RMO Date', value: site.srnRmoDate },
+        { label: 'HOP MO Date', value: site.hopMoDate },
+        { label: 'Material Dispatch Date', value: site.hopMaterialDispatchDate },
+        { label: 'Material Delivery Date', value: site.hopMaterialDeliveryDate },
+        { label: 'Material Delivery Status', value: site.materialDeliveryStatus },
+        { label: 'Site A Installation Date', value: site.siteAInstallationDate },
+        { label: 'PTW Number Site A', value: site.ptwNumberSiteA },
+        { label: 'PTW Status A', value: site.ptwStatusA },
+        { label: 'Site B Installation Date', value: site.siteBInstallationDate },
+        { label: 'PTW Number Site B', value: site.ptwNumberSiteB },
+        { label: 'PTW Status B', value: site.ptwStatusB },
+        { label: 'HOP I&C Date', value: site.hopIcDate },
+        { label: 'Alignment Date', value: site.alignmentDate },
+        { label: 'Installation Remarks', value: site.hopInstallationRemarks },
+        { label: 'Visible in NMS', value: site.visibleInNms },
+        { label: 'NMS Visible Date', value: site.nmsVisibleDate },
+        { label: 'SOFT-AT Offer Date', value: site.softAtOfferDate },
+        { label: 'SOFT-AT Acceptance Date', value: site.softAtAcceptanceDate },
+        { label: 'SOFT-AT Status', value: site.softAtStatus },
+        { label: 'PHY-AT Offer Date', value: site.phyAtOfferDate },
+        { label: 'PHY-AT Acceptance Date', value: site.phyAtAcceptanceDate },
+        { label: 'PHY-AT Status', value: site.phyAtStatus },
+        { label: 'Both AT Status', value: site.bothAtStatus },
+        { label: 'PRI Issue Category', value: site.priIssueCategory },
+        { label: 'PRI Site ID', value: site.priSiteId },
+        { label: 'PRI Open Date', value: site.priOpenDate },
+        { label: 'PRI Close Date', value: site.priCloseDate },
+        { label: 'PRI History', value: site.priHistory },
+        { label: 'RFI Survey Allocation', value: site.rfiSurveyAllocationDate },
+        { label: 'Descope', value: site.descope },
+        { label: 'Reason of Extra Visit', value: site.reasonOfExtraVisit },
+        { label: 'WCC 80% Received', value: site.wccReceived80Percent },
+        { label: 'WCC Date 80%', value: site.wccReceivedDate80Percent },
+        { label: 'WCC 20% Received', value: site.wccReceived20Percent },
+        { label: 'WCC Date 20%', value: site.wccReceivedDate20Percent },
+        { label: 'WCC Date 100%', value: site.wccReceivedDate100Percent },
+        { label: 'Survey', value: site.survey },
+        { label: 'Final Partner Survey', value: site.finalPartnerSurvey },
+        { label: 'Survey Date', value: site.surveyDate },
+        { label: 'Status', value: site.status },
       ];
 
-      const getColumnValue = (siteData: SiteStatusData, colIndex: number): string => {
-        const values = [
-          siteData.id, siteData.siteId, siteData.vendorId, siteData.zoneId, siteData.planId, siteData.siteAmount, 
-          siteData.vendorAmount, siteData.sno, siteData.circle, siteData.nominalAop, siteData.hopType, siteData.hopAB,
-          siteData.hopBA, siteData.district, siteData.project, siteData.siteAAntDia, siteData.siteBAntDia, siteData.maxAntSize,
-          siteData.siteAName, siteData.tocoVendorA, siteData.tocoIdA, siteData.siteBName, siteData.tocoVendorB, siteData.tocoIdB,
-          siteData.mediaAvailabilityStatus, siteData.srNoSiteA, siteData.srDateSiteA, siteData.srNoSiteB, siteData.srDateSiteB,
-          siteData.hopSrDate, siteData.spDateSiteA, siteData.spDateSiteB, siteData.hopSpDate, siteData.soReleasedDateSiteA,
-          siteData.soReleasedDateSiteB, siteData.hopSoDate, siteData.rfaiOfferedDateSiteA, siteData.rfaiOfferedDateSiteB,
-          siteData.actualHopRfaiOfferedDate, siteData.partnerName, siteData.rfaiSurveyCompletionDate, siteData.moNumberSiteA,
-          siteData.materialTypeSiteA, siteData.moDateSiteA, siteData.moNumberSiteB, siteData.materialTypeSiteB, siteData.moDateSiteB,
-          siteData.srnRmoNumber, siteData.srnRmoDate, siteData.hopMoDate, siteData.hopMaterialDispatchDate,
-          siteData.hopMaterialDeliveryDate, siteData.materialDeliveryStatus, siteData.siteAInstallationDate,
-          siteData.ptwNumberSiteA, siteData.ptwStatusA, siteData.siteBInstallationDate, siteData.ptwNumberSiteB,
-          siteData.ptwStatusB, siteData.hopIcDate, siteData.alignmentDate, siteData.hopInstallationRemarks, siteData.visibleInNms,
-          siteData.nmsVisibleDate, siteData.softAtOfferDate, siteData.softAtAcceptanceDate, siteData.softAtStatus,
-          siteData.phyAtOfferDate, siteData.phyAtAcceptanceDate, siteData.phyAtStatus, siteData.bothAtStatus,
-          siteData.priIssueCategory, siteData.priSiteId, siteData.priOpenDate, siteData.priCloseDate, siteData.priHistory,
-          siteData.rfiSurveyAllocationDate, siteData.descope, siteData.reasonOfExtraVisit, siteData.wccReceived80Percent,
-          siteData.wccReceivedDate80Percent, siteData.wccReceived20Percent, siteData.wccReceivedDate20Percent,
-          siteData.wccReceivedDate100Percent, siteData.survey, siteData.finalPartnerSurvey, siteData.surveyDate, siteData.status,
-          siteData.createdAt, siteData.updatedAt
-        ];
-        return String(values[colIndex] || '-').substring(0, 6);
-      };
+      // Header
+      pdf.setFillColor(41, 128, 185);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(14);
+      pdf.rect(margin, margin, contentWidth, 10, 'F');
+      pdf.text(`SITE REPORT - ${site.siteId} | Plan: ${site.planId}`, margin + 5, margin + 6.5);
+      
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(8);
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, margin + 5, margin + 14);
 
-      // Single page with 5 columns and 17 rows (81 fields total)
-      let yPosition = 10;
-      pdf.setFontSize(10);
-      pdf.text(`Site Report: ${site.siteId} | Plan: ${site.planId}`, 10, yPosition);
-      yPosition += 5;
-      pdf.setFontSize(6);
-      pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, yPosition);
-      yPosition += 4;
+      let yPosition = margin + 18;
+      const lineHeight = 6;
+      const labelWidth = contentWidth * 0.35;
+      const valueWidth = contentWidth * 0.65;
+      const fieldsPerPage = 28; // Approximate fields that fit per page
+      let fieldCount = 0;
 
-      const colsPerRow = 5;
-      const colWidth = pageWidth / colsPerRow;
-      const rowHeight = 3.2;
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(9);
 
-      // Draw header row (5 columns)
-      pdf.setFillColor(200, 200, 200);
-      for (let col = 0; col < colsPerRow; col++) {
-        const headerText = columnHeaders[col] || '';
-        pdf.rect(10 + col * colWidth, yPosition, colWidth, rowHeight, 'F');
-        pdf.setFontSize(4.5);
-        pdf.text(headerText.substring(0, 8), 10.5 + col * colWidth, yPosition + 1.5);
-      }
-      yPosition += rowHeight;
+      for (let i = 0; i < fields.length; i++) {
+        const field = fields[i];
+        const displayValue = field.value ? String(field.value) : '-';
 
-      // Draw data rows (17 rows to fit all 81 fields in 5 columns)
-      pdf.setFillColor(255, 255, 255);
-      for (let row = 0; row < 17; row++) {
-        for (let col = 0; col < colsPerRow; col++) {
-          const fieldIndex = row * colsPerRow + col;
-          if (fieldIndex < columnHeaders.length) {
-            pdf.rect(10 + col * colWidth, yPosition, colWidth, rowHeight);
-            pdf.setFontSize(4);
-            const cellText = getColumnValue(site, fieldIndex);
-            pdf.text(cellText, 10.2 + col * colWidth, yPosition + 1.5);
-          }
+        // Add page break if needed
+        if (yPosition + lineHeight > pageHeight - margin - 5) {
+          pdf.addPage();
+          yPosition = margin;
+          // Add header on new page
+          pdf.setFillColor(41, 128, 185);
+          pdf.setTextColor(255, 255, 255);
+          pdf.setFontSize(10);
+          pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+          pdf.text(`SITE REPORT (Continued) - ${site.siteId}`, margin + 5, yPosition + 5);
+          yPosition += 10;
+          pdf.setTextColor(0, 0, 0);
         }
-        yPosition += rowHeight;
+
+        // Alternate row colors
+        if (i % 2 === 0) {
+          pdf.setFillColor(240, 240, 240);
+          pdf.rect(margin, yPosition, contentWidth, lineHeight, 'F');
+        }
+
+        // Draw field label
+        pdf.setFontSize(8);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(field.label + ':', margin + 2, yPosition + 4);
+
+        // Draw field value
+        pdf.setFont(undefined, 'normal');
+        const wrappedText = pdf.splitTextToSize(displayValue, valueWidth - 2);
+        pdf.text(wrappedText, margin + labelWidth + 2, yPosition + 4);
+
+        yPosition += lineHeight;
       }
 
       pdf.save(`site-${site.siteId}-${site.planId}-${new Date().getTime()}.pdf`);
