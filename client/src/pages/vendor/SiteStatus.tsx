@@ -3,14 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { getApiBaseUrl } from '@/lib/api';
 import { fetchWithLoader } from '@/lib/fetchWithLoader';
@@ -50,9 +42,6 @@ export default function SiteStatus() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
-  const [bulkPhyAtStatus, setBulkPhyAtStatus] = useState('');
-  const [bulkSoftAtStatus, setBulkSoftAtStatus] = useState('');
 
   useEffect(() => {
     fetchSites();
@@ -114,96 +103,6 @@ export default function SiteStatus() {
   };
 
   const statusOptions = ['All', ...new Set(sites.map(s => s.status))];
-
-  const toggleSiteSelection = (siteId: string) => {
-    const newSelected = new Set(selectedSites);
-    if (newSelected.has(siteId)) {
-      newSelected.delete(siteId);
-    } else {
-      newSelected.add(siteId);
-    }
-    setSelectedSites(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedSites.size === filteredSites.length) {
-      setSelectedSites(new Set());
-    } else {
-      setSelectedSites(new Set(filteredSites.map(s => s.id)));
-    }
-  };
-
-  const handleBulkUpdate = async () => {
-    if (selectedSites.size === 0) {
-      toast({ title: 'Error', description: 'Please select at least one site', variant: 'destructive' });
-      return;
-    }
-    if (!bulkPhyAtStatus && !bulkSoftAtStatus) {
-      toast({ title: 'Error', description: 'Please select at least one status to update', variant: 'destructive' });
-      return;
-    }
-
-    try {
-      // Get plan IDs of selected sites instead of site IDs
-      const planIds = Array.from(selectedSites)
-        .map(siteId => filteredSites.find(s => s.id === siteId)?.planId)
-        .filter(Boolean) as string[];
-
-      if (planIds.length === 0) {
-        throw new Error('No valid plan IDs found');
-      }
-
-      const updatePayload = {
-        planIds: planIds,
-        phyAtStatus: bulkPhyAtStatus || undefined,
-        softAtStatus: bulkSoftAtStatus || undefined,
-      };
-      
-      const apiBaseUrl = getApiBaseUrl();
-      const fullUrl = `${apiBaseUrl}/api/sites/bulk-update-status-by-plan`;
-      console.log('[SiteStatus] Making request to:', fullUrl);
-      console.log('[SiteStatus] Payload:', updatePayload);
-      
-      const response = await fetch(fullUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(updatePayload),
-      });
-
-      console.log('[SiteStatus] Response status:', response.status);
-      console.log('[SiteStatus] Response headers:', {
-        contentType: response.headers.get('content-type'),
-        contentLength: response.headers.get('content-length')
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[SiteStatus] Error response:', errorText.substring(0, 200));
-        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
-      }
-      
-      const text = await response.text();
-      console.log('[SiteStatus] Success response:', text);
-      
-      if (!text.includes('success')) {
-        throw new Error(`Invalid response: ${text.substring(0, 100)}`);
-      }
-      
-      const responseData = JSON.parse(text);
-      toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
-      setSelectedSites(new Set());
-      setBulkPhyAtStatus('');
-      setBulkSoftAtStatus('');
-      
-      await fetchSites();
-    } catch (error: any) {
-      console.error('[SiteStatus] Bulk update error:', error.message);
-      toast({ title: 'Error', description: error.message || 'Failed to update sites', variant: 'destructive' });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -268,56 +167,8 @@ export default function SiteStatus() {
 
       {/* Results Count */}
       <div className="text-sm text-gray-600">
-        Showing {filteredSites.length} of {sites.length} sites {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
+        Showing {filteredSites.length} of {sites.length} sites
       </div>
-
-      {/* Bulk Update Section */}
-      {filteredSites.length > 0 && (
-        <Card className="shadow-md border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-lg">Bulk Update Status</CardTitle>
-            <CardDescription>Update Physical AT and Software AT status for selected sites</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Physical AT Status</label>
-                <Select value={bulkPhyAtStatus} onValueChange={setBulkPhyAtStatus}>
-                  <SelectTrigger data-testid="select-phy-at-status">
-                    <SelectValue placeholder="Select Physical AT Status..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {updateStatusOptions.map(option => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Soft AT Status</label>
-                <Select value={bulkSoftAtStatus} onValueChange={setBulkSoftAtStatus}>
-                  <SelectTrigger data-testid="select-soft-at-status">
-                    <SelectValue placeholder="Select Soft AT Status..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {updateStatusOptions.map(option => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button 
-              onClick={handleBulkUpdate} 
-              disabled={selectedSites.size === 0}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              data-testid="button-bulk-update"
-            >
-              Update {selectedSites.size > 0 ? `${selectedSites.size} Sites` : 'Sites'}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Sites Table */}
       <Card className="shadow-md">
@@ -336,13 +187,6 @@ export default function SiteStatus() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
-                    <TableHead className="font-semibold w-12">
-                      <Checkbox 
-                        checked={selectedSites.size === filteredSites.length && filteredSites.length > 0}
-                        onCheckedChange={toggleSelectAll}
-                        data-testid="checkbox-select-all"
-                      />
-                    </TableHead>
                     <TableHead className="font-semibold">Plan ID</TableHead>
                     <TableHead className="font-semibold">Circle</TableHead>
                     <TableHead className="font-semibold">District</TableHead>
@@ -357,14 +201,7 @@ export default function SiteStatus() {
                 </TableHeader>
                 <TableBody>
                   {filteredSites.map((site) => (
-                    <TableRow key={site.id} className={`hover:bg-gray-50 transition-colors ${selectedSites.has(site.id) ? 'bg-blue-100' : ''}`}>
-                      <TableCell>
-                        <Checkbox 
-                          checked={selectedSites.has(site.id)}
-                          onCheckedChange={() => toggleSiteSelection(site.id)}
-                          data-testid={`checkbox-site-${site.id}`}
-                        />
-                      </TableCell>
+                    <TableRow key={site.id} className="hover:bg-gray-50 transition-colors">
                       <TableCell className="font-medium text-blue-600 font-mono">{truncateId(site.planId)}</TableCell>
                       <TableCell>{site.circle || '-'}</TableCell>
                       <TableCell>{site.district || '-'}</TableCell>
