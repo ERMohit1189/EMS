@@ -749,15 +749,9 @@ export default function POGeneration() {
                           <p className="text-base font-bold text-blue-600">{po.poNumber}</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Site ID</p>
-                            <p className="text-xs text-gray-700 truncate font-mono">{po.siteId}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Site Name</p>
-                            <p className="text-sm font-semibold">{po.siteName}</p>
-                          </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground uppercase">Site Name</p>
+                          <p className="text-sm font-semibold">{po.siteName}</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
