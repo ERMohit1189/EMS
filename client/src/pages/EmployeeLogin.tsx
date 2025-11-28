@@ -213,10 +213,8 @@ export default function EmployeeLogin() {
 
         {/* Privacy Policy Link */}
         <div className="text-center mt-6">
-          <Link href="/employee/privacy-policy">
-            <a className="text-xs text-gray-600 hover:text-gray-900 underline transition-colors" data-testid="link-privacy-policy">
-              Privacy Policy
-            </a>
+          <Link href="/employee/privacy-policy" className="text-xs text-gray-600 hover:text-gray-900 underline transition-colors" data-testid="link-privacy-policy">
+            Privacy Policy
           </Link>
         </div>
       </div>

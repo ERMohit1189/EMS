@@ -212,10 +212,8 @@ export default function VendorLogin() {
 
         {/* Privacy Policy Link */}
         <div className="text-center mt-6">
-          <Link href="/vendor/privacy-policy">
-            <a className="text-xs text-gray-600 hover:text-gray-900 underline transition-colors" data-testid="link-privacy-policy">
-              Privacy Policy
-            </a>
+          <Link href="/vendor/privacy-policy" className="text-xs text-gray-600 hover:text-gray-900 underline transition-colors" data-testid="link-privacy-policy">
+            Privacy Policy
           </Link>
         </div>
       </div>
