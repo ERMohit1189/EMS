@@ -107,13 +107,15 @@ function App() {
   }
 
   // If not logged in and not on login page, redirect to login
-  if (!isLoggedIn && location !== '/login' && location !== '/api-config') {
+  if (!isLoggedIn && location !== '/login' && location !== '/api-config' && location !== '/employee/privacy-policy' && location !== '/vendor/privacy-policy') {
     return (
       <>
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
           <Route path="/employee-login" component={EmployeeLogin} />
+          <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+          <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
           <Route component={Login} />
         </Switch>
         <Toaster />
