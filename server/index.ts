@@ -4,7 +4,8 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
-import { Pool } from "pg";
+
+const { Pool } = require("pg");
 
 const app = express();
 const httpServer = createServer(app);
