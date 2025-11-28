@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -209,6 +209,15 @@ export default function VendorLogin() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Privacy Policy Link */}
+        <div className="text-center mt-6">
+          <Link href="/vendor/privacy-policy">
+            <a className="text-xs text-gray-600 hover:text-gray-900 underline transition-colors" data-testid="link-privacy-policy">
+              Privacy Policy
+            </a>
+          </Link>
+        </div>
       </div>
     </div>
   );
