@@ -81,7 +81,10 @@ export default function SiteStatus() {
     
     const matchesStatus = selectedStatus === 'All' || site.status === selectedStatus;
     
-    return matchesSearch && matchesStatus;
+    // Exclude approved sites from the grid (cannot be manually updated)
+    const isNotApproved = site.status !== 'Approved';
+    
+    return matchesSearch && matchesStatus && isNotApproved;
   });
 
   const getStatusColor = (status: string) => {
@@ -113,7 +116,7 @@ export default function SiteStatus() {
     }
   };
 
-  const statusOptions = ['All', ...Array.from(new Set(sites.map(s => s.status)))];
+  const statusOptions = ['All', ...Array.from(new Set(sites.filter(s => s.status !== 'Approved').map(s => s.status)))];
 
   const calculatePhyAtStatusCounts = () => {
     return {
@@ -358,8 +361,15 @@ export default function SiteStatus() {
       </Card>
 
       {/* Results Count */}
-      <div className="text-sm text-gray-600">
-        Showing {filteredSites.length} of {sites.length} sites {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
+      <div className="space-y-2">
+        <div className="text-sm text-gray-600">
+          Showing {filteredSites.length} of {sites.filter(s => s.status !== 'Approved').length} updatable sites {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
+        </div>
+        {sites.some(s => s.status === 'Approved') && (
+          <div className="text-sm bg-blue-50 border border-blue-200 rounded p-3 text-blue-800">
+            ℹ️ {sites.filter(s => s.status === 'Approved').length} approved site(s) are not shown - Approved sites cannot be manually updated
+          </div>
+        )}
       </div>
 
       {/* Bulk Update Section */}
