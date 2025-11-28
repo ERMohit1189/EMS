@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Copy, RotateCcw, Download, Eye, EyeOff } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -31,6 +32,9 @@ export default function EmployeeCredentials() {
   const [credentials, setCredentials] = useState<EmployeeCredential[]>([]);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [regenerateId, setRegenerateId] = useState<string | null>(null);
+  const [useCookies, setUseCookies] = useState(() => {
+    return localStorage.getItem('useCredentialsCookies') === 'true';
+  });
 
   // Load credentials from localStorage on mount
   useEffect(() => {
@@ -40,10 +44,37 @@ export default function EmployeeCredentials() {
     }
   }, []);
 
-  // Save credentials to localStorage
+  // Helper function to set cookie
+  const setCookie = (name: string, value: string, days: number = 7) => {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = `${name}=${value};${expires};path=/;SameSite=Strict`;
+  };
+
+  // Save credentials to localStorage and optionally to cookies
   const saveCredentials = (creds: EmployeeCredential[]) => {
     setCredentials(creds);
     localStorage.setItem('employeeCredentials', JSON.stringify(creds));
+    
+    if (useCookies) {
+      setCookie('employeeCredentials', JSON.stringify(creds), 7);
+      toast({
+        title: 'Saved',
+        description: 'Credentials saved to both storage and cookies',
+      });
+    }
+  };
+
+  const handleCookieToggle = (checked: boolean) => {
+    setUseCookies(checked);
+    localStorage.setItem('useCredentialsCookies', String(checked));
+    toast({
+      title: checked ? 'Cookies Enabled' : 'Cookies Disabled',
+      description: checked 
+        ? 'Credentials will be saved to cookies' 
+        : 'Credentials will only be saved to local storage',
+    });
   };
 
   const generatePassword = (): string => {
@@ -183,14 +214,34 @@ export default function EmployeeCredentials() {
         </Card>
       </div>
 
-      {/* Action Buttons */}
-      {credentials.length > 0 && (
-        <div className="flex gap-2">
-          <Button onClick={downloadCredentialsCSV} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" /> Download CSV
-          </Button>
-        </div>
-      )}
+      {/* Storage Options and Action Buttons */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Storage Options</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+            <Checkbox 
+              id="use-cookies" 
+              checked={useCookies}
+              onCheckedChange={handleCookieToggle}
+              data-testid="checkbox-use-cookies"
+            />
+            <label htmlFor="use-cookies" className="cursor-pointer flex-1">
+              <div className="font-medium text-sm">Store credentials in cookies</div>
+              <div className="text-xs text-muted-foreground">Credentials will be automatically saved to browser cookies (7 days expiry)</div>
+            </label>
+          </div>
+
+          {credentials.length > 0 && (
+            <div className="flex gap-2 pt-2 border-t">
+              <Button onClick={downloadCredentialsCSV} variant="outline" className="gap-2">
+                <Download className="h-4 w-4" /> Download CSV
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Generated Credentials */}
       {credentials.length > 0 && (
