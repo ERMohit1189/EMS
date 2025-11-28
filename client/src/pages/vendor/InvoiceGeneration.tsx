@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Download, Trash2 } from "lucide-react";
+import { Plus, Download, Trash2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader, fetchJsonWithLoader } from "@/lib/fetchWithLoader";
@@ -590,21 +590,30 @@ export default function InvoiceGeneration() {
                             <span className="text-sm font-bold text-green-600">₹{parseFloat(invoice.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
                         </div>
-                        <div className="flex gap-1 mt-2">
-                          <button
+                        <div className="flex gap-2 mt-2">
+                          <Button
                             onClick={() => downloadInvoicePDF(invoice)}
-                            className="flex items-center justify-center p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Download PDF"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs gap-1"
+                            size="sm"
                           >
                             <Download className="h-4 w-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            onClick={() => window.print()}
+                            variant="outline"
+                            className="flex-1 h-8 text-xs gap-1"
+                            size="sm"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          <Button
                             onClick={() => deleteInvoice(invoice.id, invoice.invoiceNumber)}
-                            className="flex items-center justify-center p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete Invoice"
+                            variant="outline"
+                            className="flex-1 border-red-300 text-red-600 hover:bg-red-50 h-8 text-xs gap-1"
+                            size="sm"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -678,21 +687,30 @@ export default function InvoiceGeneration() {
                             </span>
                           </div>
                         )}
-                        <div className="flex gap-1 mt-2">
-                          <button
+                        <div className="flex gap-2 mt-2">
+                          <Button
                             onClick={() => downloadInvoicePDF(invoice)}
-                            className="flex items-center justify-center p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Download PDF"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs gap-1"
+                            size="sm"
                           >
                             <Download className="h-4 w-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            onClick={() => window.print()}
+                            variant="outline"
+                            className="flex-1 h-8 text-xs gap-1"
+                            size="sm"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          <Button
                             onClick={() => deleteInvoice(invoice.id, invoice.invoiceNumber)}
-                            className="flex items-center justify-center p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete Invoice"
+                            variant="outline"
+                            className="flex-1 border-red-300 text-red-600 hover:bg-red-50 h-8 text-xs gap-1"
+                            size="sm"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
