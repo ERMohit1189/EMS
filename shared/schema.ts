@@ -158,6 +158,8 @@ export const designations = pgTable("designations", {
 export const employees = pgTable("employees", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  email: varchar("email").notNull().unique(),
+  password: text("password"),
   dob: date("dob").notNull(),
   fatherName: text("father_name").notNull(),
   mobile: varchar("mobile").notNull().unique(),
