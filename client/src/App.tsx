@@ -13,6 +13,7 @@ import ApiConfig from "@/pages/ApiConfig";
 import VendorRegistration from "@/pages/vendor/VendorRegistration";
 import VendorList from "@/pages/vendor/VendorList";
 import VendorEdit from "@/pages/vendor/VendorEdit";
+import VendorCredentials from "@/pages/vendor/VendorCredentials";
 import PaymentMaster from "@/pages/vendor/PaymentMaster";
 import CircleMaster from "@/pages/vendor/CircleMaster";
 import POGeneration from "@/pages/vendor/POGeneration";

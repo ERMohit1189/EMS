@@ -90,6 +90,30 @@ export async function registerRoutes(
     });
   });
 
+  app.post("/api/vendors/:id/generate-password", async (req, res) => {
+    try {
+      const vendor = await storage.getVendor(req.params.id);
+      if (!vendor) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+
+      const bcrypt = require('bcrypt');
+      const tempPassword = Math.random().toString(36).slice(-10);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      
+      await storage.updateVendor(req.params.id, { password: hashedPassword });
+      
+      res.json({
+        success: true,
+        vendor: { id: vendor.id, name: vendor.name, email: vendor.email },
+        tempPassword,
+        message: `Password generated successfully for ${vendor.email}`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/vendors", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
