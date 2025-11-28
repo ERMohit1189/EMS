@@ -375,7 +375,7 @@ export default function SiteStatus() {
     }
 
     try {
-      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation
       const pageWidth = pdf.internal.pageSize.getWidth() - 20; // 20mm margins
       const pageHeight = pdf.internal.pageSize.getHeight();
 
@@ -426,11 +426,11 @@ export default function SiteStatus() {
           site.wccReceivedDate100Percent, site.survey, site.finalPartnerSurvey, site.surveyDate, site.status,
           site.createdAt, site.updatedAt
         ];
-        return String(values[colIndex] || '-').substring(0, 10);
+        return String(values[colIndex] || '-').substring(0, 8);
       };
 
-      // Split columns into chunks that fit on a page (8 columns per chunk in landscape)
-      const colsPerPage = 8;
+      // Split columns into chunks that fit on a page (5 columns per chunk in portrait)
+      const colsPerPage = 5;
       const colChunks = [];
       for (let i = 0; i < columnHeaders.length; i += colsPerPage) {
         colChunks.push({
@@ -450,25 +450,25 @@ export default function SiteStatus() {
         let yPosition = 10;
 
         // Add title and metadata
-        pdf.setFontSize(12);
+        pdf.setFontSize(11);
         pdf.text(`Site Status Report - Columns ${chunk.start + 1}-${chunk.end}`, 10, yPosition);
+        yPosition += 5;
+
+        pdf.setFontSize(7);
+        pdf.text(`Generated: ${new Date().toLocaleString()} | Total Records: ${filteredSites.length}`, 10, yPosition);
         yPosition += 6;
 
-        pdf.setFontSize(8);
-        pdf.text(`Generated: ${new Date().toLocaleString()} | Total Records: ${filteredSites.length}`, 10, yPosition);
-        yPosition += 8;
-
-        // Column widths for 8 columns per page
-        const colWidth = (pageWidth - 20) / chunk.headers.length;
-        const rowHeight = 5;
+        // Column widths for 5 columns per page in portrait
+        const colWidth = (pageWidth) / chunk.headers.length;
+        const rowHeight = 4;
 
         // Draw header
         pdf.setFillColor(200, 200, 200);
         let headerX = 10;
         chunk.headers.forEach(header => {
           pdf.rect(headerX, yPosition, colWidth, rowHeight, 'F');
-          pdf.setFontSize(7);
-          pdf.text(header.substring(0, 12), headerX + 1, yPosition + 3);
+          pdf.setFontSize(6);
+          pdf.text(header.substring(0, 10), headerX + 1, yPosition + 2);
           headerX += colWidth;
         });
         yPosition += rowHeight;
@@ -485,8 +485,8 @@ export default function SiteStatus() {
             let hx = 10;
             chunk.headers.forEach(header => {
               pdf.rect(hx, yPosition, colWidth, rowHeight, 'F');
-              pdf.setFontSize(7);
-              pdf.text(header.substring(0, 12), hx + 1, yPosition + 3);
+              pdf.setFontSize(6);
+              pdf.text(header.substring(0, 10), hx + 1, yPosition + 2);
               hx += colWidth;
             });
             yPosition += rowHeight;
@@ -496,7 +496,7 @@ export default function SiteStatus() {
           let cellX = 10;
           for (let c = chunk.start; c < chunk.end; c++) {
             pdf.rect(cellX, yPosition, colWidth, rowHeight);
-            pdf.setFontSize(6);
+            pdf.setFontSize(5);
             const cellText = getColumnValue(site, c);
             pdf.text(cellText, cellX + 1, yPosition + 2);
             cellX += colWidth;
@@ -506,7 +506,7 @@ export default function SiteStatus() {
       }
 
       pdf.save(`site-status-${new Date().getTime()}.pdf`);
-      toast({ title: 'Success', description: 'All 81 columns exported to PDF' });
+      toast({ title: 'Success', description: 'All 81 columns exported to PDF (Portrait)' });
     } catch (error) {
       console.error('PDF export error:', error);
       toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
