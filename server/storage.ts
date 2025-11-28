@@ -52,6 +52,7 @@ export interface IStorage {
   upsertSiteByPlanId(site: InsertSite): Promise<Site>;
   bulkUpdateRemarks(siteIds: string[], phyAtRemark?: string, softAtRemark?: string): Promise<{ updated: number }>;
   bulkUpdateStatus(siteIds: string[], phyAtStatus?: string, softAtStatus?: string): Promise<{ updated: number }>;
+  bulkUpdateStatusByPlanId(planIds: string[], phyAtStatus?: string, softAtStatus?: string): Promise<{ updated: number }>;
   deleteSite(id: string): Promise<void>;
   deleteAllSites(): Promise<void>;
   getSiteCount(): Promise<number>;
@@ -503,6 +504,28 @@ export class DrizzleStorage implements IStorage {
       return { updated: siteIds.length };
     } catch (err) {
       console.error('[Storage] Error in bulkUpdateStatus:', err);
+      throw err;
+    }
+  }
+
+  async bulkUpdateStatusByPlanId(planIds: string[], phyAtStatus?: string, softAtStatus?: string): Promise<{ updated: number }> {
+    const updateData: Partial<InsertSite> = {};
+    if (phyAtStatus) updateData.phyAtStatus = phyAtStatus;
+    if (softAtStatus) updateData.softAtStatus = softAtStatus;
+
+    if (Object.keys(updateData).length === 0) {
+      return { updated: 0 };
+    }
+
+    try {
+      await db
+        .update(sites)
+        .set(updateData)
+        .where(inArray(sites.planId, planIds));
+      
+      return { updated: planIds.length };
+    } catch (err) {
+      console.error('[Storage] Error in bulkUpdateStatusByPlanId:', err);
       throw err;
     }
   }

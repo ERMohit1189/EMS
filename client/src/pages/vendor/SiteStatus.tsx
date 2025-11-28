@@ -144,32 +144,32 @@ export default function SiteStatus() {
     }
 
     try {
+      // Get plan IDs of selected sites instead of site IDs
+      const planIds = Array.from(selectedSites)
+        .map(siteId => filteredSites.find(s => s.id === siteId)?.planId)
+        .filter(Boolean) as string[];
+
       const updatePayload = {
-        siteIds: Array.from(selectedSites),
+        planIds: planIds,
         phyAtStatus: bulkPhyAtStatus || undefined,
         softAtStatus: bulkSoftAtStatus || undefined,
       };
-      console.log('[SiteStatus] Sending bulk status update:', updatePayload);
-      const apiUrl = `${getApiBaseUrl()}/api/sites/bulk-update-status`;
-      console.log('[SiteStatus] API URL:', apiUrl);
+      console.log('[SiteStatus] Sending bulk status update with planIds:', updatePayload);
       
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${getApiBaseUrl()}/api/sites/bulk-update-status-by-plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatePayload),
       });
 
-      console.log('[SiteStatus] Response status:', response.status);
+      const text = await response.text();
+      console.log('[SiteStatus] Response status:', response.status, 'body:', text.substring(0, 100));
       
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('[SiteStatus] Error response body:', text.substring(0, 200));
-        throw new Error(`API Error: ${response.status}`);
+      if (!response.ok || !text.includes('success')) {
+        throw new Error(`Server error: ${text.substring(0, 100)}`);
       }
       
-      const responseData = await response.json();
-      console.log('[SiteStatus] Update successful:', responseData);
-      
+      const responseData = JSON.parse(text);
       toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
       setSelectedSites(new Set());
       setBulkPhyAtStatus('');
