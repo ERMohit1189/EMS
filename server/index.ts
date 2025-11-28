@@ -89,6 +89,12 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Protect API routes from Vite catch-all - return 404 JSON for unmatched API routes
+  app.use("/api/", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.path}` });
+  });
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
