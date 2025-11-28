@@ -39,14 +39,15 @@ export default function VendorList() {
       for (const vendor of result.data || []) {
         try {
           const usageRes = await fetch(`${getApiBaseUrl()}/api/vendors/${vendor.id}/usage`);
-          if (usageRes.ok) {
-            const usageData = await usageRes.json();
-            usageMap[vendor.id] = usageData.isUsed;
-          }
+          const usageData = await usageRes.json();
+          console.log(`[VendorList] Vendor ${vendor.id} usage:`, usageData);
+          usageMap[vendor.id] = usageData.isUsed || false;
         } catch (e) {
-          usageMap[vendor.id] = true; // Default to used for safety
+          console.error(`[VendorList] Error checking usage for vendor ${vendor.id}:`, e);
+          usageMap[vendor.id] = false; // Default to not used so delete button shows
         }
       }
+      console.log("[VendorList] Final usage map:", usageMap);
       setVendorUsage(usageMap);
     } catch (error) {
       toast({
@@ -163,7 +164,7 @@ export default function VendorList() {
                      <Edit className="h-4 w-4" /> Edit
                    </Button>
                  </Link>
-                 {!vendorUsage[v.id] && (
+                 {vendorUsage[v.id] === false && (
                    <Button 
                      variant="destructive" 
                      size="sm" 
