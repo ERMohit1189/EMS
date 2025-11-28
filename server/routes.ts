@@ -341,19 +341,20 @@ export async function registerRoutes(
       // Call the bulk update which handles AT status updates
       const result = await storage.bulkUpdateStatusByPlanId(planIds, phyAtStatus, softAtStatus);
       
-      // If both AT statuses are Approved, also update the site status to Approved
-      if (shouldApproveStatus) {
-        console.log('[API] Auto-approving site status for planIds:', planIds);
-        // Update site status to Approved for these plan IDs
-        const updateResult = await Promise.all(
-          planIds.map((planId: string) => 
-            db.update(sites)
-              .set({ status: 'Approved' })
-              .where(eq(sites.planId, planId))
-          )
-        );
-        console.log('[API] Site status approval result:', updateResult);
+      // Auto-update site status based on AT statuses
+      console.log('[API] Auto-updating site status for planIds:', planIds);
+      let newStatus = 'Pending';
+      if (phyAtStatus === 'Approved' && softAtStatus === 'Approved') {
+        newStatus = 'Approved';
       }
+      const updateResult = await Promise.all(
+        planIds.map((planId: string) => 
+          db.update(sites)
+            .set({ status: newStatus })
+            .where(eq(sites.planId, planId))
+        )
+      );
+      console.log('[API] Site status update result - new status:', newStatus, 'for planIds:', planIds);
       
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({ success: true, updated: result.updated });

@@ -451,6 +451,10 @@ export class DrizzleStorage implements IStorage {
     if (site.softAtRemark === "Approved" && site.phyAtRemark === "Approved") {
       return { ...site, status: "Approved" };
     }
+    // If either remark is not Approved, set status to Pending
+    if (site.softAtRemark !== "Approved" || site.phyAtRemark !== "Approved") {
+      return { ...site, status: "Pending" };
+    }
     return site;
   }
 
@@ -473,9 +477,11 @@ export class DrizzleStorage implements IStorage {
       return { updated: 0 };
     }
 
-    // Auto-update status to Approved if both remarks are Approved
+    // Auto-update status: Approved if both are Approved, Pending if either is not Approved
     if (phyAtRemark === "Approved" && softAtRemark === "Approved") {
       updateData.status = "Approved";
+    } else if (phyAtRemark !== "Approved" || softAtRemark !== "Approved") {
+      updateData.status = "Pending";
     }
 
     const result = await db
