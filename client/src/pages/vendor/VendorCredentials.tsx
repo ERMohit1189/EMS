@@ -96,6 +96,7 @@ export default function VendorCredentials() {
                 <tr>
                   <th className="text-left px-3 py-2 font-semibold">Vendor Name</th>
                   <th className="text-left px-3 py-2 font-semibold">Email (Username)</th>
+                  <th className="text-center px-3 py-2 font-semibold">Role</th>
                   <th className="text-center px-3 py-2 font-semibold">Status</th>
                   <th className="text-left px-3 py-2 font-semibold">Generated Password</th>
                   <th className="text-center px-3 py-2 font-semibold">Action</th>
@@ -122,6 +123,11 @@ export default function VendorCredentials() {
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className="text-xs px-2 py-1 rounded font-semibold bg-blue-100 text-blue-800">
+                        {(vendor as any).role || "Vendor"}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-center">
                       <span
