@@ -264,7 +264,7 @@ export default function SiteStatus() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Physical AT Status</label>
+                <label className="text-sm font-medium mb-2 block">Phy AT Status</label>
                 <Select value={bulkPhyAtStatus} onValueChange={setBulkPhyAtStatus}>
                   <SelectTrigger data-testid="select-phy-at-status">
                     <SelectValue placeholder="Select Physical AT Status..." />
