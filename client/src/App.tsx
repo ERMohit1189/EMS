@@ -76,7 +76,13 @@ function App() {
       // Check if this was an employee logout BEFORE clearing data
       // Use employeeEmail as the check since that's what determines if someone is an employee
       const isEmployeeLogout = localStorage.getItem('employeeEmail') !== null;
-      console.log('[App] Logout triggered - isEmployeeLogout:', isEmployeeLogout, 'employeeEmail:', localStorage.getItem('employeeEmail'));
+      const employeeName = localStorage.getItem('employeeName');
+      const employeeEmail = localStorage.getItem('employeeEmail');
+      
+      console.log('[App] ========== LOGOUT PROCESS ==========');
+      console.log('[App] Logout triggered - isEmployeeLogout:', isEmployeeLogout);
+      console.log('[App] Employee:', employeeName, '<' + employeeEmail + '>');
+      console.log('[App] Time:', new Date().toLocaleString());
       
       // Clear session data from localStorage (but keep Remember Me credentials if user had them checked)
       localStorage.removeItem('isLoggedIn');
@@ -89,14 +95,16 @@ function App() {
       
       setIsLoggedIn(false);
       setIsEmployee(false);
-      console.log('[App] Session data cleared. Remember Me credentials preserved. Redirecting...');
+      console.log('[App] Session data cleared. Remember Me credentials: PRESERVED');
       
       // Redirect to appropriate login page based on what we determined earlier
       if (isEmployeeLogout) {
-        console.log('[App] Redirecting to /employee-login');
+        console.log('[App] REDIRECTING TO: /employee-login');
+        console.log('[App] ====================================');
         setLocation('/employee-login');
       } else {
-        console.log('[App] Redirecting to /login');
+        console.log('[App] REDIRECTING TO: /login');
+        console.log('[App] ====================================');
         setLocation('/login');
       }
     };

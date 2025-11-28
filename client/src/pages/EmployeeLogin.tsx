@@ -48,11 +48,19 @@ export default function EmployeeLogin() {
   }, []);
 
   const handleLogout = () => {
-    console.log("[EmployeeLogin] Logout button clicked");
+    console.log("[EmployeeLogin] ========== LOGOUT INITIATED ==========");
+    console.log("[EmployeeLogin] Logout button clicked by:", employeeName);
+    console.log("[EmployeeLogin] Current time:", new Date().toLocaleString());
+    console.log("[EmployeeLogin] Action: Session termination");
+    console.log("[EmployeeLogin] Redirect destination: /employee-login");
+    console.log("[EmployeeLogin] Remember Me credentials: PRESERVED");
+    console.log("[EmployeeLogin] ==========================================");
+    
     toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out",
+      title: "Logged Out Successfully ✓",
+      description: "Redirecting to Employee Login Page...",
     });
+    
     // Dispatch logout event to App component to handle everything
     window.dispatchEvent(new Event('logout'));
   };
