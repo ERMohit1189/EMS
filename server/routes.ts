@@ -112,14 +112,23 @@ export async function registerRoutes(
         req.session.employeeEmail = employee.email;
       }
       
+      console.log(`[Employee Login] Employee object:`, {
+        id: employee.id,
+        name: employee.name,
+        email: employee.email,
+        designation: (employee as any).designation,
+        departmentId: (employee as any).departmentId,
+        departmentName: (employee as any).departmentName
+      });
+      
       const responseData = { 
         success: true, 
         employee: { 
           id: employee.id, 
           name: employee.name, 
           email: employee.email,
-          department: (employee as any).departmentName,
-          designation: (employee as any).designation
+          department: (employee as any).departmentName || "Not Assigned",
+          designation: (employee as any).designation || "Not Specified"
         } 
       };
       

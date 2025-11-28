@@ -60,6 +60,7 @@ export default function EmployeeLogin() {
       });
 
       const data = await response.json();
+      console.log('Login response data:', data);
 
       if (!response.ok) {
         const errorMsg = data.error || `API Error: ${response.status} ${response.statusText}`;
@@ -72,12 +73,18 @@ export default function EmployeeLogin() {
         return;
       }
 
+      console.log('Employee data:', data.employee);
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("employeeId", data.employee.id);
       localStorage.setItem("employeeEmail", data.employee.email);
       localStorage.setItem("employeeName", data.employee.name);
       localStorage.setItem("employeeDepartment", data.employee.department || "Not Assigned");
-      localStorage.setItem("employeeDesignation", data.employee.designation || "");
+      localStorage.setItem("employeeDesignation", data.employee.designation || "Not Specified");
+      
+      console.log('localStorage after login:', {
+        department: localStorage.getItem("employeeDepartment"),
+        designation: localStorage.getItem("employeeDesignation")
+      });
 
       // Save credentials to cookies if Remember Me is checked and cookies are enabled
       const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
