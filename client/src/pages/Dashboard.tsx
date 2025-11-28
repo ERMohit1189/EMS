@@ -230,22 +230,22 @@ export default function Dashboard() {
       </Card>
 
       {/* Analytics Grid - 3 Columns */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-md">
           <CardHeader className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-t-lg">
             <CardTitle className="text-base">Site Status</CardTitle>
             <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4 px-2">
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+          <CardContent className="flex justify-center pt-4 px-1">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
                 <Pie
                   data={siteStatusData}
                   cx="50%"
                   cy="50%"
                   labelLine={true}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={55}
+                  label={({ name, value }) => `${name} (${value})`}
+                  outerRadius={45}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -264,16 +264,16 @@ export default function Dashboard() {
             <CardTitle className="text-base">Vendor Status</CardTitle>
             <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4 px-2">
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+          <CardContent className="flex justify-center pt-4 px-1">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
                 <Pie
                   data={vendorStatusData}
                   cx="50%"
                   cy="50%"
                   labelLine={true}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={55}
+                  label={({ name, value }) => `${name} (${value})`}
+                  outerRadius={45}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -287,21 +287,21 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md sm:col-span-2 lg:col-span-1">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-t-lg">
             <CardTitle className="text-base">PO Status</CardTitle>
             <CardDescription className="text-xs">Purchase order breakdown</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4 px-2">
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+          <CardContent className="flex justify-center pt-4 px-1">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
                 <Pie
                   data={poStatusData}
                   cx="50%"
                   cy="50%"
                   labelLine={true}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={55}
+                  label={({ name, value }) => `${name} (${value})`}
+                  outerRadius={45}
                   fill="#8884d8"
                   dataKey="value"
                 >
