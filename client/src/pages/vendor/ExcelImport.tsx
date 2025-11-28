@@ -490,24 +490,26 @@ export default function ExcelImport() {
         <p className="text-muted-foreground">Upload or download data with all columns (supports 50+ columns).</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Select Data Type</CardTitle>
-          <CardDescription>Choose what type of data you want to import</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select value={importType} onValueChange={(val) => setImportType(val as 'site' | 'vendor' | 'employee')}>
-            <SelectTrigger className="w-full md:w-64">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="site">Sites Registration</SelectItem>
-              <SelectItem value="vendor">Vendor Registration</SelectItem>
-              <SelectItem value="employee">Employee Registration</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+      {importType !== 'site' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Data Type</CardTitle>
+            <CardDescription>Choose what type of data you want to import</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={importType} onValueChange={(val) => setImportType(val as 'site' | 'vendor' | 'employee')}>
+              <SelectTrigger className="w-full md:w-64">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="site">Sites Registration</SelectItem>
+                <SelectItem value="vendor">Vendor Registration</SelectItem>
+                <SelectItem value="employee">Employee Registration</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
