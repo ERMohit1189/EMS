@@ -35,31 +35,34 @@ const RequiredLabel = ({ children }: { children: string }) => (
 
 const employeeSchema = z.object({
   name: z.string().min(2, 'Full name is required'),
-  dob: z.string().min(1, 'Date of birth is required'),
+  dob: z.string().optional(),
   fatherName: z.string().min(2, 'Father name is required'),
   mobile: z.string().min(10, 'Mobile no. is required'),
   alternateNo: z.string().optional(),
   address: z.string().min(5, 'Address is required'),
-  city: z.string().min(2, 'City is required'),
-  state: z.string().min(2, 'State is required'),
+  city: z.string().optional(),
+  state: z.string().optional(),
   country: z.string().default('India'),
   role: z.string().min(1, 'Role is required'),
   departmentId: z.string().optional(),
   designationId: z.string().min(1, 'Designation is required'),
   doj: z.string().min(1, 'Date of joining is required'),
-  aadhar: z.string()
-    .min(12, 'Aadhar must be 12 digits')
-    .max(12, 'Aadhar must be 12 digits')
-    .regex(/^\d{12}$/, 'Aadhar must be exactly 12 digits'),
-  pan: z.string()
-    .min(10, 'PAN must be 10 characters')
-    .max(10, 'PAN must be 10 characters')
-    .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN format: AAAAA9999A'),
-  bloodGroup: z.string().min(1, 'Blood group is required'),
+  aadhar: z.string().optional(),
+  pan: z.string().optional(),
+  bloodGroup: z.string().optional(),
   maritalStatus: z.enum(['Single', 'Married']),
-  nominee: z.string().min(2, 'Nominee is required'),
+  nominee: z.string().optional(),
   ppeKit: z.boolean().default(false),
-  kitNo: z.string().optional(),
+  kitNo: z.string().optional().refine(
+    (val, ctx) => {
+      const ppeKit = (ctx as any).parent?.ppeKit;
+      if (ppeKit && !val) {
+        return false;
+      }
+      return true;
+    },
+    { message: 'Kit number is required if PPE kit is issued' }
+  ),
   status: z.enum(['Active', 'Inactive']).default('Active'),
 });
 
@@ -128,6 +131,13 @@ export default function EmployeeRegistration() {
       ...values,
       alternateNo: values.alternateNo || '',
       kitNo: values.kitNo || '',
+      dob: values.dob || '2000-01-01',
+      city: values.city || 'Not Specified',
+      state: values.state || 'Not Specified',
+      aadhar: values.aadhar || '000000000000',
+      pan: values.pan || 'AAAAA0000A',
+      bloodGroup: values.bloodGroup || 'O+',
+      nominee: values.nominee || 'Not Specified',
     });
     toast({
       title: 'Employee Registered',
@@ -182,7 +192,7 @@ export default function EmployeeRegistration() {
                 name="dob"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Date of Birth</RequiredLabel></FormLabel>
+                    <FormLabel>Date of Birth</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -195,7 +205,7 @@ export default function EmployeeRegistration() {
                 name="bloodGroup"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Blood Group</RequiredLabel></FormLabel>
+                    <FormLabel>Blood Group</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -272,7 +282,7 @@ export default function EmployeeRegistration() {
                 name="address"
                 render={({ field }) => (
                   <FormItem className="col-span-3">
-                    <FormLabel><RequiredLabel>Current Address</RequiredLabel></FormLabel>
+                    <FormLabel><RequiredLabel>Address</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input placeholder="Full Address" {...field} />
                     </FormControl>
@@ -285,7 +295,7 @@ export default function EmployeeRegistration() {
                 name="state"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>State</RequiredLabel></FormLabel>
+                    <FormLabel>State</FormLabel>
                     <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -369,7 +379,7 @@ export default function EmployeeRegistration() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>City</RequiredLabel></FormLabel>
+                    <FormLabel>City</FormLabel>
                     <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -539,7 +549,7 @@ export default function EmployeeRegistration() {
                 name="nominee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Nominee Name</RequiredLabel></FormLabel>
+                    <FormLabel>Nominee Name</FormLabel>
                     <FormControl>
                       <Input placeholder="Nominee" {...field} />
                     </FormControl>
@@ -552,7 +562,7 @@ export default function EmployeeRegistration() {
                 name="aadhar"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Aadhar No</RequiredLabel></FormLabel>
+                    <FormLabel>Aadhar No</FormLabel>
                     <FormControl>
                       <Input placeholder="Aadhar" maxLength={12} {...field} />
                     </FormControl>
@@ -565,7 +575,7 @@ export default function EmployeeRegistration() {
                 name="pan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>PAN No</RequiredLabel></FormLabel>
+                    <FormLabel>PAN No</FormLabel>
                     <FormControl>
                       <Input placeholder="PAN" maxLength={10} {...field} />
                     </FormControl>
@@ -627,7 +637,7 @@ export default function EmployeeRegistration() {
                 name="kitNo"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>Kit Number</FormLabel>
+                    <FormLabel>{form.watch('ppeKit') && <RequiredLabel>Kit Number</RequiredLabel>}{!form.watch('ppeKit') && 'Kit Number'}</FormLabel>
                     <FormControl>
                       <Input placeholder="Kit ID (if issued)" {...field} />
                     </FormControl>
