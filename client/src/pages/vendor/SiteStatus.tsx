@@ -928,6 +928,74 @@ export default function SiteStatus() {
         )}
       </div>
 
+      {/* Single Site PDF Export */}
+      <Card className="bg-green-50 border-green-300">
+        <CardHeader>
+          <CardTitle className="text-lg">Export Single Site (One Page PDF)</CardTitle>
+          <CardDescription>Search and export one site with all 81 fields on a single page</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 min-w-xs">
+              <label className="text-sm font-medium mb-2 block">Search by Plan ID or Site ID</label>
+              <Input
+                placeholder="Enter Plan ID or Site ID..."
+                value={singleSiteSearchText}
+                onChange={(e) => setSingleSiteSearchText(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const found = sites.find(s => 
+                      s.planId.toLowerCase().includes(singleSiteSearchText.toLowerCase()) ||
+                      s.siteId.toLowerCase().includes(singleSiteSearchText.toLowerCase())
+                    );
+                    if (found) {
+                      setSelectedSingleSite(found);
+                    } else {
+                      toast({ title: 'Not Found', description: 'No site found with that ID', variant: 'destructive' });
+                    }
+                  }
+                }}
+                data-testid="input-single-site-search"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                const found = sites.find(s => 
+                  s.planId.toLowerCase().includes(singleSiteSearchText.toLowerCase()) ||
+                  s.siteId.toLowerCase().includes(singleSiteSearchText.toLowerCase())
+                );
+                if (found) {
+                  setSelectedSingleSite(found);
+                } else {
+                  toast({ title: 'Not Found', description: 'No site found with that ID', variant: 'destructive' });
+                }
+              }}
+              size="sm"
+              data-testid="button-search-single"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
+            {selectedSingleSite && (
+              <Button
+                onClick={() => exportSingleSitePDF(selectedSingleSite)}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-export-single-pdf"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+            )}
+          </div>
+          {selectedSingleSite && (
+            <div className="mt-3 text-sm text-green-700 bg-white border border-green-300 p-2 rounded">
+              Selected: <span className="font-semibold">{selectedSingleSite.siteId}</span> | Plan: <span className="font-semibold">{selectedSingleSite.planId}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Bulk Update Section */}
       {filteredSites.length > 0 && cardStatusFilter !== 'Approved' && (
         <Card className="shadow-md border-blue-200 bg-blue-50">
