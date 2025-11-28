@@ -324,7 +324,7 @@ export async function registerRoutes(
 
   app.post("/api/sites/bulk-update-status-by-plan", async (req, res) => {
     try {
-      const { planIds, phyAtStatus, softAtStatus } = req.body;
+      const { planIds, phyAtStatus, softAtStatus, shouldApproveStatus } = req.body;
       
       if (!planIds || planIds.length === 0) {
         res.setHeader("Content-Type", "application/json");
@@ -335,9 +335,24 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Please select at least one status to update" });
       }
       
-      console.log('[API] Bulk update by plan - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus);
+      console.log('[API] Bulk update by plan - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus, 'shouldApproveStatus:', shouldApproveStatus);
+      
+      // Call the bulk update which handles AT status updates
       const result = await storage.bulkUpdateStatusByPlanId(planIds, phyAtStatus, softAtStatus);
-      console.log('[API] Bulk update result:', result);
+      
+      // If both AT statuses are Approved, also update the site status to Approved
+      if (shouldApproveStatus) {
+        console.log('[API] Auto-approving site status for planIds:', planIds);
+        // Update site status to Approved for these plan IDs
+        const updateResult = await Promise.all(
+          planIds.map(planId => 
+            db.update(sites)
+              .set({ status: 'Approved' })
+              .where(eq(sites.planId, planId))
+          )
+        );
+        console.log('[API] Site status approval result:', updateResult);
+      }
       
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({ success: true, updated: result.updated });
