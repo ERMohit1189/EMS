@@ -361,7 +361,7 @@ export default function InvoiceGeneration() {
       const records: InvoiceRecord[] = posData.map((po, index) => {
         const vendor = vendors.find(v => v.id === po.vendorId);
         const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
-        const totalAmount = parseFloat(po.totalAmount.toString());
+        const totalAmount = parseFloat(po.totalAmount.toString()) + gstAmount;
 
         return {
           id: "",
