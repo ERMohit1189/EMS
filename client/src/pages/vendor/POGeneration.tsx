@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, Printer } from "lucide-react";
+import { Plus, Download, Eye, Printer, Trash2 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
 import type { Site, Vendor } from "@shared/schema";
 
@@ -32,6 +32,7 @@ export default function POGeneration() {
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
   const [poRecords, setPoRecords] = useState<PORecord[]>([]);
   const [allPOs, setAllPOs] = useState<PORecord[]>([]);
+  const [poInvoices, setPoInvoices] = useState<{ [key: string]: any[] }>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,6 +87,21 @@ export default function POGeneration() {
           });
         }
         setAllPOs(poRecords);
+
+        // Load invoices for each PO to check if they have invoices
+        const invoicesMap: { [key: string]: any[] } = {};
+        for (const po of pos) {
+          try {
+            const invRes = await fetch(`${baseUrl}/api/purchase-orders/${po.id}/invoices`);
+            if (invRes.ok) {
+              const invData = await invRes.json();
+              invoicesMap[po.id] = invData.data || [];
+            }
+          } catch (e) {
+            invoicesMap[po.id] = [];
+          }
+        }
+        setPoInvoices(invoicesMap);
 
         // Filter out sites that already have POs
         const sitesWithPOs = new Set(pos.map((po: any) => po.siteId));
@@ -186,6 +202,35 @@ export default function POGeneration() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to generate POs";
       toast({ title: "Alert", description: errorMessage, variant: "destructive" });
+    }
+  };
+
+  const deletePO = async (poId: string, poNumber: string) => {
+    if (!confirm(`Delete PO ${poNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/purchase-orders/${poId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setAllPOs(allPOs.filter(po => po.id !== poId));
+        setPoRecords(poRecords.filter(po => po.id !== poId));
+        toast({
+          title: "Success",
+          description: `PO ${poNumber} has been deleted.`,
+        });
+      } else {
+        throw new Error("Failed to delete PO");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete PO",
+        variant: "destructive",
+      });
     }
   };
 
@@ -353,12 +398,22 @@ export default function POGeneration() {
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t">
+                        <div className="pt-2 border-t space-y-2">
                           <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
                             <Button size="sm" variant="outline" className="w-full gap-1">
                               <Printer className="h-3 w-3" /> Print PO
                             </Button>
                           </a>
+                          {(!poInvoices[po.id] || poInvoices[po.id].length === 0) && (
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              className="w-full gap-1"
+                              onClick={() => deletePO(po.id, po.poNumber)}
+                            >
+                              <Trash2 className="h-3 w-3" /> Delete PO
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
