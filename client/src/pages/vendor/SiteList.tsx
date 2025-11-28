@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { truncateId } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
 export default function SiteList() {
@@ -293,7 +294,7 @@ export default function SiteList() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
-                    <p className="text-sm font-mono font-semibold mt-0.5 truncate" title={site.planId || undefined}>{site.planId || "—"}</p>
+                    <p className="text-sm font-mono font-semibold mt-0.5 truncate" title={site.planId || undefined}>{truncateId(site.planId)}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Antenna Size</label>
@@ -351,7 +352,7 @@ export default function SiteList() {
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
                       <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
-                      <p className="text-sm font-mono font-semibold mt-1 break-all">{site.planId}</p>
+                      <p className="text-sm font-mono font-semibold mt-1 break-all">{truncateId(site.planId)}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
                       <label className="text-xs font-medium text-muted-foreground">Circle</label>
