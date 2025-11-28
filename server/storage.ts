@@ -25,7 +25,7 @@ import {
   type PaymentMaster,
   type Zone,
 } from "@shared/schema";
-import { eq, count, and, gte, lte } from "drizzle-orm";
+import { eq, count, and, gte, lte, inArray } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
 
 export interface IStorage {
@@ -50,6 +50,7 @@ export interface IStorage {
   getSitesByDateRange(startDate: string, endDate: string): Promise<Site[]>;
   updateSite(id: string, site: Partial<InsertSite>): Promise<Site>;
   upsertSiteByPlanId(site: InsertSite): Promise<Site>;
+  bulkUpdateRemarks(siteIds: string[], phyAtRemark?: string, softAtRemark?: string): Promise<{ updated: number }>;
   deleteSite(id: string): Promise<void>;
   deleteAllSites(): Promise<void>;
   getSiteCount(): Promise<number>;
@@ -468,6 +469,11 @@ export class DrizzleStorage implements IStorage {
 
     if (Object.keys(updateData).length === 0) {
       return { updated: 0 };
+    }
+
+    // Auto-update status to Approved if both remarks are Approved
+    if (phyAtRemark === "Approved" && softAtRemark === "Approved") {
+      updateData.status = "Approved";
     }
 
     const result = await db

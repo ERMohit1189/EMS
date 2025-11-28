@@ -271,6 +271,22 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/sites/bulk-update-remarks", async (req, res) => {
+    try {
+      const { siteIds, phyAtRemark, softAtRemark } = req.body;
+      if (!siteIds || siteIds.length === 0) {
+        return res.status(400).json({ error: "No sites selected" });
+      }
+      if (!phyAtRemark && !softAtRemark) {
+        return res.status(400).json({ error: "Please select at least one remark to update" });
+      }
+      const result = await storage.bulkUpdateRemarks(siteIds, phyAtRemark, softAtRemark);
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Employee routes
   app.post("/api/employees", async (req, res) => {
     try {
