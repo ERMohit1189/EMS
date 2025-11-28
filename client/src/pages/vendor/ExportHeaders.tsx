@@ -58,6 +58,45 @@ export default function ExportHeaders() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validatePhone = (value: string): string => {
+    if (!value) return '';
+    if (value.length > 10) return 'Contact phone must be 10 digits or less';
+    if (!/^\d*$/.test(value)) return 'Contact phone must contain only digits';
+    return '';
+  };
+
+  const validateEmail = (value: string): string => {
+    if (!value) return '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Invalid email format';
+    return '';
+  };
+
+  const validateWebsite = (value: string): string => {
+    if (!value) return '';
+    if (!/^https?:\/\/.+/.test(value)) return 'Website must start with http:// or https://';
+    return '';
+  };
+
+  const validateGSTIN = (value: string): string => {
+    if (!value) return '';
+    if (!/^[0-9A-Z]{15}$/.test(value)) return 'GSTIN must be 15 alphanumeric characters';
+    return '';
+  };
+
+  const handleBlur = (field: string, value: string) => {
+    let error = '';
+    if (field === 'contactPhone') error = validatePhone(value);
+    else if (field === 'contactEmail') error = validateEmail(value);
+    else if (field === 'website') error = validateWebsite(value);
+    else if (field === 'gstin') error = validateGSTIN(value);
+
+    setErrors(prev => ({
+      ...prev,
+      [field]: error
+    }));
+  };
 
   useEffect(() => {
     loadHeader();
@@ -152,10 +191,16 @@ export default function ExportHeaders() {
               maxLength={10}
               value={header.contactPhone || ''}
               onChange={(e) => setHeader({ ...header, contactPhone: e.target.value })}
+              onBlur={(e) => handleBlur('contactPhone', e.target.value)}
               placeholder="e.g., 9876543210"
-              className="mt-1"
+              className={`mt-1 ${errors.contactPhone ? 'border-red-500' : ''}`}
             />
-            <p className="text-xs text-gray-500 mt-1">Max 10 digits</p>
+            {errors.contactPhone && (
+              <p className="text-xs text-red-600 mt-1 font-medium" data-testid="error-contact-phone">{errors.contactPhone}</p>
+            )}
+            {!errors.contactPhone && (
+              <p className="text-xs text-gray-500 mt-1">Max 10 digits</p>
+            )}
           </div>
 
           <div>
@@ -166,10 +211,16 @@ export default function ExportHeaders() {
               type="email"
               value={header.contactEmail || ''}
               onChange={(e) => setHeader({ ...header, contactEmail: e.target.value })}
+              onBlur={(e) => handleBlur('contactEmail', e.target.value)}
               placeholder="e.g., support@company.com"
-              className="mt-1"
+              className={`mt-1 ${errors.contactEmail ? 'border-red-500' : ''}`}
             />
-            <p className="text-xs text-gray-500 mt-1">Valid email format required</p>
+            {errors.contactEmail && (
+              <p className="text-xs text-red-600 mt-1 font-medium" data-testid="error-contact-email">{errors.contactEmail}</p>
+            )}
+            {!errors.contactEmail && (
+              <p className="text-xs text-gray-500 mt-1">Valid email format required</p>
+            )}
           </div>
 
           <div>
@@ -180,10 +231,16 @@ export default function ExportHeaders() {
               type="url"
               value={header.website || ''}
               onChange={(e) => setHeader({ ...header, website: e.target.value })}
+              onBlur={(e) => handleBlur('website', e.target.value)}
               placeholder="e.g., https://www.company.com"
-              className="mt-1"
+              className={`mt-1 ${errors.website ? 'border-red-500' : ''}`}
             />
-            <p className="text-xs text-gray-500 mt-1">Valid URL format required</p>
+            {errors.website && (
+              <p className="text-xs text-red-600 mt-1 font-medium" data-testid="error-website">{errors.website}</p>
+            )}
+            {!errors.website && (
+              <p className="text-xs text-gray-500 mt-1">Valid URL format required</p>
+            )}
           </div>
 
           <div>
@@ -193,13 +250,19 @@ export default function ExportHeaders() {
               data-testid="input-gstin"
               maxLength={15}
               value={header.gstin || ''}
-              onChange={(e) => setHeader({ ...header, gstin: e.target.value })}
+              onChange={(e) => setHeader({ ...header, gstin: e.target.value.toUpperCase() })}
+              onBlur={(e) => handleBlur('gstin', e.target.value)}
               placeholder="e.g., 27AABCT1234H1Z0"
-              className="mt-1"
+              className={`mt-1 ${errors.gstin ? 'border-red-500' : ''}`}
               pattern="^[0-9A-Z]{15}$"
               title="GSTIN must be 15 alphanumeric characters"
             />
-            <p className="text-xs text-gray-500 mt-1">15 alphanumeric characters</p>
+            {errors.gstin && (
+              <p className="text-xs text-red-600 mt-1 font-medium" data-testid="error-gstin">{errors.gstin}</p>
+            )}
+            {!errors.gstin && (
+              <p className="text-xs text-gray-500 mt-1">15 alphanumeric characters</p>
+            )}
           </div>
         </div>
 
