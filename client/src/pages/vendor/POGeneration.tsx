@@ -760,18 +760,18 @@ export default function POGeneration() {
                         <div className="space-y-3 border-t border-slate-200 pt-3">
                           <div>
                             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Site</p>
-                            <p className="text-sm font-semibold text-slate-900">{po.siteName}</p>
+                            <p className="text-sm font-semibold text-slate-900 truncate">{po.siteName}</p>
                           </div>
                           <div>
                             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Vendor</p>
-                            <p className="text-sm text-slate-700">{po.vendorName}</p>
+                            <p className="text-sm text-slate-700 truncate">{po.vendorName}</p>
                           </div>
-                          <div className="flex justify-between items-start">
-                            <div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="min-w-0">
                               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Plan ID</p>
-                              <p className="text-xs font-mono text-slate-600">{po.planId}</p>
+                              <p className="text-xs font-mono text-slate-600 truncate" title={po.planId}>{truncateId(po.planId)}</p>
                             </div>
-                            <div className="text-right">
+                            <div>
                               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Max Antenna</p>
                               <p className="text-sm font-bold text-blue-600">{po.maxAntennaSize || "—"}</p>
                             </div>
