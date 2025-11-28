@@ -126,6 +126,7 @@ export default function EmployeeEdit() {
     resolver: zodResolver(employeeSchema),
     defaultValues: employee ? {
       name: employee.name || '',
+      email: employee.email || '',
       dob: employee.dob || '',
       fatherName: employee.fatherName || '',
       mobile: employee.mobile || '',
@@ -153,6 +154,7 @@ export default function EmployeeEdit() {
       maritalStatus: 'Single',
       status: 'Active',
       role: 'user',
+      email: '',
     },
   });
 
