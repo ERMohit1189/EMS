@@ -154,8 +154,10 @@ function App() {
     );
   }
 
-  // If not logged in and not on login page, redirect to login
-  if (!isLoggedIn && location !== '/login' && location !== '/vendor-login' && location !== '/employee-login' && location !== '/api-config' && location !== '/employee/privacy-policy' && location !== '/vendor/privacy-policy') {
+  // If not logged in and not on login page, show login screens
+  if (!isLoggedIn) {
+    console.log('[App] User not logged in. Current location:', location);
+    console.log('[App] Rendering login screens block');
     return (
       <>
         <Switch>
@@ -164,7 +166,7 @@ function App() {
           <Route path="/employee-login" component={EmployeeLogin} />
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-          <Route component={Login} />
+          <Route component={EmployeeLogin} />
         </Switch>
         <Toaster />
       </>
