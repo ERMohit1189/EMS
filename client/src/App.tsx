@@ -51,23 +51,35 @@ function App() {
   const [location, setLocation] = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isEmployee, setIsEmployee] = useState(false);
   const isLoading = useLoadingState();
 
   useEffect(() => {
     // Check if user is logged in
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
     setIsLoggedIn(loggedIn);
+    
+    // Check if user is an employee (has employeeEmail in localStorage)
+    const employeeEmail = localStorage.getItem('employeeEmail');
+    setIsEmployee(!!employeeEmail);
+    
+    console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail);
     setLoading(false);
 
     // Listen for logout events
     const handleLogout = () => {
       setIsLoggedIn(false);
+      setIsEmployee(false);
+      console.log('[App] Logout event');
       setLocation('/login');
     };
 
     // Listen for login events
     const handleLogin = () => {
       setIsLoggedIn(true);
+      const employeeEmail = localStorage.getItem('employeeEmail');
+      setIsEmployee(!!employeeEmail);
+      console.log('[App] Login event - isEmployee:', !!employeeEmail);
     };
 
     // Listen for login events (storage changes)
@@ -150,7 +162,9 @@ function App() {
             <Switch>
               {/* Dashboard Routes */}
               <Route path="/employee/dashboard" component={EmployeeDashboard} />
-              <Route path="/" component={Dashboard} />
+              <Route path="/">
+                {isEmployee ? <EmployeeDashboard /> : <Dashboard />}
+              </Route>
               
               {/* Vendor Routes */}
               <Route path="/vendor/register" component={VendorRegistration} />
