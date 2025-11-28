@@ -87,6 +87,9 @@ export default function Dashboard() {
   const totalSites = allSites.length;
   const operationalPercentage = totalSites > 0 ? Math.round((activeSites / totalSites) * 100) : 0;
 
+  const totalEmployees = Math.max(employees.length, allEmployees.length);
+  const activeEmployees = employees.filter(e => e.status === 'Active').length;
+
   const stats = [
     {
       title: 'Total Vendors',
@@ -106,8 +109,8 @@ export default function Dashboard() {
     },
     {
       title: 'Total Employees',
-      value: allEmployees.length,
-      description: 'Field & Office Staff',
+      value: totalEmployees,
+      description: `${activeEmployees} active`,
       icon: HardHat,
       color: 'text-orange-500',
       href: '/employee/list',
