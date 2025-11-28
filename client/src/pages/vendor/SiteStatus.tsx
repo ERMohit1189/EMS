@@ -185,6 +185,8 @@ export default function SiteStatus() {
     }
 
     const excelData = filteredSites.map(site => ({
+      'ID': site.id,
+      'Site ID': site.siteId,
       'Plan ID': site.planId,
       'Circle': site.circle || '-',
       'District': site.district || '-',
@@ -194,6 +196,8 @@ export default function SiteStatus() {
       'Visible in NMS': site.visibleInNms || '-',
       'Both AT Status': site.bothAtStatus || '-',
       'ATP Remark': site.atpRemark || '-',
+      'Phy AT Remark': site.phyAtRemark || '-',
+      'Soft AT Remark': site.softAtRemark || '-',
       'Descope': site.descope || '-',
     }));
 
@@ -203,9 +207,9 @@ export default function SiteStatus() {
     
     // Auto-size columns
     const colWidths = [
-      { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
-      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
-      { wch: 20 }, { wch: 12 }
+      { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
+      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 12 }
     ];
     worksheet['!cols'] = colWidths;
     
