@@ -262,12 +262,34 @@ export class DrizzleStorage implements IStorage {
   }
 
   async loginEmployee(email: string, password: string): Promise<Employee | null> {
+    console.log(`[Storage] loginEmployee called with email: ${email}`);
+    
     const employee = await this.getEmployeeByEmail(email);
-    if (!employee || !employee.password) return null;
+    console.log(`[Storage] Employee lookup result:`, employee ? `Found: ${employee.name}` : "Not found");
+    
+    if (!employee || !employee.password) {
+      console.log(`[Storage] Employee not found or no password set`);
+      return null;
+    }
     
     const bcrypt = require('bcrypt');
-    const passwordMatch = await bcrypt.compare(password, employee.password);
-    return passwordMatch ? employee : null;
+    console.log(`[Storage] Comparing passwords...`);
+    
+    try {
+      const passwordMatch = await bcrypt.compare(password, employee.password);
+      console.log(`[Storage] Password match result: ${passwordMatch}`);
+      
+      if (passwordMatch) {
+        console.log(`[Storage] Login successful for ${email}`);
+        return employee;
+      } else {
+        console.log(`[Storage] Password mismatch for ${email}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`[Storage] Password comparison error:`, error);
+      return null;
+    }
   }
 
   // Department operations

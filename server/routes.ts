@@ -97,14 +97,31 @@ export async function registerRoutes(
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password required" });
       }
+      console.log(`[Employee Login] Attempting login for email: ${email}`);
+      
       const employee = await storage.loginEmployee(email, password);
+      console.log(`[Employee Login] Query result:`, employee ? `Found employee ${employee.name}` : "No employee found");
+      
       if (!employee) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
+      
       req.session.employeeId = employee.id;
       req.session.employeeEmail = employee.email;
-      res.json({ success: true, employee: { id: employee.id, name: employee.name, email: employee.email } });
+      
+      const responseData = { 
+        success: true, 
+        employee: { 
+          id: employee.id, 
+          name: employee.name, 
+          email: employee.email 
+        } 
+      };
+      
+      console.log(`[Employee Login] Sending response:`, responseData);
+      res.json(responseData);
     } catch (error: any) {
+      console.error(`[Employee Login Error]:`, error);
       res.status(500).json({ error: error.message });
     }
   });
