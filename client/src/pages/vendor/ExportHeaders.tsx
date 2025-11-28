@@ -12,6 +12,11 @@ type ExportHeader = {
   companyName: string | null;
   reportTitle: string | null;
   footerText: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  website: string | null;
+  gstin: string | null;
+  address: string | null;
   showGeneratedDate: boolean;
 };
 
@@ -44,6 +49,11 @@ export default function ExportHeaders() {
     companyName: '',
     reportTitle: '',
     footerText: '',
+    contactPhone: '',
+    contactEmail: '',
+    website: '',
+    gstin: '',
+    address: '',
     showGeneratedDate: true,
   });
   const [loading, setLoading] = useState(true);
@@ -58,7 +68,7 @@ export default function ExportHeaders() {
       const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
       if (response.ok) {
         const data = await response.json();
-        setHeader(data || { id: '', companyName: '', reportTitle: '', footerText: '', showGeneratedDate: true });
+        setHeader(data || { id: '', companyName: '', reportTitle: '', footerText: '', contactPhone: '', contactEmail: '', website: '', gstin: '', address: '', showGeneratedDate: true });
       }
     } catch (error) {
       console.error('Failed to load header settings:', error);
@@ -77,6 +87,11 @@ export default function ExportHeaders() {
           companyName: header.companyName || null,
           reportTitle: header.reportTitle || null,
           footerText: header.footerText || null,
+          contactPhone: header.contactPhone || null,
+          contactEmail: header.contactEmail || null,
+          website: header.website || null,
+          gstin: header.gstin || null,
+          address: header.address || null,
           showGeneratedDate: header.showGeneratedDate,
         }),
       });
@@ -123,6 +138,68 @@ export default function ExportHeaders() {
             value={header.reportTitle || ''}
             onChange={(e) => setHeader({ ...header, reportTitle: e.target.value })}
             placeholder="e.g., Site Status Report"
+            className="mt-1"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="contact-phone">Contact Phone</Label>
+            <Input
+              id="contact-phone"
+              data-testid="input-contact-phone"
+              value={header.contactPhone || ''}
+              onChange={(e) => setHeader({ ...header, contactPhone: e.target.value })}
+              placeholder="e.g., +91-XXX-XXXX-XXXX"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="contact-email">Email Address</Label>
+            <Input
+              id="contact-email"
+              data-testid="input-contact-email"
+              value={header.contactEmail || ''}
+              onChange={(e) => setHeader({ ...header, contactEmail: e.target.value })}
+              placeholder="e.g., support@company.com"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="website">Website</Label>
+            <Input
+              id="website"
+              data-testid="input-website"
+              value={header.website || ''}
+              onChange={(e) => setHeader({ ...header, website: e.target.value })}
+              placeholder="e.g., www.company.com"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="gstin">GSTIN</Label>
+            <Input
+              id="gstin"
+              data-testid="input-gstin"
+              value={header.gstin || ''}
+              onChange={(e) => setHeader({ ...header, gstin: e.target.value })}
+              placeholder="e.g., 27AABCT1234H1Z0"
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="address">Address</Label>
+          <Input
+            id="address"
+            data-testid="input-address"
+            value={header.address || ''}
+            onChange={(e) => setHeader({ ...header, address: e.target.value })}
+            placeholder="e.g., 123 Business Street, City, State 12345"
             className="mt-1"
           />
         </div>
@@ -189,6 +266,21 @@ export default function ExportHeaders() {
           {header.companyName && (
             <div className="text-blue-900"><strong>Company:</strong> {header.companyName}</div>
           )}
+          {header.address && (
+            <div className="text-blue-900"><strong>Address:</strong> {header.address}</div>
+          )}
+          {header.contactPhone && (
+            <div className="text-blue-900"><strong>Phone:</strong> {header.contactPhone}</div>
+          )}
+          {header.contactEmail && (
+            <div className="text-blue-900"><strong>Email:</strong> {header.contactEmail}</div>
+          )}
+          {header.website && (
+            <div className="text-blue-900"><strong>Website:</strong> {header.website}</div>
+          )}
+          {header.gstin && (
+            <div className="text-blue-900"><strong>GSTIN:</strong> {header.gstin}</div>
+          )}
           {header.reportTitle && (
             <div className="text-blue-900"><strong>Report:</strong> {header.reportTitle}</div>
           )}
@@ -202,7 +294,7 @@ export default function ExportHeaders() {
               <strong>Generated:</strong> {new Date().toLocaleString()}
             </div>
           )}
-          {!header.companyName && !header.reportTitle && !header.footerText && (
+          {!header.companyName && !header.reportTitle && !header.footerText && !header.contactPhone && !header.contactEmail && !header.website && !header.gstin && !header.address && (
             <div className="text-gray-400">No settings configured yet. Your exports will show any headers and footers you add here.</div>
           )}
         </div>
