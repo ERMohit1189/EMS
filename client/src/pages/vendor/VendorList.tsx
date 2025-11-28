@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getApiBaseUrl } from "@/lib/api";
+import { fetchWithLoader } from "@/lib/fetchWithLoader";
 import type { Vendor } from "@shared/schema";
 
 export default function VendorList() {
@@ -63,7 +64,7 @@ export default function VendorList() {
   const updateStatus = async (id: string, status: string) => {
     try {
       const url = `${getApiBaseUrl()}/api/vendors/${id}/status`;
-      const response = await fetch(url, {
+      const response = await fetchWithLoader(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -90,7 +91,7 @@ export default function VendorList() {
 
     try {
       const url = `${getApiBaseUrl()}/api/vendors/${id}`;
-      const response = await fetch(url, { method: 'DELETE' });
+      const response = await fetchWithLoader(url, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete vendor');
       
       setVendors(vendors.filter(v => v.id !== id));

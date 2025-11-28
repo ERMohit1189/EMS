@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Trash2 } from "lucide-react";
 import jsPDF from "jspdf";
 import { getApiBaseUrl } from "@/lib/api";
+import { fetchWithLoader, fetchJsonWithLoader } from "@/lib/fetchWithLoader";
 import type { PurchaseOrder, Vendor } from "@shared/schema";
 
 interface InvoiceRecord {

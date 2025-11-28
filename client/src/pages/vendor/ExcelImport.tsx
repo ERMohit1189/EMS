@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { getApiBaseUrl } from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { fetchWithLoader, fetchJsonWithLoader } from '@/lib/fetchWithLoader';
 
 interface RawRowData {
   [key: string]: any;
@@ -72,9 +73,7 @@ export default function ExcelImport() {
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
     try {
-      const zonesResponse = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
-      if (zonesResponse.ok) {
-        const zonesData = await zonesResponse.json();
+      const zonesData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
         zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
           acc[zone.shortName] = zone.id;
           return acc;
@@ -127,15 +126,11 @@ export default function ExcelImport() {
 
           let vendorId: string;
           try {
-            const vendorResponse = await fetch(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
+            const vendor = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: partnerName }),
             });
-            if (!vendorResponse.ok) {
-              throw new Error('Failed to find or create vendor');
-            }
-            const vendor = await vendorResponse.json();
             vendorId = vendor.id;
           } catch (err) {
             importErrors.push(`Row ${idx + 2}: Failed to process vendor "${partnerName}"`);
@@ -235,7 +230,7 @@ export default function ExcelImport() {
           };
 
           if (siteData.siteId && siteData.planId) {
-            const response = await fetch(`${getApiBaseUrl()}/api/sites/upsert`, {
+            const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/upsert`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(siteData),
@@ -411,7 +406,7 @@ export default function ExcelImport() {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/sites`, {
+      const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites`, {
         method: 'DELETE',
       });
 
@@ -450,12 +445,7 @@ export default function ExcelImport() {
       }
 
       // Fetch data from database
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-
-      const result = await response.json();
+      const result = await fetchJsonWithLoader<any>(endpoint);
       dataToExport = result.data || [];
 
       if (dataToExport.length === 0) {

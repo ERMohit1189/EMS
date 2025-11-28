@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Trash2 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
+import { fetchWithLoader, fetchJsonWithLoader } from "@/lib/fetchWithLoader";
 import type { Site, Vendor } from "@shared/schema";
 
 interface PORecord {
