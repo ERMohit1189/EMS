@@ -415,8 +415,8 @@ export default function POGeneration() {
 
       const desc = String(po.description || '').substring(0, 60);
       const qty = String(po.quantity || 1);
-      const rate = Number(po.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const total = Number(po.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const rate = Number(po.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      const total = Number(po.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
       // Description value
       pdf.rect(col1X, y, 80, 8);
