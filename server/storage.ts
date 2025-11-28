@@ -92,6 +92,7 @@ export interface IStorage {
   getInvoicesByPO(poId: string): Promise<Invoice[]>;
   updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice>;
   deleteInvoice(id: string): Promise<void>;
+  deleteAllInvoices(): Promise<void>;
   getInvoiceCount(): Promise<number>;
 
   // Payment Master operations
