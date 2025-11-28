@@ -134,31 +134,33 @@ export default function EmployeeEdit() {
 
   useEffect(() => {
     if (employee) {
-      form.reset({
-        name: employee.name || '',
-        dob: employee.dob || '',
-        fatherName: employee.fatherName || '',
-        mobile: employee.mobile || '',
-        alternateNo: employee.alternateNo || '',
-        address: employee.address || '',
-        city: employee.city || '',
-        state: employee.state || '',
-        country: employee.country || 'India',
-        role: employee.role || '',
-        departmentId: employee.departmentId || '',
-        designationId: employee.designationId || '',
-        doj: employee.doj || '',
-        aadhar: employee.aadhar || '',
-        pan: employee.pan || '',
-        bloodGroup: employee.bloodGroup || '',
-        maritalStatus: employee.maritalStatus || 'Single',
-        spouseName: employee.spouseName || '',
-        nominee: employee.nominee || '',
-        ppeKit: employee.ppeKit || false,
-        kitNo: employee.kitNo || '',
-        status: employee.status || 'Active',
-      });
-      calculateAge(employee.dob || '');
+      setTimeout(() => {
+        form.reset({
+          name: employee.name || '',
+          dob: employee.dob || '',
+          fatherName: employee.fatherName || '',
+          mobile: employee.mobile || '',
+          alternateNo: employee.alternateNo || '',
+          address: employee.address || '',
+          city: employee.city || '',
+          state: employee.state || '',
+          country: employee.country || 'India',
+          role: employee.role || 'user',
+          departmentId: employee.departmentId || '',
+          designationId: employee.designationId || '',
+          doj: employee.doj || '',
+          aadhar: employee.aadhar || '',
+          pan: employee.pan || '',
+          bloodGroup: employee.bloodGroup || '',
+          maritalStatus: employee.maritalStatus || 'Single',
+          spouseName: employee.spouseName || '',
+          nominee: employee.nominee || '',
+          ppeKit: employee.ppeKit || false,
+          kitNo: employee.kitNo || '',
+          status: employee.status || 'Active',
+        });
+        calculateAge(employee.dob || '');
+      }, 0);
     }
   }, [employee, form]);
 
@@ -546,7 +548,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel><RequiredLabel>Role</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Role" />
@@ -567,7 +569,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Department" />
@@ -589,7 +591,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel><RequiredLabel>Designation</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Designation" />
