@@ -87,19 +87,6 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       </div>
 
       <div className="border-t border-sidebar-border p-4 space-y-2">
-        <a href="https://replit.com" target="_blank" rel="noopener noreferrer">
-          <button className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium bg-blue-600 text-white transition-colors hover:bg-blue-700">
-            <Upload className="h-4 w-4" />
-            Publish
-          </button>
-        </a>
-        <button 
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:text-red-600"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </button>
       </div>
     </div>
   );
