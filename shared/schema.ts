@@ -354,6 +354,8 @@ export const exportHeaders = pgTable("export_headers", {
   website: varchar("website"),
   gstin: varchar("gstin"),
   address: text("address"),
+  state: varchar("state"),
+  city: varchar("city"),
   showGeneratedDate: boolean("show_generated_date").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

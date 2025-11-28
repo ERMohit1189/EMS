@@ -17,8 +17,27 @@ type ExportHeader = {
   website: string | null;
   gstin: string | null;
   address: string | null;
+  state: string | null;
+  city: string | null;
   showGeneratedDate: boolean;
 };
+
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Puducherry"
+];
+
+const MAJOR_CITIES = [
+  "Bangalore", "Mumbai", "Delhi", "Hyderabad", "Chennai", "Kolkata",
+  "Pune", "Ahmedabad", "Jaipur", "Lucknow", "Kanpur", "Nagpur",
+  "Indore", "Thane", "Bhopal", "Visakhapatnam", "Patna", "Vadodara",
+  "Ghaziabad", "Ludhiana", "Coimbatore", "Kochi", "Chandigarh", "Surat",
+  "Rajkot", "Kakinada", "Kota", "Makasar", "Agra", "Jabalpur"
+];
 
 const FOOTER_SUGGESTIONS = [
   {
@@ -54,6 +73,8 @@ export default function ExportHeaders() {
     website: '',
     gstin: '',
     address: '',
+    state: '',
+    city: '',
     showGeneratedDate: true,
   });
   const [loading, setLoading] = useState(true);
@@ -107,7 +128,7 @@ export default function ExportHeaders() {
       const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
       if (response.ok) {
         const data = await response.json();
-        setHeader(data || { id: '', companyName: '', reportTitle: '', footerText: '', contactPhone: '', contactEmail: '', website: '', gstin: '', address: '', showGeneratedDate: true });
+        setHeader(data || { id: '', companyName: '', reportTitle: '', footerText: '', contactPhone: '', contactEmail: '', website: '', gstin: '', address: '', state: '', city: '', showGeneratedDate: true });
       }
     } catch (error) {
       console.error('Failed to load header settings:', error);
@@ -131,6 +152,8 @@ export default function ExportHeaders() {
           website: header.website || null,
           gstin: header.gstin || null,
           address: header.address || null,
+          state: header.state || null,
+          city: header.city || null,
           showGeneratedDate: header.showGeneratedDate,
         }),
       });
@@ -277,9 +300,43 @@ export default function ExportHeaders() {
             data-testid="input-address"
             value={header.address || ''}
             onChange={(e) => setHeader({ ...header, address: e.target.value })}
-            placeholder="e.g., 123 Business Street, City, State 12345"
+            placeholder="e.g., 123 Business Street, Postal Code"
             className="mt-1"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="state">State</Label>
+            <select
+              id="state"
+              data-testid="select-state"
+              value={header.state || ''}
+              onChange={(e) => setHeader({ ...header, state: e.target.value })}
+              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select a state</option>
+              {INDIAN_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label htmlFor="city">City</Label>
+            <select
+              id="city"
+              data-testid="select-city"
+              value={header.city || ''}
+              onChange={(e) => setHeader({ ...header, city: e.target.value })}
+              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select a city</option>
+              {MAJOR_CITIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
@@ -347,6 +404,12 @@ export default function ExportHeaders() {
           {header.address && (
             <div className="text-blue-900"><strong>Address:</strong> {header.address}</div>
           )}
+          {header.state && (
+            <div className="text-blue-900"><strong>State:</strong> {header.state}</div>
+          )}
+          {header.city && (
+            <div className="text-blue-900"><strong>City:</strong> {header.city}</div>
+          )}
           {header.contactPhone && (
             <div className="text-blue-900"><strong>Phone:</strong> {header.contactPhone}</div>
           )}
@@ -372,7 +435,7 @@ export default function ExportHeaders() {
               <strong>Generated:</strong> {new Date().toLocaleString()}
             </div>
           )}
-          {!header.companyName && !header.reportTitle && !header.footerText && !header.contactPhone && !header.contactEmail && !header.website && !header.gstin && !header.address && (
+          {!header.companyName && !header.reportTitle && !header.footerText && !header.contactPhone && !header.contactEmail && !header.website && !header.gstin && !header.address && !header.state && !header.city && (
             <div className="text-gray-400">No settings configured yet. Your exports will show any headers and footers you add here.</div>
           )}
         </div>
