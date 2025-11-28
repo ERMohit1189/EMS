@@ -183,10 +183,29 @@ export default function ExportHeaders() {
         {saving ? 'Saving...' : 'Save Settings'}
       </Button>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>📋 Preview:</strong> These settings will appear at the top of all Excel and PDF exports from the Site Status page.
-        </p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+        <p className="text-sm font-semibold text-blue-900 mb-3">📋 Preview:</p>
+        <div className="bg-white border border-blue-100 rounded p-3 space-y-2 text-xs">
+          {header.companyName && (
+            <div className="text-blue-900"><strong>Company:</strong> {header.companyName}</div>
+          )}
+          {header.reportTitle && (
+            <div className="text-blue-900"><strong>Report:</strong> {header.reportTitle}</div>
+          )}
+          {header.footerText && (
+            <div className="text-gray-700 border-t border-gray-200 pt-2 mt-2 italic">
+              <strong>Footer:</strong> {header.footerText}
+            </div>
+          )}
+          {header.showGeneratedDate && (
+            <div className="text-gray-600">
+              <strong>Generated:</strong> {new Date().toLocaleString()}
+            </div>
+          )}
+          {!header.companyName && !header.reportTitle && !header.footerText && (
+            <div className="text-gray-400">No settings configured yet. Your exports will show any headers and footers you add here.</div>
+          )}
+        </div>
       </div>
     </div>
   );
