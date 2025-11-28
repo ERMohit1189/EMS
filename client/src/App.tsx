@@ -1,6 +1,7 @@
 import { Switch, Route, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { ProgressBar } from "@/components/ProgressBar";
+import { Loader } from "@/components/Loader";
 import { useLoadingState } from "@/hooks/useLoadingState";
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
@@ -109,6 +110,7 @@ function App() {
   return (
     <>
       <ProgressBar isLoading={isLoading} />
+      <Loader />
       <Switch>
         {/* API Config Route */}
         <Route path="/api-config" component={ApiConfig} />

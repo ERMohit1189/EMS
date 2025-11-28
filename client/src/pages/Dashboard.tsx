@@ -4,6 +4,7 @@ import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight } from 'l
 import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
 import { getApiBaseUrl } from '@/lib/api';
+import { fetchJsonWithLoader } from '@/lib/fetchWithLoader';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 export default function Dashboard() {
@@ -20,32 +21,27 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         // Fetch Purchase Orders
-        const posResponse = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`);
-        const posData = await posResponse.json();
+        const posData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`);
         const pos = posData.data || [];
         setPurchaseOrders(pos);
         const pending = pos.filter((po: any) => po.status === 'Pending').length;
         setPendingPOCount(pending);
 
         // Fetch Invoices
-        const invResponse = await fetch(`${getApiBaseUrl()}/api/invoices?pageSize=10000`);
-        const invData = await invResponse.json();
+        const invData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/invoices?pageSize=10000`);
         const invs = invData.data || [];
         setInvoices(invs);
 
         // Fetch All Sites
-        const sitesResponse = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
-        const sitesData = await sitesResponse.json();
+        const sitesData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
         setAllSites(sitesData.data || []);
 
         // Fetch All Vendors
-        const vendorsResponse = await fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`);
-        const vendorsData = await vendorsResponse.json();
+        const vendorsData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/vendors?pageSize=10000`);
         setAllVendors(vendorsData.data || []);
 
         // Fetch All Employees
-        const empResponse = await fetch(`${getApiBaseUrl()}/api/employees?pageSize=10000`);
-        const empData = await empResponse.json();
+        const empData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/employees?pageSize=10000`);
         setAllEmployees(empData.data || []);
 
         // Generate monthly data from POs
