@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Trash2 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader, fetchJsonWithLoader } from "@/lib/fetchWithLoader";
+import { truncateId } from "@/lib/utils";
 import type { Site, Vendor } from "@shared/schema";
 
 interface PORecord {
@@ -283,9 +284,9 @@ export default function POGeneration() {
                           className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <div className="flex-1">
-                          <p className="font-semibold">{site.hopAB || site.siteId}</p>
+                          <p className="font-semibold font-mono">{truncateId(site.planId)}</p>
                           <p className="text-sm text-muted-foreground">
-                            Plan: {site.planId} | Vendor: {vendor?.name} | Max Antenna: {Math.max(parseFloat(site.siteAAntDia) || 0, parseFloat(site.siteBAntDia) || 0)} | Amount: {site.siteAmount ? `₹${site.siteAmount}` : "Not Set"}
+                            Vendor: {vendor?.name} | Max Antenna: {Math.max(parseFloat(site.siteAAntDia) || 0, parseFloat(site.siteBAntDia) || 0)} | Amount: {site.siteAmount ? `₹${site.siteAmount}` : "Not Set"}
                           </p>
                           {isDisabled && <p className="text-xs text-red-600 mt-1">⚠ Site Amount is required</p>}
                         </div>
@@ -312,10 +313,8 @@ export default function POGeneration() {
                     <thead className="border-b">
                       <tr>
                         <th className="text-left py-2">PO Number</th>
-                        <th className="text-left py-2">Site ID</th>
-                        <th className="text-left py-2">Site</th>
-                        <th className="text-left py-2">Vendor</th>
                         <th className="text-left py-2">Plan ID</th>
+                        <th className="text-left py-2">Vendor</th>
                         <th className="text-center py-2">Max Antenna Size</th>
                         <th className="text-right py-2">Amount</th>
                         <th className="text-center py-2">Action</th>
@@ -325,10 +324,8 @@ export default function POGeneration() {
                       {poRecords.map((po) => (
                         <tr key={po.poNumber} className="border-b hover:bg-green-100">
                           <td className="py-2 font-semibold">{po.poNumber}</td>
-                          <td className="py-2 text-xs">{po.siteId}</td>
-                          <td className="py-2">{po.siteName}</td>
+                          <td className="py-2 font-mono text-sm">{truncateId(po.planId)}</td>
                           <td className="py-2">{po.vendorName}</td>
-                          <td className="py-2">{po.planId}</td>
                           <td className="text-center py-2">{po.maxAntennaSize || "-"}</td>
                           <td className="text-right py-2">₹{po.unitPrice}</td>
                           <td className="text-center py-2">

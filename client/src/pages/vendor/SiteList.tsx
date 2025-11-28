@@ -288,7 +288,7 @@ export default function SiteList() {
             >
               <div className="space-y-3">
                 <div>
-                  <CardTitle className="text-lg">{site.siteId}</CardTitle>
+                  <CardTitle className="text-lg font-mono">{truncateId(site.planId)}</CardTitle>
                   <p className="text-sm text-muted-foreground">{getVendorName(site.vendorId)} • {site.state} • {site.zoneName || site.circle || "—"}</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -343,16 +343,12 @@ export default function SiteList() {
                   <h3 className="font-semibold text-sm mb-4 text-foreground">Basic Information</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="bg-muted/50 p-3 rounded-md">
-                      <label className="text-xs font-medium text-muted-foreground">Site ID</label>
-                      <p className="text-sm font-mono font-semibold mt-1 break-all">{site.siteId}</p>
+                      <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
+                      <p className="text-sm font-mono font-semibold mt-1 break-all">{truncateId(site.planId)}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
                       <label className="text-xs font-medium text-muted-foreground">Vendor</label>
                       <p className="text-sm font-semibold mt-1">{getVendorName(site.vendorId)}</p>
-                    </div>
-                    <div className="bg-muted/50 p-3 rounded-md">
-                      <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
-                      <p className="text-sm font-mono font-semibold mt-1 break-all">{truncateId(site.planId)}</p>
                     </div>
                     <div className="bg-muted/50 p-3 rounded-md">
                       <label className="text-xs font-medium text-muted-foreground">Circle</label>
