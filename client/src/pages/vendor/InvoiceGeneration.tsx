@@ -595,12 +595,20 @@ export default function InvoiceGeneration() {
                             {invoice.status}
                           </span>
                         </div>
-                        <button
-                          onClick={() => downloadInvoicePDF(invoice)}
-                          className="w-full mt-2 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
-                        >
-                          <Download className="h-4 w-4" /> Download PDF
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => downloadInvoicePDF(invoice)}
+                            className="flex-1 mt-2 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                          >
+                            <Download className="h-4 w-4" /> Download PDF
+                          </button>
+                          <button
+                            onClick={() => deleteInvoice(invoice.id, invoice.invoiceNumber)}
+                            className="flex-1 mt-2 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" /> Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
