@@ -3,8 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { getApiBaseUrl } from '@/lib/api';
+import { fetchWithLoader } from '@/lib/fetchWithLoader';
+import { useToast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -28,11 +38,17 @@ interface SiteStatusData {
   descope: string | null;
 }
 
+const remarkOptions = ['Pending', 'Raised', 'Approved', 'Rejected'];
+
 export default function SiteStatus() {
+  const { toast } = useToast();
   const [sites, setSites] = useState<SiteStatusData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
+  const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
+  const [bulkPhyAtRemark, setBulkPhyAtRemark] = useState('');
+  const [bulkSoftAtRemark, setBulkSoftAtRemark] = useState('');
 
   useEffect(() => {
     fetchSites();
@@ -94,6 +110,57 @@ export default function SiteStatus() {
   };
 
   const statusOptions = ['All', ...new Set(sites.map(s => s.status))];
+
+  const toggleSiteSelection = (siteId: string) => {
+    const newSelected = new Set(selectedSites);
+    if (newSelected.has(siteId)) {
+      newSelected.delete(siteId);
+    } else {
+      newSelected.add(siteId);
+    }
+    setSelectedSites(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedSites.size === filteredSites.length) {
+      setSelectedSites(new Set());
+    } else {
+      setSelectedSites(new Set(filteredSites.map(s => s.id)));
+    }
+  };
+
+  const handleBulkUpdate = async () => {
+    if (selectedSites.size === 0) {
+      toast({ title: 'Error', description: 'Please select at least one site', variant: 'destructive' });
+      return;
+    }
+    if (!bulkPhyAtRemark && !bulkSoftAtRemark) {
+      toast({ title: 'Error', description: 'Please select at least one remark to update', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/bulk-update-remarks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteIds: Array.from(selectedSites),
+          phyAtRemark: bulkPhyAtRemark || undefined,
+          softAtRemark: bulkSoftAtRemark || undefined,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update');
+      
+      toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
+      setSelectedSites(new Set());
+      setBulkPhyAtRemark('');
+      setBulkSoftAtRemark('');
+      fetchSites();
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -158,8 +225,56 @@ export default function SiteStatus() {
 
       {/* Results Count */}
       <div className="text-sm text-gray-600">
-        Showing {filteredSites.length} of {sites.length} sites
+        Showing {filteredSites.length} of {sites.length} sites {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
       </div>
+
+      {/* Bulk Update Section */}
+      {filteredSites.length > 0 && (
+        <Card className="shadow-md border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-lg">Bulk Update Remarks</CardTitle>
+            <CardDescription>Update Physical AT and Software AT remarks for selected sites</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Physical AT Remark</label>
+                <Select value={bulkPhyAtRemark} onValueChange={setBulkPhyAtRemark}>
+                  <SelectTrigger data-testid="select-phy-at-remark">
+                    <SelectValue placeholder="Select Physical AT Remark..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {remarkOptions.map(option => (
+                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Software AT Remark</label>
+                <Select value={bulkSoftAtRemark} onValueChange={setBulkSoftAtRemark}>
+                  <SelectTrigger data-testid="select-soft-at-remark">
+                    <SelectValue placeholder="Select Software AT Remark..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {remarkOptions.map(option => (
+                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button 
+              onClick={handleBulkUpdate} 
+              disabled={selectedSites.size === 0}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              data-testid="button-bulk-update"
+            >
+              Update {selectedSites.size > 0 ? `${selectedSites.size} Sites` : 'Sites'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sites Table */}
       <Card className="shadow-md">
@@ -178,6 +293,13 @@ export default function SiteStatus() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
+                    <TableHead className="font-semibold w-12">
+                      <Checkbox 
+                        checked={selectedSites.size === filteredSites.length && filteredSites.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        data-testid="checkbox-select-all"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold">Site ID</TableHead>
                     <TableHead className="font-semibold">Circle</TableHead>
                     <TableHead className="font-semibold">District</TableHead>
@@ -192,7 +314,14 @@ export default function SiteStatus() {
                 </TableHeader>
                 <TableBody>
                   {filteredSites.map((site) => (
-                    <TableRow key={site.id} className="hover:bg-gray-50 transition-colors">
+                    <TableRow key={site.id} className={`hover:bg-gray-50 transition-colors ${selectedSites.has(site.id) ? 'bg-blue-100' : ''}`}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedSites.has(site.id)}
+                          onCheckedChange={() => toggleSiteSelection(site.id)}
+                          data-testid={`checkbox-site-${site.id}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-blue-600">{site.siteId}</TableCell>
                       <TableCell>{site.circle || '-'}</TableCell>
                       <TableCell>{site.district || '-'}</TableCell>
