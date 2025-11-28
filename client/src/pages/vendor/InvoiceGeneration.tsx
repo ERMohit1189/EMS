@@ -566,7 +566,7 @@ export default function InvoiceGeneration() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">HOP A-B</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">SITE</p>
                             <p className="text-sm font-semibold">{invoice.siteName}</p>
                           </div>
                           <div>
@@ -646,7 +646,7 @@ export default function InvoiceGeneration() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">HOP A-B</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">SITE</p>
                             <p className="text-sm font-semibold">{invoice.siteName}</p>
                           </div>
                           <div>
