@@ -662,26 +662,28 @@ export default function POGeneration() {
                   })}
                 </div>
 
-                <div className={`mt-4 p-4 rounded-lg flex items-center gap-3 ${
-                  applyGstToAll 
-                    ? 'bg-green-50 border border-green-300' 
-                    : 'bg-gray-50 border border-gray-300'
-                }`}>
-                  <input
-                    type="checkbox"
-                    checked={applyGstToAll}
-                    onChange={(e) => setApplyGstToAll(e.target.checked)}
-                    className="w-5 h-5 cursor-pointer"
-                    data-testid="checkbox-apply-gst-all"
-                  />
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-800">Apply GST to All POs</p>
-                    <p className="text-xs text-gray-600">GST will be auto-determined based on vendor state (IGST for interstate, CGST+SGST for intrastate)</p>
-                    <p className={`text-sm font-bold mt-2 ${applyGstToAll ? 'text-green-700' : 'text-gray-600'}`}>
-                      Status: {applyGstToAll ? '✓ GST ENABLED' : '✗ GST DISABLED'}
-                    </p>
+                {showGstInput && (
+                  <div className={`mt-4 p-4 rounded-lg flex items-center gap-3 ${
+                    applyGstToAll 
+                      ? 'bg-green-50 border border-green-300' 
+                      : 'bg-gray-50 border border-gray-300'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={applyGstToAll}
+                      onChange={(e) => setApplyGstToAll(e.target.checked)}
+                      className="w-5 h-5 cursor-pointer"
+                      data-testid="checkbox-apply-gst-all"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">Apply GST to All POs</p>
+                      <p className="text-xs text-gray-600">GST will be auto-determined based on vendor state (IGST for interstate, CGST+SGST for intrastate)</p>
+                      <p className={`text-sm font-bold mt-2 ${applyGstToAll ? 'text-green-700' : 'text-gray-600'}`}>
+                        Status: {applyGstToAll ? '✓ GST ENABLED' : '✗ GST DISABLED'}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <Button onClick={generatePOs} className="mt-4 w-full" disabled={selectedSites.size === 0}>
                   <Plus className="h-4 w-4 mr-2" />
