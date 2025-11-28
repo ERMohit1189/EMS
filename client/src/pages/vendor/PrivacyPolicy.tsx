@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,15 @@ import { ArrowLeft } from "lucide-react";
 
 export default function VendorPrivacyPolicy() {
   const [, setLocation] = useLocation();
+  const [procurementEmail, setProcurementEmail] = useState('procurement@company.com');
+  const [dpoEmail, setDpoEmail] = useState('dpo@company.com');
+
+  useEffect(() => {
+    const procEmail = localStorage.getItem('procurementContactEmail');
+    const dpoEmailStored = localStorage.getItem('dpoContactEmail');
+    if (procEmail) setProcurementEmail(procEmail);
+    if (dpoEmailStored) setDpoEmail(dpoEmailStored);
+  }, []);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-8">
@@ -196,9 +206,9 @@ export default function VendorPrivacyPolicy() {
           </p>
           <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
             <p><strong>Procurement Department</strong></p>
-            <p>Email: procurement@company.com</p>
+            <p data-testid="text-procurement-email">Email: {procurementEmail}</p>
             <p><strong>Data Protection Officer</strong></p>
-            <p>Email: dpo@company.com</p>
+            <p data-testid="text-dpo-email">Email: {dpoEmail}</p>
             <p>Response time: 5-7 business days</p>
           </div>
         </CardContent>

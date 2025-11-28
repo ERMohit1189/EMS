@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,14 @@ import { ArrowLeft } from "lucide-react";
 
 export default function EmployeePrivacyPolicy() {
   const [, setLocation] = useLocation();
+  const [hrEmail, setHrEmail] = useState('hr@company.com');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('hrContactEmail');
+    if (stored) {
+      setHrEmail(stored);
+    }
+  }, []);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-8">
@@ -155,7 +164,7 @@ export default function EmployeePrivacyPolicy() {
           </p>
           <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
             <p><strong>HR Department</strong></p>
-            <p>Email: hr@company.com</p>
+            <p data-testid="text-hr-email">Email: {hrEmail}</p>
             <p>You can also submit privacy-related requests through your employee dashboard.</p>
           </div>
         </CardContent>
