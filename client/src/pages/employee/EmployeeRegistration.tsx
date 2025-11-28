@@ -27,6 +27,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 
+const RequiredLabel = ({ children }: { children: string }) => (
+  <span>
+    {children} <span className="text-red-600">*</span>
+  </span>
+);
+
 const employeeSchema = z.object({
   name: z.string().min(2, 'Full name is required'),
   dob: z.string().min(1, 'Date of birth is required'),
@@ -150,7 +156,7 @@ export default function EmployeeRegistration() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name *</FormLabel>
+                    <FormLabel><RequiredLabel>Full Name</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input autoFocus placeholder="Enter name" {...field} />
                     </FormControl>
@@ -163,7 +169,7 @@ export default function EmployeeRegistration() {
                 name="fatherName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Father's Name *</FormLabel>
+                    <FormLabel><RequiredLabel>Father's Name</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input placeholder="Father's Name" {...field} />
                     </FormControl>
@@ -176,7 +182,7 @@ export default function EmployeeRegistration() {
                 name="dob"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date of Birth *</FormLabel>
+                    <FormLabel><RequiredLabel>Date of Birth</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -189,7 +195,7 @@ export default function EmployeeRegistration() {
                 name="bloodGroup"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Blood Group *</FormLabel>
+                    <FormLabel><RequiredLabel>Blood Group</RequiredLabel></FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -211,7 +217,7 @@ export default function EmployeeRegistration() {
                 name="maritalStatus"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Marital Status *</FormLabel>
+                    <FormLabel><RequiredLabel>Marital Status</RequiredLabel></FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -240,7 +246,7 @@ export default function EmployeeRegistration() {
                 name="mobile"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mobile No. *</FormLabel>
+                    <FormLabel><RequiredLabel>Mobile No.</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input placeholder="9876543210" {...field} />
                     </FormControl>
@@ -266,7 +272,7 @@ export default function EmployeeRegistration() {
                 name="address"
                 render={({ field }) => (
                   <FormItem className="col-span-3">
-                    <FormLabel>Current Address *</FormLabel>
+                    <FormLabel><RequiredLabel>Current Address</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input placeholder="Full Address" {...field} />
                     </FormControl>
@@ -279,7 +285,7 @@ export default function EmployeeRegistration() {
                 name="state"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>State *</FormLabel>
+                    <FormLabel><RequiredLabel>State</RequiredLabel></FormLabel>
                     <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -363,7 +369,7 @@ export default function EmployeeRegistration() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City *</FormLabel>
+                    <FormLabel><RequiredLabel>City</RequiredLabel></FormLabel>
                     <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -455,7 +461,7 @@ export default function EmployeeRegistration() {
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Role *</FormLabel>
+                    <FormLabel><RequiredLabel>Role</RequiredLabel></FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -498,7 +504,7 @@ export default function EmployeeRegistration() {
                 name="designationId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Designation *</FormLabel>
+                    <FormLabel><RequiredLabel>Designation</RequiredLabel></FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -520,7 +526,7 @@ export default function EmployeeRegistration() {
                 name="doj"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date of Joining *</FormLabel>
+                    <FormLabel><RequiredLabel>Date of Joining</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -533,7 +539,7 @@ export default function EmployeeRegistration() {
                 name="nominee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nominee Name *</FormLabel>
+                    <FormLabel><RequiredLabel>Nominee Name</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input placeholder="Nominee" {...field} />
                     </FormControl>
@@ -546,7 +552,7 @@ export default function EmployeeRegistration() {
                 name="aadhar"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Aadhar No *</FormLabel>
+                    <FormLabel><RequiredLabel>Aadhar No</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input placeholder="Aadhar" maxLength={12} {...field} />
                     </FormControl>
@@ -559,7 +565,7 @@ export default function EmployeeRegistration() {
                 name="pan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>PAN No *</FormLabel>
+                    <FormLabel><RequiredLabel>PAN No</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input placeholder="PAN" maxLength={10} {...field} />
                     </FormControl>
@@ -572,7 +578,7 @@ export default function EmployeeRegistration() {
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Employee Status *</FormLabel>
+                    <FormLabel><RequiredLabel>Employee Status</RequiredLabel></FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
