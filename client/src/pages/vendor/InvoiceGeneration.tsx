@@ -118,6 +118,35 @@ export default function InvoiceGeneration() {
     setSelectedPOs(newSet);
   };
 
+  const deleteInvoice = async (invoiceId: string, invoiceNumber: string) => {
+    if (!confirm(`Delete invoice ${invoiceNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/invoices/${invoiceId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setAllInvoices(allInvoices.filter(inv => inv.id !== invoiceId));
+        setInvoiceRecords(invoiceRecords.filter(inv => inv.id !== invoiceId));
+        toast({
+          title: "Success",
+          description: `Invoice ${invoiceNumber} has been deleted.`,
+        });
+      } else {
+        throw new Error("Failed to delete invoice");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete invoice",
+        variant: "destructive",
+      });
+    }
+  };
+
   const deleteAllInvoices = async () => {
     if (!confirm('Are you sure you want to delete ALL invoices? This action cannot be undone.')) {
       return;
