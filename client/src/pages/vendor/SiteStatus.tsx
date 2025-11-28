@@ -656,14 +656,10 @@ export default function SiteStatus() {
       for (const site of filteredSites) {
         const fields = getFieldsForSite(site);
 
-        // Site header
-        if (!isFirstSite && yPosition + 15 > pageHeight - margin) {
+        // Start each new site on a new page
+        if (!isFirstSite) {
           pdf.addPage();
           yPosition = margin;
-        }
-
-        if (!isFirstSite) {
-          yPosition += 2; // Spacing between sites
         }
 
         // Draw site header
