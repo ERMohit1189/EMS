@@ -72,11 +72,6 @@ const menuGroups = [
         icon: Upload,
         href: '/vendor/excel-import',
       },
-      {
-        title: 'Export Settings',
-        icon: SettingsIcon,
-        href: '/vendor/export-headers',
-      },
     ],
   },
   {
@@ -111,6 +106,11 @@ const menuGroups = [
         title: 'App Settings',
         icon: SettingsIcon,
         href: '/settings',
+      },
+      {
+        title: 'Export Settings',
+        icon: SettingsIcon,
+        href: '/vendor/export-headers',
       },
     ],
   },
