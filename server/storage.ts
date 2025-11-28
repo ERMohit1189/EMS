@@ -199,23 +199,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSites(limit: number, offset: number): Promise<Site[]> {
-    const result = await db
-      .select()
-      .from(sites)
-      .leftJoin(zones, eq(sites.zoneId, zones.id))
-      .leftJoin(
-        paymentMasters,
-        and(
-          eq(sites.id, paymentMasters.siteId),
-          eq(sites.planId, paymentMasters.planId),
-          eq(sites.vendorId, paymentMasters.vendorId),
-          eq(sites.maxAntSize, paymentMasters.antennaSize)
-        )
-      )
-      .limit(limit)
-      .offset(offset);
-    
-    return result.map(r => ({ ...r.sites, vendorAmount: r.payment_masters?.vendor_amount, siteAmount: r.payment_masters?.site_amount } as Site));
+    return await db.select().from(sites).limit(limit).offset(offset);
   }
 
   async getSitesByVendor(vendorId: string): Promise<Site[]> {
@@ -223,26 +207,15 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSitesForPOGeneration(): Promise<Site[]> {
-    const result = await db
+    return await db
       .select()
       .from(sites)
-      .leftJoin(
-        paymentMasters,
-        and(
-          eq(sites.id, paymentMasters.siteId),
-          eq(sites.planId, paymentMasters.planId),
-          eq(sites.vendorId, paymentMasters.vendorId),
-          eq(sites.maxAntSize, paymentMasters.antennaSize)
-        )
-      )
       .where(
         and(
           eq(sites.softAtStatus, "Approved"),
           eq(sites.phyAtStatus, "Approved")
         )
       );
-    
-    return result.map(r => ({ ...r.sites, vendorAmount: r.payment_masters?.vendor_amount, siteAmount: r.payment_masters?.site_amount } as Site));
   }
 
   // Helper function to auto-update site status based on remarks
