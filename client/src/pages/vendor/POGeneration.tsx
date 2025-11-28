@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Download, Eye, Printer, Trash2 } from "lucide-react";
+import { Plus, Download, Eye, Printer, Trash2, FileText } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader, fetchJsonWithLoader } from "@/lib/fetchWithLoader";
 import { truncateId } from "@/lib/utils";
 import type { Site, Vendor } from "@shared/schema";
+import jsPDF from 'jspdf';
 
 interface PORecord {
   id: string;
@@ -236,6 +237,180 @@ export default function POGeneration() {
     }
   };
 
+  const exportPOToPDF = async (poId: string, poNumber: string) => {
+    try {
+      const baseUrl = getApiBaseUrl();
+      
+      // Fetch PO details
+      const poRes = await fetch(`${baseUrl}/api/purchase-orders/${poId}`);
+      if (!poRes.ok) throw new Error("Failed to fetch PO");
+      const po = await poRes.json();
+      
+      // Fetch site and vendor details
+      const siteRes = await fetch(`${baseUrl}/api/sites/${po.siteId}`);
+      const site = siteRes.ok ? await siteRes.json() : null;
+      
+      const vendorRes = await fetch(`${baseUrl}/api/vendors/${po.vendorId}`);
+      const vendor = vendorRes.ok ? await vendorRes.json() : null;
+
+      // Fetch export header settings
+      const headerRes = await fetch(`${baseUrl}/api/export-headers`);
+      const exportHeaderSettings = headerRes.ok ? await headerRes.json() : {};
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const contentWidth = pageWidth - (2 * margin);
+      const lineHeight = 5;
+
+      let yPosition = margin;
+
+      // Add company header if settings exist
+      if (exportHeaderSettings.companyName) {
+        pdf.setFillColor(41, 128, 185);
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.rect(margin, yPosition, contentWidth, 7, 'F');
+        pdf.text(exportHeaderSettings.companyName, margin + 5, yPosition + 4.5);
+        yPosition += 10;
+      }
+
+      // Add PO header
+      pdf.setFillColor(100, 149, 237);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(12);
+      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+      pdf.text(`PURCHASE ORDER`, margin + 5, yPosition + 5);
+      yPosition += 10;
+
+      // PO details
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(9);
+      
+      const details = [
+        { label: 'PO Number', value: po.poNumber },
+        { label: 'PO Date', value: po.poDate },
+        { label: 'Due Date', value: po.dueDate },
+        { label: 'Status', value: po.status },
+      ];
+
+      for (const detail of details) {
+        if (yPosition + lineHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFont(undefined, 'bold');
+        pdf.text(detail.label + ':', margin + 2, yPosition + 4);
+        pdf.setFont(undefined, 'normal');
+        pdf.text(String(detail.value), margin + 40, yPosition + 4);
+        yPosition += 6;
+      }
+
+      yPosition += 3;
+
+      // Vendor details
+      pdf.setFillColor(200, 220, 240);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'bold');
+      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+      pdf.text('VENDOR DETAILS', margin + 5, yPosition + 4);
+      yPosition += 8;
+
+      if (vendor) {
+        const vendorDetails = [
+          { label: 'Name', value: vendor.name },
+          { label: 'Email', value: vendor.email },
+          { label: 'Phone', value: vendor.phone },
+          { label: 'GSTIN', value: vendor.gstin || '-' },
+        ];
+        pdf.setFont(undefined, 'normal');
+        for (const detail of vendorDetails) {
+          if (yPosition + lineHeight > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.text(detail.label + ':', margin + 2, yPosition + 4);
+          pdf.text(String(detail.value), margin + 40, yPosition + 4);
+          yPosition += 6;
+        }
+      }
+
+      yPosition += 3;
+
+      // Site details
+      pdf.setFillColor(200, 220, 240);
+      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+      pdf.setFont(undefined, 'bold');
+      pdf.text('SITE DETAILS', margin + 5, yPosition + 4);
+      yPosition += 8;
+
+      if (site) {
+        const siteDetails = [
+          { label: 'Site ID', value: site.siteId },
+          { label: 'Plan ID', value: site.planId },
+          { label: 'HOP A-B', value: site.hopAB },
+          { label: 'Circle', value: site.circle },
+          { label: 'District', value: site.district },
+        ];
+        pdf.setFont(undefined, 'normal');
+        for (const detail of siteDetails) {
+          if (yPosition + lineHeight > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.text(detail.label + ':', margin + 2, yPosition + 4);
+          pdf.text(String(detail.value), margin + 40, yPosition + 4);
+          yPosition += 6;
+        }
+      }
+
+      yPosition += 3;
+
+      // PO Items
+      pdf.setFillColor(200, 220, 240);
+      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+      pdf.setFont(undefined, 'bold');
+      pdf.text('PO ITEMS', margin + 5, yPosition + 4);
+      yPosition += 8;
+
+      const items = [
+        { label: 'Description', value: po.description },
+        { label: 'Quantity', value: po.quantity },
+        { label: 'Unit Price', value: `₹${Number(po.unitPrice).toLocaleString('en-IN')}` },
+        { label: 'Total Amount', value: `₹${Number(po.totalAmount).toLocaleString('en-IN')}` },
+      ];
+      pdf.setFont(undefined, 'normal');
+      for (const item of items) {
+        if (yPosition + lineHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(item.label + ':', margin + 2, yPosition + 4);
+        pdf.text(String(item.value), margin + 40, yPosition + 4);
+        yPosition += 6;
+      }
+
+      // Add footer if exists
+      if (exportHeaderSettings.footerText) {
+        yPosition += 5;
+        if (yPosition + 10 > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.setFontSize(7);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(exportHeaderSettings.footerText, margin, yPosition, { maxWidth: contentWidth });
+      }
+
+      pdf.save(`PO-${poNumber}-${new Date().getTime()}.pdf`);
+      toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
   }
@@ -402,6 +577,15 @@ export default function POGeneration() {
                               <Printer className="h-3 w-3" /> Print PO
                             </Button>
                           </a>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="w-full gap-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+                            onClick={() => exportPOToPDF(po.id, po.poNumber)}
+                            data-testid={`button-export-pdf-${po.id}`}
+                          >
+                            <FileText className="h-3 w-3" /> Export PDF
+                          </Button>
                           {(!poInvoices[po.id] || poInvoices[po.id].length === 0) && (
                             <Button 
                               size="sm" 
