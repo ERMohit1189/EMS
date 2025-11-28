@@ -557,7 +557,7 @@ export default function InvoiceGeneration() {
                   <CardTitle>All Generated Invoices</CardTitle>
                   <CardDescription>Complete list of all invoices ({allInvoices.length} total)</CardDescription>
                 </div>
-                <Button onClick={deleteAllInvoices} variant="destructive" size="sm" className="gap-2">
+                <Button onClick={deleteAllInvoices} variant="destructive" size="sm" className="gap-2 hidden">
                   <Trash2 className="h-4 w-4" /> Delete All
                 </Button>
               </CardHeader>
