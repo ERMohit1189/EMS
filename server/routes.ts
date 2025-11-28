@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import {
   insertVendorSchema,
   insertSiteSchema,
@@ -10,7 +11,10 @@ import {
   insertInvoiceSchema,
   insertPaymentMasterSchema,
   insertZoneSchema,
+  purchaseOrders,
+  invoices,
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
