@@ -186,7 +186,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
                 <div
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    location === '/employee/dashboard'
+                    (location === '/employee/dashboard' || location === '/')
                       ? 'bg-green-600 text-white shadow-sm'
                       : 'text-sidebar-foreground/70 bg-green-50'
                   )}

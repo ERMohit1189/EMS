@@ -119,6 +119,11 @@ function App() {
     );
   }
 
+  // If employee is on root path, redirect to employee dashboard
+  if (isEmployee && isLoggedIn && location === '/') {
+    setLocation('/employee/dashboard');
+  }
+
   // If not logged in and not on login page, redirect to login
   if (!isLoggedIn && location !== '/login' && location !== '/api-config' && location !== '/employee/privacy-policy' && location !== '/vendor/privacy-policy') {
     return (
