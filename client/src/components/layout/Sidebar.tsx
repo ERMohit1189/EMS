@@ -56,6 +56,11 @@ const menuItems = [
     icon: FileText,
     href: '/vendor/po',
   },
+  {
+    title: 'Invoice Generation',
+    icon: FileText,
+    href: '/vendor/invoices',
+  },
 ];
 
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
