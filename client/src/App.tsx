@@ -68,10 +68,19 @@ function App() {
 
     // Listen for logout events
     const handleLogout = () => {
+      // Check if this was an employee logout before clearing data
+      const isEmployeeLogout = localStorage.getItem('employeeId') !== null;
+      
       setIsLoggedIn(false);
       setIsEmployee(false);
-      console.log('[App] Logout event');
-      setLocation('/login');
+      console.log('[App] Logout event - Employee:', isEmployeeLogout);
+      
+      // Redirect to appropriate login page
+      if (isEmployeeLogout) {
+        setLocation('/employee-login');
+      } else {
+        setLocation('/login');
+      }
     };
 
     // Listen for login events
