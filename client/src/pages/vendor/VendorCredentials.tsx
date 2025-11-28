@@ -9,7 +9,7 @@ import type { Vendor } from "@shared/schema";
 export default function VendorCredentials() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [generatedPasswords, setGeneratedPasswords] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [loadingVendorId, setLoadingVendorId] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const { toast } = useToast();
 
@@ -34,7 +34,7 @@ export default function VendorCredentials() {
   };
 
   const handleGeneratePassword = async (vendorId: string) => {
-    setLoading(true);
+    setLoadingVendorId(vendorId);
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/generate-password`, {
         method: "POST",
@@ -63,7 +63,7 @@ export default function VendorCredentials() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setLoadingVendorId(null);
     }
   };
 
@@ -161,7 +161,7 @@ export default function VendorCredentials() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleGeneratePassword(vendor.id)}
-                        disabled={loading}
+                        disabled={loadingVendorId === vendor.id}
                         className="gap-1 h-7"
                       >
                         <RotateCw className="h-3 w-3" />
