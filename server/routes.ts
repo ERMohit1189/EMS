@@ -325,25 +325,34 @@ export async function registerRoutes(
 
   app.post("/api/sites/bulk-update-status-by-plan", async (req, res) => {
     try {
+      console.log('\n======== BULK UPDATE START ========');
+      console.log('📍 Step 1: Received request');
+      console.log('Body:', req.body);
+      
       const { planIds, phyAtStatus, softAtStatus, shouldApproveStatus } = req.body;
+      console.log('✅ Extracted params - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus);
       
       if (!planIds || planIds.length === 0) {
+        console.log('❌ Error: No planIds provided');
         res.setHeader("Content-Type", "application/json");
         return res.status(400).json({ error: "No sites selected" });
       }
       if (!phyAtStatus && !softAtStatus) {
+        console.log('❌ Error: No status provided');
         res.setHeader("Content-Type", "application/json");
         return res.status(400).json({ error: "Please select at least one status to update" });
       }
       
-      console.log('[API] Bulk update by plan - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus, 'shouldApproveStatus:', shouldApproveStatus);
+      console.log('📍 Step 2: Validation passed');
+      console.log('📍 Step 3: Calling storage.bulkUpdateStatusByPlanId');
       
       // Call the bulk update which handles AT status updates
       const result = await storage.bulkUpdateStatusByPlanId(planIds, phyAtStatus, softAtStatus);
+      console.log('✅ Storage update result:', result);
       
       // If both AT statuses are Approved, also update the site status to Approved
       if (shouldApproveStatus) {
-        console.log('[API] Auto-approving site status for planIds:', planIds);
+        console.log('📍 Step 4: Auto-approving site status (both AT statuses = Approved)');
         // Update site status to Approved for these plan IDs
         const updateResult = await Promise.all(
           planIds.map(planId => 
@@ -352,13 +361,21 @@ export async function registerRoutes(
               .where(eq(sites.planId, planId))
           )
         );
-        console.log('[API] Site status approval result:', updateResult);
+        console.log('✅ Site status updated for planIds:', planIds);
+        console.log('Update result rowCounts:', updateResult.map(r => r.rowCount));
+      } else {
+        console.log('⚠️  Step 4: Skipping auto-approve (not both Approved)');
       }
       
+      console.log('📍 Step 5: Sending success response');
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({ success: true, updated: result.updated });
+      console.log('======== BULK UPDATE COMPLETE ========\n');
     } catch (error: any) {
-      console.error('[API] bulkUpdateStatusByPlan error:', error);
+      console.error('\n❌ ======== BULK UPDATE ERROR ========');
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      console.error('======== ERROR END ========\n');
       res.setHeader("Content-Type", "application/json");
       res.status(400).json({ error: error.message });
     }
