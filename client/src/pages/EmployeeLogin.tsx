@@ -48,25 +48,13 @@ export default function EmployeeLogin() {
   }, []);
 
   const handleLogout = () => {
-    console.log("[EmployeeLogin] Logging out...");
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("employeeId");
-    localStorage.removeItem("employeeEmail");
-    localStorage.removeItem("employeeName");
-    localStorage.removeItem("employeeDepartment");
-    localStorage.removeItem("employeeDesignation");
-    
-    setIsLoggedIn(false);
-    setEmployeeName("");
-    setEmail("");
-    setPassword("");
-    setRememberMe(false);
-    
+    console.log("[EmployeeLogin] Logout button clicked");
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out",
     });
-    console.log("[EmployeeLogin] ✅ Logout successful");
+    // Dispatch logout event to App component to handle everything
+    window.dispatchEvent(new Event('logout'));
   };
 
   const handleLogin = async (e: React.FormEvent) => {

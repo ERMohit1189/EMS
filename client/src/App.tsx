@@ -73,8 +73,10 @@ function App() {
 
     // Listen for logout events
     const handleLogout = () => {
-      // Check if this was an employee logout before clearing data
-      const isEmployeeLogout = localStorage.getItem('employeeId') !== null;
+      // Check if this was an employee logout BEFORE clearing data
+      // Use employeeEmail as the check since that's what determines if someone is an employee
+      const isEmployeeLogout = localStorage.getItem('employeeEmail') !== null;
+      console.log('[App] Logout triggered - isEmployeeLogout:', isEmployeeLogout, 'employeeEmail:', localStorage.getItem('employeeEmail'));
       
       // Clear all employee data from localStorage
       localStorage.removeItem('isLoggedIn');
@@ -88,12 +90,14 @@ function App() {
       
       setIsLoggedIn(false);
       setIsEmployee(false);
-      console.log('[App] Logout event - Employee:', isEmployeeLogout);
+      console.log('[App] All data cleared. Redirecting...');
       
-      // Redirect to appropriate login page
+      // Redirect to appropriate login page based on what we determined earlier
       if (isEmployeeLogout) {
+        console.log('[App] Redirecting to /employee-login');
         setLocation('/employee-login');
       } else {
+        console.log('[App] Redirecting to /login');
         setLocation('/login');
       }
     };
