@@ -336,25 +336,38 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Please select at least one status to update" });
       }
       
-      console.log('[API] Bulk update by plan - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus, 'shouldApproveStatus:', shouldApproveStatus);
+      console.log('[API] Bulk update by plan - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus);
       
       // Call the bulk update which handles AT status updates
       const result = await storage.bulkUpdateStatusByPlanId(planIds, phyAtStatus, softAtStatus);
       
-      // Auto-update site status based on AT statuses
-      console.log('[API] Auto-updating site status for planIds:', planIds);
-      let newStatus = 'Pending';
-      if (phyAtStatus === 'Approved' && softAtStatus === 'Approved') {
-        newStatus = 'Approved';
-      }
-      const updateResult = await Promise.all(
-        planIds.map((planId: string) => 
-          db.update(sites)
-            .set({ status: newStatus })
-            .where(eq(sites.planId, planId))
-        )
-      );
-      console.log('[API] Site status update result - new status:', newStatus, 'for planIds:', planIds);
+      // Fetch existing sites to get current AT status values
+      const existingSites = await db.select().from(sites).where(inArray(sites.planId, planIds));
+      
+      // Auto-update site status for each site based on BOTH AT statuses (new + existing)
+      console.log('[API] Auto-updating site status based on AT statuses');
+      const updatePromises = existingSites.map(async (site) => {
+        // Use new values if provided, otherwise use existing values
+        const finalPhyAtStatus = phyAtStatus || site.phyAtStatus;
+        const finalSoftAtStatus = softAtStatus || site.softAtStatus;
+        
+        console.log(`[API] Site ${site.planId}: phyAtStatus=${finalPhyAtStatus}, softAtStatus=${finalSoftAtStatus}`);
+        
+        // Site is Approved only if BOTH AT statuses are Approved
+        let newStatus = 'Pending';
+        if (finalPhyAtStatus === 'Approved' && finalSoftAtStatus === 'Approved') {
+          newStatus = 'Approved';
+        }
+        
+        console.log(`[API] Setting site ${site.planId} status to: ${newStatus}`);
+        
+        return db.update(sites)
+          .set({ status: newStatus })
+          .where(eq(sites.planId, site.planId));
+      });
+      
+      await Promise.all(updatePromises);
+      console.log('[API] Site status update complete');
       
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({ success: true, updated: result.updated });
