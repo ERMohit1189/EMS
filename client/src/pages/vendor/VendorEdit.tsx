@@ -4,6 +4,7 @@ import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useParams } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
+import { getApiBaseUrl } from '@/lib/api';
 import { IndianStates, getCitiesByState } from '@/assets/india-data';
 import {
   Form,
@@ -72,7 +73,7 @@ export default function VendorEdit() {
 
   const fetchVendor = async () => {
     try {
-      const response = await fetch(`/api/vendors/${id}`);
+      const response = await fetch(`${getApiBaseUrl()}/api/vendors/${id}`);
       if (!response.ok) throw new Error('Failed to fetch vendor');
       const vendor = await response.json();
       form.reset({

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { getApiBaseUrl } from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface RawRowData {
@@ -71,7 +72,7 @@ export default function ExcelImport() {
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
     try {
-      const zonesResponse = await fetch('/api/zones?pageSize=10000');
+      const zonesResponse = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
       if (zonesResponse.ok) {
         const zonesData = await zonesResponse.json();
         zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {

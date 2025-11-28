@@ -3,6 +3,7 @@ import { useStore } from '@/lib/mockData';
 import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
+import { getApiBaseUrl } from '@/lib/api';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 export default function Dashboard() {
@@ -13,7 +14,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/purchase-orders');
+        const response = await fetch(`${getApiBaseUrl()}/api/purchase-orders`);
         const data = await response.json();
         const pos = data.data || [];
         setPurchaseOrders(pos);

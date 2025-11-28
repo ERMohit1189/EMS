@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { getApiBaseUrl } from '@/lib/api';
 import {
   Table,
   TableBody,
@@ -40,7 +41,7 @@ export default function SiteStatus() {
   const fetchSites = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/sites');
+      const response = await fetch(`${getApiBaseUrl()}/api/sites`);
       if (response.ok) {
         const { data } = await response.json();
         setSites(data || []);

@@ -4,6 +4,7 @@ import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useParams } from 'wouter';
 import { useState, useEffect } from 'react';
+import { getApiBaseUrl } from '@/lib/api';
 import { useStore } from '@/lib/mockData';
 import {
   Form,
@@ -144,9 +145,10 @@ export default function SiteEdit() {
     const loadData = async () => {
       try {
         // Fetch zones and vendors first
+        const baseUrl = getApiBaseUrl();
         const [zonesRes, vendorsRes] = await Promise.all([
-          fetch('/api/zones?pageSize=10000'),
-          fetch('/api/vendors?pageSize=10000'),
+          fetch(`${baseUrl}/api/zones?pageSize=10000`),
+          fetch(`${baseUrl}/api/vendors?pageSize=10000`),
         ]);
         
         let loadedZones: any[] = [];

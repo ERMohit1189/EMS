@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Download } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getApiBaseUrl } from "@/lib/api";
 import * as XLSX from "xlsx";
 
 export default function SiteList() {
@@ -23,7 +24,7 @@ export default function SiteList() {
     const fetchSites = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/sites');
+        const response = await fetch(`${getApiBaseUrl()}/api/sites`);
         if (response.ok) {
           const { data } = await response.json();
           setSites(data || []);

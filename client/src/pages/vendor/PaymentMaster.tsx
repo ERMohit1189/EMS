@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2 } from "lucide-react";
+import { getApiBaseUrl } from "@/lib/api";
 import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 
 export default function PaymentMaster() {
@@ -46,7 +47,7 @@ export default function PaymentMaster() {
 
   const fetchMasters = async () => {
     try {
-      const response = await fetch("/api/payment-masters");
+      const response = await fetch(`${getApiBaseUrl()}/api/payment-masters`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setMasters(result.data || []);
@@ -57,7 +58,7 @@ export default function PaymentMaster() {
 
   const fetchSites = async () => {
     try {
-      const response = await fetch("/api/sites?pageSize=10000");
+      const response = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setSites(result.data || []);
@@ -68,7 +69,7 @@ export default function PaymentMaster() {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch("/api/vendors?pageSize=10000");
+      const response = await fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setVendors(result.data || []);
@@ -86,7 +87,8 @@ export default function PaymentMaster() {
     }
 
     try {
-      const url = editing ? `/api/payment-masters/${editing.id}` : "/api/payment-masters";
+      const baseUrl = getApiBaseUrl();
+      const url = editing ? `${baseUrl}/api/payment-masters/${editing.id}` : `${baseUrl}/api/payment-masters`;
       const method = editing ? "PUT" : "POST";
 
       const response = await fetch(url, {

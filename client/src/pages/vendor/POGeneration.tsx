@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer } from "lucide-react";
+import { getApiBaseUrl } from "@/lib/api";
 import type { Site, Vendor } from "@shared/schema";
 
 interface PORecord {
@@ -36,10 +37,11 @@ export default function POGeneration() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        const baseUrl = getApiBaseUrl();
         const [sitesRes, vendorsRes, posRes] = await Promise.all([
-          fetch("/api/sites/for-po-generation"),
-          fetch("/api/vendors?pageSize=10000"),
-          fetch("/api/purchase-orders?pageSize=10000"),
+          fetch(`${baseUrl}/api/sites/for-po-generation`),
+          fetch(`${baseUrl}/api/vendors?pageSize=10000`),
+          fetch(`${baseUrl}/api/purchase-orders?pageSize=10000`),
         ]);
 
         if (!sitesRes.ok || !vendorsRes.ok || !posRes.ok) {

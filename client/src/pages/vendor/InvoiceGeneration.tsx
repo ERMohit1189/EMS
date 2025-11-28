@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download } from "lucide-react";
 import jsPDF from "jspdf";
+import { getApiBaseUrl } from "@/lib/api";
 import type { PurchaseOrder, Vendor } from "@shared/schema";
 
 interface InvoiceRecord {
@@ -41,11 +42,12 @@ export default function InvoiceGeneration() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        const baseUrl = getApiBaseUrl();
         const [posRes, vendorsRes, sitesRes, invoicesRes] = await Promise.all([
-          fetch("/api/purchase-orders?pageSize=10000"),
-          fetch("/api/vendors?pageSize=10000"),
-          fetch("/api/sites?pageSize=10000"),
-          fetch("/api/invoices?pageSize=10000"),
+          fetch(`${baseUrl}/api/purchase-orders?pageSize=10000`),
+          fetch(`${baseUrl}/api/vendors?pageSize=10000`),
+          fetch(`${baseUrl}/api/sites?pageSize=10000`),
+          fetch(`${baseUrl}/api/invoices?pageSize=10000`),
         ]);
 
         if (!posRes.ok || !vendorsRes.ok || !sitesRes.ok || !invoicesRes.ok) {

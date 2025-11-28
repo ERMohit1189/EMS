@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBaseUrl } from "@/lib/api";
 import type { PurchaseOrder, Site, Vendor } from "@shared/schema";
 
 interface POWithDetails extends PurchaseOrder {
@@ -26,15 +27,16 @@ export default function POPrint() {
   const fetchPO = async () => {
     if (!poId) return;
     try {
-      const response = await fetch(`/api/purchase-orders/${poId}`);
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/api/purchase-orders/${poId}`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       
       // Fetch site and vendor details
-      const siteRes = await fetch(`/api/sites/${result.siteId}`);
+      const siteRes = await fetch(`${baseUrl}/api/sites/${result.siteId}`);
       const siteData = siteRes.ok ? await siteRes.json() : null;
       
-      const vendorRes = await fetch(`/api/vendors/${result.vendorId}`);
+      const vendorRes = await fetch(`${baseUrl}/api/vendors/${result.vendorId}`);
       const vendorData = vendorRes.ok ? await vendorRes.json() : null;
       
       setPo({ ...result, site: siteData, vendor: vendorData });
