@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Trash2, FileText } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
@@ -41,7 +40,7 @@ export default function POGeneration() {
   const [poRecords, setPoRecords] = useState<PORecord[]>([]);
   const [allPOs, setAllPOs] = useState<PORecord[]>([]);
   const [poInvoices, setPoInvoices] = useState<{ [key: string]: any[] }>({});
-  const [gstApplied, setGstApplied] = useState<{ [key: string]: boolean }>({});
+  const [applyGstToAll, setApplyGstToAll] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -186,7 +185,7 @@ export default function POGeneration() {
             unitPrice: record.unitPrice,
             totalAmount: (record.quantity * parseFloat(record.unitPrice)).toString(),
             gstType: record.gstType,
-            gstApply: true,
+            gstApply: applyGstToAll,
             poDate: new Date().toISOString().split('T')[0],
             dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             status: "Draft",
@@ -195,8 +194,7 @@ export default function POGeneration() {
 
         if (response.ok) {
           const createdPO = await response.json();
-          createdPOs.push({ ...record, id: createdPO.id, gstApply: true });
-          setGstApplied(prev => ({ ...prev, [createdPO.id]: true }));
+          createdPOs.push({ ...record, id: createdPO.id, gstApply: applyGstToAll });
         }
       }
 
@@ -251,27 +249,6 @@ export default function POGeneration() {
     }
   };
 
-  const toggleGstApply = async (poId: string, currentState: boolean) => {
-    try {
-      await fetch(`${getApiBaseUrl()}/api/purchase-orders/${poId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gstApply: !currentState }),
-      });
-      setGstApplied(prev => ({ ...prev, [poId]: !currentState }));
-      toast({
-        title: 'Success',
-        description: `GST ${!currentState ? 'enabled' : 'disabled'} for this PO`,
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update GST status',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const exportPOToPDF = async (poId: string, poNumber: string) => {
     try {
       const baseUrl = getApiBaseUrl();
@@ -296,9 +273,8 @@ export default function POGeneration() {
       // Calculate GST amounts based on PO gstApply flag and gstType
       const subtotal = Number(po.totalAmount || 0);
       let igstAmt = 0, cgstAmt = 0, sgstAmt = 0;
-      const shouldApplyGst = gstApplied[poId] !== false && po.gstApply !== false;
       
-      if (shouldApplyGst) {
+      if (po.gstApply) {
         if (po.gstType === 'igst') {
           igstAmt = Math.round(subtotal * 0.18 * 100) / 100;
         } else if (po.gstType === 'cgstsgst') {
@@ -496,7 +472,7 @@ export default function POGeneration() {
       y += 6;
 
       // Show GST lines if applied
-      if (shouldApplyGst) {
+      if (po.gstApply) {
         if (po.gstType === 'igst') {
           const igstDisplay = igstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
           pdf.text('IGST (18%):', tX, y);
@@ -615,6 +591,21 @@ export default function POGeneration() {
                     );
                   })}
                 </div>
+
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={applyGstToAll}
+                    onChange={(e) => setApplyGstToAll(e.target.checked)}
+                    className="w-5 h-5 cursor-pointer"
+                    data-testid="checkbox-apply-gst-all"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800">Apply GST to All POs</p>
+                    <p className="text-xs text-gray-600">GST will be auto-determined based on vendor and site state (IGST for interstate, CGST+SGST for intrastate)</p>
+                  </div>
+                </div>
+
                 <Button onClick={generatePOs} className="mt-4 w-full" disabled={selectedSites.size === 0}>
                   <Plus className="h-4 w-4 mr-2" />
                   Generate POs ({selectedSites.size} selected)
@@ -723,16 +714,6 @@ export default function POGeneration() {
                               <Printer className="h-3 w-3" /> Print PO
                             </Button>
                           </a>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={gstApplied[po.id] !== false}
-                              onChange={() => toggleGstApply(po.id, gstApplied[po.id] !== false)}
-                              className="w-4 h-4"
-                              data-testid={`checkbox-gst-${po.id}`}
-                            />
-                            <span className="text-xs font-medium text-gray-600">Apply GST</span>
-                          </div>
                           <Button 
                             size="sm" 
                             variant="outline" 
