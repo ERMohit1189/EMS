@@ -142,24 +142,38 @@ export default function SiteStatus() {
     }
 
     try {
+      const updatePayload = {
+        siteIds: Array.from(selectedSites),
+        phyAtRemark: bulkPhyAtRemark || undefined,
+        softAtRemark: bulkSoftAtRemark || undefined,
+      };
+      console.log('[SiteStatus] Sending bulk update:', updatePayload);
+      
       const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/bulk-update-remarks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          siteIds: Array.from(selectedSites),
-          phyAtRemark: bulkPhyAtRemark || undefined,
-          softAtRemark: bulkSoftAtRemark || undefined,
-        }),
+        body: JSON.stringify(updatePayload),
       });
 
-      if (!response.ok) throw new Error('Failed to update');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[SiteStatus] API Error:', errorData);
+        throw new Error(errorData.error || 'Failed to update');
+      }
+      
+      const responseData = await response.json();
+      console.log('[SiteStatus] Update response:', responseData);
       
       toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
       setSelectedSites(new Set());
       setBulkPhyAtRemark('');
       setBulkSoftAtRemark('');
+      
+      console.log('[SiteStatus] Fetching updated sites...');
       await fetchSites();
+      console.log('[SiteStatus] Sites refreshed, count:', sites.length);
     } catch (error: any) {
+      console.error('[SiteStatus] Bulk update error:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   };
