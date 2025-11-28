@@ -46,6 +46,16 @@ const menuItems = [
     icon: Upload,
     href: '/vendor/excel-import',
   },
+  {
+    title: 'Payment Master',
+    icon: Wallet,
+    href: '/vendor/payment-master',
+  },
+  {
+    title: 'PO Generation',
+    icon: FileText,
+    href: '/vendor/po',
+  },
 ];
 
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
