@@ -700,7 +700,7 @@ export default function POGeneration() {
                         <th className="text-left py-2">Plan ID</th>
                         <th className="text-left py-2">Vendor</th>
                         <th className="text-center py-2">Max Antenna Size</th>
-                        <th className="text-right py-2">GST Amount</th>
+                        <th className="text-right py-2">GST Type</th>
                         <th className="text-right py-2">Total Amount</th>
                         <th className="text-center py-2">Action</th>
                       </tr>
@@ -712,7 +712,7 @@ export default function POGeneration() {
                           <td className="py-2 font-mono text-sm">{truncateId(po.planId)}</td>
                           <td className="py-2">{po.vendorName}</td>
                           <td className="text-center py-2">{po.maxAntennaSize || "-"}</td>
-                          <td className="text-right py-2 text-orange-600 font-semibold">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+                          <td className="text-right py-2 text-orange-600 font-semibold">{po.gstApply ? (po.gstType === 'igst' ? 'IGST' : 'CGST+SGST') : 'No Tax'}</td>
                           <td className="text-right py-2 font-bold text-green-600">₹{getTotalAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                           <td className="text-center py-2">
                             <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer">
@@ -781,7 +781,7 @@ export default function POGeneration() {
                         {/* Amount Section */}
                         <div className="border-t border-slate-200 pt-2 space-y-1">
                           <div className="flex justify-between items-center text-xs">
-                            <span className="font-semibold text-slate-600 uppercase">GST</span>
+                            <span className="font-semibold text-slate-600 uppercase">{po.gstApply ? (po.gstType === 'igst' ? 'IGST' : 'CGST+SGST') : 'Tax'}</span>
                             <span className="font-bold text-orange-600">₹{getGSTAmount(po).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
                           <div className="flex justify-between items-center bg-green-50 p-2 rounded">
