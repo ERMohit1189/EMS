@@ -14,6 +14,7 @@ import {
 import { Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { getApiBaseUrl } from '@/lib/api';
 import { fetchWithLoader } from '@/lib/fetchWithLoader';
+import { truncateId } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -27,6 +28,7 @@ import {
 interface SiteStatusData {
   id: string;
   siteId: string;
+  planId: string;
   circle: string;
   district: string;
   status: string;
@@ -71,7 +73,7 @@ export default function SiteStatus() {
 
   const filteredSites = sites.filter(site => {
     const matchesSearch = 
-      site.siteId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      site.planId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       site.circle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       site.district.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -195,7 +197,7 @@ export default function SiteStatus() {
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by Site ID, Circle, or District..."
+                  placeholder="Search by Plan ID, Circle, or District..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -300,7 +302,7 @@ export default function SiteStatus() {
                         data-testid="checkbox-select-all"
                       />
                     </TableHead>
-                    <TableHead className="font-semibold">Site ID</TableHead>
+                    <TableHead className="font-semibold">Plan ID</TableHead>
                     <TableHead className="font-semibold">Circle</TableHead>
                     <TableHead className="font-semibold">District</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
@@ -322,7 +324,7 @@ export default function SiteStatus() {
                           data-testid={`checkbox-site-${site.id}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium text-blue-600">{site.siteId}</TableCell>
+                      <TableCell className="font-medium text-blue-600 font-mono">{truncateId(site.planId)}</TableCell>
                       <TableCell>{site.circle || '-'}</TableCell>
                       <TableCell>{site.district || '-'}</TableCell>
                       <TableCell>
