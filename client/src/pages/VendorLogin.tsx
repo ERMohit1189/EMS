@@ -1,17 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 
 export default function VendorLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Load saved credentials from cookies on mount
+  useEffect(() => {
+    const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
+    if (cookiesEnabled) {
+      const cookies = document.cookie.split("; ");
+      const savedCredsCookie = cookies.find(cookie => cookie.startsWith("vendorLoginCredentials="));
+      
+      if (savedCredsCookie) {
+        try {
+          const credsJson = decodeURIComponent(savedCredsCookie.substring("vendorLoginCredentials=".length));
+          const creds = JSON.parse(credsJson);
+          setEmail(creds.email || "");
+          setPassword(creds.password || "");
+          setRememberMe(true);
+        } catch (error) {
+          console.error("Failed to load saved credentials:", error);
+        }
+      }
+    }
+  }, []);
+
+  const setCookie = (name: string, value: string, days: number = 7) => {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Strict`;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +68,26 @@ export default function VendorLogin() {
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("vendorId", data.vendor.id);
       localStorage.setItem("vendorEmail", data.vendor.email);
+
+      // Save credentials to cookies if Remember Me is checked and cookies are enabled
+      const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
+      if (rememberMe && cookiesEnabled) {
+        setCookie(
+          "vendorLoginCredentials",
+          JSON.stringify({ email, password }),
+          7
+        );
+        toast({
+          title: "Success",
+          description: "Login successful! Credentials saved to cookies",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Login successful!",
+        });
+      }
+
       window.dispatchEvent(new Event("login"));
       setLocation("/");
     } catch (error: any) {
@@ -83,6 +133,18 @@ export default function VendorLogin() {
                 required
                 data-testid="input-password"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="remember-me"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                disabled={loading}
+                data-testid="checkbox-remember-me"
+              />
+              <label htmlFor="remember-me" className="text-sm cursor-pointer">
+                Remember me (requires cookies to be enabled)
+              </label>
             </div>
             <Button
               type="submit"
