@@ -63,6 +63,11 @@ const menuGroups = [
         href: '/employee/register',
       },
       {
+        title: 'Employee Credentials',
+        icon: Key,
+        href: '/employee/credentials',
+      },
+      {
         title: 'Salary Structure',
         icon: BarChart3,
         href: '/employee/salary',

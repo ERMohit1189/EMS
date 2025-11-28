@@ -22,6 +22,7 @@ import InvoiceGeneration from "@/pages/vendor/InvoiceGeneration";
 import EmployeeRegistration from "@/pages/employee/EmployeeRegistration";
 import EmployeeEdit from "@/pages/employee/EmployeeEdit";
 import EmployeeList from "@/pages/employee/EmployeeList";
+import EmployeeCredentials from "@/pages/employee/EmployeeCredentials";
 import SiteRegistration from "@/pages/vendor/SiteRegistration";
 import SiteList from "@/pages/vendor/SiteList";
 import SiteEdit from "@/pages/vendor/SiteEdit";
@@ -160,6 +161,7 @@ function App() {
               <Route path="/employee/register" component={EmployeeRegistration} />
               <Route path="/employee/edit/:id" component={EmployeeEdit} />
               <Route path="/employee/list" component={EmployeeList} />
+              <Route path="/employee/credentials" component={EmployeeCredentials} />
               <Route path="/employee/salary" component={SalaryStructure} />
               <Route path="/employee/department-master" component={DepartmentMaster} />
               <Route path="/employee/designation-master" component={DesignationMaster} />
