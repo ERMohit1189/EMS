@@ -199,7 +199,8 @@ export const purchaseOrders = pgTable("purchase_orders", {
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", 12, 2).notNull(),
   totalAmount: decimal("total_amount", 12, 2).notNull(),
-  gstType: varchar("gst_type").default("none"), // none, igst, cgstsgst
+  gstType: varchar("gst_type").default("cgstsgst"), // cgstsgst, igst
+  gstApply: boolean("gst_apply").default(true),
   igstPercentage: decimal("igst_percentage", 5, 2).default("0"),
   igstAmount: decimal("igst_amount", 12, 2).default("0"),
   cgstPercentage: decimal("cgst_percentage", 5, 2).default("0"),

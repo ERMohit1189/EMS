@@ -25,9 +25,9 @@ interface PORecord {
   unitPrice: string;
   maxAntennaSize?: number;
   gstType?: string;
-  igstPercentage?: number;
-  cgstPercentage?: number;
-  sgstPercentage?: number;
+  gstApply?: boolean;
+  vendorState?: string;
+  siteState?: string;
 }
 
 export default function POGeneration() {
@@ -41,10 +41,7 @@ export default function POGeneration() {
   const [poRecords, setPoRecords] = useState<PORecord[]>([]);
   const [allPOs, setAllPOs] = useState<PORecord[]>([]);
   const [poInvoices, setPoInvoices] = useState<{ [key: string]: any[] }>({});
-  const [gstModalOpen, setGstModalOpen] = useState(false);
-  const [gstType, setGstType] = useState<'none' | 'igst' | 'cgstsgst'>('none');
-  const [currentExportPOId, setCurrentExportPOId] = useState<string>('');
-  const [currentExportPONumber, setCurrentExportPONumber] = useState<string>('');
+  const [gstApplied, setGstApplied] = useState<{ [key: string]: boolean }>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -155,6 +152,8 @@ export default function POGeneration() {
           parseFloat(site.siteAAntDia) || 0,
           parseFloat(site.siteBAntDia) || 0
         );
+        // Auto-determine GST type: IGST if different states, CGST+SGST if same state
+        const gstType = (vendor?.state && site.state && vendor.state !== site.state) ? 'igst' : 'cgstsgst';
         return {
           siteId: site.id,
           vendorId: site.vendorId,
@@ -166,10 +165,13 @@ export default function POGeneration() {
           quantity: 1,
           unitPrice: site.vendorAmount?.toString() || "0",
           maxAntennaSize,
+          gstType,
+          vendorState: vendor?.state,
+          siteState: site.state,
         };
       });
 
-      // Create POs via API
+      // Create POs via API with auto-determined GST type
       const createdPOs = [];
       for (const record of records) {
         const response = await fetch("/api/purchase-orders", {
@@ -183,6 +185,8 @@ export default function POGeneration() {
             quantity: record.quantity,
             unitPrice: record.unitPrice,
             totalAmount: (record.quantity * parseFloat(record.unitPrice)).toString(),
+            gstType: record.gstType,
+            gstApply: true,
             poDate: new Date().toISOString().split('T')[0],
             dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             status: "Draft",
@@ -191,7 +195,8 @@ export default function POGeneration() {
 
         if (response.ok) {
           const createdPO = await response.json();
-          createdPOs.push({ ...record, id: createdPO.id });
+          createdPOs.push({ ...record, id: createdPO.id, gstApply: true });
+          setGstApplied(prev => ({ ...prev, [createdPO.id]: true }));
         }
       }
 
@@ -246,10 +251,25 @@ export default function POGeneration() {
     }
   };
 
-  const handleExportPDF = (poId: string, poNumber: string) => {
-    setCurrentExportPOId(poId);
-    setCurrentExportPONumber(poNumber);
-    setGstModalOpen(true);
+  const toggleGstApply = async (poId: string, currentState: boolean) => {
+    try {
+      await fetch(`${getApiBaseUrl()}/api/purchase-orders/${poId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gstApply: !currentState }),
+      });
+      setGstApplied(prev => ({ ...prev, [poId]: !currentState }));
+      toast({
+        title: 'Success',
+        description: `GST ${!currentState ? 'enabled' : 'disabled'} for this PO`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update GST status',
+        variant: 'destructive',
+      });
+    }
   };
 
   const exportPOToPDF = async (poId: string, poNumber: string) => {
@@ -273,14 +293,18 @@ export default function POGeneration() {
       const m = 12;
       let y = 20;
 
-      // Calculate GST amounts based on selection
+      // Calculate GST amounts based on PO gstApply flag and gstType
       const subtotal = Number(po.totalAmount || 0);
       let igstAmt = 0, cgstAmt = 0, sgstAmt = 0;
-      if (gstType === 'igst') {
-        igstAmt = Math.round(subtotal * 0.18 * 100) / 100;
-      } else if (gstType === 'cgstsgst') {
-        cgstAmt = Math.round(subtotal * 0.09 * 100) / 100;
-        sgstAmt = Math.round(subtotal * 0.09 * 100) / 100;
+      const shouldApplyGst = gstApplied[poId] !== false && po.gstApply !== false;
+      
+      if (shouldApplyGst) {
+        if (po.gstType === 'igst') {
+          igstAmt = Math.round(subtotal * 0.18 * 100) / 100;
+        } else if (po.gstType === 'cgstsgst') {
+          cgstAmt = Math.round(subtotal * 0.09 * 100) / 100;
+          sgstAmt = Math.round(subtotal * 0.09 * 100) / 100;
+        }
       }
       const finalTotal = subtotal + igstAmt + cgstAmt + sgstAmt;
 
@@ -471,21 +495,23 @@ export default function POGeneration() {
       pdf.text(`Rs. ${total}`, col4X + 2, y);
       y += 6;
 
-      // Show GST lines based on type
-      if (gstType === 'igst') {
-        const igstDisplay = igstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        pdf.text('IGST (18%):', tX, y);
-        pdf.text(`Rs. ${igstDisplay}`, col4X + 2, y);
-        y += 6;
-      } else if (gstType === 'cgstsgst') {
-        const cgstDisplay = cgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        const sgstDisplay = sgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        pdf.text('CGST (9%):', tX, y);
-        pdf.text(`Rs. ${cgstDisplay}`, col4X + 2, y);
-        y += 6;
-        pdf.text('SGST (9%):', tX, y);
-        pdf.text(`Rs. ${sgstDisplay}`, col4X + 2, y);
-        y += 6;
+      // Show GST lines if applied
+      if (shouldApplyGst) {
+        if (po.gstType === 'igst') {
+          const igstDisplay = igstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          pdf.text('IGST (18%):', tX, y);
+          pdf.text(`Rs. ${igstDisplay}`, col4X + 2, y);
+          y += 6;
+        } else if (po.gstType === 'cgstsgst') {
+          const cgstDisplay = cgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          const sgstDisplay = sgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          pdf.text('CGST (9%):', tX, y);
+          pdf.text(`Rs. ${cgstDisplay}`, col4X + 2, y);
+          y += 6;
+          pdf.text('SGST (9%):', tX, y);
+          pdf.text(`Rs. ${sgstDisplay}`, col4X + 2, y);
+          y += 6;
+        }
       }
 
       pdf.text('Shipping:', tX, y);
@@ -524,32 +550,10 @@ export default function POGeneration() {
       pdf.text(`Status: ${po.status}`, 105, 283, { align: 'center' });
 
       pdf.save(`PO-${poNumber}.pdf`);
-      // Update PO with GST info
-      try {
-        await fetch(`${baseUrl}/api/purchase-orders/${poId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            gstType,
-            igstPercentage: gstType === 'igst' ? 18 : 0,
-            igstAmount: igstAmt,
-            cgstPercentage: gstType === 'cgstsgst' ? 9 : 0,
-            cgstAmount: cgstAmt,
-            sgstPercentage: gstType === 'cgstsgst' ? 9 : 0,
-            sgstAmount: sgstAmt,
-          }),
-        });
-      } catch (e) {
-        // Silent fail - GST update is non-critical
-      }
-
       toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
     } catch (error: any) {
       console.error('PDF export error:', error?.message || error);
       toast({ title: 'Error', description: error?.message || 'Failed to export PDF', variant: 'destructive' });
-    } finally {
-      setGstModalOpen(false);
-      setGstType('none');
     }
   };
 
@@ -719,11 +723,21 @@ export default function POGeneration() {
                               <Printer className="h-3 w-3" /> Print PO
                             </Button>
                           </a>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={gstApplied[po.id] !== false}
+                              onChange={() => toggleGstApply(po.id, gstApplied[po.id] !== false)}
+                              className="w-4 h-4"
+                              data-testid={`checkbox-gst-${po.id}`}
+                            />
+                            <span className="text-xs font-medium text-gray-600">Apply GST</span>
+                          </div>
                           <Button 
                             size="sm" 
                             variant="outline" 
                             className="w-full gap-1 text-blue-600 border-blue-300 hover:bg-blue-50"
-                            onClick={() => handleExportPDF(po.id, po.poNumber)}
+                            onClick={() => exportPOToPDF(po.id, po.poNumber)}
                             data-testid={`button-export-pdf-${po.id}`}
                           >
                             <FileText className="h-3 w-3" /> Export PDF
@@ -749,65 +763,6 @@ export default function POGeneration() {
         </>
       )}
 
-      {/* GST Selection Modal */}
-      <Dialog open={gstModalOpen} onOpenChange={setGstModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select GST Type for PO Export</DialogTitle>
-            <DialogDescription>
-              Choose the applicable GST option as per Indian tax rules
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-3 py-4">
-            <div
-              onClick={() => {
-                setGstType('none');
-                exportPOToPDF(currentExportPOId, currentExportPONumber);
-              }}
-              className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all"
-              data-testid="gst-option-none"
-            >
-              <p className="font-semibold text-gray-900">No GST</p>
-              <p className="text-sm text-gray-600">Export without any tax</p>
-            </div>
-
-            <div
-              onClick={() => {
-                setGstType('igst');
-                exportPOToPDF(currentExportPOId, currentExportPONumber);
-              }}
-              className="p-4 border rounded-lg cursor-pointer hover:bg-green-50 hover:border-green-300 transition-all"
-              data-testid="gst-option-igst"
-            >
-              <p className="font-semibold text-gray-900">IGST (Interstate)</p>
-              <p className="text-sm text-gray-600">Integrated GST @ 18% - For interstate transactions</p>
-            </div>
-
-            <div
-              onClick={() => {
-                setGstType('cgstsgst');
-                exportPOToPDF(currentExportPOId, currentExportPONumber);
-              }}
-              className="p-4 border rounded-lg cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-all"
-              data-testid="gst-option-cgstsgst"
-            >
-              <p className="font-semibold text-gray-900">CGST + SGST (Intrastate)</p>
-              <p className="text-sm text-gray-600">Central GST 9% + State GST 9% - For intrastate transactions</p>
-            </div>
-          </div>
-
-          <div className="flex gap-2 justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => setGstModalOpen(false)}
-              data-testid="button-cancel-gst"
-            >
-              Cancel
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
