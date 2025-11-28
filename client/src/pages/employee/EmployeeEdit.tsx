@@ -124,36 +124,43 @@ export default function EmployeeEdit() {
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
-    defaultValues: employee ? {
-      name: employee.name,
-      dob: employee.dob,
-      fatherName: employee.fatherName,
-      mobile: employee.mobile,
-      alternateNo: employee.alternateNo,
-      address: employee.address,
-      city: employee.city,
-      state: employee.state,
-      country: employee.country,
-      role: employee.role || 'user',
-      departmentId: employee.departmentId,
-      designationId: employee.designationId,
-      doj: employee.doj,
-      aadhar: employee.aadhar,
-      pan: employee.pan,
-      bloodGroup: employee.bloodGroup,
-      maritalStatus: employee.maritalStatus,
-      spouseName: employee.spouseName,
-      nominee: employee.nominee,
-      ppeKit: employee.ppeKit,
-      kitNo: employee.kitNo,
-      status: employee.status,
-    } : {
+    defaultValues: {
       country: 'India',
       ppeKit: false,
       maritalStatus: 'Single',
       status: 'Active',
     },
   });
+
+  useEffect(() => {
+    if (employee) {
+      form.reset({
+        name: employee.name || '',
+        dob: employee.dob || '',
+        fatherName: employee.fatherName || '',
+        mobile: employee.mobile || '',
+        alternateNo: employee.alternateNo || '',
+        address: employee.address || '',
+        city: employee.city || '',
+        state: employee.state || '',
+        country: employee.country || 'India',
+        role: employee.role || 'user',
+        departmentId: employee.departmentId || '',
+        designationId: employee.designationId || '',
+        doj: employee.doj || '',
+        aadhar: employee.aadhar || '',
+        pan: employee.pan || '',
+        bloodGroup: employee.bloodGroup || '',
+        maritalStatus: employee.maritalStatus || 'Single',
+        spouseName: employee.spouseName || '',
+        nominee: employee.nominee || '',
+        ppeKit: employee.ppeKit || false,
+        kitNo: employee.kitNo || '',
+        status: employee.status || 'Active',
+      });
+      calculateAge(employee.dob || '');
+    }
+  }, [employee, form]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
