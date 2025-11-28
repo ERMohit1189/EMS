@@ -590,20 +590,20 @@ export default function InvoiceGeneration() {
                             <span className="text-sm font-bold text-green-600">₹{parseFloat(invoice.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
                         </div>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-1 mt-2">
                           <button
                             onClick={() => downloadInvoicePDF(invoice)}
-                            className="flex-1 flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="flex items-center justify-center p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                             title="Download PDF"
                           >
-                            <Download className="h-5 w-5" />
+                            <Download className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => deleteInvoice(invoice.id, invoice.invoiceNumber)}
-                            className="flex-1 flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="flex items-center justify-center p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Delete Invoice"
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -676,20 +676,20 @@ export default function InvoiceGeneration() {
                             {invoice.status}
                           </span>
                         </div>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-1 mt-2">
                           <button
                             onClick={() => downloadInvoicePDF(invoice)}
-                            className="flex-1 flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="flex items-center justify-center p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                             title="Download PDF"
                           >
-                            <Download className="h-5 w-5" />
+                            <Download className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => deleteInvoice(invoice.id, invoice.invoiceNumber)}
-                            className="flex-1 flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="flex items-center justify-center p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Delete Invoice"
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
