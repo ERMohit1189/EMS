@@ -3,10 +3,19 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
+import MemoryStore from "memorystore";
 
 const app = express();
 const httpServer = createServer(app);
+
+declare module "express-session" {
+  interface SessionData {
+    employeeId?: string;
+    employeeEmail?: string;
+    vendorId?: string;
+    vendorEmail?: string;
+  }
+}
 
 declare module "http" {
   interface IncomingMessage {
@@ -14,10 +23,9 @@ declare module "http" {
   }
 }
 
-// Initialize session store with connection string
-const sessionStore = new (ConnectPgSimple(session))({
-  conString: process.env.DATABASE_URL,
-  tableName: "session",
+// Initialize session store
+const sessionStore = new (MemoryStore())({
+  checkPeriod: 86400000, // prune expired entries every 24h
 });
 
 app.use(
