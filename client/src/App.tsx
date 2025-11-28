@@ -4,8 +4,10 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { useLoadingState } from "@/hooks/useLoadingState";
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
+import { getStoredApiUrl } from "@/lib/api";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
+import ApiConfig from "@/pages/ApiConfig";
 import VendorRegistration from "@/pages/vendor/VendorRegistration";
 import VendorList from "@/pages/vendor/VendorList";
 import VendorEdit from "@/pages/vendor/VendorEdit";
@@ -77,8 +79,22 @@ function App() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
+  // If on Plesk (not localhost) and no API URL configured, show config page
+  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  if (isProduction && !getStoredApiUrl() && location !== '/api-config' && location !== '/login') {
+    return (
+      <>
+        <Switch>
+          <Route path="/api-config" component={ApiConfig} />
+          <Route component={ApiConfig} />
+        </Switch>
+        <Toaster />
+      </>
+    );
+  }
+
   // If not logged in and not on login page, redirect to login
-  if (!isLoggedIn && location !== '/login') {
+  if (!isLoggedIn && location !== '/login' && location !== '/api-config') {
     return (
       <>
         <Switch>
@@ -94,6 +110,9 @@ function App() {
     <>
       <ProgressBar isLoading={isLoading} />
       <Switch>
+        {/* API Config Route */}
+        <Route path="/api-config" component={ApiConfig} />
+        
         {/* Login Route */}
         <Route path="/login" component={Login} />
 

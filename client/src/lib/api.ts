@@ -1,6 +1,11 @@
-// API base URL configuration
-// For production: use VITE_API_URL environment variable or this default
+// API base URL configuration - runtime configurable
+let apiBaseUrl = '';
+
 const getApiBaseUrl = () => {
+  // First check localStorage (user-set configuration)
+  const stored = window.localStorage.getItem('API_BASE_URL');
+  if (stored) return stored;
+  
   // Check for environment variable (set during build)
   if (typeof import.meta !== 'undefined' && import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
@@ -11,20 +16,23 @@ const getApiBaseUrl = () => {
     return '';
   }
   
-  // Production: default to relative URLs (change this to your Replit URL)
-  // Replace with your actual Replit backend URL
-  const apiUrl = window.localStorage.getItem('API_BASE_URL') || '';
-  return apiUrl;
+  // Production on different domain: return empty (will need to be configured)
+  return '';
 };
 
-export const API_BASE_URL = getApiBaseUrl();
+export const getAPI_BASE_URL = () => getApiBaseUrl();
 
 export const apiCall = async (endpoint: string, options?: RequestInit) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${getApiBaseUrl()}${endpoint}`;
   return fetch(url, options);
 };
 
 export const setApiBaseUrl = (url: string) => {
+  if (!url.startsWith('http')) {
+    throw new Error('API URL must start with http:// or https://');
+  }
   window.localStorage.setItem('API_BASE_URL', url);
   window.location.reload();
 };
+
+export const getStoredApiUrl = () => window.localStorage.getItem('API_BASE_URL');
