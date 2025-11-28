@@ -20,6 +20,14 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Middleware to protect API routes from being intercepted by Vite catch-all
+  app.use("/api/", (req, res, next) => {
+    // Set explicit headers to prevent Vite from intercepting
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "no-cache");
+    next();
+  });
+
   // Vendor routes
   app.post("/api/vendors", async (req, res) => {
     try {
@@ -319,16 +327,23 @@ export async function registerRoutes(
       const { planIds, phyAtStatus, softAtStatus } = req.body;
       
       if (!planIds || planIds.length === 0) {
+        res.setHeader("Content-Type", "application/json");
         return res.status(400).json({ error: "No sites selected" });
       }
       if (!phyAtStatus && !softAtStatus) {
+        res.setHeader("Content-Type", "application/json");
         return res.status(400).json({ error: "Please select at least one status to update" });
       }
       
+      console.log('[API] Bulk update by plan - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus);
       const result = await storage.bulkUpdateStatusByPlanId(planIds, phyAtStatus, softAtStatus);
-      res.json({ success: true, ...result });
+      console.log('[API] Bulk update result:', result);
+      
+      res.setHeader("Content-Type", "application/json");
+      res.status(200).json({ success: true, updated: result.updated });
     } catch (error: any) {
       console.error('[API] bulkUpdateStatusByPlan error:', error);
+      res.setHeader("Content-Type", "application/json");
       res.status(400).json({ error: error.message });
     }
   });
