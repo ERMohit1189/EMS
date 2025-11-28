@@ -26,6 +26,7 @@ import SiteStatus from "@/pages/vendor/SiteStatus";
 import SiteManagement from "@/pages/vendor/SiteManagement";
 import ExcelImport from "@/pages/vendor/ExcelImport";
 import SalaryStructure from "@/pages/employee/SalaryStructure";
+import ExportHeaders from "@/pages/vendor/ExportHeaders";
 import NotFound from "@/pages/not-found";
 
 const Placeholder = ({ title }: { title: string }) => (
@@ -136,6 +137,7 @@ function App() {
               <Route path="/vendor/circle-master" component={CircleMaster} />
               <Route path="/vendor/sites" component={SiteList} />
               <Route path="/vendor/sites/status" component={SiteStatus} />
+              <Route path="/vendor/export-headers" component={ExportHeaders} />
               <Route path="/vendor/site/register" component={SiteRegistration} />
               <Route path="/vendor/site/manage" component={SiteManagement} />
               <Route path="/vendor/site/edit/:id" component={SiteEdit} />

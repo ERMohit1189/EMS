@@ -61,6 +61,11 @@ const menuItems = [
     icon: FileText,
     href: '/vendor/invoices',
   },
+  {
+    title: 'Export Settings',
+    icon: Settings,
+    href: '/vendor/export-headers',
+  },
 ];
 
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {

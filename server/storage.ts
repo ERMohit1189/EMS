@@ -8,6 +8,7 @@ import {
   invoices,
   paymentMasters,
   zones,
+  exportHeaders,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
@@ -16,6 +17,7 @@ import {
   type InsertInvoice,
   type InsertPaymentMaster,
   type InsertZone,
+  type InsertExportHeader,
   type Vendor,
   type Site,
   type Employee,
@@ -24,6 +26,7 @@ import {
   type Invoice,
   type PaymentMaster,
   type Zone,
+  type ExportHeader,
 } from "@shared/schema";
 import { eq, count, and, gte, lte, inArray, getTableColumns } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
@@ -116,6 +119,10 @@ export interface IStorage {
   updateZone(id: string, zone: Partial<InsertZone>): Promise<Zone>;
   deleteZone(id: string): Promise<void>;
   getZoneCount(): Promise<number>;
+
+  // Export Header operations
+  getExportHeader(): Promise<ExportHeader | undefined>;
+  updateExportHeader(header: InsertExportHeader): Promise<ExportHeader>;
 }
 
 export class DrizzleStorage implements IStorage {
