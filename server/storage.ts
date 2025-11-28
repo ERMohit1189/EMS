@@ -51,6 +51,7 @@ export interface IStorage {
   updateSite(id: string, site: Partial<InsertSite>): Promise<Site>;
   upsertSiteByPlanId(site: InsertSite): Promise<Site>;
   bulkUpdateRemarks(siteIds: string[], phyAtRemark?: string, softAtRemark?: string): Promise<{ updated: number }>;
+  bulkUpdateStatus(siteIds: string[], phyAtStatus?: string, softAtStatus?: string): Promise<{ updated: number }>;
   deleteSite(id: string): Promise<void>;
   deleteAllSites(): Promise<void>;
   getSiteCount(): Promise<number>;
