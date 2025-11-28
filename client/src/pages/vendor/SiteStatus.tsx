@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { X } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -53,6 +54,9 @@ export default function SiteStatus() {
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
   const [bulkPhyAtStatus, setBulkPhyAtStatus] = useState('');
   const [bulkSoftAtStatus, setBulkSoftAtStatus] = useState('');
+  const [cardStatusFilter, setCardStatusFilter] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     fetchSites();
@@ -79,10 +83,11 @@ export default function SiteStatus() {
       site.circle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       site.district.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = selectedStatus === 'All' || site.status === selectedStatus;
+    // If card filter is set, use it; otherwise use status filter
+    const matchesStatus = cardStatusFilter ? site.status === cardStatusFilter : (selectedStatus === 'All' || site.status === selectedStatus);
     
-    // Exclude approved sites from the grid (cannot be manually updated)
-    const isNotApproved = site.status !== 'Approved';
+    // Exclude approved sites from the grid (cannot be manually updated) unless cardStatusFilter is Approved
+    const isNotApproved = cardStatusFilter === 'Approved' || site.status !== 'Approved';
     
     return matchesSearch && matchesStatus && isNotApproved;
   });
@@ -280,7 +285,11 @@ export default function SiteStatus() {
               const count = counts[statusKey];
               
               return (
-                <Card key={`phy-${status}`} className={`shadow-md border-2 ${getStatusCountColor(status)}`}>
+                <Card 
+                  key={`phy-${status}`} 
+                  className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow`}
+                  onClick={() => setCardStatusFilter(status)}
+                >
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
@@ -304,7 +313,11 @@ export default function SiteStatus() {
               const count = counts[statusKey];
               
               return (
-                <Card key={`soft-${status}`} className={`shadow-md border-2 ${getStatusCountColor(status)}`}>
+                <Card 
+                  key={`soft-${status}`} 
+                  className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow`}
+                  onClick={() => setCardStatusFilter(status)}
+                >
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-sm font-medium opacity-75 mb-2">{status}</p>
@@ -318,6 +331,33 @@ export default function SiteStatus() {
           </div>
         </div>
       </div>
+
+      {/* Card Filter Active Indicator */}
+      {cardStatusFilter && (
+        <Card className="shadow-md border-blue-300 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Viewing: <span className="font-semibold text-lg">{cardStatusFilter}</span> Site Status</p>
+                {cardStatusFilter === 'Approved' && (
+                  <p className="text-xs text-gray-500 mt-1">Read-only view - Date filter applied below</p>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setCardStatusFilter(null);
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                <X className="h-4 w-4" /> Clear Filter
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="shadow-md">
@@ -357,6 +397,28 @@ export default function SiteStatus() {
               </div>
             </div>
           </div>
+          
+          {/* Date Filter for Approved Sites */}
+          {cardStatusFilter === 'Approved' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Start Date</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">End Date</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
