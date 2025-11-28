@@ -266,6 +266,7 @@ export default function POGeneration() {
                     <thead className="border-b">
                       <tr>
                         <th className="text-left py-2">PO Number</th>
+                        <th className="text-left py-2">Site ID</th>
                         <th className="text-left py-2">Site</th>
                         <th className="text-left py-2">Vendor</th>
                         <th className="text-left py-2">Plan ID</th>
@@ -278,6 +279,7 @@ export default function POGeneration() {
                       {poRecords.map((po) => (
                         <tr key={po.poNumber} className="border-b hover:bg-green-100">
                           <td className="py-2 font-semibold">{po.poNumber}</td>
+                          <td className="py-2 text-xs">{po.siteId}</td>
                           <td className="py-2">{po.siteName}</td>
                           <td className="py-2">{po.vendorName}</td>
                           <td className="py-2">{po.planId}</td>
@@ -320,20 +322,27 @@ export default function POGeneration() {
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">Site</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Site ID</p>
+                            <p className="text-xs text-gray-700 truncate font-mono">{po.siteId}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Site Name</p>
                             <p className="text-sm font-semibold">{po.siteName}</p>
                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Vendor</p>
                             <p className="text-sm font-semibold">{po.vendorName}</p>
                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3">
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Plan ID</p>
-                            <p className="text-sm text-gray-700 truncate">{po.planId}</p>
+                            <p className="text-sm text-gray-700 truncate font-mono">{po.planId}</p>
                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Max Antenna</p>
                             <p className="text-sm font-bold text-blue-600">{po.maxAntennaSize || "-"}</p>
