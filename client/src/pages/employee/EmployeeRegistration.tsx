@@ -333,10 +333,40 @@ export default function EmployeeRegistration() {
                 />
               )}
               {age !== null && (
-                <div className="col-span-3 p-4 border border-blue-200 rounded-md bg-blue-50">
-                  <div className="font-semibold text-blue-900">
+                <div className={`col-span-3 p-4 rounded-md border ${
+                  age.years < 18 
+                    ? 'border-red-300 bg-red-50' 
+                    : age.years >= 18 && age.years <= 60 
+                    ? 'border-green-300 bg-green-50' 
+                    : 'border-orange-300 bg-orange-50'
+                }`}>
+                  <div className={`font-semibold ${
+                    age.years < 18 
+                      ? 'text-red-900' 
+                      : age.years >= 18 && age.years <= 60 
+                      ? 'text-green-900' 
+                      : 'text-orange-900'
+                  }`}>
                     Age: {age.years}{age.years !== 1 ? ' years' : ' year'}, {age.months}{age.months !== 1 ? ' months' : ' month'}, {age.days}{age.days !== 1 ? ' days' : ' day'}
                   </div>
+                  {age.years < 18 && (
+                    <div className="text-sm text-red-700 mt-2 flex items-center gap-2">
+                      <span>⚠️</span>
+                      <span>Employee must be at least 18 years old</span>
+                    </div>
+                  )}
+                  {age.years >= 18 && age.years <= 60 && (
+                    <div className="text-sm text-green-700 mt-2 flex items-center gap-2">
+                      <span>✓</span>
+                      <span>Valid working age</span>
+                    </div>
+                  )}
+                  {age.years > 60 && (
+                    <div className="text-sm text-orange-700 mt-2 flex items-center gap-2">
+                      <span>⚠️</span>
+                      <span>Employee is above standard retirement age</span>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
