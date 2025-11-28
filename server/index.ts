@@ -5,8 +5,6 @@ import { createServer } from "http";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 
-const { Pool } = require("pg");
-
 const app = express();
 const httpServer = createServer(app);
 
@@ -16,14 +14,9 @@ declare module "http" {
   }
 }
 
-// Initialize PostgreSQL pool for session store
-const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Initialize session store
+// Initialize session store with connection string
 const sessionStore = new (ConnectPgSimple(session))({
-  pool: pgPool,
+  conString: process.env.DATABASE_URL,
   tableName: "session",
 });
 
