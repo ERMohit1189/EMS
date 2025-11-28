@@ -177,15 +177,35 @@ export default function SiteStatus() {
       
       const responseData = await response.json();
       
+      // Instant optimistic UI update - calculate and display result immediately
+      const updatedSites = sites.map(site => {
+        if (selectedSites.has(site.id)) {
+          let newStatus = 'Pending';
+          const finalPhyAtStatus = bulkPhyAtStatus || site.phyAtStatus;
+          const finalSoftAtStatus = bulkSoftAtStatus || site.softAtStatus;
+          
+          if (finalPhyAtStatus === 'Approved' && finalSoftAtStatus === 'Approved') {
+            newStatus = 'Approved';
+          }
+          
+          return {
+            ...site,
+            phyAtStatus: bulkPhyAtStatus || site.phyAtStatus,
+            softAtStatus: bulkSoftAtStatus || site.softAtStatus,
+            status: newStatus
+          };
+        }
+        return site;
+      });
+      
+      setSites(updatedSites);
       toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
       setSelectedSites(new Set());
       setBulkPhyAtStatus('');
       setBulkSoftAtStatus('');
       
-      // Wait a bit for database to process, then fetch fresh data
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      await fetchSites();
+      // Fetch fresh data in background (non-blocking)
+      fetchSites();
     } catch (error: any) {
       console.error('[SiteStatus] Bulk update error:', error);
       toast({ title: 'Error', description: error.message || 'Failed to update sites', variant: 'destructive' });
