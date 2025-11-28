@@ -150,34 +150,32 @@ export default function SiteStatus() {
         softAtStatus: bulkSoftAtStatus || undefined,
       };
       console.log('[SiteStatus] Sending bulk status update:', updatePayload);
+      const apiUrl = `${getApiBaseUrl()}/api/sites/bulk-update-status`;
+      console.log('[SiteStatus] API URL:', apiUrl);
       
-      const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/bulk-update-status`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatePayload),
       });
 
+      console.log('[SiteStatus] Response status:', response.status);
+      
       if (!response.ok) {
         const text = await response.text();
-        console.error('[SiteStatus] Response status:', response.status, 'body:', text);
-        try {
-          const errorData = JSON.parse(text);
-          throw new Error(errorData.error || 'Failed to update');
-        } catch (e) {
-          throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
-        }
+        console.error('[SiteStatus] Error response body:', text.substring(0, 200));
+        throw new Error(`API Error: ${response.status}`);
       }
       
       const responseData = await response.json();
+      console.log('[SiteStatus] Update successful:', responseData);
       
       toast({ title: 'Success', description: `Updated ${selectedSites.size} sites` });
       setSelectedSites(new Set());
       setBulkPhyAtStatus('');
       setBulkSoftAtStatus('');
       
-      console.log('[SiteStatus] Fetching updated sites...');
       await fetchSites();
-      console.log('[SiteStatus] Sites refreshed, count:', sites.length);
     } catch (error: any) {
       console.error('[SiteStatus] Bulk update error:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
