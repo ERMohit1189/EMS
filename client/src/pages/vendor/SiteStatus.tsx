@@ -42,7 +42,7 @@ interface SiteStatusData {
   descope: string | null;
 }
 
-const statusOptions = ['Pending', 'Raised', 'Approved', 'Rejected'];
+const updateStatusOptions = ['Pending', 'Raised', 'Approved', 'Rejected'];
 
 export default function SiteStatus() {
   const { toast } = useToast();
@@ -262,7 +262,7 @@ export default function SiteStatus() {
                     <SelectValue placeholder="Select Physical AT Status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {statusOptions.map(option => (
+                    {updateStatusOptions.map(option => (
                       <SelectItem key={option} value={option}>{option}</SelectItem>
                     ))}
                   </SelectContent>
@@ -275,7 +275,7 @@ export default function SiteStatus() {
                     <SelectValue placeholder="Select Soft AT Status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {statusOptions.map(option => (
+                    {updateStatusOptions.map(option => (
                       <SelectItem key={option} value={option}>{option}</SelectItem>
                     ))}
                   </SelectContent>
