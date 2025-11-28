@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getApiBaseUrl } from "@/lib/api";
 import type { Vendor } from "@shared/schema";
 
 export default function VendorList() {
@@ -26,7 +27,8 @@ export default function VendorList() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/vendors?pageSize=10000');
+      const url = `${getApiBaseUrl()}/api/vendors?pageSize=10000`;
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch vendors');
       const result = await response.json();
       setVendors(result.data || []);
@@ -43,7 +45,8 @@ export default function VendorList() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      const response = await fetch(`/api/vendors/${id}/status`, {
+      const url = `${getApiBaseUrl()}/api/vendors/${id}/status`;
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
