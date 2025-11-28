@@ -163,9 +163,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('user');
-    setIsLoggedIn?.(false);
+    console.log('[Sidebar] Logout clicked');
     // Dispatch logout event to App component
     window.dispatchEvent(new Event('logout'));
   };

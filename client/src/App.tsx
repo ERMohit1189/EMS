@@ -63,6 +63,11 @@ function App() {
     const employeeEmail = localStorage.getItem('employeeEmail');
     setIsEmployee(!!employeeEmail);
     
+    // If employee is on root path, redirect to employee dashboard
+    if (loggedIn && !!employeeEmail && location === '/') {
+      setLocation('/employee/dashboard');
+    }
+    
     console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail);
     setLoading(false);
 
@@ -70,6 +75,16 @@ function App() {
     const handleLogout = () => {
       // Check if this was an employee logout before clearing data
       const isEmployeeLogout = localStorage.getItem('employeeId') !== null;
+      
+      // Clear all employee data from localStorage
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('employeeId');
+      localStorage.removeItem('employeeEmail');
+      localStorage.removeItem('employeeName');
+      localStorage.removeItem('employeeDepartment');
+      localStorage.removeItem('employeeDesignation');
+      localStorage.removeItem('rememberMe_email');
+      localStorage.removeItem('rememberMe_password');
       
       setIsLoggedIn(false);
       setIsEmployee(false);
@@ -126,11 +141,6 @@ function App() {
         <Toaster />
       </>
     );
-  }
-
-  // If employee is on root path, redirect to employee dashboard
-  if (isEmployee && isLoggedIn && location === '/') {
-    setLocation('/employee/dashboard');
   }
 
   // If not logged in and not on login page, redirect to login
