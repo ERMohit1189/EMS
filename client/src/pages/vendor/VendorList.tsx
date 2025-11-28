@@ -126,19 +126,19 @@ export default function VendorList() {
        </div>
 
        <div className="rounded-md border bg-card">
-         <div className="grid grid-cols-6 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">
+         <div className="grid grid-cols-7 gap-4 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">
            <div className="col-span-2">Name / Email</div>
            <div>Location</div>
            <div>Category</div>
            <div>Status</div>
            <div>Contact</div>
-           <div className="text-right">Action</div>
+           <div className="text-right">Actions</div>
          </div>
          {vendors.length === 0 ? (
            <div className="p-8 text-center text-muted-foreground">No vendors found. Register one to get started.</div>
          ) : (
            vendors.map(v => (
-             <div key={v.id} className="grid grid-cols-6 p-4 border-b last:border-0 items-center hover:bg-muted/50 transition-colors">
+             <div key={v.id} className="grid grid-cols-7 gap-4 p-4 border-b last:border-0 items-center hover:bg-muted/50 transition-colors">
                <div className="col-span-2">
                  <div className="font-medium">{v.name}</div>
                  <div className="text-xs text-muted-foreground">{v.email}</div>
@@ -158,20 +158,19 @@ export default function VendorList() {
                  </Select>
                </div>
                <div className="text-sm font-mono">{v.mobile}</div>
-               <div className="text-right flex gap-2 justify-end">
+               <div className="text-right flex gap-1 justify-end">
                  <Link href={`/vendor/edit/${v.id}`}>
-                   <Button variant="ghost" size="sm" className="gap-2">
-                     <Edit className="h-4 w-4" /> Edit
+                   <Button variant="ghost" size="sm" className="gap-1">
+                     <Edit className="h-4 w-4" />
                    </Button>
                  </Link>
                  {vendorUsage[v.id] === false && (
                    <Button 
                      variant="destructive" 
-                     size="sm" 
-                     className="gap-2"
+                     size="sm"
                      onClick={() => deleteVendor(v.id, v.name)}
                    >
-                     <Trash2 className="h-4 w-4" /> Delete
+                     <Trash2 className="h-4 w-4" />
                    </Button>
                  )}
                </div>
