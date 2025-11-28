@@ -377,9 +377,9 @@ export default function SiteStatus() {
     }
 
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation
+      const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth() - 20;
-      const pageHeight = pdf.internal.pageSize.getHeight();
+      const pageHeight = pdf.internal.pageSize.getHeight() - 20;
 
       // All 81 column headers
       const columnHeaders = [
@@ -428,57 +428,45 @@ export default function SiteStatus() {
           siteData.wccReceivedDate100Percent, siteData.survey, siteData.finalPartnerSurvey, siteData.surveyDate, siteData.status,
           siteData.createdAt, siteData.updatedAt
         ];
-        return String(values[colIndex] || '-').substring(0, 8);
+        return String(values[colIndex] || '-').substring(0, 6);
       };
 
-      // Split into 5-column chunks
-      const colsPerPage = 5;
-      const colChunks = [];
-      for (let i = 0; i < columnHeaders.length; i += colsPerPage) {
-        colChunks.push({
-          start: i,
-          end: Math.min(i + colsPerPage, columnHeaders.length),
-          headers: columnHeaders.slice(i, Math.min(i + colsPerPage, columnHeaders.length))
-        });
+      // Single page with 5 columns and 17 rows (81 fields total)
+      let yPosition = 10;
+      pdf.setFontSize(10);
+      pdf.text(`Site Report: ${site.siteId} | Plan: ${site.planId}`, 10, yPosition);
+      yPosition += 5;
+      pdf.setFontSize(6);
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, yPosition);
+      yPosition += 4;
+
+      const colsPerRow = 5;
+      const colWidth = pageWidth / colsPerRow;
+      const rowHeight = 3.2;
+
+      // Draw header row (5 columns)
+      pdf.setFillColor(200, 200, 200);
+      for (let col = 0; col < colsPerRow; col++) {
+        const headerText = columnHeaders[col] || '';
+        pdf.rect(10 + col * colWidth, yPosition, colWidth, rowHeight, 'F');
+        pdf.setFontSize(4.5);
+        pdf.text(headerText.substring(0, 8), 10.5 + col * colWidth, yPosition + 1.5);
       }
+      yPosition += rowHeight;
 
-      let isFirstPage = true;
-      for (const chunk of colChunks) {
-        if (!isFirstPage) pdf.addPage();
-        isFirstPage = false;
-
-        let yPosition = 10;
-        pdf.setFontSize(11);
-        pdf.text(`Site: ${site.siteId} | Plan ID: ${site.planId} - Columns ${chunk.start + 1}-${chunk.end}`, 10, yPosition);
-        yPosition += 5;
-        pdf.setFontSize(7);
-        pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, yPosition);
-        yPosition += 6;
-
-        const colWidth = pageWidth / chunk.headers.length;
-        const rowHeight = 4;
-
-        // Draw header
-        pdf.setFillColor(200, 200, 200);
-        let headerX = 10;
-        chunk.headers.forEach(header => {
-          pdf.rect(headerX, yPosition, colWidth, rowHeight, 'F');
-          pdf.setFontSize(6);
-          pdf.text(header.substring(0, 10), headerX + 1, yPosition + 2);
-          headerX += colWidth;
-        });
-        yPosition += rowHeight;
-
-        // Draw single site's data row
-        pdf.setFillColor(255, 255, 255);
-        let cellX = 10;
-        for (let c = chunk.start; c < chunk.end; c++) {
-          pdf.rect(cellX, yPosition, colWidth, rowHeight);
-          pdf.setFontSize(5);
-          const cellText = getColumnValue(site, c);
-          pdf.text(cellText, cellX + 1, yPosition + 2);
-          cellX += colWidth;
+      // Draw data rows (17 rows to fit all 81 fields in 5 columns)
+      pdf.setFillColor(255, 255, 255);
+      for (let row = 0; row < 17; row++) {
+        for (let col = 0; col < colsPerRow; col++) {
+          const fieldIndex = row * colsPerRow + col;
+          if (fieldIndex < columnHeaders.length) {
+            pdf.rect(10 + col * colWidth, yPosition, colWidth, rowHeight);
+            pdf.setFontSize(4);
+            const cellText = getColumnValue(site, fieldIndex);
+            pdf.text(cellText, 10.2 + col * colWidth, yPosition + 1.5);
+          }
         }
+        yPosition += rowHeight;
       }
 
       pdf.save(`site-${site.siteId}-${site.planId}-${new Date().getTime()}.pdf`);
