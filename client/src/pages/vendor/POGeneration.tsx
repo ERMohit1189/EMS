@@ -23,6 +23,10 @@ interface PORecord {
   quantity: number;
   unitPrice: string;
   maxAntennaSize?: number;
+  gstType?: string;
+  igstPercentage?: number;
+  cgstPercentage?: number;
+  sgstPercentage?: number;
 }
 
 export default function POGeneration() {
@@ -36,6 +40,10 @@ export default function POGeneration() {
   const [poRecords, setPoRecords] = useState<PORecord[]>([]);
   const [allPOs, setAllPOs] = useState<PORecord[]>([]);
   const [poInvoices, setPoInvoices] = useState<{ [key: string]: any[] }>({});
+  const [gstModalOpen, setGstModalOpen] = useState(false);
+  const [gstType, setGstType] = useState<'none' | 'igst' | 'cgstsgst'>('none');
+  const [currentExportPOId, setCurrentExportPOId] = useState<string>('');
+  const [currentExportPONumber, setCurrentExportPONumber] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -237,6 +245,12 @@ export default function POGeneration() {
     }
   };
 
+  const handleExportPDF = (poId: string, poNumber: string) => {
+    setCurrentExportPOId(poId);
+    setCurrentExportPONumber(poNumber);
+    setGstModalOpen(true);
+  };
+
   const exportPOToPDF = async (poId: string, poNumber: string) => {
     try {
       const baseUrl = getApiBaseUrl();
@@ -257,6 +271,17 @@ export default function POGeneration() {
       const pageW = 210;
       const m = 12;
       let y = 20;
+
+      // Calculate GST amounts based on selection
+      const subtotal = Number(po.totalAmount || 0);
+      let igstAmt = 0, cgstAmt = 0, sgstAmt = 0;
+      if (gstType === 'igst') {
+        igstAmt = Math.round(subtotal * 0.18 * 100) / 100;
+      } else if (gstType === 'cgstsgst') {
+        cgstAmt = Math.round(subtotal * 0.09 * 100) / 100;
+        sgstAmt = Math.round(subtotal * 0.09 * 100) / 100;
+      }
+      const finalTotal = subtotal + igstAmt + cgstAmt + sgstAmt;
 
       // ===== HEADER =====
       pdf.setFont('Arial', 'bold');
@@ -445,9 +470,22 @@ export default function POGeneration() {
       pdf.text(`Rs. ${total}`, col4X + 2, y);
       y += 6;
 
-      pdf.text('Tax:', tX, y);
-      pdf.text('Rs. 0', col4X + 2, y);
-      y += 6;
+      // Show GST lines based on type
+      if (gstType === 'igst') {
+        const igstDisplay = igstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        pdf.text('IGST (18%):', tX, y);
+        pdf.text(`Rs. ${igstDisplay}`, col4X + 2, y);
+        y += 6;
+      } else if (gstType === 'cgstsgst') {
+        const cgstDisplay = cgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const sgstDisplay = sgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        pdf.text('CGST (9%):', tX, y);
+        pdf.text(`Rs. ${cgstDisplay}`, col4X + 2, y);
+        y += 6;
+        pdf.text('SGST (9%):', tX, y);
+        pdf.text(`Rs. ${sgstDisplay}`, col4X + 2, y);
+        y += 6;
+      }
 
       pdf.text('Shipping:', tX, y);
       pdf.text('Rs. 0', col4X + 2, y);
@@ -460,7 +498,8 @@ export default function POGeneration() {
       pdf.setTextColor(255, 255, 255);
       pdf.rect(tX, y, 60, 7, 'F');
       pdf.text('TOTAL:', tX + 2, y + 5);
-      pdf.text(`Rs. ${total}`, col4X + 2, y + 5);
+      const finalDisplay = finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      pdf.text(`Rs. ${finalDisplay}`, col4X + 2, y + 5);
 
       y += 14;
 
@@ -484,10 +523,32 @@ export default function POGeneration() {
       pdf.text(`Status: ${po.status}`, 105, 283, { align: 'center' });
 
       pdf.save(`PO-${poNumber}.pdf`);
+      // Update PO with GST info
+      try {
+        await fetch(`${baseUrl}/api/purchase-orders/${poId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gstType,
+            igstPercentage: gstType === 'igst' ? 18 : 0,
+            igstAmount: igstAmt,
+            cgstPercentage: gstType === 'cgstsgst' ? 9 : 0,
+            cgstAmount: cgstAmt,
+            sgstPercentage: gstType === 'cgstsgst' ? 9 : 0,
+            sgstAmount: sgstAmt,
+          }),
+        });
+      } catch (e) {
+        // Silent fail - GST update is non-critical
+      }
+
       toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
     } catch (error: any) {
       console.error('PDF export error:', error?.message || error);
       toast({ title: 'Error', description: error?.message || 'Failed to export PDF', variant: 'destructive' });
+    } finally {
+      setGstModalOpen(false);
+      setGstType('none');
     }
   };
 
@@ -661,7 +722,7 @@ export default function POGeneration() {
                             size="sm" 
                             variant="outline" 
                             className="w-full gap-1 text-blue-600 border-blue-300 hover:bg-blue-50"
-                            onClick={() => exportPOToPDF(po.id, po.poNumber)}
+                            onClick={() => handleExportPDF(po.id, po.poNumber)}
                             data-testid={`button-export-pdf-${po.id}`}
                           >
                             <FileText className="h-3 w-3" /> Export PDF

@@ -199,8 +199,13 @@ export const purchaseOrders = pgTable("purchase_orders", {
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", 12, 2).notNull(),
   totalAmount: decimal("total_amount", 12, 2).notNull(),
-  gstPercentage: decimal("gst_percentage", 5, 2).default("0"),
-  gstAmount: decimal("gst_amount", 12, 2).default("0"),
+  gstType: varchar("gst_type").default("none"), // none, igst, cgstsgst
+  igstPercentage: decimal("igst_percentage", 5, 2).default("0"),
+  igstAmount: decimal("igst_amount", 12, 2).default("0"),
+  cgstPercentage: decimal("cgst_percentage", 5, 2).default("0"),
+  cgstAmount: decimal("cgst_amount", 12, 2).default("0"),
+  sgstPercentage: decimal("sgst_percentage", 5, 2).default("0"),
+  sgstAmount: decimal("sgst_amount", 12, 2).default("0"),
   poDate: date("po_date").notNull(),
   dueDate: date("due_date").notNull(),
   status: varchar("status").notNull().default("Draft"), // Draft, Approved, Issued, Completed, Cancelled
