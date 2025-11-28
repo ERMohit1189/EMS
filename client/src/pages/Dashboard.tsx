@@ -126,7 +126,7 @@ export default function Dashboard() {
       {/* KPI Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <a key={stat.title} href={stat.href} className="no-underline">
+          <Link key={stat.title} href={stat.href}>
             <Card className="hover:shadow-xl hover:border-primary cursor-pointer transition-all duration-300 h-full border-l-4 border-l-transparent hover:border-l-primary">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
@@ -139,7 +139,7 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
               </CardContent>
             </Card>
-          </a>
+          </Link>
         ))}
       </div>
 
