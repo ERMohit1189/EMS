@@ -7,6 +7,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 import { getStoredApiUrl } from "@/lib/api";
 import Login from "@/pages/Login";
+import VendorLogin from "@/pages/VendorLogin";
 import Dashboard from "@/pages/Dashboard";
 import ApiConfig from "@/pages/ApiConfig";
 import VendorRegistration from "@/pages/vendor/VendorRegistration";
@@ -103,6 +104,7 @@ function App() {
       <>
         <Switch>
           <Route path="/login" component={Login} />
+          <Route path="/vendor-login" component={VendorLogin} />
           <Route component={Login} />
         </Switch>
         <Toaster />

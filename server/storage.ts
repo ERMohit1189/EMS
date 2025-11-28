@@ -36,12 +36,14 @@ export interface IStorage {
   createVendor(vendor: InsertVendor): Promise<Vendor>;
   getVendor(id: string): Promise<Vendor | undefined>;
   getVendorByName(name: string): Promise<Vendor | undefined>;
+  getVendorByEmail(email: string): Promise<Vendor | undefined>;
   getOrCreateVendorByName(name: string): Promise<Vendor>;
   getVendors(limit: number, offset: number): Promise<Vendor[]>;
   updateVendor(id: string, vendor: Partial<InsertVendor>): Promise<Vendor>;
   deleteVendor(id: string): Promise<void>;
   deleteAllVendors(): Promise<void>;
   getVendorCount(): Promise<number>;
+  loginVendor(email: string, password: string): Promise<Vendor | null>;
 
   // Site operations
   createSite(site: InsertSite): Promise<Site>;
@@ -142,6 +144,11 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
+  async getVendorByEmail(email: string): Promise<Vendor | undefined> {
+    const result = await db.select().from(vendors).where(eq(vendors.email, email));
+    return result[0];
+  }
+
   async getOrCreateVendorByName(name: string): Promise<Vendor> {
     // Check if vendor with this name already exists
     const existing = await this.getVendorByName(name);
@@ -188,6 +195,15 @@ export class DrizzleStorage implements IStorage {
   async getVendorCount(): Promise<number> {
     const result = await db.select({ count: count() }).from(vendors);
     return Number(result[0]?.count) || 0;
+  }
+
+  async loginVendor(email: string, password: string): Promise<Vendor | null> {
+    const vendor = await this.getVendorByEmail(email);
+    if (!vendor || !vendor.password) return null;
+    
+    const bcrypt = require('bcrypt');
+    const passwordMatch = await bcrypt.compare(password, vendor.password);
+    return passwordMatch ? vendor : null;
   }
 
   // Site operations

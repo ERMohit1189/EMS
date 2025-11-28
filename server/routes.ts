@@ -55,11 +55,39 @@ export async function registerRoutes(
   app.post("/api/vendors", async (req, res) => {
     try {
       const data = insertVendorSchema.parse(req.body);
-      const vendor = await storage.createVendor(data);
-      res.json(vendor);
+      const bcrypt = require('bcrypt');
+      const tempPassword = Math.random().toString(36).slice(-10);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      const vendorData = { ...data, password: hashedPassword };
+      const vendor = await storage.createVendor(vendorData);
+      res.json({ ...vendor, tempPassword });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
+  });
+
+  app.post("/api/vendors/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password required" });
+      }
+      const vendor = await storage.loginVendor(email, password);
+      if (!vendor) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      req.session.vendorId = vendor.id;
+      req.session.vendorEmail = vendor.email;
+      res.json({ success: true, vendor: { id: vendor.id, name: vendor.name, email: vendor.email } });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/vendors/logout", async (req, res) => {
+    req.session.destroy(() => {
+      res.json({ success: true });
+    });
   });
 
   app.get("/api/vendors", async (req, res) => {
