@@ -79,6 +79,7 @@ export interface IStorage {
   getPO(id: string): Promise<PurchaseOrder | undefined>;
   getPOs(limit: number, offset: number): Promise<PurchaseOrder[]>;
   getPOsByVendor(vendorId: string): Promise<PurchaseOrder[]>;
+  getPOBySiteId(siteId: string): Promise<PurchaseOrder | undefined>;
   updatePO(id: string, po: Partial<InsertPO>): Promise<PurchaseOrder>;
   deletePO(id: string): Promise<void>;
   getPOCount(): Promise<number>;
@@ -744,6 +745,14 @@ export class DrizzleStorage implements IStorage {
       .select()
       .from(purchaseOrders)
       .where(eq(purchaseOrders.vendorId, vendorId));
+  }
+
+  async getPOBySiteId(siteId: string): Promise<PurchaseOrder | undefined> {
+    const [result] = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.siteId, siteId));
+    return result;
   }
 
   async updatePO(id: string, po: Partial<InsertPO>): Promise<PurchaseOrder> {

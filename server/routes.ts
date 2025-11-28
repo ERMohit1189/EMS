@@ -201,6 +201,15 @@ export async function registerRoutes(
   app.patch("/api/sites/:id/status", async (req, res) => {
     try {
       const { status, remark } = req.body;
+      
+      // Check if a PO has been generated for this site
+      const existingPO = await storage.getPOBySiteId(req.params.id);
+      if (existingPO) {
+        return res.status(400).json({ 
+          error: "Cannot update site status: A Purchase Order has already been generated for this site. Once a PO is created, the site status is locked." 
+        });
+      }
+      
       const site = await storage.updateSite(req.params.id, { status });
       res.json(site);
     } catch (error: any) {
