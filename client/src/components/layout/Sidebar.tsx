@@ -151,6 +151,9 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     Finance: false,
     Settings: false,
   });
+  
+  // Check if user is logged in as employee
+  const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => ({
@@ -176,6 +179,26 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-2 px-2">
+          {/* Employee Dashboard Link - Only for Logged In Employees */}
+          {isEmployee && (
+            <div className="mb-4 pb-4 border-b border-sidebar-border">
+              <Link href="/employee/dashboard">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    location === '/employee/dashboard'
+                      ? 'bg-green-600 text-white shadow-sm'
+                      : 'text-sidebar-foreground/70 bg-green-50'
+                  )}
+                  data-testid="link-employee-dashboard"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  My Dashboard
+                </div>
+              </Link>
+            </div>
+          )}
+          
           {menuGroups.map((group, groupIndex) => (
             <div key={groupIndex}>
               <button
