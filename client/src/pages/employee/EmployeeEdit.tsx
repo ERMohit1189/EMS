@@ -267,6 +267,23 @@ export default function EmployeeEdit() {
               />
               <FormField
                 control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel><RequiredLabel>Email (Login ID)</RequiredLabel></FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email"
+                        placeholder="employee@company.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="fatherName"
                 render={({ field }) => (
                   <FormItem>

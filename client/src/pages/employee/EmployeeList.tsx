@@ -54,25 +54,27 @@ export default function EmployeeList() {
        </div>
 
        <div className="rounded-md border bg-card overflow-x-auto">
-         <div className="grid grid-cols-6 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm min-w-full">
-           <div className="col-span-2">Name / Designation</div>
-           <div>Contact</div>
-           <div>Location</div>
-           <div>Status</div>
-           <div className="text-right">Actions</div>
+         <div className="grid gap-0 min-w-full" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Name / Designation</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Email</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Contact</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Location</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Status</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-right">Actions</div>
          </div>
          {employees.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">No employees found. Add one to get started.</div>
          ) : (
            employees.map(e => (
-             <div key={e.id} className="grid grid-cols-6 p-4 border-b last:border-0 items-center hover:bg-muted/50 transition-colors gap-2">
-               <div className="col-span-2">
+             <div key={e.id} className="grid gap-0 border-b last:border-0 hover:bg-muted/50 transition-colors items-center" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
+               <div className="p-4">
                  <div className="font-medium">{e.name}</div>
                  <div className="text-xs text-muted-foreground">{e.designation}</div>
                </div>
-               <div className="text-sm font-mono">{e.mobile}</div>
-               <div className="text-sm">{e.city}</div>
-               <div>
+               <div className="p-4 text-sm font-mono text-blue-600 truncate" data-testid={`text-email-${e.id}`}>{e.email}</div>
+               <div className="p-4 text-sm font-mono">{e.mobile}</div>
+               <div className="p-4 text-sm">{e.city}</div>
+               <div className="p-4">
                  <Badge 
                    variant={e.status === 'Active' ? 'default' : 'secondary'}
                    className="cursor-pointer hover:opacity-80"
@@ -82,7 +84,7 @@ export default function EmployeeList() {
                    {e.status}
                  </Badge>
                </div>
-               <div className="flex justify-end gap-2">
+               <div className="p-4 flex justify-end gap-2">
                  <Button
                    variant="outline"
                    size="sm"

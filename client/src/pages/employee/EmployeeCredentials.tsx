@@ -20,7 +20,6 @@ interface EmployeeCredential {
   employeeName: string;
   designation: string;
   email: string;
-  username: string;
   password: string;
   createdAt: string;
   generated: boolean;
@@ -57,20 +56,6 @@ export default function EmployeeCredentials() {
     return password;
   };
 
-  const generateEmail = (name: string): string => {
-    const nameParts = name.toLowerCase().trim().split(' ');
-    const firstName = nameParts[0];
-    const lastName = nameParts[nameParts.length - 1];
-    return `${firstName}.${lastName}@company.com`;
-  };
-
-  const generateUsername = (name: string): string => {
-    const nameParts = name.toLowerCase().trim().split(' ');
-    const firstName = nameParts[0];
-    const lastName = nameParts[nameParts.length - 1];
-    return `${firstName}${lastName}${Math.floor(Math.random() * 1000)}`;
-  };
-
   const generateCredentialsForEmployee = (employeeId: string) => {
     const employee = employees.find(e => e.id === employeeId);
     if (!employee) return;
@@ -79,8 +64,7 @@ export default function EmployeeCredentials() {
       employeeId,
       employeeName: employee.name,
       designation: employee.designation,
-      email: generateEmail(employee.name),
-      username: generateUsername(employee.name),
+      email: employee.email,
       password: generatePassword(),
       createdAt: new Date().toISOString().split('T')[0],
       generated: true,
@@ -129,12 +113,11 @@ export default function EmployeeCredentials() {
       return;
     }
 
-    const headers = ['Employee Name', 'Designation', 'Email', 'Username', 'Password', 'Created Date'];
+    const headers = ['Employee Name', 'Designation', 'Email/Username', 'Password', 'Created Date'];
     const rows = credentials.map(c => [
       c.employeeName,
       c.designation,
       c.email,
-      c.username,
       c.password,
       c.createdAt,
     ]);
@@ -230,10 +213,10 @@ export default function EmployeeCredentials() {
                     </Badge>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                    {/* Email */}
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Email - as Username */}
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Email</label>
+                      <label className="text-xs font-medium text-muted-foreground">Email / Username</label>
                       <div className="flex items-center gap-2">
                         <code className="text-sm bg-muted px-2 py-1 rounded flex-1 truncate">{cred.email}</code>
                         <Button
@@ -241,22 +224,6 @@ export default function EmployeeCredentials() {
                           variant="ghost"
                           onClick={() => copyToClipboard(cred.email, 'Email')}
                           data-testid={`button-copy-email-${cred.employeeId}`}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Username */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Username</label>
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm bg-muted px-2 py-1 rounded flex-1 truncate">{cred.username}</code>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => copyToClipboard(cred.username, 'Username')}
-                          data-testid={`button-copy-username-${cred.employeeId}`}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -286,13 +253,13 @@ export default function EmployeeCredentials() {
                     </div>
 
                     {/* Regenerate */}
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex flex-col">
                       <label className="text-xs font-medium text-muted-foreground">&nbsp;</label>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setRegenerateId(cred.employeeId)}
-                        className="gap-2 w-full"
+                        className="gap-2 flex-1"
                         data-testid={`button-regenerate-${cred.employeeId}`}
                       >
                         <RotateCcw className="h-4 w-4" /> Regenerate

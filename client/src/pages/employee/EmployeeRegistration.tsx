@@ -89,7 +89,7 @@ interface Department { id: string; name: string; }
 interface Designation { id: string; name: string; }
 
 export default function EmployeeRegistration() {
-  const { addEmployee } = useStore();
+  const { addEmployee, employees } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);
@@ -179,9 +179,16 @@ export default function EmployeeRegistration() {
   );
 
   function onSubmit(values: z.infer<typeof employeeSchema>) {
+    const emailLower = values.email.toLowerCase();
+    if (employees.some(e => e.email?.toLowerCase() === emailLower)) {
+      form.setError('email', { message: 'This email is already registered' });
+      return;
+    }
+    
     const selectedDesignation = designations.find(d => d.id === values.designationId)?.name || 'Not Specified';
     addEmployee({
       ...values,
+      email: emailLower,
       designation: selectedDesignation,
       role: values.role,
       designationId: values.designationId,
@@ -232,6 +239,27 @@ export default function EmployeeRegistration() {
                         onBlur={(e) => {
                           field.onBlur();
                           form.trigger('name');
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel><RequiredLabel>Email (Login ID)</RequiredLabel></FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email"
+                        placeholder="employee@company.com" 
+                        {...field}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          form.trigger('email');
                         }}
                       />
                     </FormControl>
