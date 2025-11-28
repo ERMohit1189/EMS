@@ -154,7 +154,7 @@ export default function POGeneration() {
           poNumber: `PO-${Date.now()}-${index + 1}`,
           description: `Installation and commissioning for ${site.hopAB || site.siteId}`,
           quantity: 1,
-          unitPrice: site.siteAmount?.toString() || "0",
+          unitPrice: site.vendorAmount?.toString() || "0",
           maxAntennaSize,
         };
       });
@@ -265,7 +265,7 @@ export default function POGeneration() {
                 <div className="grid gap-3 max-h-96 overflow-y-auto">
                   {availableSites.map((site) => {
                     const vendor = vendors.find(v => v.id === site.vendorId);
-                    const isDisabled = !site.siteAmount;
+                    const isDisabled = !site.vendorAmount;
                     return (
                       <div
                         key={site.id}
@@ -286,9 +286,9 @@ export default function POGeneration() {
                         <div className="flex-1">
                           <p className="font-semibold font-mono">{truncateId(site.planId)}</p>
                           <p className="text-sm text-muted-foreground">
-                            Vendor: {vendor?.name} | Max Antenna: {Math.max(parseFloat(site.siteAAntDia) || 0, parseFloat(site.siteBAntDia) || 0)} | Amount: {site.siteAmount ? `₹${site.siteAmount}` : "Not Set"}
+                            Vendor: {vendor?.name} | Max Antenna: {Math.max(parseFloat(site.siteAAntDia) || 0, parseFloat(site.siteBAntDia) || 0)} | Amount: {site.vendorAmount ? `₹${site.vendorAmount}` : "Not Set"}
                           </p>
-                          {isDisabled && <p className="text-xs text-red-600 mt-1">⚠ Site Amount is required</p>}
+                          {isDisabled && <p className="text-xs text-red-600 mt-1">⚠ Vendor Amount is required</p>}
                         </div>
                       </div>
                     );
