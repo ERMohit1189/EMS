@@ -32,18 +32,97 @@ import {
 interface SiteStatusData {
   id: string;
   siteId: string;
+  vendorId: string;
+  zoneId: string | null;
   planId: string;
-  circle: string;
-  district: string;
-  status: string;
-  atpRemark: string | null;
-  phyAtRemark: string | null;
-  softAtRemark: string | null;
-  phyAtStatus: string | null;
-  softAtStatus: string | null;
+  siteAmount: number | null;
+  vendorAmount: number | null;
+  sno: number | null;
+  circle: string | null;
+  nominalAop: string | null;
+  hopType: string | null;
+  hopAB: string | null;
+  hopBA: string | null;
+  district: string | null;
+  project: string | null;
+  siteAAntDia: string | null;
+  siteBAntDia: string | null;
+  maxAntSize: string | null;
+  siteAName: string | null;
+  tocoVendorA: string | null;
+  tocoIdA: string | null;
+  siteBName: string | null;
+  tocoVendorB: string | null;
+  tocoIdB: string | null;
+  mediaAvailabilityStatus: string | null;
+  srNoSiteA: string | null;
+  srDateSiteA: string | null;
+  srNoSiteB: string | null;
+  srDateSiteB: string | null;
+  hopSrDate: string | null;
+  spDateSiteA: string | null;
+  spDateSiteB: string | null;
+  hopSpDate: string | null;
+  soReleasedDateSiteA: string | null;
+  soReleasedDateSiteB: string | null;
+  hopSoDate: string | null;
+  rfaiOfferedDateSiteA: string | null;
+  rfaiOfferedDateSiteB: string | null;
+  actualHopRfaiOfferedDate: string | null;
+  partnerName: string | null;
+  rfaiSurveyCompletionDate: string | null;
+  moNumberSiteA: string | null;
+  materialTypeSiteA: string | null;
+  moDateSiteA: string | null;
+  moNumberSiteB: string | null;
+  materialTypeSiteB: string | null;
+  moDateSiteB: string | null;
+  srnRmoNumber: string | null;
+  srnRmoDate: string | null;
+  hopMoDate: string | null;
+  hopMaterialDispatchDate: string | null;
+  hopMaterialDeliveryDate: string | null;
+  materialDeliveryStatus: string | null;
+  siteAInstallationDate: string | null;
+  ptwNumberSiteA: string | null;
+  ptwStatusA: string | null;
+  siteBInstallationDate: string | null;
+  ptwNumberSiteB: string | null;
+  ptwStatusB: string | null;
+  hopIcDate: string | null;
+  alignmentDate: string | null;
+  hopInstallationRemarks: string | null;
   visibleInNms: string | null;
+  nmsVisibleDate: string | null;
+  softAtOfferDate: string | null;
+  softAtAcceptanceDate: string | null;
+  softAtStatus: string | null;
+  phyAtOfferDate: string | null;
+  phyAtAcceptanceDate: string | null;
+  phyAtStatus: string | null;
   bothAtStatus: string | null;
+  priIssueCategory: string | null;
+  priSiteId: string | null;
+  priOpenDate: string | null;
+  priCloseDate: string | null;
+  priHistory: string | null;
+  rfiSurveyAllocationDate: string | null;
   descope: string | null;
+  reasonOfExtraVisit: string | null;
+  wccReceived80Percent: string | null;
+  wccReceivedDate80Percent: string | null;
+  wccReceived20Percent: string | null;
+  wccReceivedDate20Percent: string | null;
+  wccReceivedDate100Percent: string | null;
+  survey: string | null;
+  finalPartnerSurvey: string | null;
+  surveyDate: string | null;
+  status: string;
+  atpRemark?: string | null;
+  phyAtRemark?: string | null;
+  softAtRemark?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 const updateStatusOptions = ['Pending', 'Raised', 'Approved', 'Rejected'];
@@ -185,33 +264,105 @@ export default function SiteStatus() {
     }
 
     const excelData = filteredSites.map(site => ({
-      'ID': site.id,
-      'Site ID': site.siteId,
-      'Plan ID': site.planId,
+      'ID': site.id || '-',
+      'Site ID': site.siteId || '-',
+      'Vendor ID': site.vendorId || '-',
+      'Zone ID': site.zoneId || '-',
+      'Plan ID': site.planId || '-',
+      'Site Amount': site.siteAmount || '-',
+      'Vendor Amount': site.vendorAmount || '-',
+      'S.No': site.sno || '-',
       'Circle': site.circle || '-',
+      'Nominal AOP': site.nominalAop || '-',
+      'HOP Type': site.hopType || '-',
+      'HOP A-B': site.hopAB || '-',
+      'HOP B-A': site.hopBA || '-',
       'District': site.district || '-',
-      'Status': site.status,
-      'Phy AT Status': site.phyAtStatus || '-',
-      'Soft AT Status': site.softAtStatus || '-',
+      'Project': site.project || '-',
+      'Site A Ant Dia': site.siteAAntDia || '-',
+      'Site B Ant Dia': site.siteBAntDia || '-',
+      'Max Ant Size': site.maxAntSize || '-',
+      'Site A Name': site.siteAName || '-',
+      'TOCO Vendor A': site.tocoVendorA || '-',
+      'TOCO ID A': site.tocoIdA || '-',
+      'Site B Name': site.siteBName || '-',
+      'TOCO Vendor B': site.tocoVendorB || '-',
+      'TOCO ID B': site.tocoIdB || '-',
+      'Media Availability Status': site.mediaAvailabilityStatus || '-',
+      'SR No Site A': site.srNoSiteA || '-',
+      'SR Date Site A': site.srDateSiteA || '-',
+      'SR No Site B': site.srNoSiteB || '-',
+      'SR Date Site B': site.srDateSiteB || '-',
+      'HOP SR Date': site.hopSrDate || '-',
+      'SP Date Site A': site.spDateSiteA || '-',
+      'SP Date Site B': site.spDateSiteB || '-',
+      'HOP SP Date': site.hopSpDate || '-',
+      'SO Released Date Site A': site.soReleasedDateSiteA || '-',
+      'SO Released Date Site B': site.soReleasedDateSiteB || '-',
+      'HOP SO Date': site.hopSoDate || '-',
+      'RFAI Offered Date Site A': site.rfaiOfferedDateSiteA || '-',
+      'RFAI Offered Date Site B': site.rfaiOfferedDateSiteB || '-',
+      'Actual HOP RFAI Offered Date': site.actualHopRfaiOfferedDate || '-',
+      'Partner Name': site.partnerName || '-',
+      'RFAI Survey Completion Date': site.rfaiSurveyCompletionDate || '-',
+      'MO Number Site A': site.moNumberSiteA || '-',
+      'Material Type Site A': site.materialTypeSiteA || '-',
+      'MO Date Site A': site.moDateSiteA || '-',
+      'MO Number Site B': site.moNumberSiteB || '-',
+      'Material Type Site B': site.materialTypeSiteB || '-',
+      'MO Date Site B': site.moDateSiteB || '-',
+      'SRN RMO Number': site.srnRmoNumber || '-',
+      'SRN RMO Date': site.srnRmoDate || '-',
+      'HOP MO Date': site.hopMoDate || '-',
+      'HOP Material Dispatch Date': site.hopMaterialDispatchDate || '-',
+      'HOP Material Delivery Date': site.hopMaterialDeliveryDate || '-',
+      'Material Delivery Status': site.materialDeliveryStatus || '-',
+      'Site A Installation Date': site.siteAInstallationDate || '-',
+      'PTW Number Site A': site.ptwNumberSiteA || '-',
+      'PTW Status A': site.ptwStatusA || '-',
+      'Site B Installation Date': site.siteBInstallationDate || '-',
+      'PTW Number Site B': site.ptwNumberSiteB || '-',
+      'PTW Status B': site.ptwStatusB || '-',
+      'HOP IC Date': site.hopIcDate || '-',
+      'Alignment Date': site.alignmentDate || '-',
+      'HOP Installation Remarks': site.hopInstallationRemarks || '-',
       'Visible in NMS': site.visibleInNms || '-',
+      'NMS Visible Date': site.nmsVisibleDate || '-',
+      'Soft AT Offer Date': site.softAtOfferDate || '-',
+      'Soft AT Acceptance Date': site.softAtAcceptanceDate || '-',
+      'Soft AT Status': site.softAtStatus || '-',
+      'Phy AT Offer Date': site.phyAtOfferDate || '-',
+      'Phy AT Acceptance Date': site.phyAtAcceptanceDate || '-',
+      'Phy AT Status': site.phyAtStatus || '-',
       'Both AT Status': site.bothAtStatus || '-',
-      'ATP Remark': site.atpRemark || '-',
-      'Phy AT Remark': site.phyAtRemark || '-',
-      'Soft AT Remark': site.softAtRemark || '-',
+      'PRI Issue Category': site.priIssueCategory || '-',
+      'PRI Site ID': site.priSiteId || '-',
+      'PRI Open Date': site.priOpenDate || '-',
+      'PRI Close Date': site.priCloseDate || '-',
+      'PRI History': site.priHistory || '-',
+      'RFI Survey Allocation Date': site.rfiSurveyAllocationDate || '-',
       'Descope': site.descope || '-',
+      'Reason of Extra Visit': site.reasonOfExtraVisit || '-',
+      'WCC Received 80%': site.wccReceived80Percent || '-',
+      'WCC Received Date 80%': site.wccReceivedDate80Percent || '-',
+      'WCC Received 20%': site.wccReceived20Percent || '-',
+      'WCC Received Date 20%': site.wccReceivedDate20Percent || '-',
+      'WCC Received Date 100%': site.wccReceivedDate100Percent || '-',
+      'Survey': site.survey || '-',
+      'Final Partner Survey': site.finalPartnerSurvey || '-',
+      'Survey Date': site.surveyDate || '-',
+      'Status': site.status,
+      'Created At': site.createdAt || '-',
+      'Updated At': site.updatedAt || '-',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Status');
     
-    // Auto-size columns
-    const colWidths = [
-      { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
-      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
-      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 12 }
-    ];
-    worksheet['!cols'] = colWidths;
+    // Set column widths for 81+ columns
+    const numColumns = Object.keys(excelData[0] || {}).length;
+    worksheet['!cols'] = Array(numColumns).fill({ wch: 18 });
     
     XLSX.writeFile(workbook, `site-status-${new Date().getTime()}.xlsx`);
     toast({ title: 'Success', description: 'Data exported to Excel' });
