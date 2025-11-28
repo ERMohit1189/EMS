@@ -236,16 +236,16 @@ export default function Dashboard() {
             <CardTitle className="text-base">Site Status</CardTitle>
             <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4">
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
+          <CardContent className="flex justify-center pt-4 px-2">
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                 <Pie
                   data={siteStatusData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
+                  labelLine={true}
                   label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={70}
+                  outerRadius={55}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -264,16 +264,16 @@ export default function Dashboard() {
             <CardTitle className="text-base">Vendor Status</CardTitle>
             <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4">
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
+          <CardContent className="flex justify-center pt-4 px-2">
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                 <Pie
                   data={vendorStatusData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
+                  labelLine={true}
                   label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={70}
+                  outerRadius={55}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -292,16 +292,16 @@ export default function Dashboard() {
             <CardTitle className="text-base">PO Status</CardTitle>
             <CardDescription className="text-xs">Purchase order breakdown</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4">
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
+          <CardContent className="flex justify-center pt-4 px-2">
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                 <Pie
                   data={poStatusData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
+                  labelLine={true}
                   label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={70}
+                  outerRadius={55}
                   fill="#8884d8"
                   dataKey="value"
                 >
