@@ -196,7 +196,7 @@ export default function InvoiceGeneration() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 12;
-    let yPosition = margin;
+    let yPosition = 25;
 
     // Colors
     const primaryColor = [0, 51, 102]; // Dark blue
@@ -205,15 +205,15 @@ export default function InvoiceGeneration() {
 
     // Header Background
     doc.setFillColor(...lightGray);
-    doc.rect(0, 0, pageWidth, 25, "F");
+    doc.rect(0, 10, pageWidth, 25, "F");
 
     // Company Title
     doc.setTextColor(...primaryColor);
     doc.setFontSize(22);
-    doc.text("INVOICE", margin, 16, { align: "left" });
+    doc.text("INVOICE", margin, 26, { align: "left" });
 
     // Reset position
-    yPosition = 30;
+    yPosition = 40;
 
     // Two Column Layout - Invoice Details & Dates
     const col1X = margin;
