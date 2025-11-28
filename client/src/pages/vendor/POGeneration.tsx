@@ -256,82 +256,82 @@ export default function POGeneration() {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageW = 210;
       const m = 12;
-      let y = m;
+      let y = 20;
 
       // ===== HEADER =====
       pdf.setFont('Arial', 'bold');
-      pdf.setFontSize(20);
+      pdf.setFontSize(26);
       pdf.setTextColor(44, 62, 80);
       pdf.text('PURCHASE ORDER', m, y);
 
-      pdf.setFontSize(9);
+      pdf.setFontSize(11);
       pdf.setTextColor(153, 153, 153);
       pdf.setFont('Arial', 'normal');
-      pdf.text(exportHeaderSettings.companyName || 'Company Name', m, y + 5);
+      pdf.text(exportHeaderSettings.companyName || 'Company Name', m, y + 7);
 
       // Right side info
       const rX = pageW - m - 60;
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('Arial', 'bold');
       pdf.text('PO No.:', rX, y);
       pdf.setFont('Arial', 'normal');
       pdf.text(String(poNumber), rX + 25, y);
 
-      y += 6;
+      y += 7;
       pdf.setFont('Arial', 'bold');
       pdf.text('PO Date:', rX, y);
       pdf.setFont('Arial', 'normal');
       pdf.text(String(po.poDate || ''), rX + 25, y);
 
-      y += 6;
+      y += 7;
       pdf.setFont('Arial', 'bold');
       pdf.text('Due Date:', rX, y);
       pdf.setFont('Arial', 'normal');
       pdf.text(String(po.dueDate || ''), rX + 25, y);
 
-      y += 15;
+      y += 18;
 
       // ===== COMPANY INFO =====
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
       if (exportHeaderSettings.companyName) {
         pdf.text(exportHeaderSettings.companyName, m, y);
-        y += 3;
+        y += 4;
       }
       if (exportHeaderSettings.address) {
         pdf.text(exportHeaderSettings.address, m, y);
-        y += 3;
+        y += 4;
       }
       if (exportHeaderSettings.contactPhone) {
         pdf.text(`Phone: ${exportHeaderSettings.contactPhone}`, m, y);
-        y += 3;
+        y += 4;
       }
       if (exportHeaderSettings.website) {
         pdf.text(`Website: ${exportHeaderSettings.website}`, m, y);
-        y += 3;
+        y += 4;
       }
 
-      y += 5;
+      y += 6;
 
       // ===== BILL TO & SITE INFO =====
-      pdf.setFontSize(9);
+      pdf.setFontSize(11);
       pdf.setFont('Arial', 'bold');
       pdf.text('Bill To', m, y);
       pdf.text('Site Information', 105, y);
 
-      y += 4;
+      y += 5;
 
       // Separators
       pdf.setDrawColor(221, 221, 221);
       pdf.line(m, y, 100, y);
       pdf.line(105, y, pageW - m, y);
 
-      y += 3;
+      y += 4;
 
       // Vendor & Site content
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
 
@@ -346,43 +346,43 @@ export default function POGeneration() {
       // Vendor left column
       let vy = y;
       pdf.setFont('Arial', 'bold');
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.text(vn, m, vy);
-      vy += 3;
+      vy += 4;
 
       pdf.setFont('Arial', 'normal');
-      pdf.setFontSize(8);
-      if (ve) { pdf.text(ve, m, vy); vy += 3; }
+      pdf.setFontSize(9);
+      if (ve) { pdf.text(ve, m, vy); vy += 4; }
       pdf.text(va, m, vy);
-      vy += 3;
+      vy += 4;
       if (vc || vst || vp) {
         pdf.text(`${vc}, ${vst} ${vp}`.trim(), m, vy);
-        vy += 3;
+        vy += 4;
       }
-      if (vg) { pdf.text(`GSTIN: ${vg}`, m, vy); vy += 3; }
+      if (vg) { pdf.text(`GSTIN: ${vg}`, m, vy); vy += 4; }
       if (vendor?.phone) { pdf.text(`Phone: ${vendor.phone}`, m, vy); }
 
       // Site right column
       let sy = y;
       pdf.setFont('Arial', 'bold');
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       const sn = site?.hopAB || '[Site Name]';
       pdf.text(sn, 105, sy);
-      sy += 3;
+      sy += 4;
 
       pdf.setFont('Arial', 'normal');
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
       pdf.text(`Site ID: ${po.siteId}`, 105, sy);
-      sy += 3;
-      if (site?.planId) { pdf.text(`Plan ID: ${site.planId}`, 105, sy); sy += 3; }
-      if (site?.circle) { pdf.text(`Circle: ${site.circle}`, 105, sy); sy += 3; }
-      if (site?.district) { pdf.text(`District: ${site.district}`, 105, sy); sy += 3; }
+      sy += 4;
+      if (site?.planId) { pdf.text(`Plan ID: ${site.planId}`, 105, sy); sy += 4; }
+      if (site?.circle) { pdf.text(`Circle: ${site.circle}`, 105, sy); sy += 4; }
+      if (site?.district) { pdf.text(`District: ${site.district}`, 105, sy); sy += 4; }
       if (site?.state) { pdf.text(`State: ${site.state}`, 105, sy); }
 
-      y += 22;
+      y += 26;
 
       // ===== ITEMS TABLE =====
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.setFont('Arial', 'bold');
       pdf.setTextColor(255, 255, 255);
       pdf.setFillColor(44, 62, 80);
@@ -392,87 +392,87 @@ export default function POGeneration() {
       const col3X = 130;
       const col4X = 160;
 
-      pdf.rect(col1X, y, 80, 5, 'F');
-      pdf.text('Description', col1X + 2, y + 3.5);
+      pdf.rect(col1X, y, 80, 6, 'F');
+      pdf.text('Description', col1X + 2, y + 4);
 
-      pdf.rect(col2X, y, 30, 5, 'F');
-      pdf.text('Quantity', col2X + 2, y + 3.5);
+      pdf.rect(col2X, y, 30, 6, 'F');
+      pdf.text('Quantity', col2X + 2, y + 4);
 
-      pdf.rect(col3X, y, 25, 5, 'F');
-      pdf.text('Unit Price', col3X + 1, y + 3.5);
+      pdf.rect(col3X, y, 25, 6, 'F');
+      pdf.text('Unit Price', col3X + 1, y + 4);
 
-      pdf.rect(col4X, y, 30, 5, 'F');
-      pdf.text('Amount', col4X + 2, y + 3.5);
+      pdf.rect(col4X, y, 30, 6, 'F');
+      pdf.text('Amount', col4X + 2, y + 4);
 
-      y += 6;
+      y += 7;
 
       // Item row
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
       pdf.setDrawColor(221, 221, 221);
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
 
       const desc = String(po.description || '').substring(0, 60);
       const qty = String(po.quantity || 1);
       const rate = Number(po.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const total = Number(po.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      pdf.rect(col1X, y, 80, 5);
-      pdf.text(desc, col1X + 2, y + 3.5);
+      pdf.rect(col1X, y, 80, 6);
+      pdf.text(desc, col1X + 2, y + 4);
 
-      pdf.rect(col2X, y, 30, 5);
-      pdf.text(qty, col2X + 12, y + 3.5);
+      pdf.rect(col2X, y, 30, 6);
+      pdf.text(qty, col2X + 12, y + 4);
 
-      pdf.rect(col3X, y, 25, 5);
-      pdf.text(`₹${rate}`, col3X + 1, y + 3.5);
+      pdf.rect(col3X, y, 25, 6);
+      pdf.text(`₹${rate}`, col3X + 1, y + 4);
 
-      pdf.rect(col4X, y, 30, 5);
-      pdf.text(`₹${total}`, col4X + 2, y + 3.5);
+      pdf.rect(col4X, y, 30, 6);
+      pdf.text(`₹${total}`, col4X + 2, y + 4);
 
-      y += 12;
+      y += 14;
 
       // ===== TOTALS =====
       const tX = col3X;
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
       pdf.setFont('Arial', 'normal');
 
       pdf.text('Subtotal:', tX, y);
       pdf.text(`₹${total}`, col4X + 2, y);
-      y += 5;
+      y += 6;
 
       pdf.text('Tax:', tX, y);
       pdf.text('₹0.00', col4X + 2, y);
-      y += 5;
+      y += 6;
 
       pdf.text('Shipping:', tX, y);
       pdf.text('₹0.00', col4X + 2, y);
-      y += 6;
+      y += 7;
 
       // Total box
       pdf.setFont('Arial', 'bold');
-      pdf.setFontSize(9);
+      pdf.setFontSize(11);
       pdf.setFillColor(44, 62, 80);
       pdf.setTextColor(255, 255, 255);
-      pdf.rect(tX, y, 60, 6, 'F');
-      pdf.text('TOTAL:', tX + 2, y + 4);
-      pdf.text(`₹${total}`, col4X + 2, y + 4);
+      pdf.rect(tX, y, 60, 7, 'F');
+      pdf.text('TOTAL:', tX + 2, y + 5);
+      pdf.text(`₹${total}`, col4X + 2, y + 5);
 
-      y += 12;
+      y += 14;
 
       // ===== REMARKS =====
       if (po.remarks) {
-        pdf.setFontSize(8);
+        pdf.setFontSize(9);
         pdf.setFont('Arial', 'bold');
         pdf.setTextColor(0, 0, 0);
         pdf.text('Remarks:', m, y);
-        y += 4;
+        y += 5;
         pdf.setFont('Arial', 'normal');
-        pdf.setFontSize(7);
+        pdf.setFontSize(8);
         pdf.text(po.remarks.substring(0, 100), m, y);
       }
 
       // ===== FOOTER =====
-      pdf.setFontSize(7);
+      pdf.setFontSize(8);
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(102, 102, 102);
       pdf.text('This is a system-generated Purchase Order. No signature required.', 105, 278, { align: 'center' });
