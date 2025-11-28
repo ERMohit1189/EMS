@@ -80,8 +80,24 @@ export default function EmployeeRegistration() {
   const [cityHighlight, setCityHighlight] = useState(-1);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
+  const [age, setAge] = useState<number | null>(null);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
+
+  const calculateAge = (dob: string) => {
+    if (!dob) {
+      setAge(null);
+      return;
+    }
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      calculatedAge--;
+    }
+    setAge(calculatedAge);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -110,6 +126,8 @@ export default function EmployeeRegistration() {
   });
 
   const watchedState = form.watch('state');
+  const watchedDob = form.watch('dob');
+  
   useEffect(() => {
     if (watchedState) {
       setCities(getCitiesByState(watchedState));
@@ -117,6 +135,10 @@ export default function EmployeeRegistration() {
       setCitySearch('');
     }
   }, [watchedState, form]);
+
+  useEffect(() => {
+    calculateAge(watchedDob || '');
+  }, [watchedDob]);
 
   const filteredStates = IndianStates.filter(s => 
     s.toLowerCase().includes(stateSearch.toLowerCase())
@@ -193,9 +215,18 @@ export default function EmployeeRegistration() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date of Birth</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                      </div>
+                      {age !== null && (
+                        <div className="flex items-center px-3 py-2 border border-input rounded-md bg-muted">
+                          <span className="font-semibold text-sm">Age: {age} years</span>
+                        </div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
