@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -13,6 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { getApiBaseUrl } from '@/lib/api';
 import { fetchWithLoader } from '@/lib/fetchWithLoader';
 import { truncateId } from '@/lib/utils';
@@ -172,6 +175,92 @@ export default function SiteStatus() {
       setSelectedSites(new Set());
     } else {
       setSelectedSites(new Set(filteredSites.map(s => s.id)));
+    }
+  };
+
+  const exportToExcel = () => {
+    if (filteredSites.length === 0) {
+      toast({ title: 'Error', description: 'No sites to export', variant: 'destructive' });
+      return;
+    }
+
+    const excelData = filteredSites.map(site => ({
+      'Plan ID': site.planId,
+      'Circle': site.circle || '-',
+      'District': site.district || '-',
+      'Status': site.status,
+      'Phy AT Status': site.phyAtStatus || '-',
+      'Soft AT Status': site.softAtStatus || '-',
+      'Visible in NMS': site.visibleInNms || '-',
+      'Both AT Status': site.bothAtStatus || '-',
+      'ATP Remark': site.atpRemark || '-',
+      'Descope': site.descope || '-',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Status');
+    
+    // Auto-size columns
+    const colWidths = [
+      { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+      { wch: 20 }, { wch: 12 }
+    ];
+    worksheet['!cols'] = colWidths;
+    
+    XLSX.writeFile(workbook, `site-status-${new Date().getTime()}.xlsx`);
+    toast({ title: 'Success', description: 'Data exported to Excel' });
+  };
+
+  const exportToPDF = async () => {
+    if (filteredSites.length === 0) {
+      toast({ title: 'Error', description: 'No sites to export', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const element = document.getElementById('sites-table-export');
+      if (!element) {
+        toast({ title: 'Error', description: 'Table not found', variant: 'destructive' });
+        return;
+      }
+
+      const canvas = await html2canvas(element, { scale: 2, logging: false });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let yPosition = 10;
+      pdf.text('Site Status Report', 10, yPosition);
+      yPosition += 10;
+      
+      if (imgHeight > pageHeight - yPosition) {
+        const pages = Math.ceil(imgHeight / (pageHeight - 20));
+        for (let i = 0; i < pages; i++) {
+          if (i > 0) pdf.addPage();
+          pdf.addImage(
+            imgData,
+            'PNG',
+            10,
+            10,
+            imgWidth,
+            imgHeight
+          );
+        }
+      } else {
+        pdf.addImage(imgData, 'PNG', 10, yPosition, imgWidth, imgHeight);
+      }
+      
+      pdf.save(`site-status-${new Date().getTime()}.pdf`);
+      toast({ title: 'Success', description: 'Data exported to PDF' });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
     }
   };
 
@@ -443,10 +532,34 @@ export default function SiteStatus() {
         </Card>
       )}
 
-      {/* Results Count */}
+      {/* Results Count & Download Section */}
       <div className="space-y-2">
-        <div className="text-sm text-gray-600">
-          Showing {filteredSites.length} of {sites.filter(s => s.status !== 'Approved').length} updatable sites {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            Showing {filteredSites.length} of {sites.filter(s => s.status !== 'Approved').length} updatable sites {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
+          </div>
+          {filteredSites.length > 0 && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportToExcel}
+                data-testid="button-download-excel"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Excel
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportToPDF}
+                data-testid="button-download-pdf"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+            </div>
+          )}
         </div>
         {sites.some(s => s.status === 'Approved') && (
           <div className="text-sm bg-blue-50 border border-blue-200 rounded p-3 text-blue-800">
@@ -504,7 +617,7 @@ export default function SiteStatus() {
       )}
 
       {/* Sites Table */}
-      <Card className="shadow-md">
+      <Card className="shadow-md" id="sites-table-export">
         <CardContent className="pt-6">
           {loading ? (
             <div className="text-center py-12">
