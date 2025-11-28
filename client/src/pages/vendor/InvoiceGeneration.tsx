@@ -33,6 +33,7 @@ export default function InvoiceGeneration() {
   const topRef = useRef<HTMLDivElement>(null);
   const [availablePOs, setAvailablePOs] = useState<PurchaseOrder[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPOs, setSelectedPOs] = useState<Set<string>>(new Set());
   const [invoiceRecords, setInvoiceRecords] = useState<InvoiceRecord[]>([]);
@@ -65,6 +66,7 @@ export default function InvoiceGeneration() {
         const invoices = invoicesData.data || [];
 
         setVendors(vendorsList);
+        setSites(sites);
 
         // Convert invoices to InvoiceRecord format
         const invoiceRecords: InvoiceRecord[] = [];
@@ -459,7 +461,12 @@ export default function InvoiceGeneration() {
                 <div className="grid gap-3 max-h-96 overflow-y-auto">
                   {availablePOs.map((po) => {
                     const vendor = vendors.find(v => v.id === po.vendorId);
+                    const site = sites.find((s: any) => s.id === po.siteId);
                     const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
+                    const maxAntennaSize = Math.max(
+                      parseFloat(site?.siteAAntDia) || 0,
+                      parseFloat(site?.siteBAntDia) || 0
+                    );
                     return (
                       <div
                         key={po.id}
@@ -475,6 +482,9 @@ export default function InvoiceGeneration() {
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold truncate">{po.poNumber}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {site?.hopAB || site?.siteId} | Ant: {maxAntennaSize || "-"}
+                            </p>
                             <p className="text-xs text-muted-foreground truncate">
                               {vendor?.name}
                             </p>
