@@ -21,61 +21,96 @@ interface SidebarProps {
   setIsLoggedIn?: (value: boolean) => void;
 }
 
-const menuItems = [
+const menuGroups = [
   {
-    title: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/',
+    group: 'Main',
+    items: [
+      {
+        title: 'Dashboard',
+        icon: LayoutDashboard,
+        href: '/',
+      },
+    ],
   },
   {
-    title: 'All Vendors',
-    icon: Users,
-    href: '/vendor/list',
+    group: 'Vendor Management',
+    items: [
+      {
+        title: 'All Vendors',
+        icon: Users,
+        href: '/vendor/list',
+      },
+      {
+        title: 'Vendor Credentials',
+        icon: Key,
+        href: '/vendor/credentials',
+      },
+    ],
   },
   {
-    title: 'Vendor Credentials',
-    icon: Key,
-    href: '/vendor/credentials',
+    group: 'Site Operations',
+    items: [
+      {
+        title: 'Site Management',
+        icon: Building2,
+        href: '/vendor/sites',
+      },
+      {
+        title: 'Site Status',
+        icon: ClipboardCheck,
+        href: '/vendor/sites/status',
+      },
+    ],
   },
   {
-    title: 'Site Management',
-    icon: Building2,
-    href: '/vendor/sites',
+    group: 'Data Management',
+    items: [
+      {
+        title: 'Excel Upload',
+        icon: Upload,
+        href: '/vendor/excel-import',
+      },
+      {
+        title: 'Export Settings',
+        icon: SettingsIcon,
+        href: '/vendor/export-headers',
+      },
+    ],
   },
   {
-    title: 'Site Status',
-    icon: ClipboardCheck,
-    href: '/vendor/sites/status',
+    group: 'Finance',
+    items: [
+      {
+        title: 'Payment Master',
+        icon: Wallet,
+        href: '/vendor/payment-master',
+      },
+      {
+        title: 'Invoice Generation',
+        icon: FileText,
+        href: '/vendor/invoices',
+      },
+    ],
   },
   {
-    title: 'Excel Upload',
-    icon: Upload,
-    href: '/vendor/excel-import',
+    group: 'Documents',
+    items: [
+      {
+        title: 'PO Generation',
+        icon: FileText,
+        href: '/vendor/po',
+      },
+    ],
   },
   {
-    title: 'Payment Master',
-    icon: Wallet,
-    href: '/vendor/payment-master',
-  },
-  {
-    title: 'PO Generation',
-    icon: FileText,
-    href: '/vendor/po',
-  },
-  {
-    title: 'Invoice Generation',
-    icon: FileText,
-    href: '/vendor/invoices',
-  },
-  {
-    title: 'Export Settings',
-    icon: SettingsIcon,
-    href: '/vendor/export-headers',
-  },
-  {
-    title: 'App Settings',
-    icon: SettingsIcon,
-    href: '/settings',
+    group: 'Settings',
+    items: [
+      {
+        title: 'App Settings',
+        icon: SettingsIcon,
+        href: '/settings',
+      },
+    ],
   },
 ];
 
@@ -98,21 +133,30 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       </div>
       
       <div className="flex-1 overflow-y-auto py-4">
-        <nav className="grid gap-1 px-2">
-          {menuItems.map((item, index) => (
-            <Link key={index} href={item.href}>
-              <div
-                className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                  location === item.href
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground/70'
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.title}
+        <nav className="space-y-4 px-2">
+          {menuGroups.map((group, groupIndex) => (
+            <div key={groupIndex}>
+              <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                {group.group}
               </div>
-            </Link>
+              <div className="grid gap-1">
+                {group.items.map((item, itemIndex) => (
+                  <Link key={itemIndex} href={item.href}>
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                        location === item.href
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground/70'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.title}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </div>
