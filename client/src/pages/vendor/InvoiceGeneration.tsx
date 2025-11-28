@@ -124,9 +124,15 @@ export default function InvoiceGeneration() {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/invoices/${invoiceId}`, {
+      const apiUrl = `${getApiBaseUrl()}/api/invoices/${invoiceId}`;
+      console.log(`[Frontend] Deleting invoice from: ${apiUrl}`);
+      const response = await fetch(apiUrl, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
       });
+
+      const responseData = await response.json();
+      console.log(`[Frontend] Delete response:`, responseData);
 
       if (response.ok) {
         setAllInvoices(allInvoices.filter(inv => inv.id !== invoiceId));
@@ -136,12 +142,13 @@ export default function InvoiceGeneration() {
           description: `Invoice ${invoiceNumber} has been deleted.`,
         });
       } else {
-        throw new Error("Failed to delete invoice");
+        throw new Error(responseData?.error || "Failed to delete invoice");
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`[Frontend] Delete error:`, error);
       toast({
         title: "Error",
-        description: "Failed to delete invoice",
+        description: error.message || "Failed to delete invoice",
         variant: "destructive",
       });
     }

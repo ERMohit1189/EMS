@@ -504,9 +504,12 @@ export async function registerRoutes(
 
   app.delete("/api/invoices/:id", async (req, res) => {
     try {
+      console.log(`[DELETE Invoice] Attempting to delete invoice ID: ${req.params.id}`);
       await storage.deleteInvoice(req.params.id);
-      res.json({ success: true });
+      console.log(`[DELETE Invoice] Successfully deleted invoice ID: ${req.params.id}`);
+      res.json({ success: true, message: "Invoice deleted successfully" });
     } catch (error: any) {
+      console.error(`[DELETE Invoice] Error deleting invoice: ${error.message}`);
       res.status(500).json({ error: error.message });
     }
   });
