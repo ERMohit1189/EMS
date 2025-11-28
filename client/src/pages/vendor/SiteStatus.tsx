@@ -259,13 +259,18 @@ export default function SiteStatus() {
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (filteredSites.length === 0) {
       toast({ title: 'Error', description: 'No sites to export', variant: 'destructive' });
       return;
     }
 
-    const excelData = filteredSites.map(site => ({
+    try {
+      // Fetch export header settings
+      const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+      const headerSettings = headerResponse.ok ? await headerResponse.json() : {};
+
+      const excelData = filteredSites.map(site => ({
       'ID': site.id || '-',
       'Site ID': site.siteId || '-',
       'Vendor ID': site.vendorId || '-',
@@ -358,16 +363,33 @@ export default function SiteStatus() {
       'Updated At': site.updatedAt || '-',
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Status');
-    
-    // Set column widths for 81+ columns
-    const numColumns = Object.keys(excelData[0] || {}).length;
-    worksheet['!cols'] = Array(numColumns).fill({ wch: 18 });
-    
-    XLSX.writeFile(workbook, `site-status-${new Date().getTime()}.xlsx`);
-    toast({ title: 'Success', description: 'Data exported to Excel' });
+      const workbook = XLSX.utils.book_new();
+
+      // Create header sheet if settings exist
+      if (headerSettings.companyName || headerSettings.reportTitle) {
+        const headerData = [];
+        if (headerSettings.companyName) headerData.push(['Company:', headerSettings.companyName]);
+        if (headerSettings.reportTitle) headerData.push(['Report:', headerSettings.reportTitle]);
+        headerData.push(['']);
+        headerData.push(['Generated:', new Date().toLocaleString()]);
+        headerData.push(['']);
+        
+        const headerSheet = XLSX.utils.aoa_to_sheet(headerData);
+        XLSX.utils.book_append_sheet(workbook, headerSheet, 'Header');
+      }
+
+      // Add data sheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const numColumns = Object.keys(excelData[0] || {}).length;
+      worksheet['!cols'] = Array(numColumns).fill({ wch: 18 });
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Status');
+      
+      XLSX.writeFile(workbook, `site-status-${new Date().getTime()}.xlsx`);
+      toast({ title: 'Success', description: 'Data exported to Excel' });
+    } catch (error) {
+      console.error('Excel export error:', error);
+      toast({ title: 'Error', description: 'Failed to export Excel', variant: 'destructive' });
+    }
   };
 
   const exportSingleSitePDF = async (site: SiteStatusData) => {
@@ -382,6 +404,23 @@ export default function SiteStatus() {
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 10;
       const contentWidth = pageWidth - (2 * margin);
+
+      // Fetch export header settings
+      const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+      const headerSettings = headerResponse.ok ? await headerResponse.json() : {};
+
+      let yPosition = margin;
+
+      // Add header section if settings exist
+      if (headerSettings.companyName || headerSettings.reportTitle) {
+        pdf.setFillColor(41, 128, 185);
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(12);
+        pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+        const headerText = [headerSettings.companyName, headerSettings.reportTitle].filter(Boolean).join(' | ');
+        pdf.text(headerText, margin + 5, yPosition + 5);
+        yPosition += 10;
+      }
 
       // All 81 fields in label-value pairs
       const fields = [
@@ -474,18 +513,18 @@ export default function SiteStatus() {
         { label: 'Status', value: site.status },
       ];
 
-      // Header
-      pdf.setFillColor(41, 128, 185);
+      // Site header
+      pdf.setFillColor(100, 149, 237);
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(14);
-      pdf.rect(margin, margin, contentWidth, 10, 'F');
-      pdf.text(`SITE REPORT - ${site.siteId} | Plan: ${site.planId}`, margin + 5, margin + 6.5);
+      pdf.setFontSize(11);
+      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+      pdf.text(`SITE REPORT - ${site.siteId} | Plan: ${site.planId}`, margin + 5, yPosition + 5);
+      yPosition += 8;
       
       pdf.setTextColor(100, 100, 100);
       pdf.setFontSize(8);
-      pdf.text(`Generated: ${new Date().toLocaleString()}`, margin + 5, margin + 14);
-
-      let yPosition = margin + 18;
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, margin + 2, yPosition + 2);
+      yPosition += 5;
       const lineHeight = 6;
       const labelWidth = contentWidth * 0.35;
       const valueWidth = contentWidth * 0.65;
@@ -558,6 +597,10 @@ export default function SiteStatus() {
       const lineHeight = 5.5;
       const labelWidth = contentWidth * 0.35;
       const valueWidth = contentWidth * 0.65;
+
+      // Fetch export header settings
+      const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+      const exportHeaderSettings = headerResponse.ok ? await headerResponse.json() : {};
 
       // Field definitions for all 81 fields
       const getFieldsForSite = (site: SiteStatusData) => [
@@ -653,6 +696,17 @@ export default function SiteStatus() {
       let yPosition = margin;
       let isFirstSite = true;
 
+      // Add header section if settings exist
+      if (exportHeaderSettings.companyName || exportHeaderSettings.reportTitle) {
+        pdf.setFillColor(41, 128, 185);
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(12);
+        pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+        const headerText = [exportHeaderSettings.companyName, exportHeaderSettings.reportTitle].filter(Boolean).join(' | ');
+        pdf.text(headerText, margin + 5, yPosition + 5);
+        yPosition += 10;
+      }
+
       for (const site of filteredSites) {
         const fields = getFieldsForSite(site);
 
@@ -660,10 +714,21 @@ export default function SiteStatus() {
         if (!isFirstSite) {
           pdf.addPage();
           yPosition = margin;
+
+          // Add header on new pages if settings exist
+          if (exportHeaderSettings.companyName || exportHeaderSettings.reportTitle) {
+            pdf.setFillColor(41, 128, 185);
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(12);
+            pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+            const headerText = [exportHeaderSettings.companyName, exportHeaderSettings.reportTitle].filter(Boolean).join(' | ');
+            pdf.text(headerText, margin + 5, yPosition + 5);
+            yPosition += 10;
+          }
         }
 
         // Draw site header
-        pdf.setFillColor(41, 128, 185);
+        pdf.setFillColor(100, 149, 237);
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(11);
         pdf.rect(margin, yPosition, contentWidth, 8, 'F');
