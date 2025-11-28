@@ -29,6 +29,7 @@ export const vendors = pgTable("vendors", {
   moa: text("moa"),
   category: varchar("category").notNull().default("Individual"), // Individual, Company
   status: varchar("status").notNull().default("Pending"), // Pending, Approved, Rejected
+  password: varchar("password"), // Hashed password for vendor login
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
