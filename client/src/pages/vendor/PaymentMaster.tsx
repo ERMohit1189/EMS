@@ -166,6 +166,9 @@ export default function PaymentMaster() {
 
   const handleEdit = (master: PaymentMaster) => {
     setEditing(master);
+    setSelectedSite(master.siteId);
+    setSelectedPlanId(master.planId);
+    setSelectedVendor(master.vendorId);
     setNewMaster({
       antennaSize: master.antennaSize,
       siteAmount: master.siteAmount.toString(),
