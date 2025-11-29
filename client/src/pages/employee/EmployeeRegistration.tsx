@@ -428,7 +428,8 @@ export default function EmployeeRegistration() {
                     <FormLabel><RequiredLabel>Mobile No.</RequiredLabel></FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="9876543210" 
+                        placeholder="9876543210"
+                        maxLength={10}
                         {...field}
                         onBlur={(e) => {
                           field.onBlur();
@@ -447,7 +448,7 @@ export default function EmployeeRegistration() {
                   <FormItem>
                     <FormLabel>Alternate No.</FormLabel>
                     <FormControl>
-                      <Input placeholder="Optional" {...field} />
+                      <Input placeholder="Optional" maxLength={10} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
