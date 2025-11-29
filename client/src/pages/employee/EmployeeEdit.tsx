@@ -167,10 +167,34 @@ export default function EmployeeEdit() {
   });
 
   useEffect(() => {
-    if (employee && departments.length > 0 && designations.length > 0) {
+    if (employee) {
+      // Sync form values with employee data for all fields
+      form.setValue('name', employee.name || '', { shouldValidate: false });
+      form.setValue('email', employee.email || '', { shouldValidate: false });
+      form.setValue('dob', employee.dob || '', { shouldValidate: false });
+      form.setValue('fatherName', employee.fatherName || '', { shouldValidate: false });
+      form.setValue('mobile', employee.mobile || '', { shouldValidate: false });
+      form.setValue('alternateNo', employee.alternateNo || '', { shouldValidate: false });
+      form.setValue('address', employee.address || '', { shouldValidate: false });
+      form.setValue('city', employee.city || '', { shouldValidate: false });
+      form.setValue('state', employee.state || '', { shouldValidate: false });
+      form.setValue('country', employee.country || 'India', { shouldValidate: false });
+      form.setValue('role', employee.role || 'user', { shouldValidate: false });
+      form.setValue('departmentId', employee.departmentId || '', { shouldValidate: false });
+      form.setValue('designationId', employee.designationId || '', { shouldValidate: false });
+      form.setValue('doj', employee.doj || '', { shouldValidate: false });
+      form.setValue('aadhar', employee.aadhar || '', { shouldValidate: false });
+      form.setValue('pan', employee.pan || '', { shouldValidate: false });
+      form.setValue('bloodGroup', employee.bloodGroup || '', { shouldValidate: false });
+      form.setValue('maritalStatus', employee.maritalStatus || 'Single', { shouldValidate: false });
+      form.setValue('spouseName', employee.spouseName || '', { shouldValidate: false });
+      form.setValue('nominee', employee.nominee || '', { shouldValidate: false });
+      form.setValue('ppeKit', employee.ppeKit || false, { shouldValidate: false });
+      form.setValue('kitNo', employee.kitNo || '', { shouldValidate: false });
+      form.setValue('status', employee.status || 'Active', { shouldValidate: false });
       calculateAge(employee?.dob || '');
     }
-  }, [employee, departments, designations]);
+  }, [employee, form]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
