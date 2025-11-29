@@ -219,14 +219,20 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
   const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
   const isUserEmployee = isEmployee && employeeRole === 'user';
-  const isReportingPerson = typeof window !== 'undefined' && localStorage.getItem('isReportingPerson') === 'true';
+  const isReportingPersonValue = typeof window !== 'undefined' ? localStorage.getItem('isReportingPerson') : null;
+  const isReportingPerson = isReportingPersonValue === 'true';
+  
+  console.log('[Sidebar] DEBUG - isEmployee:', isEmployee, 'isUserEmployee:', isUserEmployee, 'isReportingPersonValue:', isReportingPersonValue, 'isReportingPerson:', isReportingPerson);
   
   // Determine menu groups based on role
   let menuGroups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
   
   // Filter out Approvals group if not a reporting person
   if (isUserEmployee && !isReportingPerson) {
+    console.log('[Sidebar] Filtering out Approvals group - user is not a reporting person');
     menuGroups = menuGroups.filter(group => group.group !== 'Approvals');
+  } else if (isUserEmployee && isReportingPerson) {
+    console.log('[Sidebar] User IS a reporting person - Approvals group should be visible');
   }
   
   // Initialize expanded groups based on menu groups

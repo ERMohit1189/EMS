@@ -95,13 +95,19 @@ export default function EmployeeLogin() {
       }
 
       console.log('Employee data:', data.employee);
+      console.log('[EmployeeLogin] isReportingPerson from API:', data.employee.isReportingPerson);
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("employeeId", data.employee.id);
       localStorage.setItem("employeeEmail", data.employee.email);
       localStorage.setItem("employeeName", data.employee.name);
+      localStorage.setItem("employeeRole", "user");
       localStorage.setItem("employeeDepartment", data.employee.department || "Not Assigned");
       localStorage.setItem("employeeDesignation", data.employee.designation || "Not Specified");
-      localStorage.setItem("isReportingPerson", data.employee.isReportingPerson ? "true" : "false");
+      const isRPValue = data.employee.isReportingPerson ? "true" : "false";
+      localStorage.setItem("isReportingPerson", isRPValue);
+      console.log('[EmployeeLogin] Stored employeeRole: user');
+      console.log('[EmployeeLogin] Stored isReportingPerson:', isRPValue);
+      console.log('[EmployeeLogin] localStorage.getItem("isReportingPerson"):', localStorage.getItem("isReportingPerson"));
       
       console.log('localStorage after login:', {
         department: localStorage.getItem("employeeDepartment"),
