@@ -99,6 +99,11 @@ const adminMenuGroups = [
         icon: UsersRound,
         href: '/admin/teams',
       },
+      {
+        title: 'Allowance Approvals',
+        icon: ClipboardCheck,
+        href: '/admin/allowance-approvals',
+      },
     ],
   },
   {
@@ -230,7 +235,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
         if (route === '/') return 'Main';
         if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
         if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
-        if (route.startsWith('/employee') || route.startsWith('/admin/teams')) return 'Employee Management';
+        if (route.startsWith('/employee') || route.startsWith('/admin/teams') || route.startsWith('/admin/allowance-approvals')) return 'Employee Management';
         if (route.startsWith('/vendor')) {
           if (route.includes('credentials')) return 'Vendor Management';
           if (route.includes('sites') || route.includes('payment-master') || route.includes('excel-import')) return 'Site Operations';
