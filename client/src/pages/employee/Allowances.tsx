@@ -143,6 +143,40 @@ export default function Allowances() {
     fetchAllowances(true, month, year);
   };
 
+  const goToPreviousMonth = () => {
+    let month = parseInt(selectedMonth);
+    let year = parseInt(selectedYear);
+    
+    month--;
+    if (month === 0) {
+      month = 12;
+      year--;
+    }
+    
+    const newMonth = String(month).padStart(2, '0');
+    const newYear = String(year);
+    handleMonthYearChange(newMonth, newYear);
+  };
+
+  const goToNextMonth = () => {
+    let month = parseInt(selectedMonth);
+    let year = parseInt(selectedYear);
+    
+    month++;
+    if (month === 13) {
+      month = 1;
+      year++;
+    }
+    
+    const newMonth = String(month).padStart(2, '0');
+    const newYear = String(year);
+    handleMonthYearChange(newMonth, newYear);
+  };
+
+  const getMonthName = (monthNum: string) => {
+    return new Date(2024, parseInt(monthNum) - 1, 1).toLocaleString('default', { month: 'long' });
+  };
+
   const handleDelete = async (allowanceId: string) => {
     try {
       setDeleting(true);
@@ -508,44 +542,32 @@ export default function Allowances() {
       <Card className="shadow-sm">
         <CardHeader className="pb-2 pt-3 px-3">
           <CardTitle className="text-lg">History</CardTitle>
-          <div className="flex gap-2 mt-3">
-            <div className="flex-1">
-              <label className="text-xs font-medium">Month</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => handleMonthYearChange(e.target.value, selectedYear)}
-                data-testid="select-month-filter"
-                className="w-full h-8 text-xs px-2 py-1 border rounded"
-              >
-                {Array.from({ length: 12 }, (_, i) => {
-                  const monthNum = String(i + 1).padStart(2, '0');
-                  const monthName = new Date(2024, i, 1).toLocaleString('default', { month: 'long' });
-                  return (
-                    <option key={monthNum} value={monthNum}>
-                      {monthName}
-                    </option>
-                  );
-                })}
-              </select>
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousMonth}
+              data-testid="button-previous-month"
+              className="h-8 px-2"
+            >
+              ← Previous
+            </Button>
+            <div className="text-center min-w-[140px]">
+              <p className="font-semibold text-sm" data-testid="display-month-year">
+                {getMonthName(selectedMonth)} {selectedYear}
+              </p>
             </div>
-            <div className="flex-1">
-              <label className="text-xs font-medium">Year</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => handleMonthYearChange(selectedMonth, e.target.value)}
-                data-testid="select-year-filter"
-                className="w-full h-8 text-xs px-2 py-1 border rounded"
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = String(now.getFullYear() - 2 + i);
-                  return (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={goToNextMonth}
+              data-testid="button-next-month"
+              className="h-8 px-2"
+            >
+              Next →
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-3">
