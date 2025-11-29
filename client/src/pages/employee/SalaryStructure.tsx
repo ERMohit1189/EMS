@@ -128,8 +128,8 @@ export default function SalaryStructure() {
       }
     });
 
-    // Add ACTUAL fixed earnings from current salary (user-filled values)
-    fixedEarnings += salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
+    // Add ACTUAL fixed earnings from current salary (user-filled values), ensuring numeric conversion
+    fixedEarnings += Number(salary.conveyance) + Number(salary.medical) + Number(salary.bonuses) + Number(salary.otherBenefits);
 
     // Gross = Basic * percentageMultiplier + fixedEarnings
     // Basic = (Gross - fixedEarnings) / percentageMultiplier
@@ -147,9 +147,9 @@ export default function SalaryStructure() {
     // Refine by calculating actual deductions
     for (let i = 0; i < 3; i++) {
       const earnings = autoCalculateSalary(estimatedBasic, true);
-      const fixedEarnings = salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
+      const fixedEarnings = Number(salary.conveyance) + Number(salary.medical) + Number(salary.bonuses) + Number(salary.otherBenefits);
       const gross = estimatedBasic + earnings.hra! + earnings.da! + earnings.lta! + fixedEarnings;
-      const deductions = earnings.pf! + salary.professionalTax + salary.incomeTax + earnings.epf! + earnings.esic!;
+      const deductions = earnings.pf! + Number(salary.professionalTax) + Number(salary.incomeTax) + earnings.epf! + earnings.esic!;
       const calculatedNet = gross - deductions;
       
       if (Math.abs(calculatedNet - net) < 1) break;
@@ -200,7 +200,15 @@ export default function SalaryStructure() {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`);
       if (response.ok) {
         const data = await response.json();
-        setSalary(data);
+        // Convert all string numeric values to numbers
+        const numericFields = ['basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'] as const;
+        const convertedData = { ...data };
+        numericFields.forEach(field => {
+          if (convertedData[field] !== undefined && convertedData[field] !== null) {
+            convertedData[field] = Number(convertedData[field]);
+          }
+        });
+        setSalary(convertedData);
       } else {
         const newSalary: SalaryStructure = {
           employeeId,
