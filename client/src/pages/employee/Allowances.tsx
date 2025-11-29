@@ -52,6 +52,27 @@ export default function Allowances() {
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
   const [caps, setCaps] = useState<any>({});
 
+  const validateAllowances = (data: typeof formData, capsData: any): boolean => {
+    const travel = parseFloat(data.travelAllowance) || 0;
+    const food = parseFloat(data.foodAllowance) || 0;
+    const accom = parseFloat(data.accommodationAllowance) || 0;
+    const mobile = parseFloat(data.mobileAllowance) || 0;
+    const internet = parseFloat(data.internetAllowance) || 0;
+    const utilities = parseFloat(data.utilitiesAllowance) || 0;
+    const parking = parseFloat(data.parkingAllowance) || 0;
+    const misc = parseFloat(data.miscAllowance) || 0;
+
+    if (capsData.travelAllowance && travel > parseFloat(capsData.travelAllowance)) return false;
+    if (capsData.foodAllowance && food > parseFloat(capsData.foodAllowance)) return false;
+    if (capsData.accommodationAllowance && accom > parseFloat(capsData.accommodationAllowance)) return false;
+    if (capsData.mobileAllowance && mobile > parseFloat(capsData.mobileAllowance)) return false;
+    if (capsData.internetAllowance && internet > parseFloat(capsData.internetAllowance)) return false;
+    if (capsData.utilitiesAllowance && utilities > parseFloat(capsData.utilitiesAllowance)) return false;
+    if (capsData.parkingAllowance && parking > parseFloat(capsData.parkingAllowance)) return false;
+    if (capsData.miscAllowance && misc > parseFloat(capsData.miscAllowance)) return false;
+    return true;
+  };
+
   useEffect(() => {
     fetchAllowances();
     // Load allowance caps from settings
@@ -60,6 +81,27 @@ export default function Allowances() {
       setCaps(JSON.parse(allowanceCaps));
     }
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Check if caps are set and form has values
+      const hasValues = formData.travelAllowance || formData.foodAllowance || formData.accommodationAllowance || 
+                        formData.mobileAllowance || formData.internetAllowance || formData.utilitiesAllowance || 
+                        formData.parkingAllowance || formData.miscAllowance;
+      
+      // If caps are set and form has values, validate
+      if (Object.keys(caps).length > 0 && hasValues) {
+        if (!validateAllowances(formData, caps)) {
+          e.preventDefault();
+          e.returnValue = 'You have allowances exceeding the maximum limits. Please fix them before leaving.';
+          return e.returnValue;
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formData, caps]);
 
   const fetchAllowances = async () => {
     if (!employeeId) return;
