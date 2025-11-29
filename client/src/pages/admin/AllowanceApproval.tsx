@@ -34,15 +34,23 @@ export default function AllowanceApproval() {
       const employeeId = localStorage.getItem('employeeId');
       const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
       
+      console.log('[AllowanceApproval] fetchPendingAllowances - employeeId:', employeeId);
+      console.log('[AllowanceApproval] fetchPendingAllowances - isReportingPerson:', isReportingPerson);
+      
       // If user is a reporting person, pass their employeeId to filter by their teams
       const url = isReportingPerson && employeeId
         ? `${getApiBaseUrl()}/api/allowances/pending?employeeId=${employeeId}`
         : `${getApiBaseUrl()}/api/allowances/pending`;
       
+      console.log('[AllowanceApproval] fetchPendingAllowances - URL:', url);
+      
       const response = await fetch(url);
+      const data = await response.json();
+      console.log('[AllowanceApproval] fetchPendingAllowances - Response:', data);
+      
       if (response.ok) {
-        const data = await response.json();
         setAllowances(data.data || []);
+        console.log('[AllowanceApproval] fetchPendingAllowances - Set allowances:', data.data);
       } else {
         toast({
           title: "Error",

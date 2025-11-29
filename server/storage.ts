@@ -1139,13 +1139,20 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getPendingAllowancesForTeams(employeeId: string): Promise<any[]> {
+    console.log(`[Storage] getPendingAllowancesForTeams - START - employeeId: ${employeeId}`);
+    
     // Get all teams for this employee
     const userTeams = await this.getTeamsForEmployee(employeeId);
+    console.log(`[Storage] getPendingAllowancesForTeams - Found ${userTeams.length} teams:`, userTeams.map(t => ({ id: t.id, name: t.name })));
+    
     const teamIds = userTeams.map(t => t.id);
     
     if (teamIds.length === 0) {
+      console.log(`[Storage] getPendingAllowancesForTeams - No teams found, returning empty`);
       return [];
     }
+    
+    console.log(`[Storage] getPendingAllowancesForTeams - Querying allowances for teamIds:`, teamIds);
     
     // Get pending allowances only for team members in this employee's teams
     const result = await db.select().from(dailyAllowances)
@@ -1154,6 +1161,8 @@ export class DrizzleStorage implements IStorage {
         inArray(dailyAllowances.teamId, teamIds)
       ))
       .orderBy(dailyAllowances.submittedAt);
+    
+    console.log(`[Storage] getPendingAllowancesForTeams - Found ${result.length} pending allowances`);
     
     // Enrich with employee names and team names
     const enriched = await Promise.all(result.map(async (allowance) => {
