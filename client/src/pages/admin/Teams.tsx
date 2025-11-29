@@ -161,9 +161,13 @@ export default function Teams() {
       }
       
       // Get current reporting persons to auto-assign to new members
-      const rp1Member = teamMembers.find((m) => m.reportingPerson1 === m.id);
-      const rp2Member = teamMembers.find((m) => m.reportingPerson2 === m.id);
-      const rp3Member = teamMembers.find((m) => m.reportingPerson3 === m.id);
+      // Get reporting persons from the first team member (they should all have the same RPs)
+      const firstMember = teamMembers[0];
+      const reportingPerson1Id = firstMember?.reportingPerson1 || null;
+      const reportingPerson2Id = firstMember?.reportingPerson2 || null;
+      const reportingPerson3Id = firstMember?.reportingPerson3 || null;
+
+      console.log('[Teams] Auto-assigning reporting persons:', { reportingPerson1Id, reportingPerson2Id, reportingPerson3Id });
 
       const promises = newEmployeeIds.map((employeeId) =>
         fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
@@ -171,9 +175,9 @@ export default function Teams() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             employeeId,
-            reportingPerson1: rp1Member?.id || null,
-            reportingPerson2: rp2Member?.id || null,
-            reportingPerson3: rp3Member?.id || null,
+            reportingPerson1: reportingPerson1Id,
+            reportingPerson2: reportingPerson2Id,
+            reportingPerson3: reportingPerson3Id,
           }),
         })
       );
