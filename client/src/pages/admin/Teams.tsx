@@ -316,6 +316,24 @@ export default function Teams() {
     }
   };
 
+  const getSortedTeamMembers = () => {
+    const rp1 = teamMembers.find((m) => m.reportingPerson1 === m.id);
+    const rp2 = teamMembers.find((m) => m.reportingPerson2 === m.id);
+    const rp3 = teamMembers.find((m) => m.reportingPerson3 === m.id);
+    
+    const others = teamMembers
+      .filter((m) => m.id !== rp1?.id && m.id !== rp2?.id && m.id !== rp3?.id)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    
+    const sorted = [];
+    if (rp1) sorted.push(rp1);
+    if (rp2) sorted.push(rp2);
+    if (rp3) sorted.push(rp3);
+    sorted.push(...others);
+    
+    return sorted;
+  };
+
   const handleDeleteTeam = async (teamId: string) => {
     if (!window.confirm('Are you sure you want to delete this team?')) return;
 
@@ -518,7 +536,7 @@ export default function Teams() {
               <p className="text-xs text-muted-foreground text-center py-2">No members in this team</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-                {teamMembers.map((member) => (
+                {getSortedTeamMembers().map((member) => (
                   <div
                     key={member.id}
                     className="p-2 border rounded bg-slate-50 text-xs hover:bg-slate-100 transition-colors"
