@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import {
@@ -153,11 +153,11 @@ const menuGroups = [
 ];
 
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Main: true,
     'Vendor Management': false,
-    'Employee Management': true,
+    'Employee Management': false,
     'Site Operations': false,
     Finance: false,
     Settings: false,
@@ -165,6 +165,41 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   
   // Check if user is logged in as employee
   const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
+
+  // Auto-expand/collapse groups based on current route
+  useEffect(() => {
+    const getGroupForRoute = (route: string): string | null => {
+      if (route === '/') return 'Main';
+      if (route.startsWith('/vendor') && !route.startsWith('/vendor/po') && !route.startsWith('/vendor/invoices')) {
+        if (route.includes('credentials')) return 'Vendor Management';
+        if (route.includes('sites') || route.includes('payment-master') || route.includes('excel-import')) return 'Site Operations';
+        return 'Vendor Management';
+      }
+      if (route.startsWith('/employee')) return 'Employee Management';
+      if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
+      if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
+      return null;
+    };
+
+    const activeGroup = getGroupForRoute(location);
+    
+    setExpandedGroups(prev => {
+      const newExpandedGroups = {
+        Main: location === '/',
+        'Vendor Management': false,
+        'Employee Management': false,
+        'Site Operations': false,
+        Finance: false,
+        Settings: false,
+      };
+      
+      if (activeGroup) {
+        newExpandedGroups[activeGroup as keyof typeof newExpandedGroups] = true;
+      }
+      
+      return newExpandedGroups;
+    });
+  }, [location]);
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => ({
