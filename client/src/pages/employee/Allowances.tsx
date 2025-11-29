@@ -621,6 +621,149 @@ export default function Allowances() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Submitted Entries Display */}
+      <div className="pb-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Submitted Claims</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{formatMonthYear()}</p>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={goToPreviousMonth}
+              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+              data-testid="button-prev-month"
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={goToNextMonth}
+              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+              data-testid="button-next-month"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {submittedEntries.length === 0 ? (
+        <Card className="shadow-sm border-dashed">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-muted-foreground">No claims submitted for {formatMonthYear()}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {submittedEntries.map((entry) => {
+            let allowanceObj: AllowanceData = {
+              travelAllowance: 0,
+              foodAllowance: 0,
+              accommodationAllowance: 0,
+              mobileAllowance: 0,
+              internetAllowance: 0,
+              utilitiesAllowance: 0,
+              parkingAllowance: 0,
+              miscAllowance: 0,
+              notes: '',
+            };
+            
+            try {
+              allowanceObj = JSON.parse(entry.allowanceData);
+            } catch (e) {
+              console.error('Failed to parse allowance data:', e);
+            }
+
+            const total = (
+              (allowanceObj.travelAllowance || 0) +
+              (allowanceObj.foodAllowance || 0) +
+              (allowanceObj.accommodationAllowance || 0) +
+              (allowanceObj.mobileAllowance || 0) +
+              (allowanceObj.internetAllowance || 0) +
+              (allowanceObj.utilitiesAllowance || 0) +
+              (allowanceObj.parkingAllowance || 0) +
+              (allowanceObj.miscAllowance || 0)
+            ).toFixed(2);
+
+            const statusColor = entry.approvalStatus === 'approved' 
+              ? 'bg-green-100 text-green-800' 
+              : entry.approvalStatus === 'rejected'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-yellow-100 text-yellow-800';
+
+            const paidColor = entry.paidStatus === 'full'
+              ? 'bg-green-100 text-green-800'
+              : entry.paidStatus === 'partial'
+              ? 'bg-orange-100 text-orange-800'
+              : 'bg-gray-100 text-gray-800';
+
+            return (
+              <Card key={entry.id} className="shadow-sm">
+                <CardContent className="p-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Date</p>
+                      <p className="text-sm font-semibold" data-testid={`text-date-${entry.id}`}>{new Date(entry.date).toLocaleDateString()}</p>
+                    </div>
+                    {entry.teamName && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Team</p>
+                        <p className="text-sm font-semibold" data-testid={`text-team-${entry.id}`}>{entry.teamName}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total</p>
+                      <p className="text-sm font-semibold text-green-600" data-testid={`text-total-${entry.id}`}>Rs {total}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2 text-xs">
+                    {allowanceObj.travelAllowance > 0 && <div><span className="text-muted-foreground">Travel:</span> <span className="font-semibold">Rs {allowanceObj.travelAllowance}</span></div>}
+                    {allowanceObj.foodAllowance > 0 && <div><span className="text-muted-foreground">Food:</span> <span className="font-semibold">Rs {allowanceObj.foodAllowance}</span></div>}
+                    {allowanceObj.accommodationAllowance > 0 && <div><span className="text-muted-foreground">Accom:</span> <span className="font-semibold">Rs {allowanceObj.accommodationAllowance}</span></div>}
+                    {allowanceObj.mobileAllowance > 0 && <div><span className="text-muted-foreground">Mobile:</span> <span className="font-semibold">Rs {allowanceObj.mobileAllowance}</span></div>}
+                    {allowanceObj.internetAllowance > 0 && <div><span className="text-muted-foreground">Internet:</span> <span className="font-semibold">Rs {allowanceObj.internetAllowance}</span></div>}
+                    {allowanceObj.utilitiesAllowance > 0 && <div><span className="text-muted-foreground">Utilities:</span> <span className="font-semibold">Rs {allowanceObj.utilitiesAllowance}</span></div>}
+                    {allowanceObj.parkingAllowance > 0 && <div><span className="text-muted-foreground">Parking:</span> <span className="font-semibold">Rs {allowanceObj.parkingAllowance}</span></div>}
+                    {allowanceObj.miscAllowance > 0 && <div><span className="text-muted-foreground">Misc:</span> <span className="font-semibold">Rs {allowanceObj.miscAllowance}</span></div>}
+                  </div>
+
+                  {allowanceObj.notes && (
+                    <div className="mb-2 text-xs">
+                      <p className="text-muted-foreground">Notes:</p>
+                      <p className="text-sm">{allowanceObj.notes}</p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 items-center justify-between pt-2 border-t">
+                    <div className="flex gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusColor}`} data-testid={`badge-status-${entry.id}`}>
+                        {entry.approvalStatus.charAt(0).toUpperCase() + entry.approvalStatus.slice(1)}
+                      </span>
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${paidColor}`} data-testid={`badge-paid-${entry.id}`}>
+                        {entry.paidStatus.charAt(0).toUpperCase() + entry.paidStatus.slice(1)}
+                      </span>
+                    </div>
+                    {entry.approvalStatus === 'pending' && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(entry.id)}
+                        disabled={deleting}
+                        className="h-7 text-xs"
+                        data-testid={`button-delete-${entry.id}`}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
