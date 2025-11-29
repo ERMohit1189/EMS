@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
 
 interface Employee {
   id: string;
@@ -484,6 +485,108 @@ export default function SalaryStructure() {
     });
   };
 
+  const downloadSalaryPDF = () => {
+    if (!salary || !selectedEmployee) return;
+    
+    const employee = employees.find(e => e.id === selectedEmployee);
+    const employeeName = employee?.name || 'Employee';
+    
+    const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
+    const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
+    const net = gross - deductions;
+    
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    let yPos = 20;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const lineHeight = 7;
+    
+    // Title
+    pdf.setFontSize(16);
+    pdf.text('SALARY STRUCTURE', margin, yPos);
+    yPos += 10;
+    
+    // Employee Info
+    pdf.setFontSize(11);
+    pdf.text(`Employee Name: ${employeeName}`, margin, yPos);
+    yPos += lineHeight;
+    pdf.text(`Employee ID: ${selectedEmployee}`, margin, yPos);
+    yPos += 10;
+    
+    // Earnings Section
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('EARNINGS', margin, yPos);
+    yPos += lineHeight;
+    
+    pdf.setFontSize(10);
+    const earningsData = [
+      ['Basic Salary', `₹${formatValue(salary.basicSalary)}`],
+      ['HRA (50%)', `₹${formatValue(salary.hra)}`],
+      ['DA (20%)', `₹${formatValue(salary.da)}`],
+      ['LTA (10%)', `₹${formatValue(salary.lta)}`],
+      ['Conveyance', `₹${formatValue(salary.conveyance)}`],
+      ['Medical', `₹${formatValue(salary.medical)}`],
+      ['Bonuses', `₹${formatValue(salary.bonuses)}`],
+      ['Other Benefits', `₹${formatValue(salary.otherBenefits)}`],
+    ];
+    
+    earningsData.forEach(([label, value]) => {
+      pdf.text(label, margin + 2, yPos);
+      pdf.text(value, margin + 80, yPos);
+      yPos += lineHeight;
+    });
+    
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Gross Salary', margin + 2, yPos);
+    pdf.text(`₹${formatValue(gross)}`, margin + 80, yPos);
+    yPos += 10;
+    
+    // Deductions Section
+    pdf.setFont(undefined, 'normal');
+    pdf.setFontSize(12);
+    pdf.text('DEDUCTIONS', margin, yPos);
+    yPos += lineHeight;
+    
+    pdf.setFontSize(10);
+    const deductionsData = [
+      ['PF (12%)', `₹${formatValue(salary.pf)}`],
+      ['Professional Tax', `₹${formatValue(salary.professionalTax)}`],
+      ['Income Tax', `₹${formatValue(salary.incomeTax)}`],
+      ['EPF (3.67%)', `₹${formatValue(salary.epf)}`],
+      ['ESIC (0.75%)', `₹${formatValue(salary.esic)}`],
+    ];
+    
+    deductionsData.forEach(([label, value]) => {
+      pdf.text(label, margin + 2, yPos);
+      pdf.text(value, margin + 80, yPos);
+      yPos += lineHeight;
+    });
+    
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Total Deductions', margin + 2, yPos);
+    pdf.text(`₹${formatValue(deductions)}`, margin + 80, yPos);
+    yPos += 10;
+    
+    // Net Salary
+    pdf.setFontSize(12);
+    pdf.setTextColor(25, 118, 210);
+    pdf.text('NET SALARY (Payable)', margin, yPos);
+    pdf.text(`₹${formatValue(net)}`, margin + 80, yPos);
+    
+    pdf.save(`${employeeName}_SalaryStructure.pdf`);
+    
+    toast({
+      title: 'Success',
+      description: `PDF downloaded for ${employeeName}`,
+    });
+  };
+
   if (!salary) {
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
@@ -729,7 +832,10 @@ export default function SalaryStructure() {
         <div className="col-span-2 flex justify-end gap-4">
           <Button variant="outline" onClick={() => { setSelectedEmployee(""); setSalary(null); setManuallyEdited(new Set()); }}>Cancel</Button>
           <Button variant="outline" onClick={downloadSalary} data-testid="button-download-salary">
-            Download
+            Download Excel
+          </Button>
+          <Button variant="outline" onClick={downloadSalaryPDF} data-testid="button-download-pdf">
+            Download PDF
           </Button>
           <Button size="lg" onClick={saveSalary} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save Structure'}
