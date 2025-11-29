@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -598,6 +599,18 @@ export default function SalaryStructure() {
             <div className="flex justify-between font-bold text-lg text-red-600 bg-red-50 dark:bg-red-950 p-3 rounded">
               <span>Total Deductions</span>
               <span>₹{formatValue(deductions)}</span>
+            </div>
+            <Separator />
+            <div className="flex items-center space-x-2 p-3 bg-blue-50 dark:bg-blue-950 rounded">
+              <Checkbox 
+                id="want-deduction" 
+                checked={wantDeduction}
+                onCheckedChange={(checked) => setWantDeduction(checked as boolean)}
+                data-testid="checkbox-want-deduction"
+              />
+              <Label htmlFor="want-deduction" className="font-semibold cursor-pointer">
+                Want Salary Deduction
+              </Label>
             </div>
           </CardContent>
         </Card>
