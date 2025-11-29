@@ -70,12 +70,12 @@ export default function SalaryStructure() {
     fetchEmployees();
   }, []);
 
-  // Focus basic salary input when salary is loaded
+  // Focus basic salary input only when salary is first loaded, not on edits
   useEffect(() => {
-    if (salary) {
+    if (salary && editSource === null && selectedEmployee) {
       setTimeout(() => basicSalaryRef.current?.focus(), 0);
     }
-  }, [salary]);
+  }, [selectedEmployee]);
 
   const fetchEmployees = async () => {
     try {
