@@ -1461,7 +1461,7 @@ export async function registerRoutes(
   app.put("/api/allowances/:id/approve", async (req, res) => {
     try {
       const { id } = req.params;
-      const approvedBy = req.session?.userId || 'admin';
+      const approvedBy = req.session?.employeeId || 'admin';
       console.log(`[Allowances] Approving ${id}`);
       const allowance = await storage.approveDailyAllowance(id, approvedBy);
       res.json({ success: true, data: allowance });
