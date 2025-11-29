@@ -32,7 +32,8 @@ export default function Teams() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [loadingAddMember, setLoadingAddMember] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
@@ -90,13 +91,16 @@ export default function Teams() {
       e.stopPropagation();
     }
     
+    console.log('[Teams] CREATE TEAM button clicked');
+    
     if (!formData.name.trim()) {
       toast({ title: 'Error', description: 'Team name is required', variant: 'destructive' });
       return;
     }
 
     try {
-      setLoading(true);
+      setLoadingCreate(true);
+      console.log('[Teams] Creating team:', formData.name);
       const response = await fetch(`${getApiBaseUrl()}/api/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,7 +118,7 @@ export default function Teams() {
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
-      setLoading(false);
+      setLoadingCreate(false);
     }
   };
 
@@ -124,13 +128,16 @@ export default function Teams() {
       e.stopPropagation();
     }
     
+    console.log('[Teams] ADD MEMBER button clicked');
+    
     if (!selectedTeamId || !selectedEmployeeId) {
       toast({ title: 'Error', description: 'Please select team and employee', variant: 'destructive' });
       return;
     }
 
     try {
-      setLoading(true);
+      setLoadingAddMember(true);
+      console.log('[Teams] Adding member to team:', selectedTeamId, selectedEmployeeId);
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -148,7 +155,7 @@ export default function Teams() {
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
-      setLoading(false);
+      setLoadingAddMember(false);
     }
   };
 
@@ -156,7 +163,6 @@ export default function Teams() {
     if (!selectedTeamId) return;
 
     try {
-      setLoading(true);
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members/${memberId}`, {
         method: 'DELETE',
       });
@@ -169,8 +175,6 @@ export default function Teams() {
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -178,7 +182,6 @@ export default function Teams() {
     if (!window.confirm('Are you sure you want to delete this team?')) return;
 
     try {
-      setLoading(true);
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}`, {
         method: 'DELETE',
       });
@@ -192,8 +195,6 @@ export default function Teams() {
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -229,11 +230,11 @@ export default function Teams() {
             <Button
               type="button"
               onClick={(e) => handleCreateTeam(e)}
-              disabled={loading}
+              disabled={loadingCreate}
               className="w-full h-8 text-xs bg-green-600 hover:bg-green-700"
               data-testid="button-create-team"
             >
-              {loading ? 'Creating...' : 'Create Team'}
+              {loadingCreate ? 'Creating...' : 'Create Team'}
             </Button>
           </CardContent>
         </Card>
@@ -279,11 +280,11 @@ export default function Teams() {
             <Button
               type="button"
               onClick={(e) => handleAddMember(e)}
-              disabled={loading || !selectedTeamId || !selectedEmployeeId}
+              disabled={loadingAddMember || !selectedTeamId || !selectedEmployeeId}
               className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700"
               data-testid="button-add-member"
             >
-              {loading ? 'Adding...' : 'Add Member'}
+              {loadingAddMember ? 'Adding...' : 'Add Member'}
             </Button>
           </CardContent>
         </Card>
