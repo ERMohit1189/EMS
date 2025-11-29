@@ -21,18 +21,18 @@ export function Breadcrumb() {
   ];
 
   return (
-    <nav className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 text-sm font-medium" data-testid="nav-breadcrumb">
-      <a href="/" className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1">
-        <Home className="h-4 w-4" />
-        Home
+    <nav className="flex items-center gap-1 md:gap-2 px-2 md:px-6 py-2 md:py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 text-xs md:text-sm font-medium overflow-x-auto" data-testid="nav-breadcrumb">
+      <a href="/" className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+        <Home className="h-3 md:h-4 w-3 md:w-4 flex-shrink-0" />
+        <span className="hidden sm:inline">Home</span>
       </a>
       {breadcrumbs.slice(1).map((crumb, index) => (
-        <div key={crumb.href} className="flex items-center gap-2">
-          <ChevronRight className="h-4 w-4 text-blue-400" />
+        <div key={crumb.href} className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+          <ChevronRight className="h-3 md:h-4 w-3 md:w-4 text-blue-400 flex-shrink-0" />
           <a
             href={crumb.href}
             className={cn(
-              "transition-colors py-1 px-2 rounded",
+              "transition-colors py-1 px-1 md:px-2 rounded whitespace-nowrap text-xs md:text-sm",
               index === breadcrumbs.length - 2
                 ? "text-blue-900 font-semibold bg-white/50"
                 : "text-blue-600 hover:text-blue-700 hover:bg-white/30"
