@@ -121,10 +121,14 @@ export default function Allowances() {
       if (!skipLoading) setLoading(true);
       const m = month || selectedMonth;
       const y = year || selectedYear;
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}/${m}/${y}`);
+      console.log(`Fetching allowances for ${employeeId}, month: ${m}, year: ${y}`);
+      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`);
       if (response.ok) {
         const data = await response.json();
+        console.log(`Received ${data.data?.length || 0} allowances`);
         setSubmittedEntries(data.data || []);
+      } else {
+        console.error('API error:', response.status);
       }
     } catch (error: any) {
       console.error('Error fetching allowances:', error);

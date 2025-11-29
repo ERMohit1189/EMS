@@ -1360,10 +1360,29 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/allowances/:employeeId/:month/:year", async (req, res) => {
+  app.get("/api/allowances/:employeeId", async (req, res, next) => {
+    // Check if this is actually a month/year route
+    const month = req.query.month;
+    const year = req.query.year;
+    
+    if (month && year) {
+      console.log(`[Allowances] GET month/year - employeeId: ${req.params.employeeId}, month: ${month}, year: ${year}`);
+      try {
+        const allowances = await storage.getEmployeeAllowancesByMonthYear(req.params.employeeId, parseInt(month as string), parseInt(year as string));
+        console.log(`[Allowances] Found ${allowances.length} allowances for month/year`);
+        return res.json({ data: allowances });
+      } catch (error: any) {
+        console.error(`[Allowances Fetch Error]`, error.message);
+        return res.status(400).json({ error: error.message });
+      }
+    }
+    
+    // Regular employee get
     try {
-      const { employeeId, month, year } = req.params;
-      const allowances = await storage.getEmployeeAllowancesByMonthYear(employeeId, parseInt(month), parseInt(year));
+      console.log(`[Allowances] GET all - employeeId: ${req.params.employeeId}`);
+      const { employeeId } = req.params;
+      const allowances = await storage.getEmployeeAllowances(employeeId);
+      console.log(`[Allowances] Found ${allowances.length} allowances`);
       res.json({ data: allowances });
     } catch (error: any) {
       console.error(`[Allowances Fetch Error]`, error.message);
@@ -1377,17 +1396,6 @@ export async function registerRoutes(
       const allowance = await storage.getEmployeeAllowancesByDate(employeeId, date);
       res.json(allowance || null);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/allowances/:employeeId", async (req, res) => {
-    try {
-      const { employeeId } = req.params;
-      const allowances = await storage.getEmployeeAllowances(employeeId);
-      res.json({ data: allowances });
-    } catch (error: any) {
-      console.error(`[Allowances Fetch Error]`, error.message);
       res.status(400).json({ error: error.message });
     }
   });
