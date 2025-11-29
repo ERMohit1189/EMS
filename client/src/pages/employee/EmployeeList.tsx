@@ -37,7 +37,10 @@ export default function EmployeeList() {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
+        const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { 
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+        });
         if (response.ok) {
           const data = await response.json();
           setEmployees(data.data || []);
