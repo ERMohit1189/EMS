@@ -59,8 +59,10 @@ export default function Allowances() {
   
   // Month/Year filter - default to current month
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
-  const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
+  const defaultMonth = String(now.getMonth() + 1).padStart(2, '0');
+  const defaultYear = String(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
+  const [selectedYear, setSelectedYear] = useState(defaultYear);
 
   const validateAllowances = (data: typeof formData, capsData: any): boolean => {
     const travel = parseFloat(data.travelAllowance) || 0;
@@ -84,13 +86,13 @@ export default function Allowances() {
   };
 
   useEffect(() => {
-    fetchAllowances(true);
+    fetchAllowances(true, defaultMonth, defaultYear);
     // Load allowance caps from settings
     const allowanceCaps = localStorage.getItem('allowanceCaps');
     if (allowanceCaps) {
       setCaps(JSON.parse(allowanceCaps));
     }
-  }, []);
+  }, [employeeId]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
