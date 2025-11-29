@@ -1141,7 +1141,7 @@ export class DrizzleStorage implements IStorage {
   async getPendingAllowancesForTeams(employeeId: string): Promise<any[]> {
     console.log(`[Storage] getPendingAllowancesForTeams - START - employeeId: ${employeeId}`);
     
-    // Get all teams for this employee
+    // Step 1: Get all teams for this employee
     const userTeams = await this.getTeamsForEmployee(employeeId);
     console.log(`[Storage] getPendingAllowancesForTeams - Found ${userTeams.length} teams:`, userTeams.map(t => ({ id: t.id, name: t.name })));
     
@@ -1152,13 +1152,26 @@ export class DrizzleStorage implements IStorage {
       return [];
     }
     
-    console.log(`[Storage] getPendingAllowancesForTeams - Querying allowances for teamIds:`, teamIds);
+    // Step 2: Get all team members in these teams (get their employee IDs)
+    console.log(`[Storage] getPendingAllowancesForTeams - Fetching team members for teamIds:`, teamIds);
+    const teamMembersQuery = await db.select({ employeeId: teamMembers.employeeId })
+      .from(teamMembers)
+      .where(inArray(teamMembers.teamId, teamIds));
     
-    // Get pending allowances only for team members in this employee's teams
+    const teamMemberEmployeeIds = teamMembersQuery.map(m => m.employeeId);
+    console.log(`[Storage] getPendingAllowancesForTeams - Found ${teamMemberEmployeeIds.length} team member employee IDs:`, teamMemberEmployeeIds);
+    
+    if (teamMemberEmployeeIds.length === 0) {
+      console.log(`[Storage] getPendingAllowancesForTeams - No team members found, returning empty`);
+      return [];
+    }
+    
+    // Step 3: Get pending allowances for all these team members
+    console.log(`[Storage] getPendingAllowancesForTeams - Querying pending allowances for team members`);
     const result = await db.select().from(dailyAllowances)
       .where(and(
         eq(dailyAllowances.approvalStatus, 'pending'),
-        inArray(dailyAllowances.teamId, teamIds)
+        inArray(dailyAllowances.employeeId, teamMemberEmployeeIds)
       ))
       .orderBy(dailyAllowances.submittedAt);
     
