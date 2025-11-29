@@ -66,6 +66,15 @@ const formatValue = (value: number | string): string | number => {
   return rounded % 1 === 0 ? Math.floor(rounded) : rounded;
 };
 
+interface ExportHeader {
+  companyName?: string;
+  address?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  gstin?: string;
+  website?: string;
+}
+
 export default function SalaryStructure() {
   const { toast } = useToast();
   const basicSalaryRef = useRef<HTMLInputElement>(null);
@@ -81,9 +90,11 @@ export default function SalaryStructure() {
   const [grossInput, setGrossInput] = useState<string>("");
   const [netInput, setNetInput] = useState<string>("");
   const [wantDeduction, setWantDeduction] = useState<boolean>(true);
+  const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
 
   useEffect(() => {
     fetchEmployees();
+    fetchExportHeader();
   }, []);
 
   // Focus basic salary input only when salary is first loaded, not on edits
@@ -131,6 +142,18 @@ export default function SalaryStructure() {
         description: "Failed to load employees",
         variant: "destructive",
       });
+    }
+  };
+
+  const fetchExportHeader = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+      if (response.ok) {
+        const data = await response.json();
+        setExportHeader(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch export header", error);
     }
   };
 
@@ -438,7 +461,7 @@ export default function SalaryStructure() {
     
     const employee = employees.find(e => e.id === selectedEmployee);
     const employeeName = employee?.name || 'Employee';
-    const companyName = 'Enterprise Management System';
+    const companyName = exportHeader?.companyName || 'Enterprise Management System';
     const currentDate = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
@@ -501,7 +524,8 @@ export default function SalaryStructure() {
     
     const employee = employees.find(e => e.id === selectedEmployee);
     const employeeName = employee?.name || 'Employee';
-    const companyName = 'Enterprise Management System';
+    const companyName = exportHeader?.companyName || 'Enterprise Management System';
+    const companyAddress = exportHeader?.address || '';
     const currentDate = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
@@ -523,7 +547,15 @@ export default function SalaryStructure() {
     pdf.setFontSize(14);
     pdf.setFont(undefined, 'bold');
     pdf.text(companyName, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 8;
+    yPos += 6;
+    
+    // Company Address
+    if (companyAddress) {
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(companyAddress, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 5;
+    }
     
     // Document Title
     pdf.setFontSize(12);
