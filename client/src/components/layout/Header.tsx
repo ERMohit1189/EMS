@@ -1,4 +1,4 @@
-import { Bell, Search, User, Settings, Menu } from 'lucide-react';
+import { Bell, Search, Settings, Menu } from 'lucide-react';
 import { useLocation } from 'wouter';
 import {
   DropdownMenu,
@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { QuickAccessMenu } from './Navigation';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -57,10 +56,6 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
         </div>
       </div>
 
-      <div className="hidden lg:block">
-        <QuickAccessMenu />
-      </div>
-      
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 md:border-l md:pl-3 lg:pl-4">
         <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10 hidden md:inline-flex" data-testid="button-notifications">
           <Bell className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
