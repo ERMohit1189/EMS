@@ -115,6 +115,11 @@ export default function Attendance() {
   };
 
   const handleDayClick = (day: number) => {
+    // Check if user can edit this day (for user role: only current day)
+    if (!canEditDay(day)) {
+      return;
+    }
+    
     const current = attendance[day];
     const status = getStatus(current);
     
@@ -275,14 +280,21 @@ export default function Attendance() {
 
               const statusEmoji = status === 'present' ? '✓' : status === 'absent' ? '✗' : status === 'leave' ? '🎯' : status === 'holiday' ? '🎉' : '';
 
+              const isEditable = canEditDay(day);
+              const disabledClass = !isEditable ? 'opacity-50 cursor-not-allowed bg-gray-200 border-gray-300' : '';
+              
               return (
                 <div key={day} className="relative group">
                   <button
-                    onClick={() => handleDayClick(day)}
-                    disabled={loading}
-                    className={`w-full h-12 md:h-16 p-0.5 border rounded font-semibold transition-colors cursor-pointer flex flex-col items-center justify-center text-xs md:text-sm min-w-8 md:min-w-auto ${bgColor}`}
+                    onClick={() => isEditable && handleDayClick(day)}
+                    disabled={loading || !isEditable}
+                    className={`w-full h-12 md:h-16 p-0.5 border rounded font-semibold transition-colors flex flex-col items-center justify-center text-xs md:text-sm min-w-8 md:min-w-auto ${isEditable ? `cursor-pointer ${bgColor}` : disabledClass}`}
                     title={
-                      leaveType
+                      !isEditable
+                        ? employeeRole === 'user' 
+                          ? 'User role: Only current date allowed'
+                          : 'Not editable'
+                        : leaveType
                         ? `${day} - Leave (${leaveType})`
                         : status
                           ? `${day} - ${status.charAt(0).toUpperCase() + status.slice(1)}`
@@ -296,7 +308,7 @@ export default function Attendance() {
                       {leaveType && <span className="text-xs font-bold text-yellow-700 leading-none">{leaveType}</span>}
                     </div>
                   </button>
-                  {status && (
+                  {status && isEditable && (
                     <button
                       onClick={() => {
                         setAttendance({
