@@ -172,7 +172,7 @@ export default function EmployeeEdit() {
     defaultValues: {
       name: employee?.name || "",
       email: employee?.email || "",
-      dob: employee?.dob || "",
+      dob: employee?.dob ? employee.dob : "",
       fatherName: employee?.fatherName || "",
       mobile: employee?.mobile || "",
       alternateNo: employee?.alternateNo || "",
@@ -201,7 +201,7 @@ export default function EmployeeEdit() {
       // Sync form values with employee data for all fields
       form.setValue("name", employee.name || "", { shouldValidate: false });
       form.setValue("email", employee.email || "", { shouldValidate: false });
-      form.setValue("dob", employee.dob, { shouldValidate: false });
+      form.setValue("dob", employee.dob || "", { shouldValidate: false });
       form.setValue("fatherName", employee.fatherName || "", {
         shouldValidate: false,
       });
