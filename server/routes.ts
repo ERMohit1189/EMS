@@ -1380,8 +1380,22 @@ export async function registerRoutes(
     if (month && year) {
       console.log(`[Allowances] GET month/year - employeeId: ${req.params.employeeId}, month: ${month}, year: ${year}`);
       try {
-        const allowances = await storage.getEmployeeAllowancesByMonthYear(req.params.employeeId, parseInt(month as string), parseInt(year as string));
+        let allowances = await storage.getEmployeeAllowancesByMonthYear(req.params.employeeId, parseInt(month as string), parseInt(year as string));
         console.log(`[Allowances] Found ${allowances.length} allowances for month/year`);
+        
+        // Ensure team names are enriched
+        allowances = await Promise.all(allowances.map(async (allowance) => {
+          if (allowance.teamId && !allowance.teamName) {
+            const team = await storage.getTeam(allowance.teamId);
+            return {
+              ...allowance,
+              teamName: team?.name || null,
+            };
+          }
+          return allowance;
+        }));
+        
+        console.log(`[Allowances] After enrichment, first allowance:`, allowances[0]);
         return res.json({ data: allowances });
       } catch (error: any) {
         console.error(`[Allowances Fetch Error]`, error.message);
@@ -1393,8 +1407,21 @@ export async function registerRoutes(
     try {
       console.log(`[Allowances] GET all - employeeId: ${req.params.employeeId}`);
       const { employeeId } = req.params;
-      const allowances = await storage.getEmployeeAllowances(employeeId);
+      let allowances = await storage.getEmployeeAllowances(employeeId);
       console.log(`[Allowances] Found ${allowances.length} allowances`);
+      
+      // Ensure team names are enriched
+      allowances = await Promise.all(allowances.map(async (allowance) => {
+        if (allowance.teamId && !allowance.teamName) {
+          const team = await storage.getTeam(allowance.teamId);
+          return {
+            ...allowance,
+            teamName: team?.name || null,
+          };
+        }
+        return allowance;
+      }));
+      
       res.json({ data: allowances });
     } catch (error: any) {
       console.error(`[Allowances Fetch Error]`, error.message);
