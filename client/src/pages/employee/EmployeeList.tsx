@@ -38,8 +38,7 @@ export default function EmployeeList() {
       try {
         setLoading(true);
         const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { 
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+          cache: 'no-store'
         });
         if (response.ok) {
           const data = await response.json();
