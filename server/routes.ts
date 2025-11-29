@@ -680,6 +680,11 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Employee not found" });
       }
 
+      // Verify employee has a password set
+      if (!employee.password) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
       // Verify current password
       const passwordMatch = await bcrypt.compare(currentPassword, employee.password);
       if (!passwordMatch) {
