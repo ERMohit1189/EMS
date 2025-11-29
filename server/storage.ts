@@ -433,13 +433,13 @@ export class DrizzleStorage implements IStorage {
     return result as Site[];
   }
 
-  // Helper function to auto-update site status based on remarks
+  // Helper function to auto-update site status based on AT status
   private autoUpdateSiteStatus(site: Partial<InsertSite>): Partial<InsertSite> {
-    if (site.softAtRemark === "Approved" && site.phyAtRemark === "Approved") {
+    if (site.softAtStatus === "Approved" && site.phyAtStatus === "Approved") {
       return { ...site, status: "Approved" };
     }
-    // If either remark is not Approved, set status to Pending
-    if (site.softAtRemark !== "Approved" || site.phyAtRemark !== "Approved") {
+    // If either status is not Approved, set status to Pending
+    if (site.softAtStatus !== "Approved" || site.phyAtStatus !== "Approved") {
       return { ...site, status: "Pending" };
     }
     return site;
@@ -455,19 +455,19 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async bulkUpdateRemarks(siteIds: string[], phyAtRemark?: string, softAtRemark?: string): Promise<{ updated: number }> {
+  async bulkUpdateRemarks(siteIds: string[], phyAtStatus?: string, softAtStatus?: string): Promise<{ updated: number }> {
     const updateData: Partial<InsertSite> = {};
-    if (phyAtRemark) updateData.phyAtRemark = phyAtRemark;
-    if (softAtRemark) updateData.softAtRemark = softAtRemark;
+    if (phyAtStatus) updateData.phyAtStatus = phyAtStatus;
+    if (softAtStatus) updateData.softAtStatus = softAtStatus;
 
     if (Object.keys(updateData).length === 0) {
       return { updated: 0 };
     }
 
     // Auto-update status: Approved if both are Approved, Pending if either is not Approved
-    if (phyAtRemark === "Approved" && softAtRemark === "Approved") {
+    if (phyAtStatus === "Approved" && softAtStatus === "Approved") {
       updateData.status = "Approved";
-    } else if (phyAtRemark !== "Approved" || softAtRemark !== "Approved") {
+    } else if (phyAtStatus !== "Approved" || softAtStatus !== "Approved") {
       updateData.status = "Pending";
     }
 
@@ -558,13 +558,13 @@ export class DrizzleStorage implements IStorage {
     await db.delete(sites);
   }
 
-  // Recalculate site status for existing sites based on remarks
+  // Recalculate site status for existing sites based on AT status
   async recalculateSiteStatuses(): Promise<{ updated: number }> {
     const allSites = await db.select().from(sites);
     let updatedCount = 0;
 
     for (const site of allSites) {
-      if (site.softAtRemark === "Approved" && site.phyAtRemark === "Approved" && site.status !== "Approved") {
+      if (site.softAtStatus === "Approved" && site.phyAtStatus === "Approved" && site.status !== "Approved") {
         await db
           .update(sites)
           .set({ status: "Approved" })
@@ -578,65 +578,16 @@ export class DrizzleStorage implements IStorage {
 
   async getSitesByDateRange(startDate: string, endDate: string): Promise<Site[]> {
     const result = await db
-      .select({
-        id: sites.id,
-        siteId: sites.siteId,
-        vendorId: sites.vendorId,
-        zoneId: sites.zoneId,
-        planId: sites.planId,
-        antennaSize: sites.antennaSize,
-        incDate: sites.incDate,
-        state: sites.state,
-        region: sites.region,
-        zoneName: zones.name,
-        inside: sites.inside,
-        formNo: sites.formNo,
-        siteAmount: paymentMasters.siteAmount,
-        vendorAmount: paymentMasters.vendorAmount,
-        softAtRemark: sites.softAtRemark,
-        phyAtRemark: sites.phyAtRemark,
-        atpRemark: sites.atpRemark,
-        sno: sites.sno,
-        circle: sites.circle,
-        nominalAop: sites.nominalAop,
-        hopType: sites.hopType,
-        hopAB: sites.hopAB,
-        hopBA: sites.hopBA,
-        district: sites.district,
-        project: sites.project,
-        siteAAntDia: sites.siteAAntDia,
-        siteBAntDia: sites.siteBAntDia,
-        maxAntSize: sites.maxAntSize,
-        siteAName: sites.siteAName,
-        tocoVendorA: sites.tocoVendorA,
-        tocoIdA: sites.tocoIdA,
-        siteBName: sites.siteBName,
-        tocoVendorB: sites.tocoVendorB,
-        tocoIdB: sites.tocoIdB,
-        mediaAvailabilityStatus: sites.mediaAvailabilityStatus,
-        srNoSiteA: sites.srNoSiteA,
-        srDateSiteA: sites.srDateSiteA,
-        srNoSiteB: sites.srNoSiteB,
-        srDateSiteB: sites.srDateSiteB,
-        hopSrDate: sites.hopSrDate,
-        spDateSiteA: sites.spDateSiteA,
-        spDateSiteB: sites.spDateSiteB,
-        hopSpDate: sites.hopSpDate,
-        soReleasedDateSiteA: sites.soReleasedDateSiteA,
-        soReleasedDateSiteB: sites.soReleasedDateSiteB,
-        hopSoDate: sites.hopSoDate,
-        rfaiOfferedDateSiteA: sites.rfaiOfferedDateSiteA,
-        rfaiOfferedDateSiteB: sites.rfaiOfferedDateSiteB,
-        actualHopRfaiOfferedDate: sites.actualHopRfaiOfferedDate,
-        partnerName: sites.partnerName,
-        rfaiSurveyCompletionDate: sites.rfaiSurveyCompletionDate,
-        moNumberSiteA: sites.moNumberSiteA,
-        materialTypeSiteA: sites.materialTypeSiteA,
-        moDateSiteA: sites.moDateSiteA,
-        moNumberSiteB: sites.moNumberSiteB,
-        materialTypeSiteB: sites.materialTypeSiteB,
-        moDateSiteB: sites.moDateSiteB,
-        srnRmoNumber: sites.srnRmoNumber,
+      .select()
+      .from(sites)
+      .where(
+        and(
+          gte(sites.createdAt, new Date(startDate)),
+          lte(sites.createdAt, new Date(endDate))
+        )
+      );
+    
+    return result as Site[];
         srnRmoDate: sites.srnRmoDate,
         hopMoDate: sites.hopMoDate,
         hopMaterialDispatchDate: sites.hopMaterialDispatchDate,
