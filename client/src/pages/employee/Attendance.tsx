@@ -182,53 +182,53 @@ export default function Attendance() {
   const holidayCount = Object.values(attendance).filter((v) => getStatus(v) === 'holiday').length;
 
   return (
-    <div className="space-y-3">
-      <div className="pb-2">
-        <h2 className="text-2xl font-bold">Monthly Attendance</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {employeeName} - {monthName}
+    <div className="space-y-2 md:space-y-3">
+      <div className="pb-1 md:pb-2">
+        <h2 className="text-xl md:text-2xl font-bold">Attendance</h2>
+        <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1 truncate">
+          {employeeName} • {monthName}
         </p>
       </div>
 
       <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2">
-            <CardTitle className="text-lg">{monthName}</CardTitle>
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" onClick={handlePrevMonth}>
+        <CardHeader className="pb-2 md:pb-3 px-3 md:px-4 pt-3 md:pt-4">
+          <div className="flex items-center justify-between gap-1 md:gap-2">
+            <CardTitle className="text-base md:text-lg truncate">{monthName}</CardTitle>
+            <div className="flex gap-0.5 md:gap-1">
+              <Button variant="outline" size="xs" onClick={handlePrevMonth} className="h-8 px-2 text-xs md:h-9 md:px-3 md:text-sm">
                 ← Prev
               </Button>
-              <Button variant="outline" size="sm" onClick={handleNextMonth}>
+              <Button variant="outline" size="xs" onClick={handleNextMonth} className="h-8 px-2 text-xs md:h-9 md:px-3 md:text-sm">
                 Next →
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3 p-3">
+        <CardContent className="space-y-2 md:space-y-3 p-2 md:p-3">
           {/* Statistics */}
-          <div className="grid grid-cols-4 gap-2">
-            <div className="bg-green-50 p-2 rounded border border-green-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-2">
+            <div className="bg-green-50 p-1.5 md:p-2 rounded border border-green-200">
               <p className="text-xs text-green-600 font-medium">Present</p>
-              <p className="text-lg font-bold text-green-700">{presentCount}</p>
+              <p className="text-base md:text-lg font-bold text-green-700">{presentCount}</p>
             </div>
-            <div className="bg-red-50 p-2 rounded border border-red-200">
+            <div className="bg-red-50 p-1.5 md:p-2 rounded border border-red-200">
               <p className="text-xs text-red-600 font-medium">Absent</p>
-              <p className="text-lg font-bold text-red-700">{absentCount}</p>
+              <p className="text-base md:text-lg font-bold text-red-700">{absentCount}</p>
             </div>
-            <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+            <div className="bg-yellow-50 p-1.5 md:p-2 rounded border border-yellow-200">
               <p className="text-xs text-yellow-600 font-medium">Leave</p>
-              <p className="text-lg font-bold text-yellow-700">{leaveCount}</p>
+              <p className="text-base md:text-lg font-bold text-yellow-700">{leaveCount}</p>
             </div>
-            <div className="bg-purple-50 p-2 rounded border border-purple-200">
+            <div className="bg-purple-50 p-1.5 md:p-2 rounded border border-purple-200">
               <p className="text-xs text-purple-600 font-medium">Holiday</p>
-              <p className="text-lg font-bold text-purple-700">{holidayCount}</p>
+              <p className="text-base md:text-lg font-bold text-purple-700">{holidayCount}</p>
             </div>
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5 md:gap-1 overflow-x-auto">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center font-semibold text-muted-foreground text-xs p-1">
+              <div key={day} className="text-center font-semibold text-muted-foreground text-xs md:text-sm p-0.5 md:p-1 min-w-8 md:min-w-auto">
                 {day}
               </div>
             ))}
@@ -263,7 +263,7 @@ export default function Attendance() {
                   <button
                     onClick={() => handleDayClick(day)}
                     disabled={loading}
-                    className={`w-full h-16 p-0.5 border rounded font-semibold transition-colors cursor-pointer flex flex-col items-center justify-center text-sm ${bgColor}`}
+                    className={`w-full h-12 md:h-16 p-0.5 border rounded font-semibold transition-colors cursor-pointer flex flex-col items-center justify-center text-xs md:text-sm min-w-8 md:min-w-auto ${bgColor}`}
                     title={
                       leaveType
                         ? `${day} - Leave (${leaveType})`
@@ -273,9 +273,9 @@ export default function Attendance() {
                     }
                     data-testid={`button-attendance-day-${day}`}
                   >
-                    <span>{day}</span>
-                    <div className="flex items-center justify-center gap-0.5 h-4">
-                      {statusEmoji && <span className="text-sm leading-none">{statusEmoji}</span>}
+                    <span className="text-xs md:text-base leading-none">{day}</span>
+                    <div className="flex items-center justify-center gap-0.5 h-3 md:h-4">
+                      {statusEmoji && <span className="text-xs md:text-base leading-none">{statusEmoji}</span>}
                       {leaveType && <span className="text-xs font-bold text-yellow-700 leading-none">{leaveType}</span>}
                     </div>
                   </button>
@@ -302,38 +302,37 @@ export default function Attendance() {
 
           {/* Leave Type Dialog */}
           <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-            <AlertDialogContent className="max-w-sm">
+            <AlertDialogContent className="max-w-sm w-11/12 mx-auto">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-base">Select Leave Type</AlertDialogTitle>
-                <AlertDialogDescription className="text-sm">
+                <AlertDialogTitle className="text-sm md:text-base">Leave Type</AlertDialogTitle>
+                <AlertDialogDescription className="text-xs md:text-sm">
                   Day {selectedDay}
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-1 max-h-40 md:max-h-48 overflow-y-auto">
                 {LEAVE_TYPES.map((leave) => (
                   <button
                     key={leave.code}
                     onClick={() => handleLeaveTypeSelect(leave.code)}
-                    className="px-3 py-2 text-left text-sm border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                    className="px-2 md:px-3 py-1.5 md:py-2 text-left text-xs md:text-sm border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
                     data-testid={`button-leave-type-${leave.code}`}
                   >
-                    <span className="font-bold text-blue-600">{leave.code}</span> {leave.name}
+                    <span className="font-bold text-blue-600">{leave.code}</span> <span className="hidden md:inline">{leave.name}</span>
                   </button>
                 ))}
               </div>
-              <AlertDialogCancel className="text-sm">Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="text-xs md:text-sm h-8 md:h-9">Cancel</AlertDialogCancel>
             </AlertDialogContent>
           </AlertDialog>
 
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 p-2 rounded text-xs space-y-1">
-            <p className="text-blue-900 font-semibold">Quick Guide:</p>
-            <ul className="text-blue-900 space-y-0.5 ml-3 list-disc">
-              <li>Sundays auto-marked as holidays (🎉)</li>
-              <li>Click day: Not marked → Present (✓) → Absent (✗) → Leave (🎯) → Holiday (🎉)</li>
-              <li>Absent opens leave type dialog (ML/CL/EL/SL/PL/UL/LWP)</li>
-              <li>Hover day for red ✕ to clear</li>
-              <li>Submit to save</li>
+          <div className="bg-blue-50 border border-blue-200 p-1.5 md:p-2 rounded text-xs space-y-0.5">
+            <p className="text-blue-900 font-semibold text-xs md:text-sm">Quick Guide:</p>
+            <ul className="text-blue-900 space-y-0.5 ml-2 md:ml-3 text-xs">
+              <li>• Sundays = Holidays (🎉)</li>
+              <li>• Click: Not marked → ✓ → ✗ → 🎯 → 🎉</li>
+              <li>• Absent → Leave Type</li>
+              <li>• Hover to clear</li>
             </ul>
           </div>
 
@@ -341,8 +340,7 @@ export default function Attendance() {
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            size="sm"
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 h-8 md:h-9 text-xs md:text-sm"
             data-testid="button-submit-attendance"
           >
             {loading ? 'Submitting...' : 'Submit'}
