@@ -90,7 +90,7 @@ interface Designation { id: string; name: string; }
 
 export default function EmployeeEdit() {
   const [match, params] = useRoute('/employee/edit/:id');
-  const { employees, updateEmployee } = useStore();
+  const { updateEmployee } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);
@@ -101,27 +101,34 @@ export default function EmployeeEdit() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [age, setAge] = useState<{ years: number; months: number; days: number } | null>(null);
+  const [employee, setEmployee] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
 
   const employeeId = params?.id;
-  const employee = employeeId ? employees.find(e => e.id === employeeId) : null;
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [deptRes, desigRes] = await Promise.all([
+        setLoading(true);
+        const [empRes, deptRes, desigRes] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`),
           fetch(`${getApiBaseUrl()}/api/departments`),
           fetch(`${getApiBaseUrl()}/api/designations`),
         ]);
+        if (empRes.ok) setEmployee(await empRes.json());
         if (deptRes.ok) setDepartments(await deptRes.json());
         if (desigRes.ok) setDesignations(await desigRes.json());
       } catch (error) {
-        console.error('Failed to load departments/designations', error);
+        console.error('Failed to load data', error);
+        toast({ title: 'Error', description: 'Failed to load employee data', variant: 'destructive' });
+      } finally {
+        setLoading(false);
       }
     };
-    loadData();
-  }, []);
+    if (employeeId) loadData();
+  }, [employeeId]);
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
