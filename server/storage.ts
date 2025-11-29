@@ -940,26 +940,20 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<DailyAllowance[]> {
-    // Create proper date range for the month
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
-    
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
-    
-    console.log(`[Filter] month=${month}, year=${year}, range: ${startDateStr} to ${endDateStr}`);
-    
-    // Use Drizzle column reference with SQL casting for proper date comparison
-    const result = await db.select().from(dailyAllowances)
-      .where(and(
-        eq(dailyAllowances.employeeId, employeeId),
-        sql`${dailyAllowances.date}::date >= ${startDateStr}::date`,
-        sql`${dailyAllowances.date}::date <= ${endDateStr}::date`
-      ))
+    // Fetch all allowances for the employee and filter in application
+    const allAllowances = await db.select().from(dailyAllowances)
+      .where(eq(dailyAllowances.employeeId, employeeId))
       .orderBy(dailyAllowances.date);
     
-    console.log(`[Filter Result] ${result.length} records for month=${month}`);
-    return result;
+    // Filter by month and year in JavaScript
+    const filtered = allAllowances.filter(allowance => {
+      const allowanceDate = new Date(allowance.date);
+      const allowanceMonth = allowanceDate.getMonth() + 1; // getMonth() returns 0-11
+      const allowanceYear = allowanceDate.getFullYear();
+      return allowanceMonth === month && allowanceYear === year;
+    });
+    
+    return filtered;
   }
 
   async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance> {
