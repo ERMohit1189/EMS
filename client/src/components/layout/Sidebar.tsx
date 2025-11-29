@@ -155,9 +155,9 @@ const menuGroups = [
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const [location, setLocation] = useLocation();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    Main: false,
+    Main: true,
     'Vendor Management': false,
-    'Employee Management': false,
+    'Employee Management': true,
     'Site Operations': false,
     Finance: false,
     Settings: false,
