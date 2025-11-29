@@ -320,23 +320,21 @@ export const insertSalarySchema = createInsertSchema(salaryStructures)
     createdAt: true,
     updatedAt: true,
   })
-  .transform((data) => {
-    // Transform all numeric fields to handle float values properly
-    const numericFields = [
-      'basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
-      'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'
-    ] as const;
-    
-    const transformed: any = { ...data };
-    for (const field of numericFields) {
-      if (transformed[field] !== undefined && transformed[field] !== null) {
-        const num = typeof transformed[field] === 'string' 
-          ? parseFloat(transformed[field]) 
-          : Number(transformed[field]);
-        transformed[field] = isNaN(num) ? 0 : num;
-      }
-    }
-    return transformed;
+  .extend({
+    // Override all decimal fields to accept numbers (not strings)
+    basicSalary: z.number().min(0),
+    hra: z.number().min(0),
+    da: z.number().min(0),
+    lta: z.number().min(0),
+    conveyance: z.number().min(0),
+    medical: z.number().min(0),
+    bonuses: z.number().min(0),
+    otherBenefits: z.number().min(0),
+    pf: z.number().min(0),
+    professionalTax: z.number().min(0),
+    incomeTax: z.number().min(0),
+    epf: z.number().min(0),
+    esic: z.number().min(0),
   });
 
 export const insertPOSchema = createInsertSchema(purchaseOrders).omit({
