@@ -79,7 +79,7 @@ export default function Allowances() {
   };
 
   useEffect(() => {
-    fetchAllowances();
+    fetchAllowances(true);
     // Load allowance caps from settings
     const allowanceCaps = localStorage.getItem('allowanceCaps');
     if (allowanceCaps) {
