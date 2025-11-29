@@ -608,7 +608,16 @@ export default function Teams() {
                           RP1
                           <span className="text-xs font-bold ml-0.5">✕</span>
                         </div>
-                      ) : member.reportingPerson2 === member.id ? (
+                      ) : member.reportingPerson1 ? (
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
+                          data-testid={`badge-reporting-person-1-${member.id}`}
+                        >
+                          RP1 {getReportingPersonName(member.reportingPerson1)}
+                        </div>
+                      ) : null}
+
+                      {member.reportingPerson2 === member.id ? (
                         <div
                           className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(1)} cursor-pointer hover:opacity-80 transition-opacity`}
                           data-testid={`badge-reporting-person-2-${member.id}`}
@@ -618,7 +627,16 @@ export default function Teams() {
                           RP2
                           <span className="text-xs font-bold ml-0.5">✕</span>
                         </div>
-                      ) : member.reportingPerson3 === member.id ? (
+                      ) : member.reportingPerson2 ? (
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
+                          data-testid={`badge-reporting-person-2-${member.id}`}
+                        >
+                          RP2 {getReportingPersonName(member.reportingPerson2)}
+                        </div>
+                      ) : null}
+
+                      {member.reportingPerson3 === member.id ? (
                         <div
                           className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(2)} cursor-pointer hover:opacity-80 transition-opacity`}
                           data-testid={`badge-reporting-person-3-${member.id}`}
@@ -628,43 +646,23 @@ export default function Teams() {
                           RP3
                           <span className="text-xs font-bold ml-0.5">✕</span>
                         </div>
-                      ) : (
-                        <>
-                          {member.reportingPerson1 && (
-                            <div
-                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
-                              data-testid={`badge-reporting-person-1-${member.id}`}
-                            >
-                              RP1 {getReportingPersonName(member.reportingPerson1)}
-                            </div>
-                          )}
-                          
-                          {member.reportingPerson2 && (
-                            <div
-                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
-                              data-testid={`badge-reporting-person-2-${member.id}`}
-                            >
-                              RP2 {getReportingPersonName(member.reportingPerson2)}
-                            </div>
-                          )}
-                          
-                          {member.reportingPerson3 && (
-                            <div
-                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
-                              data-testid={`badge-reporting-person-3-${member.id}`}
-                            >
-                              RP3 {getReportingPersonName(member.reportingPerson3)}
-                            </div>
-                          )}
+                      ) : member.reportingPerson3 ? (
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
+                          data-testid={`badge-reporting-person-3-${member.id}`}
+                        >
+                          RP3 {getReportingPersonName(member.reportingPerson3)}
+                        </div>
+                      ) : null}
 
-                          <button
-                            onClick={() => handleMemberClick(member)}
-                            className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
-                            data-testid={`button-assign-reporting-${member.id}`}
-                          >
-                            Make RP
-                          </button>
-                        </>
+                      {!member.reportingPerson1 && !member.reportingPerson2 && !member.reportingPerson3 && (
+                        <button
+                          onClick={() => handleMemberClick(member)}
+                          className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
+                          data-testid={`button-assign-reporting-${member.id}`}
+                        >
+                          Make RP
+                        </button>
                       )}
                     </div>
                   </div>
