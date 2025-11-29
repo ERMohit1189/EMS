@@ -18,7 +18,7 @@ import {
   employees,
   salaryStructures,
 } from "@shared/schema";
-import { eq, and, or, inArray, coalesce } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
