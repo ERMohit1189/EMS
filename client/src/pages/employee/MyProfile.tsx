@@ -59,7 +59,17 @@ export default function MyProfile() {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`);
       if (response.ok) {
         const data = await response.json();
-        setEmployee(data);
+        // Get department and designation from localStorage (saved during login)
+        const department = localStorage.getItem('employeeDepartment') || 'Not Assigned';
+        const designation = localStorage.getItem('employeeDesignation') || 'Not Specified';
+        
+        const employeeWithNames = {
+          ...data,
+          department,
+          designation,
+        };
+        
+        setEmployee(employeeWithNames);
         if (data.photo) {
           setPhotoPreview(data.photo);
         }

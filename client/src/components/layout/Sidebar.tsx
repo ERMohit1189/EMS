@@ -176,18 +176,13 @@ const userEmployeeMenuGroups = [
         icon: Wallet,
         href: '/employee/allowances',
       },
-      {
-        title: 'Change Credentials',
-        icon: Key,
-        href: '/employee/change-credentials',
-      },
     ],
   },
   {
-    group: 'Settings',
+    group: 'Account',
     items: [
       {
-        title: 'App Settings',
+        title: 'Settings',
         icon: SettingsIcon,
         href: '/settings',
       },
