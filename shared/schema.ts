@@ -385,18 +385,24 @@ export const insertAttendanceSchema = createInsertSchema(attendances).omit({
   submittedAt: true,
 });
 
-export const insertDailyAllowanceSchema = createInsertSchema(dailyAllowances).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  submittedAt: true,
-  approvalStatus: true,
-  approvedBy: true,
-  approvedAt: true,
-  paidStatus: true,
-}).extend({
-  teamId: z.string().nullable().optional(),
-});
+export const insertDailyAllowanceSchema = createInsertSchema(dailyAllowances)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    submittedAt: true,
+    approvalStatus: true,
+    approvedBy: true,
+    approvedAt: true,
+    paidStatus: true,
+  })
+  .extend({
+    teamId: z.string().optional().nullable(),
+    date: z.union([z.string(), z.date()]).transform((val) => {
+      if (typeof val === 'string') return val;
+      return val.toISOString().split('T')[0];
+    }),
+  });
 
 // Type Definitions
 export type Vendor = typeof vendors.$inferSelect;

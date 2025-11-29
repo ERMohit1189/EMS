@@ -981,7 +981,16 @@ export class DrizzleStorage implements IStorage {
 
   // Daily Allowances operations
   async createDailyAllowance(allowance: InsertDailyAllowance): Promise<DailyAllowance> {
-    const [result] = await db.insert(dailyAllowances).values(allowance).returning();
+    console.log('[Storage] createDailyAllowance - input:', allowance);
+    const insertData = {
+      employeeId: allowance.employeeId,
+      teamId: allowance.teamId || null,
+      date: allowance.date,
+      allowanceData: allowance.allowanceData,
+    };
+    console.log('[Storage] createDailyAllowance - will insert:', insertData);
+    const [result] = await db.insert(dailyAllowances).values(insertData).returning();
+    console.log('[Storage] createDailyAllowance - result:', result);
     return result;
   }
 
@@ -1030,7 +1039,16 @@ export class DrizzleStorage implements IStorage {
     if (existing && existing.approvalStatus === 'approved') {
       throw new Error('Cannot update an approved allowance');
     }
-    const [result] = await db.update(dailyAllowances).set(allowance).where(eq(dailyAllowances.id, id)).returning();
+    console.log('[Storage] updateDailyAllowance - input:', allowance);
+    const updateData = {
+      ...(allowance.employeeId && { employeeId: allowance.employeeId }),
+      ...(allowance.teamId !== undefined && { teamId: allowance.teamId || null }),
+      ...(allowance.date && { date: allowance.date }),
+      ...(allowance.allowanceData && { allowanceData: allowance.allowanceData }),
+    };
+    console.log('[Storage] updateDailyAllowance - will update with:', updateData);
+    const [result] = await db.update(dailyAllowances).set(updateData).where(eq(dailyAllowances.id, id)).returning();
+    console.log('[Storage] updateDailyAllowance - result:', result);
     return result;
   }
 
