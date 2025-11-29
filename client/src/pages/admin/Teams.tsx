@@ -596,7 +596,7 @@ export default function Teams() {
                               className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
                               data-testid={`badge-reporting-person-1-${member.id}`}
                             >
-                              RP1: {getReportingPersonName(member.reportingPerson1)}
+                              RP1 {getReportingPersonName(member.reportingPerson1)}
                             </div>
                           )}
                           
@@ -605,7 +605,7 @@ export default function Teams() {
                               className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
                               data-testid={`badge-reporting-person-2-${member.id}`}
                             >
-                              RP2: {getReportingPersonName(member.reportingPerson2)}
+                              RP2 {getReportingPersonName(member.reportingPerson2)}
                             </div>
                           )}
                           
@@ -614,7 +614,7 @@ export default function Teams() {
                               className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
                               data-testid={`badge-reporting-person-3-${member.id}`}
                             >
-                              RP3: {getReportingPersonName(member.reportingPerson3)}
+                              RP3 {getReportingPersonName(member.reportingPerson3)}
                             </div>
                           )}
 
