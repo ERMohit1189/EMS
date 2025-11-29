@@ -545,23 +545,118 @@ export const createColorfulExcel = (
   data: any[],
   columnWidths: number[],
   filename: string,
-  sheetName: string = 'Sheet1'
+  sheetName: string = 'Sheet1',
+  exportHeader?: ExportHeader,
+  reportTitle: string = 'Report'
 ): void => {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet(sheetName);
+
+  // Set column widths first
+  columnWidths.forEach((width, index) => {
+    worksheet.getColumn(index + 1).width = width;
+  });
+
+  // Calculate last column letter for merging
+  const getColumnLetter = (colNum: number): string => {
+    let col = '';
+    while (colNum > 0) {
+      const mod = (colNum - 1) % 26;
+      col = String.fromCharCode(65 + mod) + col;
+      colNum = Math.floor((colNum - 1) / 26);
+    }
+    return col;
+  };
+  
+  const lastColumnLetter = getColumnLetter(columnWidths.length);
+
+  // Add header rows
+  let dataRowStartIndex = 1;
+
+  if (exportHeader?.companyName) {
+    const companyRow = worksheet.addRow([getCompanyName(exportHeader)]);
+    worksheet.mergeCells(`A1:${lastColumnLetter}1`);
+    companyRow.height = 28;
+    companyRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF003D7A' }
+    };
+    companyRow.getCell(1).font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 14
+    };
+    companyRow.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+    dataRowStartIndex = 2;
+  }
+
+  if (exportHeader?.address) {
+    const addressRow = worksheet.addRow([getCompanyAddress(exportHeader)]);
+    worksheet.mergeCells(`A${dataRowStartIndex}:${lastColumnLetter}${dataRowStartIndex}`);
+    addressRow.height = 22;
+    addressRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF0066CC' }
+    };
+    addressRow.getCell(1).font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 10
+    };
+    addressRow.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+    dataRowStartIndex++;
+  }
+
+  // Add empty row
+  worksheet.addRow([]);
+  dataRowStartIndex++;
+
+  // Add title row
+  const titleRow = worksheet.addRow([reportTitle]);
+  worksheet.mergeCells(`A${dataRowStartIndex}:${lastColumnLetter}${dataRowStartIndex}`);
+  titleRow.height = 24;
+  titleRow.getCell(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF1F4E78' }
+  };
+  titleRow.getCell(1).font = {
+    bold: true,
+    color: { argb: 'FFFFFFFF' },
+    size: 12
+  };
+  titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+  dataRowStartIndex++;
+
+  // Add date row
+  const dateRow = worksheet.addRow([`Generated on: ${formatExportDate()}`]);
+  worksheet.mergeCells(`A${dataRowStartIndex}:${lastColumnLetter}${dataRowStartIndex}`);
+  dateRow.height = 20;
+  dateRow.getCell(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE7F0F7' }
+  };
+  dateRow.getCell(1).font = {
+    color: { argb: 'FF1F4E78' },
+    size: 10
+  };
+  dateRow.getCell(1).alignment = { horizontal: 'left', vertical: 'center' };
+  dataRowStartIndex++;
+
+  // Add empty row
+  worksheet.addRow([]);
+  dataRowStartIndex++;
 
   // Add data rows
   data.forEach((row, rowIndex) => {
     worksheet.addRow(row);
   });
 
-  // Set column widths
-  columnWidths.forEach((width, index) => {
-    worksheet.getColumn(index + 1).width = width;
-  });
-
-  // Apply header styling (first row) with vibrant navy blue
-  const headerRow = worksheet.getRow(1);
+  // Header row styling (now at dataRowStartIndex)
+  const headerRow = worksheet.getRow(dataRowStartIndex);
   headerRow.height = 26;
   headerRow.eachCell((cell) => {
     cell.fill = {
@@ -585,7 +680,7 @@ export const createColorfulExcel = (
 
   // Apply data row styling with alternating colors
   worksheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return; // Skip header row
+    if (rowNumber <= dataRowStartIndex || rowNumber === worksheet.rowCount) return; // Skip header rows and last row
     
     row.eachCell((cell) => {
       // Alternating row colors
