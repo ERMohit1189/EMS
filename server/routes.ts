@@ -1058,6 +1058,7 @@ export async function registerRoutes(
   // Salary Report API - Get all employees with salary structures
   app.get("/api/salary-report", async (req, res) => {
     try {
+      console.log("[Salary Report] Fetching salary data...");
       const result = await db
         .select({
           id: salaryStructures.id,
@@ -1085,56 +1086,59 @@ export async function registerRoutes(
         .leftJoin(departments, eq(employees.departmentId, departments.id))
         .leftJoin(designations, eq(employees.designationId, designations.id));
 
+      console.log("[Salary Report] Query returned", result.length, "records");
+
       // Transform data to calculate gross, deductions, net
       const data = result.map((row: any) => {
         const gross =
-          Number(row.basicSalary) +
-          Number(row.hra) +
-          Number(row.da) +
-          Number(row.lta) +
-          Number(row.conveyance) +
-          Number(row.medical) +
-          Number(row.bonuses) +
-          Number(row.otherBenefits);
+          Number(row.salaryStructures.basicSalary || 0) +
+          Number(row.salaryStructures.hra || 0) +
+          Number(row.salaryStructures.da || 0) +
+          Number(row.salaryStructures.lta || 0) +
+          Number(row.salaryStructures.conveyance || 0) +
+          Number(row.salaryStructures.medical || 0) +
+          Number(row.salaryStructures.bonuses || 0) +
+          Number(row.salaryStructures.otherBenefits || 0);
         
         const deductions =
-          Number(row.pf) +
-          Number(row.professionalTax) +
-          Number(row.incomeTax) +
-          Number(row.epf) +
-          Number(row.esic);
+          Number(row.salaryStructures.pf || 0) +
+          Number(row.salaryStructures.professionalTax || 0) +
+          Number(row.salaryStructures.incomeTax || 0) +
+          Number(row.salaryStructures.epf || 0) +
+          Number(row.salaryStructures.esic || 0);
         
         const net = gross - deductions;
 
         return {
-          id: row.id,
-          employeeId: row.employeeId,
-          employeeName: row.employeeName || "Unknown",
-          department: row.department || "Not Assigned",
-          designation: row.designation || "Not Specified",
-          basicSalary: Number(row.basicSalary),
-          hra: Number(row.hra),
-          da: Number(row.da),
-          lta: Number(row.lta),
-          conveyance: Number(row.conveyance),
-          medical: Number(row.medical),
-          bonuses: Number(row.bonuses),
-          otherBenefits: Number(row.otherBenefits),
+          id: row.salaryStructures.id,
+          employeeId: row.salaryStructures.employeeId,
+          employeeName: row.employees.name || "Unknown",
+          department: row.departments?.name || "Not Assigned",
+          designation: row.designations?.name || "Not Specified",
+          basicSalary: Number(row.salaryStructures.basicSalary),
+          hra: Number(row.salaryStructures.hra),
+          da: Number(row.salaryStructures.da),
+          lta: Number(row.salaryStructures.lta),
+          conveyance: Number(row.salaryStructures.conveyance),
+          medical: Number(row.salaryStructures.medical),
+          bonuses: Number(row.salaryStructures.bonuses),
+          otherBenefits: Number(row.salaryStructures.otherBenefits),
           gross: Math.round(gross * 100) / 100,
-          pf: Number(row.pf),
-          professionalTax: Number(row.professionalTax),
-          incomeTax: Number(row.incomeTax),
-          epf: Number(row.epf),
-          esic: Number(row.esic),
+          pf: Number(row.salaryStructures.pf),
+          professionalTax: Number(row.salaryStructures.professionalTax),
+          incomeTax: Number(row.salaryStructures.incomeTax),
+          epf: Number(row.salaryStructures.epf),
+          esic: Number(row.salaryStructures.esic),
           deductions: Math.round(deductions * 100) / 100,
           net: Math.round(net * 100) / 100,
-          wantDeduction: row.wantDeduction,
+          wantDeduction: row.salaryStructures.wantDeduction,
         };
       });
 
+      console.log("[Salary Report] Returning", data.length, "transformed records");
       res.json(data);
     } catch (error: any) {
-      console.error("Salary report error:", error);
+      console.error("[Salary Report] Error:", error.message, error.stack);
       res.status(500).json({ error: error.message });
     }
   });
