@@ -1,4 +1,3 @@
-import { useStore } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, Download } from "lucide-react";
 import { Link } from "wouter";
@@ -10,7 +9,6 @@ import { truncateId } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
 export default function SiteList() {
-  const { vendors } = useStore();
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSite, setExpandedSite] = useState<string | null>(null);

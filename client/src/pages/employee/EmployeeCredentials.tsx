@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useStore } from '@/lib/mockData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -27,7 +26,6 @@ interface EmployeeCredential {
 }
 
 export default function EmployeeCredentials() {
-  const { employees } = useStore();
   const { toast } = useToast();
   const [credentials, setCredentials] = useState<EmployeeCredential[]>([]);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());

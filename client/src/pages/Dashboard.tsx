@@ -1,5 +1,4 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useStore } from '@/lib/mockData';
 import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight, User, Mail, Briefcase } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
@@ -9,7 +8,6 @@ import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianG
 import { Badge } from '@/components/ui/badge';
 
 export default function Dashboard() {
-  const { vendors, sites, employees } = useStore();
   const [pendingPOCount, setPendingPOCount] = useState(0);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);

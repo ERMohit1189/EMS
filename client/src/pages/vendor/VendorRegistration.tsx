@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
@@ -56,7 +55,6 @@ const vendorSchema = z.object({
 });
 
 export default function VendorRegistration() {
-  const { addVendor } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);

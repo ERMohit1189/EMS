@@ -1,4 +1,3 @@
-import { useStore } from "@/lib/mockData";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +7,6 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 
 export default function SalaryStructure() {
-  const { employees } = useStore();
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   
   const employee = employees.find(e => e.id === selectedEmployee);

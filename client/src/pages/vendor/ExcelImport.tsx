@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
-import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,6 @@ interface RawRowData {
 }
 
 export default function ExcelImport() {
-  const { addSite, addVendor, addEmployee, clearSites, clearVendors, clearEmployees, sites, vendors, employees } = useStore();
   const { toast } = useToast();
   const [importedData, setImportedData] = useState<RawRowData[]>([]);
   const [columns, setColumns] = useState<string[]>([]);

@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
@@ -89,7 +88,6 @@ interface Department { id: string; name: string; }
 interface Designation { id: string; name: string; }
 
 export default function EmployeeRegistration() {
-  const { addEmployee, employees } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);

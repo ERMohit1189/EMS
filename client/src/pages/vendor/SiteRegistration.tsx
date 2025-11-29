@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
@@ -129,7 +128,6 @@ const renderField = (form: any, name: string, label: string, type: 'text' | 'dat
 );
 
 export default function SiteRegistration() {
-  const { addSite } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [zones, setZones] = useState<any[]>([]);
