@@ -653,9 +653,9 @@ export default function POGeneration() {
                           className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <div className="flex-1">
-                          <p className="font-semibold font-mono">{truncateId(site.planId)}</p>
+                          <p className="font-semibold font-mono">{truncateId(site.planId || "")}</p>
                           <p className="text-sm text-muted-foreground">
-                            Vendor: {vendor?.name} | Max Antenna: {Math.max(parseFloat(site.siteAAntDia) || 0, parseFloat(site.siteBAntDia) || 0)} | Amount: {site.vendorAmount ? `₹${site.vendorAmount}` : "Not Set"}
+                            Vendor: {vendor?.name} | Max Antenna: {Math.max(parseFloat((site.siteAAntDia as string) || "0") || 0, parseFloat((site.siteBAntDia as string) || "0") || 0)} | Amount: {site.vendorAmount ? `₹${site.vendorAmount}` : "Not Set"}
                           </p>
                           {isDisabled && <p className="text-xs text-red-600 mt-1">⚠ Vendor Amount is required</p>}
                         </div>
