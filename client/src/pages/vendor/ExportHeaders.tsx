@@ -190,34 +190,34 @@ export default function ExportHeaders() {
         <p className="text-xs md:text-sm text-muted-foreground mt-2">Configure headers and footers for Excel and PDF exports</p>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-6 space-y-3 md:space-y-4">
         <div>
-          <Label htmlFor="company-name">Company Name</Label>
+          <Label htmlFor="company-name" className="text-xs md:text-sm">Company Name</Label>
           <Input
             id="company-name"
             data-testid="input-company-name"
             value={header.companyName || ''}
             onChange={(e) => setHeader({ ...header, companyName: e.target.value })}
             placeholder="Enter company name"
-            className="mt-1"
+            className="mt-1 text-xs md:text-sm h-8 md:h-auto"
           />
         </div>
 
         <div>
-          <Label htmlFor="report-title">Report Title</Label>
+          <Label htmlFor="report-title" className="text-xs md:text-sm">Report Title</Label>
           <Input
             id="report-title"
             data-testid="input-report-title"
             value={header.reportTitle || ''}
             onChange={(e) => setHeader({ ...header, reportTitle: e.target.value })}
             placeholder="e.g., Site Status Report"
-            className="mt-1"
+            className="mt-1 text-xs md:text-sm h-8 md:h-auto"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2 md:gap-4">
           <div>
-            <Label htmlFor="contact-phone">Contact Phone</Label>
+            <Label htmlFor="contact-phone" className="text-xs md:text-sm">Contact Phone</Label>
             <Input
               id="contact-phone"
               data-testid="input-contact-phone"
@@ -227,7 +227,7 @@ export default function ExportHeaders() {
               onChange={(e) => setHeader({ ...header, contactPhone: e.target.value })}
               onBlur={(e) => handleBlur('contactPhone', e.target.value)}
               placeholder="e.g., 9876543210"
-              className={`mt-1 ${errors.contactPhone ? 'border-red-500' : ''}`}
+              className={`mt-1 text-xs md:text-sm h-8 md:h-auto ${errors.contactPhone ? 'border-red-500' : ''}`}
             />
             {errors.contactPhone && (
               <p className="text-xs text-red-600 mt-1 font-medium" data-testid="error-contact-phone">{errors.contactPhone}</p>
@@ -238,7 +238,7 @@ export default function ExportHeaders() {
           </div>
 
           <div>
-            <Label htmlFor="contact-email">Email Address</Label>
+            <Label htmlFor="contact-email" className="text-xs md:text-sm">Email Address</Label>
             <Input
               id="contact-email"
               data-testid="input-contact-email"
@@ -247,7 +247,7 @@ export default function ExportHeaders() {
               onChange={(e) => setHeader({ ...header, contactEmail: e.target.value })}
               onBlur={(e) => handleBlur('contactEmail', e.target.value)}
               placeholder="e.g., support@company.com"
-              className={`mt-1 ${errors.contactEmail ? 'border-red-500' : ''}`}
+              className={`mt-1 text-xs md:text-sm h-8 md:h-auto ${errors.contactEmail ? 'border-red-500' : ''}`}
             />
             {errors.contactEmail && (
               <p className="text-xs text-red-600 mt-1 font-medium" data-testid="error-contact-email">{errors.contactEmail}</p>
@@ -258,7 +258,7 @@ export default function ExportHeaders() {
           </div>
 
           <div>
-            <Label htmlFor="website">Website</Label>
+            <Label htmlFor="website" className="text-xs md:text-sm">Website</Label>
             <Input
               id="website"
               data-testid="input-website"
@@ -267,7 +267,7 @@ export default function ExportHeaders() {
               onChange={(e) => setHeader({ ...header, website: e.target.value })}
               onBlur={(e) => handleBlur('website', e.target.value)}
               placeholder="e.g., https://www.company.com"
-              className={`mt-1 ${errors.website ? 'border-red-500' : ''}`}
+              className={`mt-1 text-xs md:text-sm h-8 md:h-auto ${errors.website ? 'border-red-500' : ''}`}
             />
             {errors.website && (
               <p className="text-xs text-red-600 mt-1 font-medium" data-testid="error-website">{errors.website}</p>
@@ -278,7 +278,7 @@ export default function ExportHeaders() {
           </div>
 
           <div>
-            <Label htmlFor="gstin">GSTIN</Label>
+            <Label htmlFor="gstin" className="text-xs md:text-sm">GSTIN</Label>
             <Input
               id="gstin"
               data-testid="input-gstin"
@@ -287,7 +287,7 @@ export default function ExportHeaders() {
               onChange={(e) => setHeader({ ...header, gstin: e.target.value.toUpperCase() })}
               onBlur={(e) => handleBlur('gstin', e.target.value)}
               placeholder="e.g., 27AABCT1234H1Z0"
-              className={`mt-1 ${errors.gstin ? 'border-red-500' : ''}`}
+              className={`mt-1 text-xs md:text-sm h-8 md:h-auto ${errors.gstin ? 'border-red-500' : ''}`}
               pattern="^[0-9A-Z]{15}$"
               title="GSTIN must be 15 alphanumeric characters"
             />
@@ -301,22 +301,22 @@ export default function ExportHeaders() {
         </div>
 
         <div>
-          <Label htmlFor="address">Address</Label>
+          <Label htmlFor="address" className="text-xs md:text-sm">Address</Label>
           <Input
             id="address"
             data-testid="input-address"
             value={header.address || ''}
             onChange={(e) => setHeader({ ...header, address: e.target.value })}
             placeholder="e.g., 123 Business Street, Postal Code"
-            className="mt-1"
+            className="mt-1 text-xs md:text-sm h-8 md:h-auto"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2 md:gap-4">
           <div>
-            <Label htmlFor="state">State</Label>
+            <Label htmlFor="state" className="text-xs md:text-sm">State</Label>
             <Select value={header.state || ''} onValueChange={(value) => setHeader({ ...header, state: value })}>
-              <SelectTrigger id="state" data-testid="select-state" className="mt-1">
+              <SelectTrigger id="state" data-testid="select-state" className="mt-1 text-xs md:text-sm h-8 md:h-auto">
                 <SelectValue placeholder="Select a state" />
               </SelectTrigger>
               <SelectContent>
@@ -328,9 +328,9 @@ export default function ExportHeaders() {
           </div>
 
           <div>
-            <Label htmlFor="city">City</Label>
+            <Label htmlFor="city" className="text-xs md:text-sm">City</Label>
             <Select value={header.city || ''} onValueChange={(value) => setHeader({ ...header, city: value })}>
-              <SelectTrigger id="city" data-testid="select-city" className="mt-1">
+              <SelectTrigger id="city" data-testid="select-city" className="mt-1 text-xs md:text-sm h-8 md:h-auto">
                 <SelectValue placeholder="Select a city" />
               </SelectTrigger>
               <SelectContent>
@@ -343,29 +343,29 @@ export default function ExportHeaders() {
         </div>
 
         <div>
-          <Label htmlFor="footer-text">Footer Text</Label>
+          <Label htmlFor="footer-text" className="text-xs md:text-sm">Footer Text</Label>
           <Textarea
             id="footer-text"
             data-testid="input-footer-text"
             value={header.footerText || ''}
             onChange={(e) => setHeader({ ...header, footerText: e.target.value })}
             placeholder="Enter footer text (e.g., confidential notice, contact info)"
-            className="mt-1 min-h-24"
+            className="mt-1 min-h-24 text-xs md:text-sm"
           />
           
           <div className="mt-3">
-            <p className="text-sm font-medium mb-2">Or select a suggested footer:</p>
+            <p className="text-xs md:text-sm font-medium mb-2">Or select a suggested footer:</p>
             <div className="space-y-2">
               {FOOTER_SUGGESTIONS.map((suggestion, index) => (
                 <button
                   key={index}
                   data-testid={`button-footer-suggestion-${index}`}
                   onClick={() => setHeader({ ...header, footerText: suggestion.text })}
-                  className="w-full text-left p-3 border border-gray-200 rounded hover:bg-blue-50 hover:border-blue-300 transition"
+                  className="w-full text-left p-2 md:p-3 border border-gray-200 rounded hover:bg-blue-50 hover:border-blue-300 transition"
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div>
-                      <p className="font-medium text-sm">{suggestion.label}</p>
+                      <p className="font-medium text-xs md:text-sm">{suggestion.label}</p>
                       <p className="text-xs text-gray-600 line-clamp-2">{suggestion.text}</p>
                     </div>
                     <Badge variant="outline" className="text-xs shrink-0">Select</Badge>
@@ -385,7 +385,7 @@ export default function ExportHeaders() {
             onChange={(e) => setHeader({ ...header, showGeneratedDate: e.target.checked })}
             className="cursor-pointer w-4 h-4"
           />
-          <Label htmlFor="show-date" className="cursor-pointer">Show Generated Date in Exports</Label>
+          <Label htmlFor="show-date" className="cursor-pointer text-xs md:text-sm">Show Generated Date in Exports</Label>
         </div>
       </div>
 
@@ -393,14 +393,14 @@ export default function ExportHeaders() {
         onClick={handleSave}
         disabled={saving}
         data-testid="button-save-settings"
-        className="bg-blue-600 hover:bg-blue-700"
+        className="bg-blue-600 hover:bg-blue-700 text-xs md:text-sm h-8 md:h-auto"
       >
         {saving ? 'Saving...' : 'Save Settings'}
       </Button>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-        <p className="text-sm font-semibold text-blue-900 mb-3">📋 Preview:</p>
-        <div className="bg-white border border-blue-100 rounded p-3 space-y-2 text-xs">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mt-6">
+        <p className="text-xs md:text-sm font-semibold text-blue-900 mb-3">📋 Preview:</p>
+        <div className="bg-white border border-blue-100 rounded p-2 md:p-3 space-y-2 text-xs md:text-sm">
           {header.companyName && (
             <div className="text-blue-900"><strong>Company:</strong> {header.companyName}</div>
           )}
