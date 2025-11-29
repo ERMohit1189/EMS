@@ -306,6 +306,19 @@ export const attendances = pgTable("attendances", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Daily Allowances Table
+export const dailyAllowances = pgTable("daily_allowances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id")
+    .notNull()
+    .references(() => employees.id),
+  date: date("date").notNull(),
+  allowanceData: text("allowance_data").notNull(), // JSON string of allowance details
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Zod Schemas
 export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
@@ -361,6 +374,13 @@ export const insertZoneSchema = createInsertSchema(zones).omit({
 });
 
 export const insertAttendanceSchema = createInsertSchema(attendances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  submittedAt: true,
+});
+
+export const insertDailyAllowanceSchema = createInsertSchema(dailyAllowances).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -454,3 +474,6 @@ export type InsertExportHeader = z.infer<typeof insertExportHeaderSchema>;
 
 export type Attendance = typeof attendances.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
+
+export type DailyAllowance = typeof dailyAllowances.$inferSelect;
+export type InsertDailyAllowance = z.infer<typeof insertDailyAllowanceSchema>;

@@ -45,6 +45,7 @@ const SalaryReport = lazy(() => import("@/pages/employee/SalaryReport"));
 const DepartmentMaster = lazy(() => import("@/pages/employee/DepartmentMaster"));
 const DesignationMaster = lazy(() => import("@/pages/employee/DesignationMaster"));
 const Attendance = lazy(() => import("@/pages/employee/Attendance"));
+const Allowances = lazy(() => import("@/pages/employee/Allowances"));
 const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
