@@ -1,9 +1,9 @@
-import { useStore } from "@/lib/mockData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBaseUrl } from "@/lib/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,30 +13,61 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  mobile: string;
+  city: string;
+  status: string;
+  designation?: string;
+  departmentName?: string;
+}
 
 export default function EmployeeList() {
-  const { employees, updateEmployeeStatus, deleteEmployee } = useStore();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  
-  const handleStatusToggle = (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-    updateEmployeeStatus(id, newStatus as 'Active' | 'Inactive');
-    toast({
-      title: 'Status Updated',
-      description: `Employee status changed to ${newStatus}`,
-    });
-  };
 
-  const handleDelete = (id: string) => {
-    deleteEmployee(id);
-    setDeleteConfirm(null);
-    toast({
-      title: 'Employee Deleted',
-      description: 'Employee record has been removed',
-    });
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
+        if (response.ok) {
+          const data = await response.json();
+          setEmployees(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+        toast({ title: 'Error', description: 'Failed to load employees', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEmployees();
+  }, [toast]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/employees/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setEmployees(employees.filter(e => e.id !== id));
+        setDeleteConfirm(null);
+        toast({
+          title: 'Employee Deleted',
+          description: 'Employee record has been removed',
+        });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete employee', variant: 'destructive' });
+    }
   };
   
   return (
@@ -53,6 +84,9 @@ export default function EmployeeList() {
          </Link>
        </div>
 
+       {loading ? (
+         <div className="p-8 text-center text-muted-foreground">Loading employees...</div>
+       ) : (
        <div className="rounded-md border bg-card overflow-x-auto">
          <div className="grid gap-0 min-w-full" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
            <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Name / Designation</div>
@@ -69,7 +103,7 @@ export default function EmployeeList() {
              <div key={e.id} className="grid gap-0 border-b last:border-0 hover:bg-muted/50 transition-colors items-center" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
                <div className="p-4">
                  <div className="font-medium">{e.name}</div>
-                 <div className="text-xs text-muted-foreground">{e.designation}</div>
+                 <div className="text-xs text-muted-foreground">{e.designation || 'Not Specified'}</div>
                </div>
                <div className="p-4 text-sm font-mono text-blue-600 truncate" data-testid={`text-email-${e.id}`} title={e.email}>{e.email}</div>
                <div className="p-4 text-sm font-mono">{e.mobile}</div>
@@ -77,8 +111,6 @@ export default function EmployeeList() {
                <div className="p-4">
                  <Badge 
                    variant={e.status === 'Active' ? 'default' : 'secondary'}
-                   className="cursor-pointer hover:opacity-80"
-                   onClick={() => handleStatusToggle(e.id, e.status)}
                    data-testid={`badge-status-${e.id}`}
                  >
                    {e.status}
@@ -110,6 +142,7 @@ export default function EmployeeList() {
            ))
          )}
        </div>
+       )}
 
        <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
          <AlertDialogContent>
@@ -123,7 +156,6 @@ export default function EmployeeList() {
              <AlertDialogCancel>Cancel</AlertDialogCancel>
              <AlertDialogAction
                onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
-               className="bg-destructive hover:bg-destructive/90"
              >
                Delete
              </AlertDialogAction>
