@@ -240,49 +240,27 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmployees(limit: number, offset: number): Promise<Employee[]> {
-    try {
-      const result = await db
-        .select({
-          id: employees.id,
-          name: employees.name,
-          email: employees.email,
-          password: employees.password,
-          dob: employees.dob,
-          fatherName: employees.fatherName,
-          mobile: employees.mobile,
-          alternateNo: employees.alternateNo,
-          address: employees.address,
-          city: employees.city,
-          state: employees.state,
-          country: employees.country,
-          departmentId: employees.departmentId,
-          designationId: employees.designationId,
-          role: employees.role,
-          doj: employees.doj,
-          aadhar: employees.aadhar,
-          pan: employees.pan,
-          bloodGroup: employees.bloodGroup,
-          maritalStatus: employees.maritalStatus,
-          nominee: employees.nominee,
-          ppeKit: employees.ppeKit,
-          kitNo: employees.kitNo,
-          status: employees.status,
-          createdAt: employees.createdAt,
-          updatedAt: employees.updatedAt,
-          designationName: designations.name,
-          departmentName: departments.name,
-        })
-        .from(employees)
-        .leftJoin(departments, eq(employees.departmentId, departments.id))
-        .leftJoin(designations, eq(employees.designationId, designations.id))
-        .limit(limit)
-        .offset(offset);
+    const empData = await db.select().from(employees).limit(limit).offset(offset);
+    
+    // Fetch department and designation names for each employee
+    const result = await Promise.all(empData.map(async (emp: any) => {
+      let deptName = 'Not Specified';
+      let desigName = 'Not Specified';
       
-      return result as any;
-    } catch (error) {
-      console.error("[Storage] getEmployees error:", error);
-      throw error;
-    }
+      if (emp.departmentId) {
+        const dept = await db.select({ name: departments.name }).from(departments).where(eq(departments.id, emp.departmentId));
+        if (dept.length > 0) deptName = dept[0].name;
+      }
+      
+      if (emp.designationId) {
+        const desig = await db.select({ name: designations.name }).from(designations).where(eq(designations.id, emp.designationId));
+        if (desig.length > 0) desigName = desig[0].name;
+      }
+      
+      return { ...emp, departmentName: deptName, designationName: desigName };
+    }));
+    
+    return result;
   }
 
   async updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee> {
