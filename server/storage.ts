@@ -1194,53 +1194,22 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getPendingAllowancesForTeams(employeeId: string): Promise<any[]> {
-    console.log(`\n========== [PENDING ALLOWANCES FLOW - START] ==========`);
-    console.log(`Input employeeId: ${employeeId}`);
-    
-    // ==================== STEP 1: GET TEAM IDs ====================
-    console.log(`\n--- STEP 1: GET TEAMID(s) using employee ID ---`);
-    console.log(`Query: SELECT teams WHERE employee_id = '${employeeId}'`);
-    
     const userTeams = await this.getTeamsForEmployee(employeeId);
-    console.log(`RESULT: Found ${userTeams.length} teams`);
-    if (userTeams.length > 0) {
-      console.log(`Teams:`, userTeams.map(t => ({ teamId: t.id, teamName: t.name })));
-    } else {
-      console.log(`WARNING: No teams found for employeeId: ${employeeId}`);
-    }
-    
     const teamIds = userTeams.map(t => t.id);
-    console.log(`Extracted teamIds array: [${teamIds.join(', ')}]`);
     
     if (teamIds.length === 0) {
-      console.log(`RESULT: No teams found, returning empty array []`);
-      console.log(`========== [PENDING ALLOWANCES FLOW - END] ==========\n`);
       return [];
     }
-    
-    // ==================== STEP 2: GET ALL TEAM MEMBERS ====================
-    console.log(`\n--- STEP 2: GET ALL TEAM MEMBERS from ${teamIds.length} team(s) ---`);
-    console.log(`Query: SELECT employee_id FROM team_members WHERE team_id IN (${teamIds.join(', ')})`);
     
     const teamMembersQuery = await db.select({ employeeId: teamMembers.employeeId })
       .from(teamMembers)
       .where(inArray(teamMembers.teamId, teamIds));
     
-    console.log(`RESULT: Found ${teamMembersQuery.length} team members`);
-    console.log(`Team Members:`, teamMembersQuery.map(m => ({ employeeId: m.employeeId })));
-    
     const teamMemberEmployeeIds = teamMembersQuery.map(m => m.employeeId);
-    console.log(`Extracted employee IDs array: [${teamMemberEmployeeIds.join(', ')}]`);
     
     if (teamMemberEmployeeIds.length === 0) {
-      console.log(`RESULT: No team members found, returning empty array []`);
-      console.log(`========== [PENDING ALLOWANCES FLOW - END] ==========\n`);
       return [];
     }
-    
-    // ==================== STEP 3: GET PENDING ALLOWANCES ====================
-    console.log(`\n--- STEP 3: GET PENDING ALLOWANCES for ${teamMemberEmployeeIds.length} employees ---`);
-    console.log(`Query: SELECT * FROM daily_allowances WHERE status='pending' AND employee_id IN (${teamMemberEmployeeIds.join(', ')})`);
     
     const result = await db.select().from(dailyAllowances)
       .where(and(
@@ -1249,25 +1218,13 @@ export class DrizzleStorage implements IStorage {
       ))
       .orderBy(dailyAllowances.submittedAt);
     
-    console.log(`RESULT: Found ${result.length} pending allowances`);
-    if (result.length > 0) {
-      result.forEach((a, i) => {
-        console.log(`  [${i+1}] AllowanceId: ${a.id}, EmployeeId: ${a.employeeId}, TeamId: ${a.teamId}, Date: ${a.date}, Status: ${a.approvalStatus}`);
-      });
-    } else {
-      console.log(`WARNING: No pending allowances found for these employees`);
-    }
-    
-    // ==================== ENRICH DATA ====================
-    console.log(`\n--- ENRICHING DATA with employee & team names ---`);
-    const enriched = await Promise.all(result.map(async (allowance, i) => {
+    const enriched = await Promise.all(result.map(async (allowance) => {
       const employee = await this.getEmployee(allowance.employeeId);
       let teamName = null;
       if (allowance.teamId) {
         const team = await this.getTeam(allowance.teamId);
         teamName = team?.name || null;
       }
-      console.log(`  [${i+1}] Employee: ${employee?.name || 'Unknown'}, Team: ${teamName || 'N/A'}`);
       return {
         ...allowance,
         employeeName: employee?.name || 'Unknown',
@@ -1275,9 +1232,6 @@ export class DrizzleStorage implements IStorage {
         teamName,
       };
     }));
-    
-    console.log(`\n========== [PENDING ALLOWANCES FLOW - END] ==========`);
-    console.log(`FINAL RESULT: Returning ${enriched.length} enriched allowances\n`);
     
     return enriched;
   }
@@ -1298,7 +1252,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getTeamsForEmployee(employeeId: string): Promise<Team[]> {
-    console.log(`[Storage] getTeamsForEmployee - START - employeeId: ${employeeId}`);
     const result = await db.select({
       id: teams.id,
       name: teams.name,
@@ -1308,7 +1261,6 @@ export class DrizzleStorage implements IStorage {
     }).from(teams)
       .innerJoin(teamMembers, eq(teamMembers.teamId, teams.id))
       .where(eq(teamMembers.employeeId, employeeId));
-    console.log(`[Storage] getTeamsForEmployee - Found ${result.length} teams:`, result.map(t => ({ id: t.id, name: t.name })));
     return result;
   }
 
@@ -1322,7 +1274,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async addTeamMember(teamId: string, employeeId: string, reportingPerson1?: string | null, reportingPerson2?: string | null, reportingPerson3?: string | null): Promise<TeamMember> {
-    console.log('[Storage] addTeamMember - teamId:', teamId, 'employeeId:', employeeId, 'reporting persons:', { reportingPerson1, reportingPerson2, reportingPerson3 });
     
     // Check if member already exists in the team
     const existing = await db.select().from(teamMembers)
