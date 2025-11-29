@@ -32,6 +32,28 @@ interface SalaryStructure {
   esic: number;
 }
 
+interface SalaryFormula {
+  type: 'percentage' | 'fixed';
+  value: number;
+  description: string;
+}
+
+const DEFAULT_FORMULAS: Record<keyof Omit<SalaryStructure, 'id' | 'employeeId'>, SalaryFormula> = {
+  basicSalary: { type: 'fixed', value: 0, description: 'Base Salary' },
+  hra: { type: 'percentage', value: 50, description: '50% of Basic' },
+  da: { type: 'percentage', value: 20, description: '20% of Basic' },
+  lta: { type: 'percentage', value: 10, description: '10% of Basic' },
+  conveyance: { type: 'fixed', value: 2000, description: 'Fixed' },
+  medical: { type: 'fixed', value: 1250, description: 'Fixed' },
+  bonuses: { type: 'fixed', value: 0, description: 'Fixed' },
+  otherBenefits: { type: 'fixed', value: 0, description: 'Fixed' },
+  pf: { type: 'percentage', value: 12, description: '12% of Basic' },
+  professionalTax: { type: 'fixed', value: 200, description: 'Fixed' },
+  incomeTax: { type: 'fixed', value: 0, description: 'Fixed' },
+  epf: { type: 'percentage', value: 3.67, description: '3.67% of Basic' },
+  esic: { type: 'percentage', value: 0.75, description: '0.75% of Basic' },
+};
+
 export default function SalaryStructure() {
   const { toast } = useToast();
   const basicSalaryRef = useRef<HTMLInputElement>(null);
@@ -40,6 +62,8 @@ export default function SalaryStructure() {
   const [salary, setSalary] = useState<SalaryStructure | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [formulas, setFormulas] = useState<Record<keyof Omit<SalaryStructure, 'id' | 'employeeId'>, SalaryFormula>>(DEFAULT_FORMULAS);
+  const [manuallyEdited, setManuallyEdited] = useState<Set<keyof SalaryStructure>>(new Set());
 
   useEffect(() => {
     fetchEmployees();
@@ -69,16 +93,42 @@ export default function SalaryStructure() {
     }
   };
 
+  const calculateValue = (field: keyof Omit<SalaryStructure, 'id' | 'employeeId'>, basicSalary: number): number => {
+    const formula = formulas[field];
+    if (formula.type === 'percentage') {
+      return (basicSalary * formula.value) / 100;
+    }
+    return formula.value;
+  };
+
+  const autoCalculateSalary = (basicSalary: number): Partial<SalaryStructure> => {
+    const calculated: Partial<SalaryStructure> = {};
+    const fields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = [
+      'hra', 'da', 'lta', 'conveyance', 'medical', 'bonuses', 'otherBenefits',
+      'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'
+    ];
+
+    fields.forEach(field => {
+      // Only recalculate if user hasn't manually edited it
+      if (!manuallyEdited.has(field)) {
+        calculated[field] = calculateValue(field, basicSalary);
+      }
+    });
+
+    return calculated;
+  };
+
   const loadSalaryStructure = async (employeeId: string) => {
     setIsLoading(true);
+    setManuallyEdited(new Set());
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`);
       if (response.ok) {
         const data = await response.json();
         setSalary(data);
       } else {
-        // No salary structure yet, create blank one
-        setSalary({
+        // No salary structure yet, create blank one with auto-calculations
+        const newSalary: SalaryStructure = {
           employeeId,
           basicSalary: 0,
           hra: 0,
@@ -93,11 +143,12 @@ export default function SalaryStructure() {
           incomeTax: 0,
           epf: 0,
           esic: 0,
-        });
+        };
+        setSalary(newSalary);
       }
     } catch (error) {
       console.error("Failed to load salary", error);
-      setSalary({
+      const newSalary: SalaryStructure = {
         employeeId,
         basicSalary: 0,
         hra: 0,
@@ -112,7 +163,8 @@ export default function SalaryStructure() {
         incomeTax: 0,
         epf: 0,
         esic: 0,
-      });
+      };
+      setSalary(newSalary);
     } finally {
       setIsLoading(false);
     }
@@ -124,10 +176,57 @@ export default function SalaryStructure() {
   };
 
   const handleSalaryChange = (field: keyof SalaryStructure, value: string) => {
-    if (salary) {
+    if (!salary) return;
+
+    const numValue = parseFloat(value) || 0;
+    const newManuallyEdited = new Set(manuallyEdited);
+    newManuallyEdited.add(field);
+    setManuallyEdited(newManuallyEdited);
+
+    // If basic salary changed, recalculate everything
+    if (field === 'basicSalary') {
+      const calculated = autoCalculateSalary(numValue);
       setSalary({
         ...salary,
-        [field]: parseFloat(value) || 0,
+        [field]: numValue,
+        ...calculated,
+      });
+      setManuallyEdited(new Set(['basicSalary'])); // Only basic salary is edited now
+    } else {
+      setSalary({
+        ...salary,
+        [field]: numValue,
+      });
+    }
+  };
+
+  const resetToFormula = (field: keyof Omit<SalaryStructure, 'id' | 'employeeId'>) => {
+    if (!salary) return;
+    const newManuallyEdited = new Set(manuallyEdited);
+    newManuallyEdited.delete(field);
+    setManuallyEdited(newManuallyEdited);
+
+    const newValue = calculateValue(field, salary.basicSalary);
+    setSalary({
+      ...salary,
+      [field]: newValue,
+    });
+  };
+
+  const updateFormula = (field: keyof Omit<SalaryStructure, 'id' | 'employeeId'>, newFormula: SalaryFormula) => {
+    setFormulas({
+      ...formulas,
+      [field]: newFormula,
+    });
+
+    // Recalculate this field if not manually edited
+    if (!manuallyEdited.has(field) && salary) {
+      const newValue = newFormula.type === 'percentage' 
+        ? (salary.basicSalary * newFormula.value) / 100 
+        : newFormula.value;
+      setSalary({
+        ...salary,
+        [field]: newValue,
       });
     }
   };
@@ -175,7 +274,7 @@ export default function SalaryStructure() {
       <div className="space-y-6 max-w-4xl mx-auto">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Salary Structure</h2>
-          <p className="text-muted-foreground">Define and view employee salary breakdowns.</p>
+          <p className="text-muted-foreground">Define and view employee salary breakdowns with dynamic auto-fill.</p>
         </div>
 
         <Card>
@@ -208,11 +307,46 @@ export default function SalaryStructure() {
   const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
   const net = gross - deductions;
 
+  const renderSalaryField = (field: keyof Omit<SalaryStructure, 'id' | 'employeeId'>, label: string) => {
+    const isManuallyEdited = manuallyEdited.has(field);
+    const formula = formulas[field];
+    
+    return (
+      <div key={field} className="grid grid-cols-2 items-center gap-2">
+        <div>
+          <Label className="text-sm">{label}</Label>
+          <p className="text-xs text-muted-foreground">
+            {formula.type === 'percentage' ? `${formula.value}% of Basic` : 'Fixed'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Input 
+            type="number" 
+            value={salary[field]} 
+            onChange={(e) => handleSalaryChange(field, e.target.value)}
+            className={isManuallyEdited ? 'border-blue-500' : ''}
+          />
+          {isManuallyEdited && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => resetToFormula(field)}
+              title="Reset to formula"
+              className="text-xs"
+            >
+              Reset
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Salary Structure</h2>
-        <p className="text-muted-foreground">Define and view employee salary breakdowns.</p>
+        <p className="text-muted-foreground">Dynamic salary form - enter basic salary and other fields auto-fill based on formulas. Click "Reset" to revert any manual changes.</p>
       </div>
 
       <Card>
@@ -242,45 +376,31 @@ export default function SalaryStructure() {
         <Card>
           <CardHeader>
             <CardTitle>Earnings</CardTitle>
-            <CardDescription>Allowances and Basic Pay</CardDescription>
+            <CardDescription>Allowances and Basic Pay (Auto-calculated based on Basic Salary)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Basic Salary</Label>
-              <Input ref={basicSalaryRef} type="number" value={salary.basicSalary} onChange={(e) => handleSalaryChange('basicSalary', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>HRA</Label>
-              <Input type="number" value={salary.hra} onChange={(e) => handleSalaryChange('hra', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>DA</Label>
-              <Input type="number" value={salary.da} onChange={(e) => handleSalaryChange('da', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>LTA</Label>
-              <Input type="number" value={salary.lta} onChange={(e) => handleSalaryChange('lta', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Conveyance</Label>
-              <Input type="number" value={salary.conveyance} onChange={(e) => handleSalaryChange('conveyance', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Medical</Label>
-              <Input type="number" value={salary.medical} onChange={(e) => handleSalaryChange('medical', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Bonuses</Label>
-              <Input type="number" value={salary.bonuses} onChange={(e) => handleSalaryChange('bonuses', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Other Benefits</Label>
-              <Input type="number" value={salary.otherBenefits} onChange={(e) => handleSalaryChange('otherBenefits', e.target.value)} />
+            <div className="grid grid-cols-2 items-center gap-2">
+              <Label className="text-base font-semibold">Basic Salary</Label>
+              <Input 
+                ref={basicSalaryRef} 
+                type="number" 
+                value={salary.basicSalary} 
+                onChange={(e) => handleSalaryChange('basicSalary', e.target.value)}
+                className="font-semibold"
+              />
             </div>
             <Separator />
-            <div className="flex justify-between font-bold text-lg text-emerald-600">
+            {renderSalaryField('hra', 'HRA')}
+            {renderSalaryField('da', 'DA')}
+            {renderSalaryField('lta', 'LTA')}
+            {renderSalaryField('conveyance', 'Conveyance')}
+            {renderSalaryField('medical', 'Medical')}
+            {renderSalaryField('bonuses', 'Bonuses')}
+            {renderSalaryField('otherBenefits', 'Other Benefits')}
+            <Separator />
+            <div className="flex justify-between font-bold text-lg text-emerald-600 bg-green-50 dark:bg-green-950 p-3 rounded">
               <span>Gross Salary</span>
-              <span>₹{gross.toLocaleString()}</span>
+              <span>₹{gross.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
             </div>
           </CardContent>
         </Card>
@@ -288,51 +408,36 @@ export default function SalaryStructure() {
         <Card>
           <CardHeader>
             <CardTitle>Deductions</CardTitle>
-            <CardDescription>PF, Tax and other deductions</CardDescription>
+            <CardDescription>PF, Tax and other deductions (Auto-calculated based on Basic Salary)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Provident Fund (PF)</Label>
-              <Input type="number" value={salary.pf} onChange={(e) => handleSalaryChange('pf', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Professional Tax</Label>
-              <Input type="number" value={salary.professionalTax} onChange={(e) => handleSalaryChange('professionalTax', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>Income Tax (TDS)</Label>
-              <Input type="number" value={salary.incomeTax} onChange={(e) => handleSalaryChange('incomeTax', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>EPF</Label>
-              <Input type="number" value={salary.epf} onChange={(e) => handleSalaryChange('epf', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <Label>ESIC</Label>
-              <Input type="number" value={salary.esic} onChange={(e) => handleSalaryChange('esic', e.target.value)} />
-            </div>
+            {renderSalaryField('pf', 'Provident Fund (PF)')}
+            {renderSalaryField('professionalTax', 'Professional Tax')}
+            {renderSalaryField('incomeTax', 'Income Tax (TDS)')}
+            {renderSalaryField('epf', 'EPF')}
+            {renderSalaryField('esic', 'ESIC')}
             <Separator />
-            <div className="flex justify-between font-bold text-lg text-red-600">
+            <div className="flex justify-between font-bold text-lg text-red-600 bg-red-50 dark:bg-red-950 p-3 rounded">
               <span>Total Deductions</span>
-              <span>₹{deductions.toLocaleString()}</span>
+              <span>₹{deductions.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="col-span-2 bg-slate-50 dark:bg-slate-900 border-primary/20">
+        <Card className="col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-primary/20">
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold">Net Salary Payable</h3>
               <p className="text-muted-foreground">Amount to be credited to bank account</p>
             </div>
-            <div className="text-3xl font-bold text-primary">
-              ₹{net.toLocaleString()}
+            <div className="text-4xl font-bold text-primary">
+              ₹{net.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
         
         <div className="col-span-2 flex justify-end gap-4">
-          <Button variant="outline" onClick={() => { setSelectedEmployee(""); setSalary(null); }}>Cancel</Button>
+          <Button variant="outline" onClick={() => { setSelectedEmployee(""); setSalary(null); setManuallyEdited(new Set()); }}>Cancel</Button>
           <Button size="lg" onClick={saveSalary} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save Structure'}
           </Button>
