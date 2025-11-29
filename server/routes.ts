@@ -646,7 +646,8 @@ export async function registerRoutes(
       const salary = await storage.createSalary(data);
       res.json(salary);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      console.error('[Salary Create Error]:', error);
+      res.status(400).json({ error: error.message || 'Failed to save salary structure' });
     }
   });
 
@@ -681,7 +682,8 @@ export async function registerRoutes(
       const salary = await storage.updateSalary(req.params.id, data);
       res.json(salary);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      console.error('[Salary Update Error]:', error);
+      res.status(400).json({ error: error.message || 'Failed to update salary structure' });
     }
   });
 

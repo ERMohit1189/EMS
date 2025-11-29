@@ -318,7 +318,22 @@ export const insertSalarySchema = createInsertSchema(salaryStructures).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+}).refine(
+  (data) => {
+    // Coerce all numeric fields to handle float values properly
+    const numericFields = [
+      'basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
+      'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'
+    ];
+    for (const field of numericFields) {
+      if (data[field] !== undefined && data[field] !== null) {
+        const val = typeof data[field] === 'string' ? parseFloat(data[field]) : data[field];
+        data[field] = val;
+      }
+    }
+    return true;
+  }
+);
 
 export const insertPOSchema = createInsertSchema(purchaseOrders).omit({
   id: true,
