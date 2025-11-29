@@ -1010,59 +1010,57 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmployeeAllowances(employeeId: string, limit: number = 30): Promise<any[]> {
-    const result = await db.select({
-      id: dailyAllowances.id,
-      employeeId: dailyAllowances.employeeId,
-      teamId: dailyAllowances.teamId,
-      teamName: teams.name,
-      date: dailyAllowances.date,
-      allowanceData: dailyAllowances.allowanceData,
-      approvalStatus: dailyAllowances.approvalStatus,
-      paidStatus: dailyAllowances.paidStatus,
-      approvedBy: dailyAllowances.approvedBy,
-      approvedAt: dailyAllowances.approvedAt,
-      submittedAt: dailyAllowances.submittedAt,
-      createdAt: dailyAllowances.createdAt,
-      updatedAt: dailyAllowances.updatedAt,
-    })
-      .from(dailyAllowances)
-      .leftJoin(teams, eq(dailyAllowances.teamId, teams.id))
+    const result = await db.select().from(dailyAllowances)
       .where(eq(dailyAllowances.employeeId, employeeId))
       .orderBy(dailyAllowances.date)
       .limit(limit);
-    return result;
+    
+    // Enrich with team names
+    const enriched = await Promise.all(result.map(async (allowance) => {
+      let teamName = null;
+      if (allowance.teamId) {
+        const team = await this.getTeam(allowance.teamId);
+        teamName = team?.name || null;
+      }
+      return {
+        ...allowance,
+        teamName,
+      };
+    }));
+    
+    return enriched;
   }
 
   async getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<any[]> {
-    // Fetch all allowances for the employee with team names
-    const allAllowances = await db.select({
-      id: dailyAllowances.id,
-      employeeId: dailyAllowances.employeeId,
-      teamId: dailyAllowances.teamId,
-      teamName: teams.name,
-      date: dailyAllowances.date,
-      allowanceData: dailyAllowances.allowanceData,
-      approvalStatus: dailyAllowances.approvalStatus,
-      paidStatus: dailyAllowances.paidStatus,
-      approvedBy: dailyAllowances.approvedBy,
-      approvedAt: dailyAllowances.approvedAt,
-      submittedAt: dailyAllowances.submittedAt,
-      createdAt: dailyAllowances.createdAt,
-      updatedAt: dailyAllowances.updatedAt,
-    })
-      .from(dailyAllowances)
-      .leftJoin(teams, eq(dailyAllowances.teamId, teams.id))
+    // Fetch all allowances for the employee
+    const allAllowances = await db.select().from(dailyAllowances)
       .where(eq(dailyAllowances.employeeId, employeeId))
       .orderBy(dailyAllowances.date);
     
+    console.log('[Storage] Raw allowances count:', allAllowances.length);
+    
+    // Enrich with team names
+    const enriched = await Promise.all(allAllowances.map(async (allowance) => {
+      let teamName = null;
+      if (allowance.teamId) {
+        const team = await this.getTeam(allowance.teamId);
+        teamName = team?.name || null;
+      }
+      return {
+        ...allowance,
+        teamName,
+      };
+    }));
+    
     // Filter by month and year in JavaScript
-    const filtered = allAllowances.filter(allowance => {
+    const filtered = enriched.filter(allowance => {
       const allowanceDate = new Date(allowance.date);
       const allowanceMonth = allowanceDate.getMonth() + 1;
       const allowanceYear = allowanceDate.getFullYear();
       return allowanceMonth === month && allowanceYear === year;
     });
     
+    console.log('[Storage] Enriched allowances with team names:', filtered.length);
     return filtered;
   }
 
