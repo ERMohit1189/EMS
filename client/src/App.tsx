@@ -38,6 +38,7 @@ const SiteStatus = lazy(() => import("@/pages/vendor/SiteStatus"));
 const SiteManagement = lazy(() => import("@/pages/vendor/SiteManagement"));
 const ExcelImport = lazy(() => import("@/pages/vendor/ExcelImport"));
 const SalaryStructure = lazy(() => import("@/pages/employee/SalaryStructure"));
+const SalaryReport = lazy(() => import("@/pages/employee/SalaryReport"));
 const DepartmentMaster = lazy(() => import("@/pages/employee/DepartmentMaster"));
 const DesignationMaster = lazy(() => import("@/pages/employee/DesignationMaster"));
 const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
