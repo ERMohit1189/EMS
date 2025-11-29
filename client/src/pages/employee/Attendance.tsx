@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
 
 interface AttendanceRecord {
-  [day: number]: 'present' | 'absent' | 'leave' | null;
+  [day: number]: 'present' | 'absent' | 'leave' | 'holiday' | null;
 }
 
 export default function Attendance() {
@@ -19,6 +19,12 @@ export default function Attendance() {
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
   const daysInMonth = new Date(year, month, 0).getDate();
+
+  // Function to check if a day is Sunday
+  const isSunday = (day: number) => {
+    const date = new Date(year, month - 1, day);
+    return date.getDay() === 0;
+  };
 
   useEffect(() => {
     fetchAttendance();
@@ -36,7 +42,14 @@ export default function Attendance() {
         if (data?.attendanceData) {
           setAttendance(JSON.parse(data.attendanceData));
         } else {
-          setAttendance({});
+          // Initialize with Sundays marked as holidays
+          const initialAttendance: AttendanceRecord = {};
+          for (let day = 1; day <= daysInMonth; day++) {
+            if (isSunday(day)) {
+              initialAttendance[day] = 'holiday';
+            }
+          }
+          setAttendance(initialAttendance);
         }
       }
     } catch (error) {
@@ -49,12 +62,16 @@ export default function Attendance() {
   const handleDayClick = (day: number) => {
     console.log('📅 Clicked day:', day, 'Current status:', attendance[day]);
     const current = attendance[day];
-    let next: 'present' | 'absent' | 'leave' | null;
+    let next: 'present' | 'absent' | 'leave' | 'holiday' | null;
     
     if (current === 'present') {
       next = 'absent';
     } else if (current === 'absent') {
       next = 'leave';
+    } else if (current === 'leave') {
+      next = 'holiday';
+    } else if (current === 'holiday') {
+      next = null;
     } else {
       next = 'present';
     }
@@ -119,6 +136,7 @@ export default function Attendance() {
   const presentCount = Object.values(attendance).filter((v) => v === 'present').length;
   const absentCount = Object.values(attendance).filter((v) => v === 'absent').length;
   const leaveCount = Object.values(attendance).filter((v) => v === 'leave').length;
+  const holidayCount = Object.values(attendance).filter((v) => v === 'holiday').length;
 
   return (
     <div className="space-y-6">
@@ -145,7 +163,7 @@ export default function Attendance() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Statistics */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <p className="text-sm text-green-600 font-medium">Present</p>
               <p className="text-2xl font-bold text-green-700">{presentCount}</p>
@@ -157,6 +175,10 @@ export default function Attendance() {
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
               <p className="text-sm text-yellow-600 font-medium">Leave</p>
               <p className="text-2xl font-bold text-yellow-700">{leaveCount}</p>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <p className="text-sm text-purple-600 font-medium">Holiday</p>
+              <p className="text-2xl font-bold text-purple-700">{holidayCount}</p>
             </div>
           </div>
 
@@ -184,9 +206,11 @@ export default function Attendance() {
                     ? 'bg-red-100 border-red-300'
                     : status === 'leave'
                       ? 'bg-yellow-100 border-yellow-300'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100';
+                      : status === 'holiday'
+                        ? 'bg-purple-100 border-purple-300'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100';
 
-              const statusEmoji = status === 'present' ? '✓' : status === 'absent' ? '✗' : status === 'leave' ? '🎯' : '';
+              const statusEmoji = status === 'present' ? '✓' : status === 'absent' ? '✗' : status === 'leave' ? '🎯' : status === 'holiday' ? '🎉' : '';
 
               return (
                 <div key={day} className="relative group">
@@ -234,9 +258,10 @@ export default function Attendance() {
               <strong>How to use:</strong>
             </p>
             <ul className="text-sm text-blue-900 space-y-1 ml-4 list-disc">
-              <li>Click on any day to cycle: Present (✓) → Absent (✗) → Leave (🎯) → Not marked</li>
+              <li><strong>Sundays are auto-marked as holidays (🎉)</strong> - all Sundays start purple</li>
+              <li>Click on any day to cycle: Not marked → Present (✓) → Absent (✗) → Leave (🎯) → Holiday (🎉) → Not marked</li>
               <li>Hover over a marked day to see a red <strong>✕</strong> button - click it to instantly reset/clear that day</li>
-              <li>Check the counters at the top to see your Present/Absent/Leave totals</li>
+              <li>Check the counters at the top to see your Present/Absent/Leave/Holiday totals</li>
               <li>Click <strong>Submit Attendance</strong> to save your entire month's attendance</li>
             </ul>
           </div>
