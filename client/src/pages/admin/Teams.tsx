@@ -43,9 +43,8 @@ export default function Teams() {
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isReportingModalOpen, setIsReportingModalOpen] = useState(false);
-  const [selectedMemberForReporting, setSelectedMemberForReporting] = useState<TeamMember | null>(null);
-  const [reportingPersons, setReportingPersons] = useState({ person1: '', person2: '', person3: '' });
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [memberToAssign, setMemberToAssign] = useState<TeamMember | null>(null);
 
   useEffect(() => {
     fetchTeams();
@@ -218,37 +217,34 @@ export default function Teams() {
     }
   };
 
-  const openReportingModal = (member: TeamMember) => {
-    setSelectedMemberForReporting(member);
-    setReportingPersons({
-      person1: member.reportingPerson1 || '',
-      person2: member.reportingPerson2 || '',
-      person3: member.reportingPerson3 || '',
-    });
-    setIsReportingModalOpen(true);
+  const handleMemberClick = (member: TeamMember) => {
+    setMemberToAssign(member);
+    setIsAssignmentModalOpen(true);
   };
 
-  const handleSaveReporting = async () => {
-    if (!selectedMemberForReporting) return;
+  const assignReportingPerson = async (level: 1 | 2 | 3) => {
+    if (!memberToAssign || !selectedTeamId) return;
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${selectedMemberForReporting.id}/reporting`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportingPerson1: reportingPersons.person1 || undefined,
-          reportingPerson2: reportingPersons.person2 || undefined,
-          reportingPerson3: reportingPersons.person3 || undefined,
-        }),
-      });
-
-      if (response.ok) {
-        toast({ title: 'Success', description: 'Reporting persons saved' });
-        setIsReportingModalOpen(false);
-        if (selectedTeamId) fetchTeamMembers(selectedTeamId);
-      } else {
-        toast({ title: 'Error', description: 'Failed to save reporting persons', variant: 'destructive' });
+      const levelKey = `reportingPerson${level}`;
+      
+      for (const otherMember of teamMembers) {
+        if (otherMember.id === memberToAssign.id) continue;
+        
+        const updates: any = {};
+        updates[`reportingPerson${level}`] = memberToAssign.id;
+        
+        await fetch(`${getApiBaseUrl()}/api/teams/members/${otherMember.id}/reporting`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
       }
+
+      toast({ title: 'Success', description: `${memberToAssign.name} assigned as Reporting Person ${level} for all team members` });
+      setIsAssignmentModalOpen(false);
+      setMemberToAssign(null);
+      fetchTeamMembers(selectedTeamId);
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
@@ -495,41 +491,36 @@ export default function Teams() {
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {member.reportingPerson1 && (
-                        <button
-                          onClick={() => openReportingModal(member)}
-                          className={`px-2 py-0.5 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${getReportingBadgeColor(0)}`}
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
                           data-testid={`badge-reporting-person-1-${member.id}`}
                         >
                           RP1: {getReportingPersonName(member.reportingPerson1)}
-                        </button>
+                        </div>
                       )}
                       {member.reportingPerson2 && (
-                        <button
-                          onClick={() => openReportingModal(member)}
-                          className={`px-2 py-0.5 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${getReportingBadgeColor(1)}`}
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
                           data-testid={`badge-reporting-person-2-${member.id}`}
                         >
                           RP2: {getReportingPersonName(member.reportingPerson2)}
-                        </button>
+                        </div>
                       )}
                       {member.reportingPerson3 && (
-                        <button
-                          onClick={() => openReportingModal(member)}
-                          className={`px-2 py-0.5 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${getReportingBadgeColor(2)}`}
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
                           data-testid={`badge-reporting-person-3-${member.id}`}
                         >
                           RP3: {getReportingPersonName(member.reportingPerson3)}
-                        </button>
+                        </div>
                       )}
-                      {!member.reportingPerson1 && !member.reportingPerson2 && !member.reportingPerson3 && (
-                        <button
-                          onClick={() => openReportingModal(member)}
-                          className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
-                          data-testid={`button-add-reporting-${member.id}`}
-                        >
-                          + Add Reporting
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleMemberClick(member)}
+                        className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
+                        data-testid={`button-assign-reporting-${member.id}`}
+                      >
+                        Make RP
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -539,88 +530,47 @@ export default function Teams() {
         </Card>
       )}
 
-      {/* Reporting Modal */}
-      {isReportingModalOpen && selectedMemberForReporting && (
+      {/* Assignment Modal */}
+      {isAssignmentModalOpen && memberToAssign && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md">
             <CardHeader className="py-3">
-              <CardTitle className="text-sm">Set Reporting Persons</CardTitle>
-              <p className="text-xs text-muted-foreground">{selectedMemberForReporting.name}</p>
+              <CardTitle className="text-sm">Assign {memberToAssign.name}</CardTitle>
+              <p className="text-xs text-muted-foreground">Select reporting level for all team members</p>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <label className="text-xs font-medium block mb-1">Reporting Person 1</label>
-                <select
-                  value={reportingPersons.person1}
-                  onChange={(e) => setReportingPersons({ ...reportingPersons, person1: e.target.value })}
-                  className="w-full h-8 text-xs px-2 border rounded"
-                  data-testid="select-reporting-person-1"
-                >
-                  <option value="">Select...</option>
-                  {teamMembers
-                    .filter((m) => m.id !== selectedMemberForReporting.id)
-                    .map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name} ({member.designation})
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1">Reporting Person 2</label>
-                <select
-                  value={reportingPersons.person2}
-                  onChange={(e) => setReportingPersons({ ...reportingPersons, person2: e.target.value })}
-                  className="w-full h-8 text-xs px-2 border rounded"
-                  data-testid="select-reporting-person-2"
-                >
-                  <option value="">Select...</option>
-                  {teamMembers
-                    .filter((m) => m.id !== selectedMemberForReporting.id)
-                    .map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name} ({member.designation})
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1">Reporting Person 3</label>
-                <select
-                  value={reportingPersons.person3}
-                  onChange={(e) => setReportingPersons({ ...reportingPersons, person3: e.target.value })}
-                  className="w-full h-8 text-xs px-2 border rounded"
-                  data-testid="select-reporting-person-3"
-                >
-                  <option value="">Select...</option>
-                  {teamMembers
-                    .filter((m) => m.id !== selectedMemberForReporting.id)
-                    .map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name} ({member.designation})
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button
-                  type="button"
-                  onClick={handleSaveReporting}
-                  className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700"
-                  data-testid="button-save-reporting"
-                >
-                  Save
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setIsReportingModalOpen(false)}
-                  variant="outline"
-                  className="flex-1 h-8 text-xs"
-                  data-testid="button-cancel-reporting"
-                >
-                  Cancel
-                </Button>
-              </div>
+            <CardContent className="space-y-2">
+              <Button
+                onClick={() => assignReportingPerson(1)}
+                className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700 justify-start"
+                data-testid="button-assign-rp1"
+              >
+                <span className="inline-block w-2 h-2 bg-blue-700 rounded-full mr-2"></span>
+                Reporting Person 1
+              </Button>
+              <Button
+                onClick={() => assignReportingPerson(2)}
+                className="w-full h-8 text-xs bg-green-600 hover:bg-green-700 justify-start"
+                data-testid="button-assign-rp2"
+              >
+                <span className="inline-block w-2 h-2 bg-green-700 rounded-full mr-2"></span>
+                Reporting Person 2
+              </Button>
+              <Button
+                onClick={() => assignReportingPerson(3)}
+                className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-700 justify-start"
+                data-testid="button-assign-rp3"
+              >
+                <span className="inline-block w-2 h-2 bg-amber-700 rounded-full mr-2"></span>
+                Reporting Person 3
+              </Button>
+              <Button
+                onClick={() => setIsAssignmentModalOpen(false)}
+                variant="outline"
+                className="w-full h-8 text-xs"
+                data-testid="button-cancel-assignment"
+              >
+                Cancel
+              </Button>
             </CardContent>
           </Card>
         </div>
