@@ -41,6 +41,7 @@ const SalaryStructure = lazy(() => import("@/pages/employee/SalaryStructure"));
 const SalaryReport = lazy(() => import("@/pages/employee/SalaryReport"));
 const DepartmentMaster = lazy(() => import("@/pages/employee/DepartmentMaster"));
 const DesignationMaster = lazy(() => import("@/pages/employee/DesignationMaster"));
+const Attendance = lazy(() => import("@/pages/employee/Attendance"));
 const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
@@ -252,7 +253,7 @@ function App() {
                   <Route path="/employee/salary-report" component={SalaryReport} />
                   <Route path="/employee/department-master" component={DepartmentMaster} />
                   <Route path="/employee/designation-master" component={DesignationMaster} />
-                  <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
+                  <Route path="/employee/attendance" component={Attendance} />
                   <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
                   <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
                   

@@ -11,6 +11,7 @@ import {
   paymentMasters,
   zones,
   exportHeaders,
+  attendances,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
@@ -20,6 +21,7 @@ import {
   type InsertPaymentMaster,
   type InsertZone,
   type InsertExportHeader,
+  type InsertAttendance,
   type Vendor,
   type Site,
   type Employee,
@@ -29,6 +31,7 @@ import {
   type PaymentMaster,
   type Zone,
   type ExportHeader,
+  type Attendance,
 } from "@shared/schema";
 import { eq, count, and, gte, lte, inArray, getTableColumns, ne } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
@@ -139,6 +142,13 @@ export interface IStorage {
   // Export Header operations
   getExportHeader(): Promise<ExportHeader | undefined>;
   updateExportHeader(header: InsertExportHeader): Promise<ExportHeader>;
+
+  // Attendance operations
+  createAttendance(attendance: InsertAttendance): Promise<Attendance>;
+  getAttendance(id: string): Promise<Attendance | undefined>;
+  getEmployeeMonthlyAttendance(employeeId: string, month: number, year: number): Promise<Attendance | undefined>;
+  updateAttendance(id: string, attendance: Partial<InsertAttendance>): Promise<Attendance>;
+  deleteAttendance(id: string): Promise<void>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -968,6 +978,37 @@ export class DrizzleStorage implements IStorage {
       const [result] = await db.insert(exportHeaders).values(header).returning();
       return result;
     }
+  }
+
+  // Attendance operations
+  async createAttendance(attendance: InsertAttendance): Promise<Attendance> {
+    const [result] = await db.insert(attendances).values(attendance).returning();
+    return result;
+  }
+
+  async getAttendance(id: string): Promise<Attendance | undefined> {
+    const [result] = await db.select().from(attendances).where(eq(attendances.id, id));
+    return result;
+  }
+
+  async getEmployeeMonthlyAttendance(employeeId: string, month: number, year: number): Promise<Attendance | undefined> {
+    const [result] = await db.select().from(attendances).where(
+      and(
+        eq(attendances.employeeId, employeeId),
+        eq(attendances.month, month),
+        eq(attendances.year, year)
+      )
+    );
+    return result;
+  }
+
+  async updateAttendance(id: string, attendance: Partial<InsertAttendance>): Promise<Attendance> {
+    const [result] = await db.update(attendances).set(attendance).where(eq(attendances.id, id)).returning();
+    return result;
+  }
+
+  async deleteAttendance(id: string): Promise<void> {
+    await db.delete(attendances).where(eq(attendances.id, id));
   }
 }
 

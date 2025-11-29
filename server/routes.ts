@@ -1143,5 +1143,49 @@ export async function registerRoutes(
     }
   });
 
+  // Attendance routes
+  app.post("/api/attendance", async (req, res) => {
+    try {
+      const { employeeId, month, year, attendanceData } = req.body;
+      
+      // Check if attendance exists for this month
+      const existing = await storage.getEmployeeMonthlyAttendance(employeeId, month, year);
+      
+      let attendance;
+      if (existing) {
+        // Update existing
+        attendance = await storage.updateAttendance(existing.id, {
+          attendanceData: JSON.stringify(attendanceData),
+        });
+      } else {
+        // Create new
+        attendance = await storage.createAttendance({
+          employeeId,
+          month,
+          year,
+          attendanceData: JSON.stringify(attendanceData),
+        });
+      }
+      
+      res.json(attendance);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/attendance/:employeeId/:month/:year", async (req, res) => {
+    try {
+      const { employeeId, month, year } = req.params;
+      const attendance = await storage.getEmployeeMonthlyAttendance(
+        employeeId,
+        parseInt(month),
+        parseInt(year)
+      );
+      res.json(attendance || null);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

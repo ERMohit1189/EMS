@@ -346,6 +346,13 @@ export const insertZoneSchema = createInsertSchema(zones).omit({
   updatedAt: true,
 });
 
+export const insertAttendanceSchema = createInsertSchema(attendances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  submittedAt: true,
+});
+
 // Type Definitions
 export type Vendor = typeof vendors.$inferSelect;
 export type InsertVendor = z.infer<typeof insertVendorSchema>;
@@ -370,6 +377,20 @@ export type InsertPaymentMaster = z.infer<typeof insertPaymentMasterSchema>;
 
 export type Zone = typeof zones.$inferSelect;
 export type InsertZone = z.infer<typeof insertZoneSchema>;
+
+// Attendance Table
+export const attendances = pgTable("attendances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id")
+    .notNull()
+    .references(() => employees.id),
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  attendanceData: text("attendance_data").notNull(), // JSON string of day attendance
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // Export Header Settings Table
 export const exportHeaders = pgTable("export_headers", {
@@ -430,3 +451,6 @@ export const insertExportHeaderSchema = createInsertSchema(exportHeaders).omit({
 
 export type ExportHeader = typeof exportHeaders.$inferSelect;
 export type InsertExportHeader = z.infer<typeof insertExportHeaderSchema>;
+
+export type Attendance = typeof attendances.$inferSelect;
+export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
