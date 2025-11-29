@@ -183,7 +183,7 @@ function App() {
           <Route path="/employee-login" component={EmployeeLogin} />
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-          <Route component={EmployeeLogin} />
+          <Route component={Login} />
         </Switch>
         <Toaster />
       </>
