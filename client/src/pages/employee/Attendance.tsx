@@ -79,26 +79,49 @@ export default function Attendance() {
     if (!employeeId) return;
     try {
       setLoading(true);
+      
+      // Always initialize with Sundays marked as holidays
+      const initialAttendance: AttendanceRecord = {};
+      for (let day = 1; day <= daysInMonth; day++) {
+        if (isSunday(day)) {
+          initialAttendance[day] = 'holiday';
+        }
+      }
+      
       const response = await fetch(
         `${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`
       );
       if (response.ok) {
         const data = await response.json();
         if (data?.attendanceData) {
-          setAttendance(JSON.parse(data.attendanceData));
-        } else {
-          // Initialize with Sundays marked as holidays
-          const initialAttendance: AttendanceRecord = {};
+          // Merge existing data with Sundays as holidays
+          const existingData = JSON.parse(data.attendanceData);
+          // Ensure Sundays remain as holidays, but keep other existing data
+          const mergedData = { ...existingData };
           for (let day = 1; day <= daysInMonth; day++) {
             if (isSunday(day)) {
-              initialAttendance[day] = 'holiday';
+              mergedData[day] = 'holiday';
             }
           }
+          setAttendance(mergedData);
+        } else {
+          // No existing data, just use Sundays as holidays
           setAttendance(initialAttendance);
         }
+      } else {
+        // If API call fails, use Sundays as holidays initialization
+        setAttendance(initialAttendance);
       }
     } catch (error) {
       console.error('Error fetching attendance:', error);
+      // Fallback: Initialize with Sundays marked as holidays
+      const fallbackAttendance: AttendanceRecord = {};
+      for (let day = 1; day <= daysInMonth; day++) {
+        if (isSunday(day)) {
+          fallbackAttendance[day] = 'holiday';
+        }
+      }
+      setAttendance(fallbackAttendance);
     } finally {
       setLoading(false);
     }
