@@ -206,10 +206,16 @@ export default function EmployeeSalary() {
       
       yPosition += 5;
 
-      // Earnings Section
+      // Earnings Section with Colored Header
+      const earningsHeaderY = yPosition;
+      doc.setFillColor(34, 139, 34); // Forest Green
+      doc.rect(leftMargin - 2, earningsHeaderY - 3.5, contentWidth + 4, 5, 'F');
+      
       doc.setFontSize(10);
       doc.setFont(undefined, 'bold');
-      doc.text("EARNINGS", leftMargin, yPosition);
+      doc.setTextColor(255, 255, 255);
+      doc.text("EARNINGS", leftMargin + 1, earningsHeaderY, { align: 'left' });
+      doc.setTextColor(0, 0, 0);
       yPosition += 6;
 
       const earningsData = [
@@ -230,27 +236,54 @@ export default function EmployeeSalary() {
       
       earningsData.forEach((row, index) => {
         const isHeader = index === 0;
-        if (isHeader) doc.setFont(undefined, 'bold');
         
-        doc.text(row[0], leftMargin, tableY);
-        doc.text(row[1], leftMargin + contentWidth - 20, tableY, { align: "right" });
+        // Alternating row colors
+        if (!isHeader && index % 2 === 0) {
+          doc.setFillColor(240, 255, 240); // Honeydew light green
+          doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
+        }
+        
+        if (isHeader) {
+          doc.setFillColor(76, 175, 80); // Light Green header
+          doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(255, 255, 255);
+        } else {
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(0, 0, 0);
+        }
+        
+        doc.text(row[0], leftMargin + 1, tableY);
+        doc.text(row[1], leftMargin + contentWidth - 21, tableY, { align: "right" });
         tableY += 5;
         
-        if (isHeader) doc.setFont(undefined, 'normal');
+        if (isHeader) {
+          doc.setTextColor(0, 0, 0);
+        }
       });
 
-      // Gross Salary line
+      // Gross Salary line - Colored
+      doc.setFillColor(34, 139, 34); // Forest Green
+      doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
       doc.setFont(undefined, 'bold');
       doc.setFontSize(9);
-      doc.text("GROSS SALARY", leftMargin, tableY);
-      doc.text(formatValue(calculateGross()), leftMargin + contentWidth - 20, tableY, { align: "right" });
+      doc.setTextColor(255, 255, 255);
+      doc.text("GROSS SALARY", leftMargin + 1, tableY);
+      doc.text(formatValue(calculateGross()), leftMargin + contentWidth - 21, tableY, { align: "right" });
+      doc.setTextColor(0, 0, 0);
       yPosition = tableY + 8;
 
       // Deductions Section
       if (salary.wantDeduction) {
+        const deductionsHeaderY = yPosition;
+        doc.setFillColor(220, 53, 69); // Red
+        doc.rect(leftMargin - 2, deductionsHeaderY - 3.5, contentWidth + 4, 5, 'F');
+        
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
-        doc.text("DEDUCTIONS", leftMargin, yPosition);
+        doc.setTextColor(255, 255, 255);
+        doc.text("DEDUCTIONS", leftMargin + 1, deductionsHeaderY);
+        doc.setTextColor(0, 0, 0);
         yPosition += 6;
 
         const deductionsData = [
@@ -268,30 +301,55 @@ export default function EmployeeSalary() {
         
         deductionsData.forEach((row, index) => {
           const isHeader = index === 0;
-          if (isHeader) doc.setFont(undefined, 'bold');
           
-          doc.text(row[0], leftMargin, tableY);
-          doc.text(row[1], leftMargin + contentWidth - 20, tableY, { align: "right" });
+          // Alternating row colors
+          if (!isHeader && index % 2 === 0) {
+            doc.setFillColor(255, 245, 245); // Light red/pink
+            doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
+          }
+          
+          if (isHeader) {
+            doc.setFillColor(240, 80, 100); // Lighter red header
+            doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(255, 255, 255);
+          } else {
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 0, 0);
+          }
+          
+          doc.text(row[0], leftMargin + 1, tableY);
+          doc.text(row[1], leftMargin + contentWidth - 21, tableY, { align: "right" });
           tableY += 5;
           
-          if (isHeader) doc.setFont(undefined, 'normal');
+          if (isHeader) {
+            doc.setTextColor(0, 0, 0);
+          }
         });
 
-        // Total Deductions line
+        // Total Deductions line - Colored
+        doc.setFillColor(220, 53, 69); // Red
+        doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
         doc.setFont(undefined, 'bold');
         doc.setFontSize(9);
-        doc.text("TOTAL DEDUCTIONS", leftMargin, tableY);
-        doc.text(formatValue(calculateDeductions()), leftMargin + contentWidth - 20, tableY, { align: "right" });
+        doc.setTextColor(255, 255, 255);
+        doc.text("TOTAL DEDUCTIONS", leftMargin + 1, tableY);
+        doc.text(formatValue(calculateDeductions()), leftMargin + contentWidth - 21, tableY, { align: "right" });
+        doc.setTextColor(0, 0, 0);
         yPosition = tableY + 8;
       }
 
-      // Net Salary Section - Highlighted
+      // Net Salary Section - Highlighted with Color
+      const netSalaryBoxHeight = 8;
+      doc.setFillColor(13, 110, 253); // Blue
+      doc.rect(leftMargin - 2, yPosition - 4, contentWidth + 4, netSalaryBoxHeight + 1, 'F');
+      
       doc.setFontSize(11);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(0, 80, 0);
-      doc.text("NET SALARY (Monthly)", leftMargin, yPosition);
+      doc.setTextColor(255, 255, 255);
+      doc.text("NET SALARY (Monthly)", leftMargin + 1, yPosition + 1);
       doc.setFontSize(13);
-      doc.text(`Rs ${formatValue(calculateNet())}`, leftMargin + contentWidth - 20, yPosition, { align: "right" });
+      doc.text(`Rs ${formatValue(calculateNet())}`, leftMargin + contentWidth - 21, yPosition + 1, { align: "right" });
       doc.setTextColor(0, 0, 0);
 
       // Footer
