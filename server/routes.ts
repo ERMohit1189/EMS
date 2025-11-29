@@ -1342,14 +1342,21 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/allowances/:employeeId", async (req, res) => {
+  // Delete allowance endpoint - must come before other param routes
+  app.delete("/api/allowances/:id", async (req, res) => {
     try {
-      const { employeeId } = req.params;
-      const allowances = await storage.getEmployeeAllowances(employeeId);
-      res.json({ data: allowances });
+      const { id } = req.params;
+      console.log(`[Allowances] DELETE request for id: ${id}`);
+      await storage.deleteDailyAllowance(id);
+      console.log(`[Allowances] Successfully deleted allowance ${id}`);
+      res.json({ success: true });
     } catch (error: any) {
-      console.error(`[Allowances Fetch Error]`, error.message);
-      res.status(400).json({ error: error.message });
+      console.error(`[Allowances Delete Error]`, error.message);
+      if (error.message.includes('approved')) {
+        res.status(403).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: error.message });
+      }
     }
   });
 
@@ -1363,18 +1370,14 @@ export async function registerRoutes(
     }
   });
 
-  // Delete allowance endpoint
-  app.delete("/api/allowances/:id", async (req, res) => {
+  app.get("/api/allowances/:employeeId", async (req, res) => {
     try {
-      const { id } = req.params;
-      await storage.deleteDailyAllowance(id);
-      res.json({ success: true });
+      const { employeeId } = req.params;
+      const allowances = await storage.getEmployeeAllowances(employeeId);
+      res.json({ data: allowances });
     } catch (error: any) {
-      if (error.message.includes('approved')) {
-        res.status(403).json({ error: error.message });
-      } else {
-        res.status(400).json({ error: error.message });
-      }
+      console.error(`[Allowances Fetch Error]`, error.message);
+      res.status(400).json({ error: error.message });
     }
   });
 
