@@ -63,7 +63,8 @@ export default function SalaryStructure() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formulas, setFormulas] = useState<Record<keyof Omit<SalaryStructure, 'id' | 'employeeId'>, SalaryFormula>>(DEFAULT_FORMULAS);
-  const [manuallyEdited, setManuallyEdited] = useState<Set<keyof SalaryStructure>>(new Set());
+  const [manuallyEdited, setManuallyEdited] = useState<Set<string>>(new Set());
+  const [editSource, setEditSource] = useState<'basic' | 'gross' | 'net' | null>(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -101,6 +102,58 @@ export default function SalaryStructure() {
     return formula.value;
   };
 
+  const calculateBasicFromGross = (gross: number): number => {
+    // Calculate percentage multiplier
+    const earnPercentageFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = ['hra', 'da', 'lta'];
+    let percentageMultiplier = 1; // Basic salary itself
+    let fixedEarnings = 0;
+
+    earnPercentageFields.forEach(field => {
+      const formula = formulas[field];
+      if (formula.type === 'percentage') {
+        percentageMultiplier += formula.value / 100;
+      }
+    });
+
+    // Add fixed earnings
+    const fixedEarningFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = ['conveyance', 'medical', 'bonuses', 'otherBenefits'];
+    fixedEarningFields.forEach(field => {
+      const formula = formulas[field];
+      if (formula.type === 'fixed') {
+        fixedEarnings += formula.value;
+      }
+    });
+
+    // Gross = Basic * percentageMultiplier + fixedEarnings
+    // Basic = (Gross - fixedEarnings) / percentageMultiplier
+    const basic = (gross - fixedEarnings) / percentageMultiplier;
+    return Math.max(0, basic);
+  };
+
+  const calculateBasicFromNet = (net: number, deductionPercentages: number = 15.42): number => {
+    // Estimate deductions as percentage of basic and calculate gross
+    // Net ≈ Basic - (Basic * deductionPercentages/100) = Basic * (1 - deductionPercentages/100)
+    // But we'll calculate more accurately
+    // For now, use approximation then refine
+    const factor = 1 - deductionPercentages / 100;
+    let estimatedBasic = net / factor;
+
+    // Refine by calculating actual deductions
+    for (let i = 0; i < 3; i++) {
+      const earnings = autoCalculateSalary(estimatedBasic);
+      const gross = estimatedBasic + earnings.hra! + earnings.da! + earnings.lta! + earnings.conveyance! + earnings.medical! + earnings.bonuses! + earnings.otherBenefits!;
+      const deductions = earnings.pf! + earnings.professionalTax! + earnings.incomeTax! + earnings.epf! + earnings.esic!;
+      const calculatedNet = gross - deductions;
+      
+      if (Math.abs(calculatedNet - net) < 1) break;
+      
+      // Adjust basic
+      estimatedBasic = estimatedBasic * (net / calculatedNet);
+    }
+
+    return Math.max(0, estimatedBasic);
+  };
+
   const autoCalculateSalary = (basicSalary: number): Partial<SalaryStructure> => {
     const calculated: Partial<SalaryStructure> = {};
     const fields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = [
@@ -121,13 +174,13 @@ export default function SalaryStructure() {
   const loadSalaryStructure = async (employeeId: string) => {
     setIsLoading(true);
     setManuallyEdited(new Set());
+    setEditSource(null);
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`);
       if (response.ok) {
         const data = await response.json();
         setSalary(data);
       } else {
-        // No salary structure yet, create blank one with auto-calculations
         const newSalary: SalaryStructure = {
           employeeId,
           basicSalary: 0,
@@ -175,28 +228,44 @@ export default function SalaryStructure() {
     if (value) loadSalaryStructure(value);
   };
 
-  const handleSalaryChange = (field: keyof SalaryStructure, value: string) => {
+  const handleSalaryChange = (field: keyof SalaryStructure, value: string, source: 'basic' | 'gross' | 'net' = 'basic') => {
     if (!salary) return;
 
     const numValue = parseFloat(value) || 0;
-    const newManuallyEdited = new Set(manuallyEdited);
-    newManuallyEdited.add(field);
-    setManuallyEdited(newManuallyEdited);
 
-    // If basic salary changed, recalculate everything
-    if (field === 'basicSalary') {
+    if (source === 'basic') {
+      setEditSource('basic');
+      const newManuallyEdited = new Set(manuallyEdited);
+      newManuallyEdited.add(field as string);
+      setManuallyEdited(newManuallyEdited);
+
       const calculated = autoCalculateSalary(numValue);
       setSalary({
         ...salary,
         [field]: numValue,
         ...calculated,
       });
-      setManuallyEdited(new Set(['basicSalary'])); // Only basic salary is edited now
-    } else {
+      setManuallyEdited(new Set(['basicSalary']));
+    } else if (source === 'gross') {
+      setEditSource('gross');
+      const basicSalary = calculateBasicFromGross(numValue);
+      const calculated = autoCalculateSalary(basicSalary);
       setSalary({
         ...salary,
-        [field]: numValue,
+        basicSalary,
+        ...calculated,
       });
+      setManuallyEdited(new Set());
+    } else if (source === 'net') {
+      setEditSource('net');
+      const basicSalary = calculateBasicFromNet(numValue);
+      const calculated = autoCalculateSalary(basicSalary);
+      setSalary({
+        ...salary,
+        basicSalary,
+        ...calculated,
+      });
+      setManuallyEdited(new Set());
     }
   };
 
@@ -211,24 +280,6 @@ export default function SalaryStructure() {
       ...salary,
       [field]: newValue,
     });
-  };
-
-  const updateFormula = (field: keyof Omit<SalaryStructure, 'id' | 'employeeId'>, newFormula: SalaryFormula) => {
-    setFormulas({
-      ...formulas,
-      [field]: newFormula,
-    });
-
-    // Recalculate this field if not manually edited
-    if (!manuallyEdited.has(field) && salary) {
-      const newValue = newFormula.type === 'percentage' 
-        ? (salary.basicSalary * newFormula.value) / 100 
-        : newFormula.value;
-      setSalary({
-        ...salary,
-        [field]: newValue,
-      });
-    }
   };
 
   const saveSalary = async () => {
@@ -274,7 +325,7 @@ export default function SalaryStructure() {
       <div className="space-y-6 max-w-4xl mx-auto">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Salary Structure</h2>
-          <p className="text-muted-foreground">Define and view employee salary breakdowns with dynamic auto-fill.</p>
+          <p className="text-muted-foreground">Define salary breakdowns - fill Basic, Gross, or Net to auto-calculate all fields.</p>
         </div>
 
         <Card>
@@ -323,7 +374,7 @@ export default function SalaryStructure() {
           <Input 
             type="number" 
             value={salary[field]} 
-            onChange={(e) => handleSalaryChange(field, e.target.value)}
+            onChange={(e) => handleSalaryChange(field, e.target.value, 'basic')}
             className={isManuallyEdited ? 'border-blue-500' : ''}
           />
           {isManuallyEdited && (
@@ -346,7 +397,7 @@ export default function SalaryStructure() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Salary Structure</h2>
-        <p className="text-muted-foreground">Dynamic salary form - enter basic salary and other fields auto-fill based on formulas. Click "Reset" to revert any manual changes.</p>
+        <p className="text-muted-foreground">Enter any of: Basic Salary, Gross Salary, or Net Salary - all other fields auto-calculate!</p>
       </div>
 
       <Card>
@@ -372,24 +423,56 @@ export default function SalaryStructure() {
         </CardContent>
       </Card>
 
+      {/* Quick Input Section */}
+      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 border-purple-200 dark:border-purple-800">
+        <CardHeader>
+          <CardTitle className="text-purple-900 dark:text-purple-100">Quick Input</CardTitle>
+          <CardDescription>Fill any one field to auto-calculate all others</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label className="font-semibold">Basic Salary</Label>
+              <Input 
+                ref={basicSalaryRef}
+                type="number" 
+                value={salary.basicSalary} 
+                onChange={(e) => handleSalaryChange('basicSalary', e.target.value, 'basic')}
+                className="text-lg font-bold"
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-semibold">Gross Salary</Label>
+              <Input 
+                type="number" 
+                value={gross} 
+                onChange={(e) => handleSalaryChange('basicSalary', e.target.value, 'gross')}
+                className="text-lg font-bold text-green-700 dark:text-green-300"
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-semibold">Net Salary</Label>
+              <Input 
+                type="number" 
+                value={net} 
+                onChange={(e) => handleSalaryChange('basicSalary', e.target.value, 'net')}
+                className="text-lg font-bold text-blue-700 dark:text-blue-300"
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Earnings</CardTitle>
-            <CardDescription>Allowances and Basic Pay (Auto-calculated based on Basic Salary)</CardDescription>
+            <CardDescription>Allowances and Benefits (Auto-calculated)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 items-center gap-2">
-              <Label className="text-base font-semibold">Basic Salary</Label>
-              <Input 
-                ref={basicSalaryRef} 
-                type="number" 
-                value={salary.basicSalary} 
-                onChange={(e) => handleSalaryChange('basicSalary', e.target.value)}
-                className="font-semibold"
-              />
-            </div>
-            <Separator />
             {renderSalaryField('hra', 'HRA')}
             {renderSalaryField('da', 'DA')}
             {renderSalaryField('lta', 'LTA')}
@@ -408,7 +491,7 @@ export default function SalaryStructure() {
         <Card>
           <CardHeader>
             <CardTitle>Deductions</CardTitle>
-            <CardDescription>PF, Tax and other deductions (Auto-calculated based on Basic Salary)</CardDescription>
+            <CardDescription>Deductions and Taxes (Auto-calculated)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {renderSalaryField('pf', 'Provident Fund (PF)')}
