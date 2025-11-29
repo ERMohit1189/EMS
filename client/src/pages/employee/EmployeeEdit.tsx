@@ -192,8 +192,8 @@ export default function EmployeeEdit() {
       form.setValue('ppeKit', employee.ppeKit || false, { shouldValidate: false });
       form.setValue('kitNo', employee.kitNo || '', { shouldValidate: false });
       form.setValue('status', employee.status || 'Active', { shouldValidate: false });
-      // Only calculate age if DOB is not the placeholder date
-      if (employee.dob && employee.dob !== '2000-01-01') {
+      // Only calculate age if DOB has a valid date
+      if (employee.dob && employee.dob.trim()) {
         calculateAge(employee.dob);
       } else {
         setAge(null);

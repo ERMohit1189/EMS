@@ -222,9 +222,11 @@ export class DrizzleStorage implements IStorage {
 
   // Employee operations
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    // Convert empty DOB string to null
+    const employeeData = { ...employee, dob: employee.dob && employee.dob.trim() ? employee.dob : null };
     const [result] = await db
       .insert(employees)
-      .values(employee)
+      .values(employeeData)
       .returning();
     return result;
   }
@@ -244,9 +246,11 @@ export class DrizzleStorage implements IStorage {
   }
 
   async updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee> {
+    // Convert empty DOB string to null
+    const employeeData = { ...employee, dob: employee.dob !== undefined ? (employee.dob && employee.dob.trim() ? employee.dob : null) : employee.dob };
     const [result] = await db
       .update(employees)
-      .set(employee)
+      .set(employeeData)
       .where(eq(employees.id, id))
       .returning();
     return result;
@@ -687,31 +691,6 @@ export class DrizzleStorage implements IStorage {
     return result as Site[];
   }
 
-  // Employee operations
-  async createEmployee(employee: InsertEmployee): Promise<Employee> {
-    const [result] = await db.insert(employees).values(employee).returning();
-    return result;
-  }
-
-  async getEmployee(id: string): Promise<Employee | undefined> {
-    const [result] = await db
-      .select()
-      .from(employees)
-      .where(eq(employees.id, id));
-    return result;
-  }
-
-  async updateEmployee(
-    id: string,
-    employee: Partial<InsertEmployee>
-  ): Promise<Employee> {
-    const [result] = await db
-      .update(employees)
-      .set(employee)
-      .where(eq(employees.id, id))
-      .returning();
-    return result;
-  }
 
   async deleteEmployee(id: string): Promise<void> {
     await db.delete(employees).where(eq(employees.id, id));
