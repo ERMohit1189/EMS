@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, type ExportHeader } from '@/lib/exportUtils';
+import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, createProfessionalSalaryExcel, type ExportHeader } from '@/lib/exportUtils';
 
 interface SalaryData {
   id: string;
@@ -135,12 +135,8 @@ export default function SalaryReport() {
     data.push(['']);
     data.push(['TOTAL', '', '', '', '', '', '', '', '', '', '', totalGross, '', '', '', '', '', totalDeductions, totalNet]);
 
-    const worksheet = XLSX.utils.aoa_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Report');
-
-    worksheet['!cols'] = Array(19).fill({ wch: 12 });
-    XLSX.writeFile(workbook, `SalaryReport_${getCurrentYear()}.xlsx`);
+    const columnWidths = Array(19).fill(14);
+    createProfessionalSalaryExcel(data, columnWidths, `SalaryReport_${getCurrentYear()}.xlsx`);
 
     toast({
       title: 'Success',

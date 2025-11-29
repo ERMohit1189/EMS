@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, type ExportHeader } from "@/lib/exportUtils";
+import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, createProfessionalSalaryExcel, type ExportHeader } from "@/lib/exportUtils";
 
 interface Employee {
   id: string;
@@ -497,14 +497,8 @@ export default function SalaryStructure() {
       ['Generated from Enterprise Management System (EMS)'],
     ];
     
-    const worksheet = XLSX.utils.aoa_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Structure');
-    
-    // Set column widths and styling
-    worksheet['!cols'] = [{ wch: 40 }, { wch: 18 }];
-    
-    XLSX.writeFile(workbook, `${employeeName}_SalaryStructure_${getCurrentYear()}.xlsx`);
+    const columnWidths = [40, 18];
+    createProfessionalSalaryExcel(data, columnWidths, `${employeeName}_SalaryStructure_${getCurrentYear()}.xlsx`);
     
     toast({
       title: 'Success',
