@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import * as XLSX from 'xlsx';
 
 interface Employee {
   id: string;
@@ -431,6 +432,58 @@ export default function SalaryStructure() {
     }
   };
 
+  const downloadSalary = () => {
+    if (!salary || !selectedEmployee) return;
+    
+    const employee = employees.find(e => e.id === selectedEmployee);
+    const employeeName = employee?.name || 'Employee';
+    
+    const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
+    const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
+    const net = gross - deductions;
+    
+    const data = [
+      ['SALARY STRUCTURE'],
+      ['Employee Name', employeeName],
+      ['Employee ID', selectedEmployee],
+      [''],
+      ['EARNINGS', ''],
+      ['Basic Salary', salary.basicSalary],
+      ['HRA (50%)', salary.hra],
+      ['DA (20%)', salary.da],
+      ['LTA (10%)', salary.lta],
+      ['Conveyance', salary.conveyance],
+      ['Medical', salary.medical],
+      ['Bonuses', salary.bonuses],
+      ['Other Benefits', salary.otherBenefits],
+      ['Gross Salary', gross],
+      [''],
+      ['DEDUCTIONS', ''],
+      ['PF (12%)', salary.pf],
+      ['Professional Tax', salary.professionalTax],
+      ['Income Tax', salary.incomeTax],
+      ['EPF (3.67%)', salary.epf],
+      ['ESIC (0.75%)', salary.esic],
+      ['Total Deductions', deductions],
+      [''],
+      ['NET SALARY (Payable)', net],
+    ];
+    
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary');
+    
+    // Set column widths
+    worksheet['!cols'] = [{ wch: 25 }, { wch: 15 }];
+    
+    XLSX.writeFile(workbook, `${employeeName}_SalaryStructure.xlsx`);
+    
+    toast({
+      title: 'Success',
+      description: `Salary structure downloaded for ${employeeName}`,
+    });
+  };
+
   if (!salary) {
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
@@ -675,6 +728,9 @@ export default function SalaryStructure() {
         
         <div className="col-span-2 flex justify-end gap-4">
           <Button variant="outline" onClick={() => { setSelectedEmployee(""); setSalary(null); setManuallyEdited(new Set()); }}>Cancel</Button>
+          <Button variant="outline" onClick={downloadSalary} data-testid="button-download-salary">
+            Download
+          </Button>
           <Button size="lg" onClick={saveSalary} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save Structure'}
           </Button>
