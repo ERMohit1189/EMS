@@ -14,7 +14,8 @@ import {
   LogOut,
   Upload,
   Key,
-  ChevronDown
+  ChevronDown,
+  Calendar
 } from 'lucide-react';
 import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
 
@@ -52,6 +53,11 @@ const menuGroups = [
   {
     group: 'Employee Management',
     items: [
+      {
+        title: 'Attendance',
+        icon: Calendar,
+        href: '/employee/attendance',
+      },
       {
         title: 'All Employees',
         icon: HardHat,
