@@ -6,7 +6,6 @@ import {
   insertVendorSchema,
   insertSiteSchema,
   insertEmployeeSchema,
-  insertSalarySchema,
   insertPOSchema,
   insertInvoiceSchema,
   insertPaymentMasterSchema,
