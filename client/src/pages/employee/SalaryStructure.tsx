@@ -318,22 +318,22 @@ export default function SalaryStructure() {
       
       const method = salary.id ? 'PUT' : 'POST';
       
-      // Ensure all numeric fields are actual numbers
+      // Convert all numeric fields to strings for database storage
       const salaryData = {
         ...salary,
-        basicSalary: Number(salary.basicSalary),
-        hra: Number(salary.hra),
-        da: Number(salary.da),
-        lta: Number(salary.lta),
-        conveyance: Number(salary.conveyance),
-        medical: Number(salary.medical),
-        bonuses: Number(salary.bonuses),
-        otherBenefits: Number(salary.otherBenefits),
-        pf: Number(salary.pf),
-        professionalTax: Number(salary.professionalTax),
-        incomeTax: Number(salary.incomeTax),
-        epf: Number(salary.epf),
-        esic: Number(salary.esic),
+        basicSalary: String(salary.basicSalary),
+        hra: String(salary.hra),
+        da: String(salary.da),
+        lta: String(salary.lta),
+        conveyance: String(salary.conveyance),
+        medical: String(salary.medical),
+        bonuses: String(salary.bonuses),
+        otherBenefits: String(salary.otherBenefits),
+        pf: String(salary.pf),
+        professionalTax: String(salary.professionalTax),
+        incomeTax: String(salary.incomeTax),
+        epf: String(salary.epf),
+        esic: String(salary.esic),
       };
       
       const response = await fetch(endpoint, {
