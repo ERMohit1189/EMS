@@ -1439,6 +1439,46 @@ export async function registerRoutes(
     }
   });
 
+  // Pending allowances for approval
+  app.get("/api/allowances/pending", async (req, res) => {
+    try {
+      console.log(`[Allowances] GET pending`);
+      const allowances = await storage.getPendingAllowances();
+      console.log(`[Allowances] Found ${allowances.length} pending allowances`);
+      res.json({ data: allowances });
+    } catch (error: any) {
+      console.error(`[Allowances Fetch Error]`, error.message);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Approve allowance
+  app.put("/api/allowances/:id/approve", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const approvedBy = req.session?.userId || 'admin';
+      console.log(`[Allowances] Approving ${id}`);
+      const allowance = await storage.approveDailyAllowance(id, approvedBy);
+      res.json({ success: true, data: allowance });
+    } catch (error: any) {
+      console.error(`[Allowances Approve Error]`, error.message);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Reject allowance
+  app.put("/api/allowances/:id/reject", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`[Allowances] Rejecting ${id}`);
+      const allowance = await storage.rejectDailyAllowance(id);
+      res.json({ success: true, data: allowance });
+    } catch (error: any) {
+      console.error(`[Allowances Reject Error]`, error.message);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Team routes
   app.post("/api/teams", async (req, res) => {
     try {

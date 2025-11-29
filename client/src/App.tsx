@@ -268,6 +268,7 @@ function App() {
                   
                   {/* Admin Routes */}
                   <Route path="/admin/teams" component={Teams} />
+                  <Route path="/admin/allowance-approvals" component={AllowanceApproval} />
                   
                   {/* Vendor Privacy Policy */}
                   <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />

@@ -167,8 +167,12 @@ export interface IStorage {
   getDailyAllowance(id: string): Promise<DailyAllowance | undefined>;
   getEmployeeAllowancesByDate(employeeId: string, date: string): Promise<DailyAllowance | undefined>;
   getEmployeeAllowances(employeeId: string, limit?: number): Promise<DailyAllowance[]>;
+  getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<any[]>;
+  getPendingAllowances(): Promise<any[]>;
   updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance>;
   deleteDailyAllowance(id: string): Promise<void>;
+  approveDailyAllowance(id: string, approvedBy: string): Promise<DailyAllowance>;
+  rejectDailyAllowance(id: string): Promise<DailyAllowance>;
 
   // Team operations
   createTeam(team: InsertTeam): Promise<Team>;
@@ -1106,6 +1110,30 @@ export class DrizzleStorage implements IStorage {
       approvalStatus: 'rejected',
     }).where(eq(dailyAllowances.id, id)).returning();
     return result;
+  }
+
+  async getPendingAllowances(): Promise<any[]> {
+    const result = await db.select().from(dailyAllowances)
+      .where(eq(dailyAllowances.approvalStatus, 'pending'))
+      .orderBy(dailyAllowances.submittedAt);
+    
+    // Enrich with employee names and team names
+    const enriched = await Promise.all(result.map(async (allowance) => {
+      const employee = await this.getEmployee(allowance.employeeId);
+      let teamName = null;
+      if (allowance.teamId) {
+        const team = await this.getTeam(allowance.teamId);
+        teamName = team?.name || null;
+      }
+      return {
+        ...allowance,
+        employeeName: employee?.name || 'Unknown',
+        employeeEmail: employee?.email || '',
+        teamName,
+      };
+    }));
+    
+    return enriched;
   }
 
   // Team operations
