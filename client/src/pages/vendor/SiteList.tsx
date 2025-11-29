@@ -196,7 +196,7 @@ export default function SiteList() {
       
       // Create colorful Excel export
       const columnWidths = allColumnKeys.map(() => 18);
-      createColorfulExcel(dataWithHeaders, columnWidths, `sites_export_${startDate}_to_${endDate}.xlsx`, "Site List", exportHeader, "SITE LIST EXPORT");
+      createColorfulExcel(dataWithHeaders, columnWidths, `sites_export_${startDate}_to_${endDate}.xlsx`, "Site List", exportHeader || undefined, "SITE LIST EXPORT");
     } catch (error) {
       console.error("Export error:", error);
       alert("Failed to export sites");

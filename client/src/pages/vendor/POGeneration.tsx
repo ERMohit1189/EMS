@@ -87,8 +87,8 @@ export default function POGeneration() {
         // Convert POs to PORecord format
         const poRecords: PORecord[] = [];
         for (const po of pos) {
-          const vendor = vendorsList.find(v => v.id === po.vendorId);
-          const site = sites.find(s => s.id === po.siteId);
+          const vendor = vendorsList.find((v: any) => v.id === po.vendorId);
+          const site = sites.find((s: any) => s.id === po.siteId);
           const maxAntennaSize = site 
             ? Math.max(
                 parseFloat(site.siteAAntDia) || 0,
@@ -133,7 +133,7 @@ export default function POGeneration() {
 
         // Filter out sites that already have POs
         const sitesWithPOs = new Set(pos.map((po: any) => po.siteId));
-        const filtered = sites.filter(site => !sitesWithPOs.has(site.id));
+        const filtered = sites.filter((site: any) => !sitesWithPOs.has(site.id));
         setAvailableSites(filtered);
       } catch (error) {
         toast({ title: "Error", description: "Failed to load data", variant: "destructive" });
@@ -183,8 +183,8 @@ export default function POGeneration() {
       // Get export header state for GST determination
       const exportHeaderState = localStorage.getItem('exportHeaderState');
 
-      const records: PORecord[] = sitesData.map((site, index) => {
-        const vendor = vendors.find(v => v.id === site.vendorId);
+      const records: PORecord[] = sitesData.map((site: any, index: number) => {
+        const vendor = vendors.find((v: any) => v.id === site.vendorId);
         const maxAntennaSize = Math.max(
           parseFloat(site.siteAAntDia) || 0,
           parseFloat(site.siteBAntDia) || 0
@@ -192,19 +192,21 @@ export default function POGeneration() {
         // Auto-determine GST type: IGST if vendor state != export state, CGST+SGST if same state
         const gstType = (vendor?.state && exportHeaderState && vendor.state !== exportHeaderState) ? 'igst' : 'cgstsgst';
         return {
-          siteId: site.id,
-          vendorId: site.vendorId,
-          siteName: site.hopAB || site.siteId,
+          id: `PO-TEMP-${Date.now()}-${index + 1}`,
+          siteId: site.id || "",
+          vendorId: site.vendorId || "",
+          siteName: site.hopAB || site.siteId || "",
           vendorName: vendor?.name || "Unknown",
-          planId: site.planId,
+          planId: site.planId || "",
           poNumber: `PO-${Date.now()}-${index + 1}`,
           description: `Installation and commissioning for ${site.hopAB || site.siteId}`,
           quantity: 1,
           unitPrice: site.vendorAmount?.toString() || "0",
           maxAntennaSize,
           gstType,
-          vendorState: vendor?.state,
-          siteState: site.state,
+          gstApply: false,
+          vendorState: vendor?.state || undefined,
+          siteState: site.state || undefined,
         };
       });
 
@@ -801,12 +803,12 @@ export default function POGeneration() {
                         {/* Action Buttons */}
                         <div className="border-t border-slate-200 pt-2 flex gap-1">
                           <a href={`/vendor/po/print/${po.id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
-                            <Button size="xs" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 h-auto">
+                            <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 h-auto">
                               <Printer className="h-3 w-3" />
                             </Button>
                           </a>
                           <Button 
-                            size="xs" 
+                            size="sm" 
                             variant="outline"
                             className="flex-1 border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
                             onClick={() => exportPOToPDF(po.id, po.poNumber)}
@@ -816,7 +818,7 @@ export default function POGeneration() {
                           </Button>
                           {(!poInvoices[po.id] || poInvoices[po.id].length === 0) && (
                             <Button 
-                              size="xs" 
+                              size="sm" 
                               variant="outline"
                               className="flex-1 border-red-300 text-red-600 hover:bg-red-50 text-xs py-1 h-auto"
                               onClick={() => deletePO(po.id, po.poNumber)}
