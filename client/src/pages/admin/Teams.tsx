@@ -160,12 +160,14 @@ export default function Teams() {
         return;
       }
       
-      // Get current reporting persons to auto-assign to new members
-      // Get reporting persons from the first team member (they should all have the same RPs)
-      const firstMember = teamMembers[0];
-      const reportingPerson1Id = firstMember?.reportingPerson1 || null;
-      const reportingPerson2Id = firstMember?.reportingPerson2 || null;
-      const reportingPerson3Id = firstMember?.reportingPerson3 || null;
+      // Get actual RP1, RP2, RP3 employees from the team
+      const rp1Employee = teamMembers.find(m => m.reportingPerson1 === m.id);
+      const rp2Employee = teamMembers.find(m => m.reportingPerson2 === m.id);
+      const rp3Employee = teamMembers.find(m => m.reportingPerson3 === m.id);
+
+      const reportingPerson1Id = rp1Employee?.id || null;
+      const reportingPerson2Id = rp2Employee?.id || null;
+      const reportingPerson3Id = rp3Employee?.id || null;
 
       console.log('[Teams] Auto-assigning reporting persons:', { reportingPerson1Id, reportingPerson2Id, reportingPerson3Id });
 
