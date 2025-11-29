@@ -364,28 +364,12 @@ export default function SiteStatus() {
       'Updated At': site.updatedAt || '-',
     }));
 
-      const workbook = XLSX.utils.book_new();
-
-      // Create header sheet if settings exist
-      if (headerSettings.companyName || headerSettings.reportTitle) {
-        const headerData = [];
-        if (headerSettings.companyName) headerData.push(['Company:', headerSettings.companyName]);
-        if (headerSettings.reportTitle) headerData.push(['Report:', headerSettings.reportTitle]);
-        headerData.push(['']);
-        headerData.push(['Generated:', new Date().toLocaleString()]);
-        headerData.push(['']);
-        
-        const headerSheet = XLSX.utils.aoa_to_sheet(headerData);
-        XLSX.utils.book_append_sheet(workbook, headerSheet, 'Header');
-      }
-
-      // Add data sheet
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-      const numColumns = Object.keys(excelData[0] || {}).length;
-      worksheet['!cols'] = Array(numColumns).fill({ wch: 18 });
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Status');
+      // Convert to array-of-arrays format for colorful export
+      const headers = Object.keys(excelData[0] || {});
+      const dataArray = [headers, ...excelData.map(row => headers.map(h => row[h]))];
+      const columnWidths = Array(headers.length).fill(18);
       
-      XLSX.writeFile(workbook, `site-status-${new Date().getTime()}.xlsx`);
+      createColorfulExcel(dataArray, columnWidths, `site-status-${new Date().getTime()}.xlsx`, 'Site Status');
       toast({ title: 'Success', description: 'Data exported to Excel' });
     } catch (error) {
       console.error('Excel export error:', error);
