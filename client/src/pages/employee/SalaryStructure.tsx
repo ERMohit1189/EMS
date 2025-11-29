@@ -438,50 +438,61 @@ export default function SalaryStructure() {
     
     const employee = employees.find(e => e.id === selectedEmployee);
     const employeeName = employee?.name || 'Employee';
+    const companyName = 'Enterprise Management System';
+    const currentDate = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
     const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
     const net = gross - deductions;
     
     const data = [
-      ['SALARY STRUCTURE'],
+      [companyName],
+      ['SALARY STRUCTURE / SALARY SLIP'],
+      [''],
+      ['Document Date:', currentDate],
+      [''],
+      ['EMPLOYEE INFORMATION'],
       ['Employee Name', employeeName],
       ['Employee ID', selectedEmployee],
+      ['Deductions Status', wantDeduction ? 'Applied' : 'Not Applied'],
       [''],
-      ['EARNINGS', ''],
+      ['MONTHLY EARNINGS', 'Amount (₹)'],
       ['Basic Salary', salary.basicSalary],
-      ['HRA (50%)', salary.hra],
-      ['DA (20%)', salary.da],
-      ['LTA (10%)', salary.lta],
-      ['Conveyance', salary.conveyance],
-      ['Medical', salary.medical],
+      ['House Rent Allowance (HRA @ 50%)', salary.hra],
+      ['Dearness Allowance (DA @ 20%)', salary.da],
+      ['Leave Travel Allowance (LTA @ 10%)', salary.lta],
+      ['Conveyance Allowance', salary.conveyance],
+      ['Medical Allowance', salary.medical],
       ['Bonuses', salary.bonuses],
       ['Other Benefits', salary.otherBenefits],
-      ['Gross Salary', gross],
+      ['GROSS SALARY', gross],
       [''],
-      ['DEDUCTIONS', ''],
-      ['PF (12%)', salary.pf],
+      ['DEDUCTIONS', 'Amount (₹)'],
+      ['Provident Fund (PF @ 12%)', salary.pf],
       ['Professional Tax', salary.professionalTax],
       ['Income Tax', salary.incomeTax],
-      ['EPF (3.67%)', salary.epf],
-      ['ESIC (0.75%)', salary.esic],
-      ['Total Deductions', deductions],
+      ['Employees Provident Fund (EPF @ 3.67%)', salary.epf],
+      ['Employee State Insurance (ESIC @ 0.75%)', salary.esic],
+      ['TOTAL DEDUCTIONS', deductions],
       [''],
-      ['NET SALARY (Payable)', net],
+      ['NET SALARY (Take Home)', net],
+      [''],
+      ['Note: This is a system-generated salary structure document.'],
+      ['Generated from Enterprise Management System (EMS)'],
     ];
     
     const worksheet = XLSX.utils.aoa_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Structure');
     
-    // Set column widths
-    worksheet['!cols'] = [{ wch: 25 }, { wch: 15 }];
+    // Set column widths and styling
+    worksheet['!cols'] = [{ wch: 40 }, { wch: 18 }];
     
-    XLSX.writeFile(workbook, `${employeeName}_SalaryStructure.xlsx`);
+    XLSX.writeFile(workbook, `${employeeName}_SalaryStructure_${new Date().getFullYear()}.xlsx`);
     
     toast({
       title: 'Success',
-      description: `Salary structure downloaded for ${employeeName}`,
+      description: `Excel downloaded for ${employeeName}`,
     });
   };
 
@@ -490,6 +501,8 @@ export default function SalaryStructure() {
     
     const employee = employees.find(e => e.id === selectedEmployee);
     const employeeName = employee?.name || 'Employee';
+    const companyName = 'Enterprise Management System';
+    const currentDate = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
     const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
@@ -501,85 +514,133 @@ export default function SalaryStructure() {
       format: 'a4'
     });
     
-    let yPos = 20;
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 15;
-    const lineHeight = 7;
+    let yPos = 15;
+    const margin = 12;
+    const lineHeight = 6;
+    const pageWidth = pdf.internal.pageSize.getWidth();
     
-    // Title
-    pdf.setFontSize(16);
-    pdf.text('SALARY STRUCTURE', margin, yPos);
-    yPos += 10;
+    // Company Header
+    pdf.setFontSize(14);
+    pdf.setFont(undefined, 'bold');
+    pdf.text(companyName, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
     
-    // Employee Info
-    pdf.setFontSize(11);
-    pdf.text(`Employee Name: ${employeeName}`, margin, yPos);
+    // Document Title
+    pdf.setFontSize(12);
+    pdf.text('SALARY STRUCTURE DOCUMENT', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
+    
+    // Date
+    pdf.setFontSize(9);
+    pdf.setFont(undefined, 'normal');
+    pdf.text(`Date: ${currentDate}`, margin, yPos);
+    yPos += 8;
+    
+    // Divider line
+    pdf.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 5;
+    
+    // Employee Information Section
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('EMPLOYEE INFORMATION', margin, yPos);
     yPos += lineHeight;
-    pdf.text(`Employee ID: ${selectedEmployee}`, margin, yPos);
-    yPos += 10;
+    
+    pdf.setFontSize(9);
+    pdf.setFont(undefined, 'normal');
+    pdf.text(`Name: ${employeeName}`, margin + 2, yPos);
+    yPos += lineHeight;
+    pdf.text(`Employee ID: ${selectedEmployee}`, margin + 2, yPos);
+    yPos += lineHeight;
+    pdf.text(`Deductions Status: ${wantDeduction ? 'Applied' : 'Not Applied'}`, margin + 2, yPos);
+    yPos += 8;
     
     // Earnings Section
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(41, 128, 185);
     pdf.text('EARNINGS', margin, yPos);
     yPos += lineHeight;
     
-    pdf.setFontSize(10);
-    const earningsData = [
-      ['Basic Salary', `₹${formatValue(salary.basicSalary)}`],
-      ['HRA (50%)', `₹${formatValue(salary.hra)}`],
-      ['DA (20%)', `₹${formatValue(salary.da)}`],
-      ['LTA (10%)', `₹${formatValue(salary.lta)}`],
-      ['Conveyance', `₹${formatValue(salary.conveyance)}`],
-      ['Medical', `₹${formatValue(salary.medical)}`],
-      ['Bonuses', `₹${formatValue(salary.bonuses)}`],
-      ['Other Benefits', `₹${formatValue(salary.otherBenefits)}`],
+    pdf.setFont(undefined, 'normal');
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(9);
+    
+    const earningsLabels = [
+      { label: 'Basic Salary', value: salary.basicSalary },
+      { label: 'House Rent Allowance (HRA @ 50%)', value: salary.hra },
+      { label: 'Dearness Allowance (DA @ 20%)', value: salary.da },
+      { label: 'Leave Travel Allowance (LTA @ 10%)', value: salary.lta },
+      { label: 'Conveyance Allowance', value: salary.conveyance },
+      { label: 'Medical Allowance', value: salary.medical },
+      { label: 'Bonuses', value: salary.bonuses },
+      { label: 'Other Benefits', value: salary.otherBenefits },
     ];
     
-    earningsData.forEach(([label, value]) => {
+    earningsLabels.forEach(({ label, value }) => {
       pdf.text(label, margin + 2, yPos);
-      pdf.text(value, margin + 80, yPos);
+      pdf.text(`₹${formatValue(value)}`, pageWidth - margin - 20, yPos);
       yPos += lineHeight;
     });
     
     pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(41, 128, 185);
     pdf.text('Gross Salary', margin + 2, yPos);
-    pdf.text(`₹${formatValue(gross)}`, margin + 80, yPos);
-    yPos += 10;
+    pdf.text(`₹${formatValue(gross)}`, pageWidth - margin - 20, yPos);
+    yPos += 8;
     
     // Deductions Section
-    pdf.setFont(undefined, 'normal');
-    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(231, 76, 60);
+    pdf.setFontSize(10);
     pdf.text('DEDUCTIONS', margin, yPos);
     yPos += lineHeight;
     
-    pdf.setFontSize(10);
-    const deductionsData = [
-      ['PF (12%)', `₹${formatValue(salary.pf)}`],
-      ['Professional Tax', `₹${formatValue(salary.professionalTax)}`],
-      ['Income Tax', `₹${formatValue(salary.incomeTax)}`],
-      ['EPF (3.67%)', `₹${formatValue(salary.epf)}`],
-      ['ESIC (0.75%)', `₹${formatValue(salary.esic)}`],
+    pdf.setFont(undefined, 'normal');
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(9);
+    
+    const deductionLabels = [
+      { label: 'Provident Fund (PF @ 12%)', value: salary.pf },
+      { label: 'Professional Tax', value: salary.professionalTax },
+      { label: 'Income Tax', value: salary.incomeTax },
+      { label: 'Employees Provident Fund (EPF @ 3.67%)', value: salary.epf },
+      { label: 'Employee State Insurance (ESIC @ 0.75%)', value: salary.esic },
     ];
     
-    deductionsData.forEach(([label, value]) => {
+    deductionLabels.forEach(({ label, value }) => {
       pdf.text(label, margin + 2, yPos);
-      pdf.text(value, margin + 80, yPos);
+      pdf.text(`₹${formatValue(value)}`, pageWidth - margin - 20, yPos);
       yPos += lineHeight;
     });
     
     pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(231, 76, 60);
     pdf.text('Total Deductions', margin + 2, yPos);
-    pdf.text(`₹${formatValue(deductions)}`, margin + 80, yPos);
+    pdf.text(`₹${formatValue(deductions)}`, pageWidth - margin - 20, yPos);
     yPos += 10;
     
-    // Net Salary
-    pdf.setFontSize(12);
-    pdf.setTextColor(25, 118, 210);
-    pdf.text('NET SALARY (Payable)', margin, yPos);
-    pdf.text(`₹${formatValue(net)}`, margin + 80, yPos);
+    // Net Salary Section
+    pdf.setFillColor(41, 128, 185);
+    pdf.rect(margin, yPos - 5, pageWidth - (2 * margin), 12, 'F');
     
-    pdf.save(`${employeeName}_SalaryStructure.pdf`);
+    pdf.setFontSize(11);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('NET SALARY (Take Home Pay)', margin + 2, yPos + 2);
+    pdf.text(`₹${formatValue(net)}`, pageWidth - margin - 20, yPos + 2);
+    
+    yPos += 18;
+    
+    // Footer
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    pdf.setFont(undefined, 'normal');
+    pdf.text('This is a system-generated document. No signature required.', margin, yPos);
+    yPos += lineHeight;
+    pdf.text('Generated from Enterprise Management System (EMS)', margin, yPos);
+    
+    pdf.save(`${employeeName}_SalaryStructure_${new Date().getFullYear()}.pdf`);
     
     toast({
       title: 'Success',
