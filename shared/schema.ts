@@ -312,6 +312,7 @@ export const dailyAllowances = pgTable("daily_allowances", {
   employeeId: varchar("employee_id")
     .notNull()
     .references(() => employees.id),
+  teamId: varchar("team_id").references(() => teams.id),
   date: date("date").notNull(),
   allowanceData: text("allowance_data").notNull(), // JSON string of allowance details
   approvalStatus: varchar("approval_status").notNull().default("pending"), // pending, approved, rejected

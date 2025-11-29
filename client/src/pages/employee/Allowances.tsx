@@ -20,11 +20,18 @@ interface AllowanceData {
 interface AllowanceEntry {
   id: string;
   date: string;
+  teamId?: string;
+  teamName?: string;
   allowanceData: string;
   approvalStatus: 'pending' | 'approved' | 'rejected';
   paidStatus: 'unpaid' | 'partial' | 'full';
   approvedBy?: string;
   approvedAt?: string;
+}
+
+interface Team {
+  id: string;
+  name: string;
 }
 
 export default function Allowances() {
@@ -57,6 +64,8 @@ export default function Allowances() {
   const [submittedEntries, setSubmittedEntries] = useState<AllowanceEntry[]>([]);
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
   const [caps, setCaps] = useState<any>({});
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   
   // Month/Year filter - default to current month
   const now = new Date();
