@@ -121,21 +121,17 @@ export default function EmployeeList() {
                    variant="outline"
                    size="sm"
                    onClick={() => setLocation(`/employee/edit/${e.id}`)}
-                   className="gap-2"
                    data-testid={`button-edit-${e.id}`}
                  >
                    <Edit className="h-4 w-4" />
-                   Edit
                  </Button>
                  <Button
                    variant="destructive"
                    size="sm"
                    onClick={() => setDeleteConfirm(e.id)}
-                   className="gap-2"
                    data-testid={`button-delete-${e.id}`}
                  >
                    <Trash2 className="h-4 w-4" />
-                   Delete
                  </Button>
                </div>
              </div>
