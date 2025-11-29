@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -92,14 +93,14 @@ export default function EmployeeList() {
   };
   
   return (
-    <div className="space-y-6">
-       <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
          <div>
-           <h2 className="text-3xl font-bold tracking-tight">All Employees</h2>
-           <p className="text-muted-foreground">Directory of all staff members.</p>
+           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">All Employees</h2>
+           <p className="text-xs md:text-sm text-muted-foreground">Directory of all staff members.</p>
          </div>
          <Link href="/employee/register">
-            <Button className="gap-2">
+            <Button className="gap-2 w-full md:w-auto text-xs md:text-sm">
               <Plus className="h-4 w-4" /> Add Employee
             </Button>
          </Link>
@@ -108,14 +109,16 @@ export default function EmployeeList() {
        {isLoading ? (
          <PageLoader isLoading={true} message="Loading employee data..." />
        ) : (
-       <div className="rounded-md border bg-card overflow-x-auto">
-         <div className="grid gap-0 min-w-full" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Name / Designation</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Email</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Contact</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Location</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Status</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Actions</div>
+       <>
+       {/* Desktop Table */}
+       <div className="hidden md:block rounded-md border bg-card">
+         <div className="grid gap-0" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
+           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Name / Designation</div>
+           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Email</div>
+           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Contact</div>
+           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Location</div>
+           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Status</div>
+           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Actions</div>
          </div>
          {employees.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">No employees found. Add one to get started.</div>
@@ -123,13 +126,13 @@ export default function EmployeeList() {
            employees.map(e => (
              <div key={e.id} className="grid gap-0 border-b last:border-0 hover:bg-muted/50 transition-colors items-center" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
                <div className="p-4">
-                 <div className="font-medium">{e.name}</div>
+                 <div className="font-medium text-sm">{e.name}</div>
                  <div className="text-xs text-muted-foreground">{e.designationName || 'Not Specified'}</div>
                </div>
-               <div className="p-4 text-sm font-mono text-blue-600 truncate text-left" data-testid={`text-email-${e.id}`} title={e.email}>{e.email}</div>
-               <div className="p-4 text-sm font-mono text-left">{e.mobile}</div>
-               <div className="p-4 text-sm text-left">{e.city}</div>
-               <div className="p-4 text-left">
+               <div className="p-4 text-sm font-mono text-blue-600 truncate" data-testid={`text-email-${e.id}`} title={e.email}>{e.email}</div>
+               <div className="p-4 text-sm font-mono">{e.mobile}</div>
+               <div className="p-4 text-sm">{e.city}</div>
+               <div className="p-4">
                  <Badge 
                    variant={e.status === 'Active' ? 'default' : 'secondary'}
                    data-testid={`badge-status-${e.id}`}
@@ -137,10 +140,11 @@ export default function EmployeeList() {
                    {e.status}
                  </Badge>
                </div>
-               <div className="p-4 flex justify-start gap-2">
+               <div className="p-4 flex gap-2">
                  <Button
                    variant="outline"
                    size="sm"
+                   className="h-8"
                    onClick={() => setLocation(`/employee/edit/${e.id}`)}
                    data-testid={`button-edit-${e.id}`}
                  >
@@ -149,6 +153,7 @@ export default function EmployeeList() {
                  <Button
                    variant="destructive"
                    size="sm"
+                   className="h-8"
                    onClick={() => setDeleteConfirm(e.id)}
                    data-testid={`button-delete-${e.id}`}
                  >
@@ -159,13 +164,78 @@ export default function EmployeeList() {
            ))
          )}
        </div>
+
+       {/* Mobile Card View */}
+       <div className="md:hidden space-y-2">
+         {employees.length === 0 ? (
+           <div className="p-6 text-center text-muted-foreground text-sm">No employees found. Add one to get started.</div>
+         ) : (
+           employees.map(e => (
+             <Card key={e.id} className="p-3 shadow-sm border">
+               <div className="space-y-2">
+                 <div className="flex items-start justify-between gap-2">
+                   <div className="flex-1 min-w-0">
+                     <p className="font-medium text-sm truncate">{e.name}</p>
+                     <p className="text-xs text-muted-foreground">{e.designationName || 'Not Specified'}</p>
+                   </div>
+                   <div className="flex gap-1 flex-shrink-0">
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       className="h-7 px-2"
+                       onClick={() => setLocation(`/employee/edit/${e.id}`)}
+                       data-testid={`button-edit-${e.id}`}
+                     >
+                       <Edit className="h-3 w-3" />
+                     </Button>
+                     <Button
+                       variant="destructive"
+                       size="sm"
+                       className="h-7 px-2"
+                       onClick={() => setDeleteConfirm(e.id)}
+                       data-testid={`button-delete-${e.id}`}
+                     >
+                       <Trash2 className="h-3 w-3" />
+                     </Button>
+                   </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-2 text-xs">
+                   <div>
+                     <p className="text-muted-foreground">Email</p>
+                     <p className="font-medium text-xs truncate" title={e.email}>{e.email}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground">Contact</p>
+                     <p className="font-medium text-xs">{e.mobile}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground">Location</p>
+                     <p className="font-medium text-xs">{e.city}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground">Status</p>
+                     <Badge 
+                       variant={e.status === 'Active' ? 'default' : 'secondary'}
+                       className="text-xs"
+                       data-testid={`badge-status-${e.id}`}
+                     >
+                       {e.status}
+                     </Badge>
+                   </div>
+                 </div>
+               </div>
+             </Card>
+           ))
+         )}
+       </div>
+       </>
        )}
 
        <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-         <AlertDialogContent>
+         <AlertDialogContent className="max-w-sm">
            <AlertDialogHeader>
              <AlertDialogTitle>Delete Employee</AlertDialogTitle>
-             <AlertDialogDescription>
+             <AlertDialogDescription className="text-xs md:text-sm">
                Are you sure you want to delete this employee record? This action cannot be undone.
              </AlertDialogDescription>
            </AlertDialogHeader>
