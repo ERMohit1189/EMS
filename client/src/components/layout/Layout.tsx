@@ -1,5 +1,6 @@
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { Breadcrumb } from './Navigation';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ export function Layout({ children, isLoggedIn, setIsLoggedIn }: LayoutProps) {
       <Sidebar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
+        <Breadcrumb />
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
