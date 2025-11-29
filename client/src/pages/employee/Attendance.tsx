@@ -47,13 +47,25 @@ export default function Attendance() {
   };
 
   const handleDayClick = (day: number) => {
+    console.log('📅 Clicked day:', day, 'Current status:', attendance[day]);
     const current = attendance[day];
-    const next: 'present' | 'absent' | 'leave' | null =
-      current === 'present' ? 'absent' : current === 'absent' ? 'leave' : null;
-    setAttendance({
+    let next: 'present' | 'absent' | 'leave' | null;
+    
+    if (current === 'present') {
+      next = 'absent';
+    } else if (current === 'absent') {
+      next = 'leave';
+    } else {
+      next = 'present';
+    }
+    
+    console.log('📅 New status:', next);
+    const newAttendance = {
       ...attendance,
       [day]: next,
-    });
+    };
+    setAttendance(newAttendance);
+    console.log('📅 Updated attendance:', newAttendance);
   };
 
   const handleSubmit = async () => {
