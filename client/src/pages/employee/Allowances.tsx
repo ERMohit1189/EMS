@@ -174,7 +174,13 @@ export default function Allowances() {
   };
 
   const getMonthName = (monthNum: string) => {
-    return new Date(2024, parseInt(monthNum) - 1, 1).toLocaleString('default', { month: 'long' });
+    return new Date(2024, parseInt(monthNum) - 1, 1).toLocaleString('default', { month: 'short' });
+  };
+
+  const formatMonthYear = () => {
+    const monthName = getMonthName(selectedMonth);
+    const yearShort = selectedYear.slice(-2);
+    return `${monthName} ${yearShort}`;
   };
 
   const handleDelete = async (allowanceId: string) => {
@@ -540,22 +546,22 @@ export default function Allowances() {
       </Card>
 
       <Card className="shadow-sm">
-        <CardHeader className="pb-2 pt-3 px-3">
-          <CardTitle className="text-lg">History</CardTitle>
-          <div className="flex items-center justify-center gap-3 mt-4">
+        <CardHeader className="pb-3 pt-4 px-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardTitle className="text-lg font-bold text-slate-800 mb-4">History</CardTitle>
+          <div className="flex items-center justify-center gap-4">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={goToPreviousMonth}
               data-testid="button-previous-month"
-              className="h-8 px-2"
+              className="h-9 px-3 rounded-lg border-slate-200 hover:bg-white hover:border-slate-300 transition-all duration-200"
             >
-              ← Previous
+              <span className="text-lg">←</span>
             </Button>
-            <div className="text-center min-w-[140px]">
-              <p className="font-semibold text-sm" data-testid="display-month-year">
-                {getMonthName(selectedMonth)} {selectedYear}
+            <div className="text-center px-6 py-2 bg-white rounded-lg border border-slate-200 shadow-sm">
+              <p className="font-bold text-lg text-slate-800 tracking-wide" data-testid="display-month-year">
+                {formatMonthYear()}
               </p>
             </div>
             <Button
@@ -564,9 +570,9 @@ export default function Allowances() {
               size="sm"
               onClick={goToNextMonth}
               data-testid="button-next-month"
-              className="h-8 px-2"
+              className="h-9 px-3 rounded-lg border-slate-200 hover:bg-white hover:border-slate-300 transition-all duration-200"
             >
-              Next →
+              <span className="text-lg">→</span>
             </Button>
           </div>
         </CardHeader>
