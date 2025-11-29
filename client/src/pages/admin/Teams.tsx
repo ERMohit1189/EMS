@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
 
@@ -25,6 +26,7 @@ interface Employee {
   name: string;
   email: string;
   designation: string;
+  department: string;
 }
 
 export default function Teams() {
@@ -36,7 +38,7 @@ export default function Teams() {
   const [loadingAddMember, setLoadingAddMember] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchTeams();
@@ -130,33 +132,46 @@ export default function Teams() {
     
     console.log('[Teams] ADD MEMBER button clicked');
     
-    if (!selectedTeamId || !selectedEmployeeId) {
-      toast({ title: 'Error', description: 'Please select team and employee', variant: 'destructive' });
+    if (!selectedTeamId || selectedEmployeeIds.length === 0) {
+      toast({ title: 'Error', description: 'Please select team and at least one employee', variant: 'destructive' });
       return;
     }
 
     try {
       setLoadingAddMember(true);
-      console.log('[Teams] Adding member to team:', selectedTeamId, selectedEmployeeId);
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employeeId: selectedEmployeeId }),
-      });
+      console.log('[Teams] Adding members to team:', selectedTeamId, selectedEmployeeIds);
+      
+      const promises = selectedEmployeeIds.map((employeeId) =>
+        fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employeeId }),
+        })
+      );
 
-      if (response.ok) {
-        toast({ title: 'Success', description: 'Member added to team' });
-        setSelectedEmployeeId('');
+      const responses = await Promise.all(promises);
+      const allOk = responses.every(r => r.ok);
+
+      if (allOk) {
+        toast({ title: 'Success', description: `Added ${selectedEmployeeIds.length} member(s) to team` });
+        setSelectedEmployeeIds([]);
         fetchTeamMembers(selectedTeamId);
       } else {
-        const error = await response.json();
-        toast({ title: 'Error', description: error.error || 'Failed to add member', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to add some members', variant: 'destructive' });
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setLoadingAddMember(false);
     }
+  };
+
+  const toggleEmployeeSelection = (employeeId: string) => {
+    setSelectedEmployeeIds((prev) =>
+      prev.includes(employeeId)
+        ? prev.filter((id) => id !== employeeId)
+        : [...prev, employeeId]
+    );
   };
 
   const handleRemoveMember = async (memberId: string) => {
@@ -262,29 +277,47 @@ export default function Teams() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium">Select Employee</label>
-              <select
-                value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                className="w-full h-8 text-xs px-2 border rounded"
-                data-testid="select-employee"
-              >
-                <option value="">Choose an employee...</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name} ({emp.email})
-                  </option>
-                ))}
-              </select>
+              <label className="text-xs font-medium mb-2 block">Select Employees (Multiple)</label>
+              <div className="border rounded p-2 space-y-2 max-h-64 overflow-y-auto bg-white">
+                {employees.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No employees available</p>
+                ) : (
+                  employees.map((emp) => (
+                    <div key={emp.id} className="flex items-start gap-2 p-1 hover:bg-slate-50 rounded">
+                      <Checkbox
+                        id={`emp-${emp.id}`}
+                        checked={selectedEmployeeIds.includes(emp.id)}
+                        onCheckedChange={() => toggleEmployeeSelection(emp.id)}
+                        data-testid={`checkbox-employee-${emp.id}`}
+                      />
+                      <label
+                        htmlFor={`emp-${emp.id}`}
+                        className="text-xs flex-1 cursor-pointer"
+                      >
+                        <div className="font-medium text-xs">{emp.name}</div>
+                        <div className="text-xs text-muted-foreground">{emp.email}</div>
+                        <div className="text-xs text-blue-600">
+                          {emp.department} / {emp.designation}
+                        </div>
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              {selectedEmployeeIds.length > 0 && (
+                <p className="text-xs text-green-600 mt-2">
+                  {selectedEmployeeIds.length} employee(s) selected
+                </p>
+              )}
             </div>
             <Button
               type="button"
               onClick={(e) => handleAddMember(e)}
-              disabled={loadingAddMember || !selectedTeamId || !selectedEmployeeId}
+              disabled={loadingAddMember || !selectedTeamId || selectedEmployeeIds.length === 0}
               className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700"
               data-testid="button-add-member"
             >
-              {loadingAddMember ? 'Adding...' : 'Add Member'}
+              {loadingAddMember ? `Adding ${selectedEmployeeIds.length}...` : `Add ${selectedEmployeeIds.length} Member(s)`}
             </Button>
           </CardContent>
         </Card>
