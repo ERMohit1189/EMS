@@ -1099,15 +1099,70 @@ export class DrizzleStorage implements IStorage {
   }
 
   async approveDailyAllowance(id: string, approvedBy: string): Promise<DailyAllowance> {
+    console.log(`[Storage] approveDailyAllowance - allowanceId: ${id}, approvedBy: ${approvedBy}`);
+    
+    // Get current allowance
+    const existing = await this.getDailyAllowance(id);
+    if (!existing) throw new Error('Allowance not found');
+    
+    // Cannot approve if already rejected by higher authority
+    if (existing.rejectedBy) {
+      throw new Error('Cannot approve a rejected allowance. Status is locked.');
+    }
+    
+    // Cannot approve if already approved
+    if (existing.approvalStatus === 'approved') {
+      throw new Error('Allowance already approved');
+    }
+    
+    // Increment approval count
+    const newApprovalCount = (existing.approvalCount || 0) + 1;
+    console.log(`[Storage] Approval count: ${existing.approvalCount} -> ${newApprovalCount}`);
+    
+    // Determine new status: 2+ approvals = approved, 1 approval = processing
+    const newStatus = newApprovalCount >= 2 ? 'approved' : 'processing';
+    console.log(`[Storage] New status: ${existing.approvalStatus} -> ${newStatus}`);
+    
+    // Store approvers as JSON array
+    const currentApprovers = existing.approvedBy ? JSON.parse(existing.approvedBy) : [];
+    if (!currentApprovers.includes(approvedBy)) {
+      currentApprovers.push(approvedBy);
+    }
+    
     const [result] = await db.update(dailyAllowances).set({
-      approvalStatus: 'approved',
-      approvedBy,
+      approvalStatus: newStatus,
+      approvalCount: newApprovalCount,
+      approvedBy: JSON.stringify(currentApprovers),
       approvedAt: new Date(),
     }).where(eq(dailyAllowances.id, id)).returning();
+    
+    console.log(`[Storage] Approval updated. New status: ${result.approvalStatus}, Total approvals: ${result.approvalCount}`);
     return result;
   }
 
-  async rejectDailyAllowance(id: string): Promise<DailyAllowance> {
+  async rejectDailyAllowance(id: string, rejectedBy: string, isHigherAuthority: boolean = true): Promise<DailyAllowance> {
+    console.log(`[Storage] rejectDailyAllowance - allowanceId: ${id}, rejectedBy: ${rejectedBy}, isHigherAuthority: ${isHigherAuthority}`);
+    
+    // Get current allowance
+    const existing = await this.getDailyAllowance(id);
+    if (!existing) throw new Error('Allowance not found');
+    
+    // If already rejected by higher authority, cannot change
+    if (existing.rejectedBy) {
+      throw new Error('Allowance already rejected by higher authority. Status is locked and cannot be changed.');
+    }
+    
+    // If higher authority rejects, lock the status
+    if (isHigherAuthority) {
+      console.log(`[Storage] Higher authority rejection - status will be locked`);
+      const [result] = await db.update(dailyAllowances).set({
+        approvalStatus: 'rejected',
+        rejectedBy,
+      }).where(eq(dailyAllowances.id, id)).returning();
+      return result;
+    }
+    
+    // Regular rejection
     const [result] = await db.update(dailyAllowances).set({
       approvalStatus: 'rejected',
     }).where(eq(dailyAllowances.id, id)).returning();

@@ -315,9 +315,11 @@ export const dailyAllowances = pgTable("daily_allowances", {
   teamId: varchar("team_id").references(() => teams.id),
   date: date("date").notNull(),
   allowanceData: text("allowance_data").notNull(), // JSON string of allowance details
-  approvalStatus: varchar("approval_status").notNull().default("pending"), // pending, approved, rejected
+  approvalStatus: varchar("approval_status").notNull().default("pending"), // pending, processing, approved, rejected
+  approvalCount: integer("approval_count").notNull().default(0), // Number of approvals received
   paidStatus: varchar("paid_status").notNull().default("unpaid"), // unpaid, partial, full
-  approvedBy: varchar("approved_by"),
+  approvedBy: varchar("approved_by"), // JSON array of approver IDs
+  rejectedBy: varchar("rejected_by"), // Higher authority that rejected
   approvedAt: timestamp("approved_at"),
   submittedAt: timestamp("submitted_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
