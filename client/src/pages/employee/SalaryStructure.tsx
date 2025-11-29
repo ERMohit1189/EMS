@@ -509,7 +509,7 @@ export default function SalaryStructure() {
           <CardTitle className="text-purple-900 dark:text-purple-100">Quick Input</CardTitle>
           <CardDescription>Fill any one field to auto-calculate all others</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label className="font-semibold">Basic Salary</Label>
@@ -558,6 +558,18 @@ export default function SalaryStructure() {
                 placeholder="0"
               />
             </div>
+          </div>
+          <Separator />
+          <div className="flex items-center space-x-2 p-3 bg-white dark:bg-slate-900 rounded border border-purple-200 dark:border-purple-800">
+            <Checkbox 
+              id="quick-want-deduction" 
+              checked={wantDeduction}
+              onCheckedChange={(checked) => setWantDeduction(checked as boolean)}
+              data-testid="checkbox-quick-want-deduction"
+            />
+            <Label htmlFor="quick-want-deduction" className="font-semibold cursor-pointer">
+              Want Salary Deduction
+            </Label>
           </div>
         </CardContent>
       </Card>
