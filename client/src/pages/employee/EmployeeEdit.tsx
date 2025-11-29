@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useStore } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useRoute } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
@@ -90,7 +89,6 @@ interface Designation { id: string; name: string; }
 
 export default function EmployeeEdit() {
   const [match, params] = useRoute('/employee/edit/:id');
-  const { updateEmployee } = useStore();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);
@@ -246,21 +244,64 @@ export default function EmployeeEdit() {
     c.toLowerCase().includes(citySearch.toLowerCase())
   );
 
-  function onSubmit(values: z.infer<typeof employeeSchema>) {
-    const selectedDesignation = designations.find(d => d.id === values.designationId)?.name || 'Not Specified';
-    if (employeeId) {
-      updateEmployee(employeeId, {
-        ...values,
-        designation: selectedDesignation,
+  async function onSubmit(values: z.infer<typeof employeeSchema>) {
+    if (!employeeId) return;
+    
+    try {
+      const payload = {
+        name: values.name,
+        email: values.email,
+        fatherName: values.fatherName,
+        mobile: values.mobile,
         alternateNo: values.alternateNo || '',
-        kitNo: values.kitNo || '',
+        address: values.address,
+        city: values.city || 'Not Specified',
+        state: values.state || 'Not Specified',
+        country: values.country || 'India',
+        dob: values.dob || '2000-01-01',
+        aadhar: values.aadhar || '',
+        pan: values.pan || '',
+        bloodGroup: values.bloodGroup || 'O+',
+        maritalStatus: values.maritalStatus,
         spouseName: values.spouseName || '',
+        nominee: values.nominee || 'Not Specified',
+        doj: values.doj,
+        departmentId: values.departmentId || null,
+        designationId: values.designationId,
+        role: values.role || 'user',
+        status: values.status || 'Active',
+        ppeKit: values.ppeKit,
+        kitNo: values.kitNo || '',
+      };
+
+      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: 'Error',
+          description: error.error || 'Failed to update employee',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       toast({
         title: 'Employee Updated',
         description: 'Employee profile has been updated successfully.',
       });
       setLocation('/employee/list');
+    } catch (error: any) {
+      console.error('Update error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update employee',
+        variant: 'destructive',
+      });
     }
   }
 
