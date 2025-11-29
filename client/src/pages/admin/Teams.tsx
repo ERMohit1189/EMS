@@ -82,6 +82,7 @@ export default function Teams() {
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}/members`);
       if (response.ok) {
         const data = await response.json();
+        console.log('[Teams] Fetched team members:', data);
         setTeamMembers(data);
       }
     } catch (error) {
