@@ -12,6 +12,7 @@ import {
   zones,
   exportHeaders,
   attendances,
+  dailyAllowances,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
@@ -22,6 +23,7 @@ import {
   type InsertZone,
   type InsertExportHeader,
   type InsertAttendance,
+  type InsertDailyAllowance,
   type Vendor,
   type Site,
   type Employee,
@@ -32,6 +34,7 @@ import {
   type Zone,
   type ExportHeader,
   type Attendance,
+  type DailyAllowance,
 } from "@shared/schema";
 import { eq, count, and, gte, lte, inArray, getTableColumns, ne } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
