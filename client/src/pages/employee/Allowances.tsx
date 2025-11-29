@@ -18,8 +18,12 @@ interface AllowanceData {
 }
 
 interface AllowanceEntry {
+  id: string;
   date: string;
   allowanceData: string;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  approvedAt?: string;
 }
 
 export default function Allowances() {
