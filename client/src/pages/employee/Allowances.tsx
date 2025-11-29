@@ -134,7 +134,7 @@ export default function Allowances() {
   const handleMonthYearChange = (month: string, year: string) => {
     setSelectedMonth(month);
     setSelectedYear(year);
-    fetchAllowances(false, month, year);
+    fetchAllowances(true, month, year);
   };
 
   const handleDelete = async (allowanceId: string) => {
