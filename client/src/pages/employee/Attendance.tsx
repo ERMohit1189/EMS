@@ -263,7 +263,7 @@ export default function Attendance() {
                   <button
                     onClick={() => handleDayClick(day)}
                     disabled={loading}
-                    className={`w-full p-2 border-2 rounded-lg font-semibold transition-colors cursor-pointer ${bgColor}`}
+                    className={`w-full h-24 p-1 border-2 rounded-lg font-semibold transition-colors cursor-pointer flex flex-col items-center justify-center ${bgColor}`}
                     title={
                       leaveType
                         ? `${day} - Leave (${leaveType})`
@@ -273,12 +273,10 @@ export default function Attendance() {
                     }
                     data-testid={`button-attendance-day-${day}`}
                   >
-                    <div className="flex flex-col items-center justify-center gap-0.5">
-                      <span className="text-sm">{day}</span>
-                      <div className="flex items-center gap-1">
-                        {statusEmoji && <span className="text-base">{statusEmoji}</span>}
-                        {leaveType && <span className="text-xs font-bold text-yellow-700">{leaveType}</span>}
-                      </div>
+                    <span className="text-lg font-bold">{day}</span>
+                    <div className="flex items-center justify-center gap-0.5 h-6">
+                      {statusEmoji && <span className="text-xl leading-none">{statusEmoji}</span>}
+                      {leaveType && <span className="text-xs font-bold text-yellow-700 leading-none">{leaveType}</span>}
                     </div>
                   </button>
                   {status && (
