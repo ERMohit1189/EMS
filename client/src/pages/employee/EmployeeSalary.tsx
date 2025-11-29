@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { fetchExportHeader, type ExportHeader } from "@/lib/exportUtils";
 import jsPDF from 'jspdf';
 import { Download } from "lucide-react";
 
@@ -37,11 +38,13 @@ export default function EmployeeSalary() {
   const [salary, setSalary] = useState<SalaryStructure | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
+  const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
   const employeeId = localStorage.getItem('employeeId');
   const employeeName = localStorage.getItem('employeeName');
 
   useEffect(() => {
     fetchSalaryData();
+    loadExportHeader();
   }, []);
 
   const fetchSalaryData = async () => {
@@ -76,6 +79,15 @@ export default function EmployeeSalary() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadExportHeader = async () => {
+    try {
+      const header = await fetchExportHeader();
+      setExportHeader(header);
+    } catch (error) {
+      console.error("Failed to load export header:", error);
     }
   };
 
@@ -123,13 +135,57 @@ export default function EmployeeSalary() {
       const leftMargin = 15;
       const rightMargin = 15;
       const contentWidth = pageWidth - (leftMargin + rightMargin);
-      let yPosition = 15;
+      let yPosition = 12;
 
-      // Company Header Section (if available)
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'italic');
-      doc.text("SALARY STRUCTURE", leftMargin, yPosition);
+      // Professional Header with Company Info
+      const companyName = exportHeader?.companyName || 'Enterprise Management System';
+      const companyAddress = exportHeader?.address || '';
+      const contactPhone = exportHeader?.contactPhone || '';
+      const contactEmail = exportHeader?.contactEmail || '';
+      const gstin = exportHeader?.gstin || '';
+
+      // Company Name - Large and Bold
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(0, 30, 90);
+      doc.text(companyName, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 8;
+
+      // Company Details - Smaller
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(50, 50, 50);
+      
+      if (companyAddress) {
+        doc.text(companyAddress, pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 4;
+      }
+
+      const contactDetails = [];
+      if (contactPhone) contactDetails.push(`Phone: ${contactPhone}`);
+      if (contactEmail) contactDetails.push(`Email: ${contactEmail}`);
+      if (gstin) contactDetails.push(`GSTIN: ${gstin}`);
+
+      if (contactDetails.length > 0) {
+        doc.text(contactDetails.join(' | '), pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 4;
+      }
+
+      yPosition += 3;
+
+      // Horizontal Line
+      doc.setDrawColor(0, 30, 90);
+      doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+      yPosition += 6;
+
+      // Title
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(0, 30, 90);
+      doc.text("SALARY STRUCTURE", pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
+
+      doc.setTextColor(0, 0, 0);
 
       // Employee Details Section
       doc.setFontSize(9);
