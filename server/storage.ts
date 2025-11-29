@@ -1199,6 +1199,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getTeamsForEmployee(employeeId: string): Promise<Team[]> {
+    console.log(`[Storage] getTeamsForEmployee - START - employeeId: ${employeeId}`);
     const result = await db.select({
       id: teams.id,
       name: teams.name,
@@ -1208,6 +1209,7 @@ export class DrizzleStorage implements IStorage {
     }).from(teams)
       .innerJoin(teamMembers, eq(teamMembers.teamId, teams.id))
       .where(eq(teamMembers.employeeId, employeeId));
+    console.log(`[Storage] getTeamsForEmployee - Found ${result.length} teams:`, result.map(t => ({ id: t.id, name: t.name })));
     return result;
   }
 
