@@ -176,6 +176,7 @@ export interface IStorage {
   addTeamMember(teamId: string, employeeId: string): Promise<TeamMember>;
   removeTeamMember(teamId: string, employeeId: string): Promise<void>;
   getTeamMembers(teamId: string): Promise<any[]>;
+  updateTeamMemberReporting(memberId: string, reportingPerson1?: string, reportingPerson2?: string, reportingPerson3?: string): Promise<any>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -1109,6 +1110,9 @@ export class DrizzleStorage implements IStorage {
         name: employees.name,
         email: employees.email,
         designation: designations.name,
+        reportingPerson1: teamMembers.reportingPerson1,
+        reportingPerson2: teamMembers.reportingPerson2,
+        reportingPerson3: teamMembers.reportingPerson3,
       }).from(teamMembers)
         .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
         .leftJoin(designations, eq(employees.designationId, designations.id))
@@ -1119,6 +1123,19 @@ export class DrizzleStorage implements IStorage {
       console.error('[Storage] getTeamMembers error:', error);
       throw error;
     }
+  }
+
+  async updateTeamMemberReporting(memberId: string, reportingPerson1?: string, reportingPerson2?: string, reportingPerson3?: string): Promise<any> {
+    console.log('[Storage] updateTeamMemberReporting - memberId:', memberId);
+    const [result] = await db.update(teamMembers)
+      .set({
+        reportingPerson1: reportingPerson1 || null,
+        reportingPerson2: reportingPerson2 || null,
+        reportingPerson3: reportingPerson3 || null,
+      })
+      .where(eq(teamMembers.id, memberId))
+      .returning();
+    return result;
   }
 }
 

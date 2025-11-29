@@ -1488,5 +1488,20 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/teams/members/:memberId/reporting", async (req, res) => {
+    try {
+      const { reportingPerson1, reportingPerson2, reportingPerson3 } = req.body;
+      const member = await storage.updateTeamMemberReporting(
+        req.params.memberId,
+        reportingPerson1,
+        reportingPerson2,
+        reportingPerson3
+      );
+      res.json(member);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

@@ -503,6 +503,9 @@ export const teamMembers = pgTable("team_members", {
   employeeId: varchar("employee_id")
     .notNull()
     .references(() => employees.id, { onDelete: 'cascade' }),
+  reportingPerson1: varchar("reporting_person_1"),
+  reportingPerson2: varchar("reporting_person_2"),
+  reportingPerson3: varchar("reporting_person_3"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
