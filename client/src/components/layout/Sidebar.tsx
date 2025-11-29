@@ -73,6 +73,11 @@ const menuGroups = [
         href: '/employee/salary',
       },
       {
+        title: 'Salary Report',
+        icon: BarChart3,
+        href: '/employee/salary-report',
+      },
+      {
         title: 'Department Master',
         icon: Building2,
         href: '/employee/department-master',
