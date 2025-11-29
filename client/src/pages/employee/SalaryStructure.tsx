@@ -710,45 +710,43 @@ export default function SalaryStructure() {
     const isDisabled = isDeductionField && !wantDeduction;
     
     return (
-      <div key={field} className="space-y-1">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-          <div>
-            <Label className="text-xs md:text-sm">{label}</Label>
-            <p className="text-xs text-muted-foreground">
-              {formula.type === 'percentage' ? `${formula.value}% of Basic` : 'Fixed - Manual Entry'}
-            </p>
-          </div>
-          <div className="flex gap-1 flex-shrink-0">
-            <Input 
-              type="number" 
-              step="0.01"
-              disabled={isDisabled}
-              value={String(formatValue(salary[field]))}
-              onChange={(e) => {
-                const numValue = parseFloat(e.target.value) || 0;
-                setSalary({ ...salary, [field]: numValue });
-              }}
-              onBlur={(e) => {
-                const numValue = parseFloat(e.target.value) || 0;
-                const newManuallyEdited = new Set(manuallyEdited);
-                newManuallyEdited.add(field);
-                setManuallyEdited(newManuallyEdited);
-              }}
-              className={`w-20 md:w-24 text-right text-xs md:text-sm ${isDisabled ? 'opacity-50 cursor-not-allowed' : isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
-              placeholder="0"
-            />
-            {isManuallyEdited && !isDisabled && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => resetToFormula(field)}
-                title="Reset to formula"
-                className="text-xs h-8 px-2"
-              >
-                Reset
-              </Button>
-            )}
-          </div>
+      <div key={field} className="grid grid-cols-2 gap-2 items-start">
+        <div className="min-w-0">
+          <Label className="text-xs md:text-sm block">{label}</Label>
+          <p className="text-xs text-muted-foreground">
+            {formula.type === 'percentage' ? `${formula.value}% of Basic` : 'Fixed - Manual Entry'}
+          </p>
+        </div>
+        <div className="flex gap-1 justify-end items-start">
+          <Input 
+            type="number" 
+            step="0.01"
+            disabled={isDisabled}
+            value={String(formatValue(salary[field]))}
+            onChange={(e) => {
+              const numValue = parseFloat(e.target.value) || 0;
+              setSalary({ ...salary, [field]: numValue });
+            }}
+            onBlur={(e) => {
+              const numValue = parseFloat(e.target.value) || 0;
+              const newManuallyEdited = new Set(manuallyEdited);
+              newManuallyEdited.add(field);
+              setManuallyEdited(newManuallyEdited);
+            }}
+            className={`h-8 w-20 text-right text-xs ${isDisabled ? 'opacity-50 cursor-not-allowed' : isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
+            placeholder="0"
+          />
+          {isManuallyEdited && !isDisabled && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => resetToFormula(field)}
+              title="Reset to formula"
+              className="text-xs h-8 px-1 whitespace-nowrap"
+            >
+              Reset
+            </Button>
+          )}
         </div>
       </div>
     );
