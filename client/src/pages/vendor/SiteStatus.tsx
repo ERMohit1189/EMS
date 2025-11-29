@@ -20,6 +20,7 @@ import { getApiBaseUrl } from '@/lib/api';
 import { fetchWithLoader } from '@/lib/fetchWithLoader';
 import { truncateId } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { createColorfulExcel } from '@/lib/exportUtils';
 import {
   Table,
   TableBody,

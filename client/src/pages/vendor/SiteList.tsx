@@ -7,6 +7,7 @@ import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader } from "@/lib/fetchWithLoader";
 import { truncateId } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import { createColorfulExcel } from "@/lib/exportUtils";
 
 export default function SiteList() {
   const [sites, setSites] = useState<any[]>([]);
@@ -174,18 +175,9 @@ export default function SiteList() {
       // Add header row at the beginning
       const dataWithHeaders = [headerRow, ...transformedData];
       
-      // Create worksheet with explicit headers
-      const ws = XLSX.utils.aoa_to_sheet(dataWithHeaders);
-      
-      // Set column widths
-      ws['!cols'] = allColumnKeys.map(() => ({ wch: 18 }));
-      
-      // Freeze the header row
-      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-      
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Sites");
-      XLSX.writeFile(wb, `sites_export_${startDate}_to_${endDate}.xlsx`);
+      // Create colorful Excel export
+      const columnWidths = allColumnKeys.map(() => 18);
+      createColorfulExcel(dataWithHeaders, columnWidths, `sites_export_${startDate}_to_${endDate}.xlsx`, "Sites");
     } catch (error) {
       console.error("Export error:", error);
       alert("Failed to export sites");

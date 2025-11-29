@@ -326,3 +326,66 @@ export const createProfessionalSalaryExcel = (
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Report');
   XLSX.writeFile(workbook, filename);
 };
+
+/**
+ * Apply colorful professional formatting to generic data Excel exports
+ * Used for site lists, reports, and other generic data exports
+ */
+export const formatGenericExcelWorksheet = (
+  worksheet: XLSX.WorkSheet,
+  columnCount: number,
+  headerRowIndex: number = 0
+): void => {
+  // Apply header styling to first row
+  for (let col = 0; col < columnCount; col++) {
+    const cellRef = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
+    if (worksheet[cellRef]) {
+      worksheet[cellRef].s = headerStyle;
+    }
+  }
+
+  // Apply alternating row colors to data rows
+  let rowIndex = headerRowIndex + 1;
+  let cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
+  
+  while (worksheet[cellRef]) {
+    for (let col = 0; col < columnCount; col++) {
+      const ref = XLSX.utils.encode_cell({ r: rowIndex, c: col });
+      if (worksheet[ref]) {
+        const style = rowIndex % 2 === 0 ? dataRowEvenStyle : dataRowOddStyle;
+        worksheet[ref].s = style;
+        
+        // Apply currency formatting to numeric values in amount columns
+        if ((ref.includes('Amount') || ref.includes('amount')) && typeof worksheet[ref].v === 'number') {
+          worksheet[ref].z = currencyFormat;
+        }
+      }
+    }
+    rowIndex++;
+    cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: 0 });
+  }
+};
+
+/**
+ * Create a professional generic Excel export with colorful formatting
+ */
+export const createColorfulExcel = (
+  data: any[],
+  columnWidths: number[],
+  filename: string,
+  sheetName: string = 'Sheet1'
+): void => {
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  worksheet['!cols'] = columnWidths.map(width => ({ wch: width }));
+  
+  // Apply formatting
+  formatGenericExcelWorksheet(worksheet, columnWidths.length, 0);
+  
+  // Set header row height
+  worksheet['!rows'] = worksheet['!rows'] || [];
+  worksheet['!rows'][0] = { hpt: 22 };
+  
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  XLSX.writeFile(workbook, filename);
+};
