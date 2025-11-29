@@ -14,6 +14,8 @@ import {
   purchaseOrders,
   invoices,
   sites,
+  designations,
+  departments,
 } from "@shared/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
 
@@ -593,11 +595,29 @@ export async function registerRoutes(
       const pageSize = parseInt(req.query.pageSize as string) || 10;
       const offset = (page - 1) * pageSize;
 
-      const data = await storage.getEmployees(pageSize, offset);
+      const employees = await storage.getEmployees(pageSize, offset);
       const totalCount = await storage.getEmployeeCount();
+      
+      // Enrich employees with designation and department names
+      const enrichedEmployees = await Promise.all(employees.map(async (emp: any) => {
+        let designationName = 'Not Specified';
+        let departmentName = 'Not Specified';
+        
+        if (emp.designationId) {
+          const [desig] = await db.select({ name: designations.name }).from(designations).where(eq(designations.id, emp.designationId));
+          if (desig) designationName = desig.name;
+        }
+        
+        if (emp.departmentId) {
+          const [dept] = await db.select({ name: departments.name }).from(departments).where(eq(departments.id, emp.departmentId));
+          if (dept) departmentName = dept.name;
+        }
+        
+        return { ...emp, designationName, departmentName };
+      }));
 
       res.json({
-        data,
+        data: enrichedEmployees,
         totalCount,
         pageNumber: page,
         pageSize,
