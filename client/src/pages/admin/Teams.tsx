@@ -160,11 +160,21 @@ export default function Teams() {
         return;
       }
       
+      // Get current reporting persons to auto-assign to new members
+      const rp1Member = teamMembers.find((m) => m.reportingPerson1 === m.id);
+      const rp2Member = teamMembers.find((m) => m.reportingPerson2 === m.id);
+      const rp3Member = teamMembers.find((m) => m.reportingPerson3 === m.id);
+
       const promises = newEmployeeIds.map((employeeId) =>
         fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employeeId }),
+          body: JSON.stringify({ 
+            employeeId,
+            reportingPerson1: rp1Member?.id || null,
+            reportingPerson2: rp2Member?.id || null,
+            reportingPerson3: rp3Member?.id || null,
+          }),
         })
       );
 

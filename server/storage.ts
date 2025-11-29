@@ -1075,8 +1075,8 @@ export class DrizzleStorage implements IStorage {
     await db.delete(teams).where(eq(teams.id, id));
   }
 
-  async addTeamMember(teamId: string, employeeId: string): Promise<TeamMember> {
-    console.log('[Storage] addTeamMember - teamId:', teamId, 'employeeId:', employeeId);
+  async addTeamMember(teamId: string, employeeId: string, reportingPerson1?: string | null, reportingPerson2?: string | null, reportingPerson3?: string | null): Promise<TeamMember> {
+    console.log('[Storage] addTeamMember - teamId:', teamId, 'employeeId:', employeeId, 'reporting persons:', { reportingPerson1, reportingPerson2, reportingPerson3 });
     
     // Check if member already exists in the team
     const existing = await db.select().from(teamMembers)
@@ -1089,7 +1089,13 @@ export class DrizzleStorage implements IStorage {
       throw new Error('Employee is already a member of this team');
     }
     
-    const [result] = await db.insert(teamMembers).values({ teamId, employeeId }).returning();
+    const [result] = await db.insert(teamMembers).values({ 
+      teamId, 
+      employeeId,
+      reportingPerson1: reportingPerson1 || null,
+      reportingPerson2: reportingPerson2 || null,
+      reportingPerson3: reportingPerson3 || null,
+    }).returning();
     console.log('[Storage] addTeamMember result:', result);
     return result;
   }

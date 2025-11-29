@@ -1450,9 +1450,9 @@ export async function registerRoutes(
 
   app.post("/api/teams/:id/members", async (req, res) => {
     try {
-      const { employeeId } = req.body;
-      console.log('[Teams API] Adding member - teamId:', req.params.id, 'employeeId:', employeeId);
-      const member = await storage.addTeamMember(req.params.id, employeeId);
+      const { employeeId, reportingPerson1, reportingPerson2, reportingPerson3 } = req.body;
+      console.log('[Teams API] Adding member - teamId:', req.params.id, 'employeeId:', employeeId, 'reporting persons:', { reportingPerson1, reportingPerson2, reportingPerson3 });
+      const member = await storage.addTeamMember(req.params.id, employeeId, reportingPerson1, reportingPerson2, reportingPerson3);
       console.log('[Teams API] Member added:', member);
       res.json(member);
     } catch (error: any) {
