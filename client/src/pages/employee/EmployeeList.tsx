@@ -108,7 +108,7 @@ export default function EmployeeList() {
                <div className="p-4 text-sm font-mono text-blue-600 truncate text-left" data-testid={`text-email-${e.id}`} title={e.email}>{e.email}</div>
                <div className="p-4 text-sm font-mono text-left">{e.mobile}</div>
                <div className="p-4 text-sm text-left">{e.city}</div>
-               <div className="p-4">
+               <div className="p-4 text-left">
                  <Badge 
                    variant={e.status === 'Active' ? 'default' : 'secondary'}
                    data-testid={`badge-status-${e.id}`}
