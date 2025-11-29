@@ -942,22 +942,26 @@ export class DrizzleStorage implements IStorage {
   async getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<DailyAllowance[]> {
     // Create proper date range for the month
     const startDate = new Date(year, month - 1, 1);
+    startDate.setHours(0, 0, 0, 0);
+    
     const endDate = new Date(year, month, 0);
+    endDate.setHours(23, 59, 59, 999);
     
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
     
-    console.log(`[Allowances] Filtering for month=${month}, year=${year}, range: ${startDateStr} to ${endDateStr}`);
+    console.log(`[Allowances DB] Filtering: month=${month}, year=${year}, range: "${startDateStr}" to "${endDateStr}", employeeId: ${employeeId}`);
     
+    // Use raw SQL for reliable date filtering
     const result = await db.select().from(dailyAllowances)
       .where(and(
         eq(dailyAllowances.employeeId, employeeId),
-        gte(dailyAllowances.date, startDateStr),
-        lte(dailyAllowances.date, endDateStr)
+        sql`${dailyAllowances.date} >= ${startDateStr}`,
+        sql`${dailyAllowances.date} <= ${endDateStr}`
       ))
       .orderBy(dailyAllowances.date);
     
-    console.log(`[Allowances] Query returned ${result.length} records`);
+    console.log(`[Allowances DB] Query returned ${result.length} records for month=${month}`);
     return result;
   }
 
