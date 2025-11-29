@@ -227,7 +227,8 @@ export default function Allowances() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div>
-                <label className="text-xs font-medium">Travel {caps.travelAllowance && `(Max: Rs ${caps.travelAllowance})`}</label>
+                <label className="text-xs font-medium">Travel</label>
+                {caps.travelAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.travelAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
@@ -242,7 +243,8 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Food {caps.foodAllowance && `(Max: Rs ${caps.foodAllowance})`}</label>
+                <label className="text-xs font-medium">Food</label>
+                {caps.foodAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.foodAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
@@ -256,7 +258,8 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Accommodation {caps.accommodationAllowance && `(Max: Rs ${caps.accommodationAllowance})`}</label>
+                <label className="text-xs font-medium">Accommodation</label>
+                {caps.accommodationAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.accommodationAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
@@ -270,7 +273,8 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Mobile {caps.mobileAllowance && `(Max: Rs ${caps.mobileAllowance})`}</label>
+                <label className="text-xs font-medium">Mobile</label>
+                {caps.mobileAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.mobileAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
@@ -284,7 +288,8 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Internet {caps.internetAllowance && `(Max: Rs ${caps.internetAllowance})`}</label>
+                <label className="text-xs font-medium">Internet</label>
+                {caps.internetAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.internetAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
@@ -298,7 +303,8 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Utilities {caps.utilitiesAllowance && `(Max: Rs ${caps.utilitiesAllowance})`}</label>
+                <label className="text-xs font-medium">Utilities</label>
+                {caps.utilitiesAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.utilitiesAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
@@ -312,7 +318,8 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Parking {caps.parkingAllowance && `(Max: Rs ${caps.parkingAllowance})`}</label>
+                <label className="text-xs font-medium">Parking</label>
+                {caps.parkingAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.parkingAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
@@ -326,7 +333,8 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Misc {caps.miscAllowance && `(Max: Rs ${caps.miscAllowance})`}</label>
+                <label className="text-xs font-medium">Misc</label>
+                {caps.miscAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.miscAllowance}</p>}
                 <Input
                   type="number"
                   step="0.01"
