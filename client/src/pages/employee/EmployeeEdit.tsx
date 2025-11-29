@@ -305,6 +305,14 @@ export default function EmployeeEdit() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
+        <p className="text-lg">Loading employee data...</p>
+      </div>
+    );
+  }
+
   if (!employee) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
