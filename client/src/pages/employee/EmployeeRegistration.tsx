@@ -178,36 +178,67 @@ export default function EmployeeRegistration() {
     c.toLowerCase().includes(citySearch.toLowerCase())
   );
 
-  function onSubmit(values: z.infer<typeof employeeSchema>) {
+  async function onSubmit(values: z.infer<typeof employeeSchema>) {
     const emailLower = values.email.toLowerCase();
-    if (employees.some(e => e.email?.toLowerCase() === emailLower)) {
-      form.setError('email', { message: 'This email is already registered' });
-      return;
-    }
     
-    const selectedDesignation = designations.find(d => d.id === values.designationId)?.name || 'Not Specified';
-    addEmployee({
-      ...values,
-      email: emailLower,
-      designation: selectedDesignation,
-      role: values.role,
-      designationId: values.designationId,
-      alternateNo: values.alternateNo || '',
-      kitNo: values.kitNo || '',
-      spouseName: values.spouseName || '',
-      dob: values.dob || '2000-01-01',
-      city: values.city || 'Not Specified',
-      state: values.state || 'Not Specified',
-      aadhar: values.aadhar || '000000000000',
-      pan: values.pan || 'AAAAA0000A',
-      bloodGroup: values.bloodGroup || 'O+',
-      nominee: values.nominee || 'Not Specified',
-    });
-    toast({
-      title: 'Employee Registered',
-      description: 'New employee profile created successfully.',
-    });
-    setLocation('/employee/list');
+    try {
+      // Prepare the payload to send to backend
+      const payload = {
+        name: values.name,
+        email: emailLower,
+        fatherName: values.fatherName,
+        mobile: values.mobile,
+        alternateNo: values.alternateNo || '',
+        address: values.address,
+        city: values.city || 'Not Specified',
+        state: values.state || 'Not Specified',
+        country: values.country || 'India',
+        dob: values.dob || '2000-01-01',
+        aadhar: values.aadhar || '000000000000',
+        pan: values.pan || 'AAAAA0000A',
+        bloodGroup: values.bloodGroup || 'O+',
+        maritalStatus: values.maritalStatus,
+        spouseName: values.spouseName || '',
+        nominee: values.nominee || 'Not Specified',
+        doj: values.doj,
+        departmentId: values.departmentId || null,
+        designationId: values.designationId,
+        role: values.role || 'user',
+        status: values.status || 'Active',
+        ppeKit: values.ppeKit,
+        kitNo: values.kitNo || '',
+      };
+
+      const response = await fetch(`${getApiBaseUrl()}/api/employees`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        form.setError('email', { message: error.error || 'Failed to register employee' });
+        toast({
+          title: 'Registration Failed',
+          description: error.error || 'Failed to register employee',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Employee Registered',
+        description: 'New employee profile created successfully.',
+      });
+      setLocation('/employee/list');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to register employee',
+        variant: 'destructive',
+      });
+    }
   }
 
   return (
