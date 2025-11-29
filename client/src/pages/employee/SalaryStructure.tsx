@@ -390,12 +390,10 @@ export default function SalaryStructure() {
             type="number" 
             value={salary[field]} 
             onChange={(e) => {
-              // Just update the field value, don't calculate
               const numValue = parseFloat(e.target.value) || 0;
               setSalary({ ...salary, [field]: numValue });
             }}
             onBlur={(e) => {
-              // Calculate when leaving the field
               const numValue = parseFloat(e.target.value) || 0;
               const newManuallyEdited = new Set(manuallyEdited);
               newManuallyEdited.add(field);
@@ -464,10 +462,6 @@ export default function SalaryStructure() {
                 ref={basicSalaryRef}
                 type="number" 
                 value={salary.basicSalary} 
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  setSalary({ ...salary, basicSalary: val });
-                }}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0;
                   handleSalaryChange('basicSalary', val.toString(), 'basic');
@@ -477,34 +471,22 @@ export default function SalaryStructure() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="font-semibold">Gross Salary</Label>
+              <Label className="font-semibold">Gross Salary (Read-only)</Label>
               <Input 
                 type="number" 
-                value={gross} 
-                onChange={(e) => {
-                  // Just show the value being typed, don't calculate yet
-                }}
-                onBlur={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  if (val > 0) handleQuickInputBlur('gross', val);
-                }}
-                className="text-lg font-bold text-green-700 dark:text-green-300"
+                value={gross.toFixed(2)}
+                readOnly
+                className="text-lg font-bold text-green-700 dark:text-green-300 bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                 placeholder="0"
               />
             </div>
             <div className="space-y-2">
-              <Label className="font-semibold">Net Salary</Label>
+              <Label className="font-semibold">Net Salary (Read-only)</Label>
               <Input 
                 type="number" 
-                value={net} 
-                onChange={(e) => {
-                  // Just show the value being typed, don't calculate yet
-                }}
-                onBlur={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  if (val > 0) handleQuickInputBlur('net', val);
-                }}
-                className="text-lg font-bold text-blue-700 dark:text-blue-300"
+                value={net.toFixed(2)}
+                readOnly
+                className="text-lg font-bold text-blue-700 dark:text-blue-300 bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                 placeholder="0"
               />
             </div>
