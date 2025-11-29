@@ -238,7 +238,7 @@ export default function Allowances() {
                     value={formData.travelAllowance}
                     onChange={(e) => setFormData({ ...formData, travelAllowance: e.target.value })}
                     data-testid="input-travel-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                     autoFocus
                   />
                   {caps.travelAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.travelAllowance}</span>}
@@ -256,7 +256,7 @@ export default function Allowances() {
                     value={formData.foodAllowance}
                     onChange={(e) => setFormData({ ...formData, foodAllowance: e.target.value })}
                     data-testid="input-food-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                   />
                   {caps.foodAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.foodAllowance}</span>}
                 </div>
@@ -273,7 +273,7 @@ export default function Allowances() {
                     value={formData.accommodationAllowance}
                     onChange={(e) => setFormData({ ...formData, accommodationAllowance: e.target.value })}
                     data-testid="input-accommodation-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                   />
                   {caps.accommodationAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.accommodationAllowance}</span>}
                 </div>
@@ -290,7 +290,7 @@ export default function Allowances() {
                     value={formData.mobileAllowance}
                     onChange={(e) => setFormData({ ...formData, mobileAllowance: e.target.value })}
                     data-testid="input-mobile-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                   />
                   {caps.mobileAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.mobileAllowance}</span>}
                 </div>
@@ -307,7 +307,7 @@ export default function Allowances() {
                     value={formData.internetAllowance}
                     onChange={(e) => setFormData({ ...formData, internetAllowance: e.target.value })}
                     data-testid="input-internet-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                   />
                   {caps.internetAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.internetAllowance}</span>}
                 </div>
@@ -324,7 +324,7 @@ export default function Allowances() {
                     value={formData.utilitiesAllowance}
                     onChange={(e) => setFormData({ ...formData, utilitiesAllowance: e.target.value })}
                     data-testid="input-utilities-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                   />
                   {caps.utilitiesAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.utilitiesAllowance}</span>}
                 </div>
@@ -341,7 +341,7 @@ export default function Allowances() {
                     value={formData.parkingAllowance}
                     onChange={(e) => setFormData({ ...formData, parkingAllowance: e.target.value })}
                     data-testid="input-parking-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                   />
                   {caps.parkingAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.parkingAllowance}</span>}
                 </div>
@@ -358,7 +358,7 @@ export default function Allowances() {
                     value={formData.miscAllowance}
                     onChange={(e) => setFormData({ ...formData, miscAllowance: e.target.value })}
                     data-testid="input-misc-allowance"
-                    className="h-8 text-xs p-1 pr-16 bg-slate-50"
+                    className="h-8 text-xs p-1 pr-16 bg-white"
                   />
                   {caps.miscAllowance && <span className="absolute right-0 top-0 bottom-0 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 rounded flex items-center justify-center">Max: {caps.miscAllowance}</span>}
                 </div>
