@@ -191,7 +191,7 @@ export default function EmployeeRegistration() {
         city: values.city || 'Not Specified',
         state: values.state || 'Not Specified',
         country: values.country || 'India',
-        dob: values.dob || '2000-01-01',
+        dob: values.dob || null,
         aadhar: values.aadhar || '',
         pan: values.pan || '',
         bloodGroup: values.bloodGroup || 'O+',
