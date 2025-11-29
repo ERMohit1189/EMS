@@ -10,6 +10,7 @@ import {
   insertInvoiceSchema,
   insertPaymentMasterSchema,
   insertZoneSchema,
+  insertTeamSchema,
   purchaseOrders,
   invoices,
   sites,
@@ -1395,6 +1396,87 @@ export async function registerRoutes(
       const { employeeId, date } = req.params;
       const allowance = await storage.getEmployeeAllowancesByDate(employeeId, date);
       res.json(allowance || null);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Team routes
+  app.post("/api/teams", async (req, res) => {
+    try {
+      const validated = insertTeamSchema.parse(req.body);
+      const team = await storage.createTeam(validated);
+      res.json(team);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/teams", async (req, res) => {
+    try {
+      const teams = await storage.getTeams();
+      res.json(teams);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/teams/:id", async (req, res) => {
+    try {
+      const team = await storage.getTeam(req.params.id);
+      res.json(team || null);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/teams/:id", async (req, res) => {
+    try {
+      const team = await storage.updateTeam(req.params.id, req.body);
+      res.json(team);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/teams/:id", async (req, res) => {
+    try {
+      await storage.deleteTeam(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/teams/:id/members", async (req, res) => {
+    try {
+      const { employeeId } = req.body;
+      const member = await storage.addTeamMember(req.params.id, employeeId);
+      res.json(member);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/teams/:id/members", async (req, res) => {
+    try {
+      const members = await storage.getTeamMembers(req.params.id);
+      res.json(members);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/teams/:teamId/members/:memberId", async (req, res) => {
+    try {
+      // Get the member first to find the employee ID
+      const members = await storage.getTeamMembers(req.params.teamId);
+      const member = members.find((m) => m.id === req.params.memberId);
+      if (!member) {
+        return res.status(404).json({ error: 'Member not found' });
+      }
+      await storage.removeTeamMember(req.params.teamId, member.employeeId);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

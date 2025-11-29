@@ -166,6 +166,16 @@ export interface IStorage {
   getEmployeeAllowances(employeeId: string, limit?: number): Promise<DailyAllowance[]>;
   updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance>;
   deleteDailyAllowance(id: string): Promise<void>;
+
+  // Team operations
+  createTeam(team: InsertTeam): Promise<Team>;
+  getTeam(id: string): Promise<Team | undefined>;
+  getTeams(): Promise<Team[]>;
+  updateTeam(id: string, team: Partial<InsertTeam>): Promise<Team>;
+  deleteTeam(id: string): Promise<void>;
+  addTeamMember(teamId: string, employeeId: string): Promise<TeamMember>;
+  removeTeamMember(teamId: string, employeeId: string): Promise<void>;
+  getTeamMembers(teamId: string): Promise<any[]>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -995,6 +1005,54 @@ export class DrizzleStorage implements IStorage {
       approvalStatus: 'rejected',
     }).where(eq(dailyAllowances.id, id)).returning();
     return result;
+  }
+
+  // Team operations
+  async createTeam(team: InsertTeam): Promise<Team> {
+    const [result] = await db.insert(teams).values(team).returning();
+    return result;
+  }
+
+  async getTeam(id: string): Promise<Team | undefined> {
+    const [result] = await db.select().from(teams).where(eq(teams.id, id));
+    return result;
+  }
+
+  async getTeams(): Promise<Team[]> {
+    return await db.select().from(teams).orderBy(teams.name);
+  }
+
+  async updateTeam(id: string, team: Partial<InsertTeam>): Promise<Team> {
+    const [result] = await db.update(teams).set(team).where(eq(teams.id, id)).returning();
+    return result;
+  }
+
+  async deleteTeam(id: string): Promise<void> {
+    await db.delete(teams).where(eq(teams.id, id));
+  }
+
+  async addTeamMember(teamId: string, employeeId: string): Promise<TeamMember> {
+    const [result] = await db.insert(teamMembers).values({ teamId, employeeId }).returning();
+    return result;
+  }
+
+  async removeTeamMember(teamId: string, employeeId: string): Promise<void> {
+    await db.delete(teamMembers).where(and(
+      eq(teamMembers.teamId, teamId),
+      eq(teamMembers.employeeId, employeeId)
+    ));
+  }
+
+  async getTeamMembers(teamId: string): Promise<any[]> {
+    return await db.select({
+      id: teamMembers.id,
+      employeeId: teamMembers.employeeId,
+      name: employees.name,
+      email: employees.email,
+      designation: employees.designation,
+    }).from(teamMembers)
+      .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
+      .where(eq(teamMembers.teamId, teamId));
   }
 }
 
