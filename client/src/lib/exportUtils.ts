@@ -323,84 +323,95 @@ export const createProfessionalSalaryExcel = (
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Salary Report');
 
-  // Add data rows
-  data.forEach((row, rowIndex) => {
-    worksheet.addRow(row);
-  });
-
-  // Set column widths
+  // Set column widths first
   columnWidths.forEach((width, index) => {
     worksheet.getColumn(index + 1).width = width;
   });
 
-  // Style company name row (row 1)
-  const companyRow = worksheet.getRow(1);
-  companyRow.height = 28;
-  companyRow.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF003D7A' }
-    };
-    cell.font = {
-      bold: true,
-      color: { argb: 'FFFFFFFF' },
-      size: 14
-    };
-    cell.alignment = { horizontal: 'center', vertical: 'center' };
+  // Add all data rows
+  data.forEach((row, rowIndex) => {
+    worksheet.addRow(row);
   });
 
-  // Style company address row (row 2)
-  const addressRow = worksheet.getRow(2);
-  addressRow.height = 22;
-  addressRow.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF0066CC' }
-    };
-    cell.font = {
-      bold: true,
-      color: { argb: 'FFFFFFFF' },
-      size: 10
-    };
-    cell.alignment = { horizontal: 'center', vertical: 'center' };
-  });
+  // Calculate last column letter for merging
+  const getColumnLetter = (colNum: number): string => {
+    let col = '';
+    while (colNum > 0) {
+      const mod = (colNum - 1) % 26;
+      col = String.fromCharCode(65 + mod) + col;
+      colNum = Math.floor((colNum - 1) / 26);
+    }
+    return col;
+  };
+  
+  const lastColumnLetter = getColumnLetter(columnWidths.length);
 
-  // Style report title row (row 4)
-  const titleRow = worksheet.getRow(4);
-  titleRow.height = 24;
-  titleRow.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF1F4E78' }
-    };
-    cell.font = {
-      bold: true,
-      color: { argb: 'FFFFFFFF' },
-      size: 12
-    };
-    cell.alignment = { horizontal: 'center', vertical: 'center' };
-  });
+  // Merge and style header rows
+  // Row 1: Company Name
+  worksheet.mergeCells(`A1:${lastColumnLetter}1`);
+  const row1 = worksheet.getRow(1);
+  row1.height = 28;
+  row1.getCell(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF003D7A' }
+  };
+  row1.getCell(1).font = {
+    bold: true,
+    color: { argb: 'FFFFFFFF' },
+    size: 14
+  };
+  row1.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
 
-  // Style date row (row 5)
-  const dateRow = worksheet.getRow(5);
-  dateRow.height = 20;
-  dateRow.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE7F0F7' }
-    };
-    cell.font = {
-      color: { argb: 'FF1F4E78' },
-      size: 10
-    };
-    cell.alignment = { horizontal: 'left', vertical: 'center' };
-  });
+  // Row 2: Address
+  worksheet.mergeCells(`A2:${lastColumnLetter}2`);
+  const row2 = worksheet.getRow(2);
+  row2.height = 22;
+  row2.getCell(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF0066CC' }
+  };
+  row2.getCell(1).font = {
+    bold: true,
+    color: { argb: 'FFFFFFFF' },
+    size: 10
+  };
+  row2.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
 
-  const headerRowIndex = 7; // After company info
+  // Row 4: Title
+  worksheet.mergeCells(`A4:${lastColumnLetter}4`);
+  const row4 = worksheet.getRow(4);
+  row4.height = 24;
+  row4.getCell(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF1F4E78' }
+  };
+  row4.getCell(1).font = {
+    bold: true,
+    color: { argb: 'FFFFFFFF' },
+    size: 12
+  };
+  row4.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+
+  // Row 5: Date
+  worksheet.mergeCells(`A5:${lastColumnLetter}5`);
+  const row5 = worksheet.getRow(5);
+  row5.height = 20;
+  row5.getCell(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE7F0F7' }
+  };
+  row5.getCell(1).font = {
+    color: { argb: 'FF1F4E78' },
+    size: 10
+  };
+  row5.getCell(1).alignment = { horizontal: 'left', vertical: 'center' };
+
+  // Row 7: Column Headers
+  const headerRowIndex = 7;
   const headerRow = worksheet.getRow(headerRowIndex);
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
@@ -425,7 +436,7 @@ export const createProfessionalSalaryExcel = (
 
   // Apply data row styling
   worksheet.eachRow((row, rowNumber) => {
-    if (rowNumber <= headerRowIndex || rowNumber === data.length) return;
+    if (rowNumber <= headerRowIndex || rowNumber === worksheet.rowCount) return;
     
     row.eachCell((cell, colNumber) => {
       // Alternating colors
@@ -456,24 +467,26 @@ export const createProfessionalSalaryExcel = (
     });
   });
 
-  // Total row styling
-  const totalRow = worksheet.getRow(data.length);
-  totalRow.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFC0392B' }
-    };
-    cell.font = {
-      bold: true,
-      color: { argb: 'FFFFFFFF' },
-      size: 11
-    };
-    cell.alignment = { horizontal: 'right', vertical: 'center' };
-    if (typeof cell.value === 'number') {
-      cell.numFmt = '₹ #,##0.00';
-    }
-  });
+  // Total row styling (last row)
+  const lastRow = worksheet.getRow(worksheet.rowCount);
+  if (lastRow) {
+    lastRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFC0392B' }
+      };
+      cell.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' },
+        size: 11
+      };
+      cell.alignment = { horizontal: 'right', vertical: 'center' };
+      if (typeof cell.value === 'number') {
+        cell.numFmt = '₹ #,##0.00';
+      }
+    });
+  }
 
   workbook.xlsx.writeBuffer().then((buffer) => {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
