@@ -1092,9 +1092,10 @@ export class DrizzleStorage implements IStorage {
       employeeId: teamMembers.employeeId,
       name: employees.name,
       email: employees.email,
-      designation: employees.designation,
+      designation: designations.name,
     }).from(teamMembers)
       .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
+      .leftJoin(designations, eq(employees.designationId, designations.id))
       .where(eq(teamMembers.teamId, teamId));
   }
 }
