@@ -1503,5 +1503,29 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/teams/:teamId/reporting/:level", async (req, res) => {
+    try {
+      const { teamId, level } = req.params;
+      const levelNum = parseInt(level) as 1 | 2 | 3;
+      console.log('[Teams API] Clearing RP', levelNum, 'for all members in team:', teamId);
+      
+      const members = await storage.getTeamMembers(teamId);
+      
+      for (const member of members) {
+        const updates: any = {};
+        const fieldName = `reportingPerson${levelNum}`;
+        updates[fieldName] = null;
+        
+        await db.update(teamMembers).set(updates).where(eq(teamMembers.id, member.id));
+      }
+      
+      console.log('[Teams API] Cleared RP', levelNum, 'for all members');
+      res.json({ success: true, message: `Reporting Person ${levelNum} cleared for all team members` });
+    } catch (error: any) {
+      console.error('[Teams API] Error clearing RP:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

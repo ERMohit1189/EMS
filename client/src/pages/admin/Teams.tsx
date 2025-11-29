@@ -330,6 +330,31 @@ export default function Teams() {
     }
   };
 
+  const clearRPFromAllEmployees = async (level: 1 | 2 | 3) => {
+    if (!selectedTeamId) return;
+    if (!window.confirm(`Are you sure you want to remove RP${level} from all employees?`)) return;
+
+    try {
+      console.log('[Teams] Clearing RP', level, 'from all employees');
+      const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/reporting/${level}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[Teams] API Error:', errorData);
+        throw new Error(errorData.error || 'Failed to clear RP');
+      }
+
+      toast({ title: 'Success', description: `RP${level} removed from all employees` });
+      await fetchTeamMembers(selectedTeamId);
+    } catch (error: any) {
+      console.error('[Teams] Error clearing RP:', error);
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
   const getSortedTeamMembers = () => {
     const rp1 = teamMembers.find((m) => m.reportingPerson1 === m.id);
     const rp2 = teamMembers.find((m) => m.reportingPerson2 === m.id);
@@ -543,7 +568,21 @@ export default function Teams() {
       {selectedTeamId && (
         <Card>
           <CardHeader className="py-2 px-4">
-            <CardTitle className="text-sm">Team Members ({teamMembers.length})</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-sm">Team Members ({teamMembers.length})</CardTitle>
+              <div className="flex gap-1">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => clearRPFromAllEmployees(2)}
+                  className="h-6 px-2 py-0 text-xs"
+                  data-testid="button-clear-rp2-all"
+                  title="Clear RP2 from all employees"
+                >
+                  Clear RP2
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-2">
             {teamMembers.length === 0 ? (
