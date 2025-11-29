@@ -182,21 +182,6 @@ export default function EmployeeRegistration() {
     const emailLower = values.email.toLowerCase();
     
     try {
-      // Generate unique aadhar if not provided (use email hash + timestamp)
-      const generateUniqueAadhar = () => {
-        if (values.aadhar) return values.aadhar;
-        const timestamp = Date.now().toString().slice(-10);
-        const emailHash = emailLower.split('@')[0].slice(0, 2).toUpperCase();
-        return `${emailHash}${timestamp}`;
-      };
-
-      // Generate unique PAN if not provided
-      const generateUniquePAN = () => {
-        if (values.pan) return values.pan;
-        const timestamp = Date.now().toString().slice(-8);
-        return `PAN${timestamp}`;
-      };
-
       // Prepare the payload to send to backend
       const payload = {
         name: values.name,
@@ -209,8 +194,8 @@ export default function EmployeeRegistration() {
         state: values.state || 'Not Specified',
         country: values.country || 'India',
         dob: values.dob || '2000-01-01',
-        aadhar: generateUniqueAadhar(),
-        pan: generateUniquePAN(),
+        aadhar: values.aadhar || null,
+        pan: values.pan || null,
         bloodGroup: values.bloodGroup || 'O+',
         maritalStatus: values.maritalStatus,
         spouseName: values.spouseName || '',
