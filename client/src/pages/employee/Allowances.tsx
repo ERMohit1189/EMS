@@ -22,6 +22,7 @@ interface AllowanceEntry {
   date: string;
   allowanceData: string;
   approvalStatus: 'pending' | 'approved' | 'rejected';
+  paidStatus: 'unpaid' | 'partial' | 'full';
   approvedBy?: string;
   approvedAt?: string;
 }
@@ -582,6 +583,11 @@ export default function Allowances() {
           ) : (
             <div className="space-y-2">
               {submittedEntries.map((entry, index) => {
+                // Hide rejected entries completely
+                if (entry.approvalStatus === 'rejected') {
+                  return null;
+                }
+
                 let allowanceData = { travelAllowance: 0, foodAllowance: 0, accommodationAllowance: 0, mobileAllowance: 0, internetAllowance: 0, utilitiesAllowance: 0, parkingAllowance: 0, miscAllowance: 0, notes: '' };
                 try {
                   allowanceData = JSON.parse(entry.allowanceData || '{}');
@@ -591,7 +597,11 @@ export default function Allowances() {
                 const total = (allowanceData.travelAllowance || 0) + (allowanceData.foodAllowance || 0) + (allowanceData.accommodationAllowance || 0) + (allowanceData.mobileAllowance || 0) + (allowanceData.internetAllowance || 0) + (allowanceData.utilitiesAllowance || 0) + (allowanceData.parkingAllowance || 0) + (allowanceData.miscAllowance || 0);
 
                 const isApproved = entry.approvalStatus === 'approved';
-                const statusColor = isApproved ? 'bg-green-100 text-green-800' : entry.approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+                const statusColor = isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                
+                // Paid status colors
+                const paidStatusColor = entry.paidStatus === 'full' ? 'bg-blue-100 text-blue-800' : entry.paidStatus === 'partial' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800';
+                const paidStatusText = entry.paidStatus === 'full' ? 'Full Paid' : entry.paidStatus === 'partial' ? 'Partial Paid' : 'Unpaid';
 
                 return (
                   <div key={index} className="border rounded p-2 bg-slate-50 text-xs" data-testid={`allowance-entry-${index}`}>
@@ -600,7 +610,10 @@ export default function Allowances() {
                         <div className="flex items-center gap-2 mb-0.5">
                           <p className="font-semibold text-slate-900">{entry.date}</p>
                           <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}`} data-testid={`status-${index}`}>
-                            {entry.approvalStatus === 'approved' ? 'Approved' : entry.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
+                            {entry.approvalStatus === 'approved' ? 'Approved' : 'Pending'}
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${paidStatusColor}`} data-testid={`paid-status-${index}`}>
+                            {paidStatusText}
                           </span>
                         </div>
                         {allowanceData.notes && <p className="text-slate-600">{allowanceData.notes}</p>}

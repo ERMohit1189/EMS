@@ -315,6 +315,7 @@ export const dailyAllowances = pgTable("daily_allowances", {
   date: date("date").notNull(),
   allowanceData: text("allowance_data").notNull(), // JSON string of allowance details
   approvalStatus: varchar("approval_status").notNull().default("pending"), // pending, approved, rejected
+  paidStatus: varchar("paid_status").notNull().default("unpaid"), // unpaid, partial, full
   approvedBy: varchar("approved_by"),
   approvedAt: timestamp("approved_at"),
   submittedAt: timestamp("submitted_at").defaultNow(),
