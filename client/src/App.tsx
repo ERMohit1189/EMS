@@ -260,7 +260,8 @@ function App() {
                   <Route path="/employee/department-master" component={DepartmentMaster} />
                   <Route path="/employee/designation-master" component={DesignationMaster} />
                   <Route path="/employee/attendance" component={Attendance} />
-                  <Route path="/employee/allowances" component={() => <Placeholder title="Allowances" />} />
+                  <Route path="/employee/allowances" component={Allowances} />
+                  <Route path="/employee/salary-structure" component={SalaryStructure} />
                   <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
                   
                   {/* Vendor Privacy Policy */}
