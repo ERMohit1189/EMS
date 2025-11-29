@@ -89,11 +89,11 @@ export default function EmployeeList() {
        ) : (
        <div className="rounded-md border bg-card overflow-x-auto">
          <div className="grid gap-0 min-w-full" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Name / Designation</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Email</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Contact</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Location</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Status</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Name / Designation</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Email</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Contact</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Location</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Status</div>
            <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-right">Actions</div>
          </div>
          {employees.length === 0 ? (
