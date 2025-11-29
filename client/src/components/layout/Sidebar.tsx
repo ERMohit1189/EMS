@@ -170,14 +170,15 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   useEffect(() => {
     const getGroupForRoute = (route: string): string | null => {
       if (route === '/') return 'Main';
-      if (route.startsWith('/vendor') && !route.startsWith('/vendor/po') && !route.startsWith('/vendor/invoices')) {
+      // Check Settings routes first (before general vendor routes)
+      if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
+      if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
+      if (route.startsWith('/employee')) return 'Employee Management';
+      if (route.startsWith('/vendor')) {
         if (route.includes('credentials')) return 'Vendor Management';
         if (route.includes('sites') || route.includes('payment-master') || route.includes('excel-import')) return 'Site Operations';
         return 'Vendor Management';
       }
-      if (route.startsWith('/employee')) return 'Employee Management';
-      if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
-      if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
       return null;
     };
 
