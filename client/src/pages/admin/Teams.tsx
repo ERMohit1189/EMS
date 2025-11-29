@@ -229,8 +229,6 @@ export default function Teams() {
       const levelKey = `reportingPerson${level}`;
       
       for (const otherMember of teamMembers) {
-        if (otherMember.id === memberToAssign.id) continue;
-        
         const updates: any = {};
         updates[`reportingPerson${level}`] = memberToAssign.id;
         
@@ -248,6 +246,11 @@ export default function Teams() {
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
+  };
+
+  const isLevelTaken = (level: 1 | 2 | 3): boolean => {
+    const levelKey = `reportingPerson${level}`;
+    return teamMembers.some((m) => m[levelKey as keyof TeamMember] !== undefined);
   };
 
   const getReportingPersonName = (personId: string | undefined): string | null => {
@@ -541,27 +544,30 @@ export default function Teams() {
             <CardContent className="space-y-2">
               <Button
                 onClick={() => assignReportingPerson(1)}
-                className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700 justify-start"
+                disabled={isLevelTaken(1)}
+                className={`w-full h-8 text-xs justify-start ${isLevelTaken(1) ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
                 data-testid="button-assign-rp1"
               >
                 <span className="inline-block w-2 h-2 bg-blue-700 rounded-full mr-2"></span>
-                Reporting Person 1
+                Reporting Person 1 {isLevelTaken(1) ? '(Taken)' : ''}
               </Button>
               <Button
                 onClick={() => assignReportingPerson(2)}
-                className="w-full h-8 text-xs bg-green-600 hover:bg-green-700 justify-start"
+                disabled={isLevelTaken(2)}
+                className={`w-full h-8 text-xs justify-start ${isLevelTaken(2) ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
                 data-testid="button-assign-rp2"
               >
                 <span className="inline-block w-2 h-2 bg-green-700 rounded-full mr-2"></span>
-                Reporting Person 2
+                Reporting Person 2 {isLevelTaken(2) ? '(Taken)' : ''}
               </Button>
               <Button
                 onClick={() => assignReportingPerson(3)}
-                className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-700 justify-start"
+                disabled={isLevelTaken(3)}
+                className={`w-full h-8 text-xs justify-start ${isLevelTaken(3) ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-amber-600 hover:bg-amber-700'}`}
                 data-testid="button-assign-rp3"
               >
                 <span className="inline-block w-2 h-2 bg-amber-700 rounded-full mr-2"></span>
-                Reporting Person 3
+                Reporting Person 3 {isLevelTaken(3) ? '(Taken)' : ''}
               </Button>
               <Button
                 onClick={() => setIsAssignmentModalOpen(false)}
