@@ -95,8 +95,22 @@ export default function Allowances() {
     return true;
   };
 
+  const fetchTeams = async () => {
+    if (!employeeId) return;
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/teams/employee/${employeeId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeams(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    }
+  };
+
   useEffect(() => {
     fetchAllowances(true, defaultMonth, defaultYear);
+    fetchTeams();
     // Load allowance caps from settings
     const allowanceCaps = localStorage.getItem('allowanceCaps');
     if (allowanceCaps) {
@@ -278,6 +292,7 @@ export default function Allowances() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId,
+          teamId: formData.teamId || null,
           date: formData.date,
           allowanceData: JSON.stringify({
             travelAllowance: parseFloat(formData.travelAllowance) || 0,
@@ -306,6 +321,7 @@ export default function Allowances() {
 
       setFormData({
         date: new Date().toISOString().split('T')[0],
+        teamId: '',
         travelAllowance: '',
         foodAllowance: '',
         accommodationAllowance: '',
@@ -353,15 +369,33 @@ export default function Allowances() {
         </CardHeader>
         <CardContent className="p-3">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <label className="text-xs font-medium">Date</label>
-              <Input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                data-testid="input-allowance-date"
-                className="mt-0.5 h-8 text-xs"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium">Date</label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  data-testid="input-allowance-date"
+                  className="mt-0.5 h-8 text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium">Team (Optional)</label>
+                <select
+                  value={formData.teamId}
+                  onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
+                  data-testid="select-allowance-team"
+                  className="mt-0.5 h-8 text-xs w-full border rounded px-2 py-1"
+                >
+                  <option value="">Select Team...</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
