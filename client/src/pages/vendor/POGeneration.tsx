@@ -610,7 +610,7 @@ export default function POGeneration() {
   return (
     <div className="space-y-6" ref={topRef}>
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Generate Purchase Orders</h2>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Generate Purchase Orders</h2>
         <p className="text-muted-foreground">Auto-generate POs for sites with approved SOFT-AT and PHY-AT status.</p>
       </div>
 

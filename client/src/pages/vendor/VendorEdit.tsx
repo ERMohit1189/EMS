@@ -147,7 +147,7 @@ export default function VendorEdit() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Edit Vendor</h2>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Edit Vendor</h2>
         <p className="text-muted-foreground">Update vendor information.</p>
       </div>
 

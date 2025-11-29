@@ -76,7 +76,7 @@ export default function DepartmentMaster() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Department Master</h2>
+        <h2 className="text-xl md:text-2xl font-bold">Department Master</h2>
         <p className="text-sm text-muted-foreground">Manage departments</p>
       </div>
 
