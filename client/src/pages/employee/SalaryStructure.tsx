@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
+import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, type ExportHeader } from "@/lib/exportUtils";
 
 interface Employee {
   id: string;
@@ -67,14 +68,6 @@ const formatValue = (value: number | string): string => {
   return String(result);
 };
 
-interface ExportHeader {
-  companyName?: string;
-  address?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  gstin?: string;
-  website?: string;
-}
 
 export default function SalaryStructure() {
   const { toast } = useToast();
@@ -462,18 +455,17 @@ export default function SalaryStructure() {
     
     const employee = employees.find(e => e.id === selectedEmployee);
     const employeeName = employee?.name || 'Employee';
-    const companyName = exportHeader?.companyName || 'Enterprise Management System';
-    const currentDate = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
     const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
     const net = Math.round((gross - deductions) * 100) / 100;
     
     const data = [
-      [companyName],
+      [getCompanyName(exportHeader)],
+      [getCompanyAddress(exportHeader)],
       ['SALARY STRUCTURE / SALARY SLIP'],
       [''],
-      ['Document Date:', currentDate],
+      ['Document Date:', formatExportDate()],
       [''],
       ['EMPLOYEE INFORMATION'],
       ['Employee Name', employeeName],
@@ -512,7 +504,7 @@ export default function SalaryStructure() {
     // Set column widths and styling
     worksheet['!cols'] = [{ wch: 40 }, { wch: 18 }];
     
-    XLSX.writeFile(workbook, `${employeeName}_SalaryStructure_${new Date().getFullYear()}.xlsx`);
+    XLSX.writeFile(workbook, `${employeeName}_SalaryStructure_${getCurrentYear()}.xlsx`);
     
     toast({
       title: 'Success',
@@ -525,9 +517,6 @@ export default function SalaryStructure() {
     
     const employee = employees.find(e => e.id === selectedEmployee);
     const employeeName = employee?.name || 'Employee';
-    const companyName = exportHeader?.companyName || 'Enterprise Management System';
-    const companyAddress = exportHeader?.address || '';
-    const currentDate = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
     const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
@@ -547,14 +536,14 @@ export default function SalaryStructure() {
     // Company Header
     pdf.setFontSize(14);
     (pdf.setFont as any)(undefined, 'bold');
-    pdf.text(String(companyName), pageWidth / 2, yPos, { align: 'center' });
+    pdf.text(String(getCompanyName(exportHeader)), pageWidth / 2, yPos, { align: 'center' });
     yPos += 6;
     
     // Company Address
-    if (companyAddress) {
+    if (getCompanyAddress(exportHeader)) {
       pdf.setFontSize(8);
       (pdf.setFont as any)(undefined, 'normal');
-      pdf.text(String(companyAddress), pageWidth / 2, yPos, { align: 'center' });
+      pdf.text(String(getCompanyAddress(exportHeader)), pageWidth / 2, yPos, { align: 'center' });
       yPos += 5;
     }
     
@@ -566,7 +555,7 @@ export default function SalaryStructure() {
     // Date
     pdf.setFontSize(9);
     (pdf.setFont as any)(undefined, 'normal');
-    pdf.text(`Date: ${String(currentDate)}`, margin, yPos);
+    pdf.text(`Date: ${formatExportDate()}`, margin, yPos);
     yPos += 8;
     
     // Divider line
@@ -673,7 +662,7 @@ export default function SalaryStructure() {
     yPos += lineHeight;
     pdf.text('Generated from Enterprise Management System (EMS)', margin, yPos);
     
-    pdf.save(`${employeeName}_SalaryStructure_${new Date().getFullYear()}.pdf`);
+    pdf.save(`${employeeName}_SalaryStructure_${getCurrentYear()}.pdf`);
     
     toast({
       title: 'Success',

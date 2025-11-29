@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
+import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, type ExportHeader } from '@/lib/exportUtils';
 
 interface SalaryData {
   id: string;
@@ -46,10 +47,17 @@ export default function SalaryReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'gross' | 'net'>('name');
+  const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
 
   useEffect(() => {
     fetchSalaryReport();
+    loadExportHeader();
   }, []);
+
+  const loadExportHeader = async () => {
+    const header = await fetchExportHeader();
+    setExportHeader(header);
+  };
 
   const fetchSalaryReport = async () => {
     setIsLoading(true);
@@ -91,8 +99,11 @@ export default function SalaryReport() {
 
   const downloadExcelReport = () => {
     const data: any[] = [
+      [getCompanyName(exportHeader)],
+      [getCompanyAddress(exportHeader)],
+      [''],
       ['SALARY REPORT'],
-      ['Generated on:', new Date().toLocaleDateString('en-IN')],
+      ['Generated on:', formatExportDate()],
       [''],
       ['Employee Name', 'Department', 'Designation', 'Basic', 'HRA', 'DA', 'LTA', 'Conveyance', 'Medical', 'Bonuses', 'Other Benefits', 'Gross Salary', 'PF', 'Professional Tax', 'Income Tax', 'EPF', 'ESIC', 'Total Deductions', 'Net Salary'],
     ];
@@ -129,7 +140,7 @@ export default function SalaryReport() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Report');
 
     worksheet['!cols'] = Array(19).fill({ wch: 12 });
-    XLSX.writeFile(workbook, `SalaryReport_${new Date().getFullYear()}.xlsx`);
+    XLSX.writeFile(workbook, `SalaryReport_${getCurrentYear()}.xlsx`);
 
     toast({
       title: 'Success',
@@ -145,16 +156,33 @@ export default function SalaryReport() {
     });
 
     const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 15;
     let yPos = 15;
 
-    pdf.setFontSize(14);
-    pdf.setFont(undefined, 'bold');
+    // Company Header
+    pdf.setFontSize(12);
+    (pdf.setFont as any)(undefined, 'bold');
+    pdf.text(String(getCompanyName(exportHeader)), pageWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+
+    if (getCompanyAddress(exportHeader)) {
+      pdf.setFontSize(9);
+      (pdf.setFont as any)(undefined, 'normal');
+      pdf.text(String(getCompanyAddress(exportHeader)), pageWidth / 2, yPos, { align: 'center' });
+      yPos += 5;
+    }
+
+    yPos += 3;
+
+    // Report Title and Date
+    pdf.setFontSize(11);
+    (pdf.setFont as any)(undefined, 'bold');
     pdf.text('SALARY REPORT', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 8;
+    yPos += 6;
 
     pdf.setFontSize(9);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 15, yPos);
+    (pdf.setFont as any)(undefined, 'normal');
+    pdf.text(`Generated on: ${formatExportDate()}`, margin, yPos);
     yPos += 8;
 
     pdf.setFontSize(8);
@@ -200,7 +228,7 @@ export default function SalaryReport() {
     pdf.text(`Rs ${formatValue(totalDeductions)}`, 15 + colWidth * 10, yPos);
     pdf.text(`Rs ${formatValue(totalNet)}`, 15 + colWidth * 11, yPos);
 
-    pdf.save(`SalaryReport_${new Date().getFullYear()}.pdf`);
+    pdf.save(`SalaryReport_${getCurrentYear()}.pdf`);
 
     toast({
       title: 'Success',
