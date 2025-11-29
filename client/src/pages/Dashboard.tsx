@@ -317,16 +317,14 @@ export default function Dashboard() {
             <CardTitle className="text-base">Site Status</CardTitle>
             <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4 px-1">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
+          <CardContent className="flex justify-center pt-2 px-1">
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <Pie
                   data={siteStatusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, value }) => `${name} (${value})`}
-                  outerRadius={45}
+                  cx="45%"
+                  cy="35%"
+                  outerRadius={50}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -334,6 +332,12 @@ export default function Dashboard() {
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value, entry) => `${entry.payload.name} (${entry.payload.value})`}
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                />
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
@@ -345,16 +349,14 @@ export default function Dashboard() {
             <CardTitle className="text-base">Vendor Status</CardTitle>
             <CardDescription className="text-xs">Distribution by status</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4 px-1">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
+          <CardContent className="flex justify-center pt-2 px-1">
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <Pie
                   data={vendorStatusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, value }) => `${name} (${value})`}
-                  outerRadius={45}
+                  cx="45%"
+                  cy="35%"
+                  outerRadius={50}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -362,6 +364,12 @@ export default function Dashboard() {
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value, entry) => `${entry.payload.name} (${entry.payload.value})`}
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                />
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
@@ -373,16 +381,14 @@ export default function Dashboard() {
             <CardTitle className="text-base">PO Status</CardTitle>
             <CardDescription className="text-xs">Purchase order breakdown</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center pt-4 px-1">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
+          <CardContent className="flex justify-center pt-2 px-1">
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <Pie
                   data={poStatusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, value }) => `${name} (${value})`}
-                  outerRadius={45}
+                  cx="45%"
+                  cy="35%"
+                  outerRadius={50}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -390,6 +396,12 @@ export default function Dashboard() {
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value, entry) => `${entry.payload.name} (${entry.payload.value})`}
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                />
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
