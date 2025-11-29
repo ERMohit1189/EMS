@@ -113,20 +113,21 @@ export default function VendorList() {
   }
   
   return (
-    <div className="space-y-6">
-       <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
          <div>
-           <h2 className="text-3xl font-bold tracking-tight">All Vendors</h2>
-           <p className="text-muted-foreground">Manage your registered vendors.</p>
+           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">All Vendors</h2>
+           <p className="text-xs md:text-sm text-muted-foreground">Manage your registered vendors.</p>
          </div>
          <Link href="/vendor/register">
-            <Button className="gap-2">
+            <Button className="gap-2 w-full md:w-auto text-xs md:text-sm">
               <Plus className="h-4 w-4" /> Register Vendor
             </Button>
          </Link>
        </div>
 
-       <div className="rounded-md border bg-card">
+       {/* Desktop Table */}
+       <div className="hidden md:block rounded-md border bg-card">
          <div className="grid grid-cols-7 gap-4 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">
            <div className="col-span-2">Name / Email</div>
            <div>Location</div>
@@ -141,14 +142,14 @@ export default function VendorList() {
            vendors.map(v => (
              <div key={v.id} className="grid grid-cols-7 gap-4 p-4 border-b last:border-0 items-center hover:bg-muted/50 transition-colors">
                <div className="col-span-2">
-                 <div className="font-medium">{v.name}</div>
-                 <div className="text-xs text-muted-foreground">{v.email}</div>
+                 <div className="font-medium text-sm">{v.name}</div>
+                 <div className="text-xs text-muted-foreground truncate">{v.email}</div>
                </div>
                <div className="text-sm">{v.city}, {v.state}</div>
                <div className="text-sm">{v.category}</div>
                <div>
                  <Select value={v.status} onValueChange={(status) => updateStatus(v.id, status)}>
-                   <SelectTrigger className="w-[120px]">
+                   <SelectTrigger className="w-[120px] h-8 text-xs">
                      <SelectValue />
                    </SelectTrigger>
                    <SelectContent>
@@ -161,7 +162,7 @@ export default function VendorList() {
                <div className="text-sm font-mono">{v.mobile}</div>
                <div className="text-right flex gap-1 justify-end">
                  <Link href={`/vendor/edit/${v.id}`}>
-                   <Button variant="ghost" size="sm" className="gap-1">
+                   <Button variant="ghost" size="sm" className="gap-1 h-8">
                      <Edit className="h-4 w-4" />
                    </Button>
                  </Link>
@@ -169,6 +170,7 @@ export default function VendorList() {
                    <Button 
                      variant="destructive" 
                      size="sm"
+                     className="h-8"
                      onClick={() => deleteVendor(v.id, v.name)}
                    >
                      <Trash2 className="h-4 w-4" />
@@ -176,6 +178,70 @@ export default function VendorList() {
                  )}
                </div>
              </div>
+           ))
+         )}
+       </div>
+
+       {/* Mobile Card View */}
+       <div className="md:hidden space-y-2">
+         {vendors.length === 0 ? (
+           <div className="p-6 text-center text-muted-foreground text-sm">No vendors found. Register one to get started.</div>
+         ) : (
+           vendors.map(v => (
+             <Card key={v.id} className="p-3 shadow-sm border">
+               <div className="space-y-2">
+                 <div className="flex items-start justify-between gap-2">
+                   <div className="flex-1 min-w-0">
+                     <p className="font-medium text-sm truncate">{v.name}</p>
+                     <p className="text-xs text-muted-foreground truncate">{v.email}</p>
+                   </div>
+                   <div className="flex gap-1 flex-shrink-0">
+                     <Link href={`/vendor/edit/${v.id}`}>
+                       <Button variant="ghost" size="sm" className="gap-1 h-7 px-2">
+                         <Edit className="h-3 w-3" />
+                       </Button>
+                     </Link>
+                     {vendorUsage[v.id] === false && (
+                       <Button 
+                         variant="destructive" 
+                         size="sm"
+                         className="h-7 px-2"
+                         onClick={() => deleteVendor(v.id, v.name)}
+                       >
+                         <Trash2 className="h-3 w-3" />
+                       </Button>
+                     )}
+                   </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-2 text-xs">
+                   <div>
+                     <p className="text-muted-foreground">Location</p>
+                     <p className="font-medium truncate">{v.city}, {v.state}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground">Category</p>
+                     <p className="font-medium">{v.category}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground">Contact</p>
+                     <p className="font-medium text-xs">{v.mobile}</p>
+                   </div>
+                   <div>
+                     <p className="text-muted-foreground">Status</p>
+                     <Select value={v.status} onValueChange={(status) => updateStatus(v.id, status)}>
+                       <SelectTrigger className="h-6 text-xs w-full">
+                         <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="Pending">Pending</SelectItem>
+                         <SelectItem value="Approved">Approved</SelectItem>
+                         <SelectItem value="Rejected">Rejected</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   </div>
+                 </div>
+               </div>
+             </Card>
            ))
          )}
        </div>
