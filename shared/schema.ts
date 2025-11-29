@@ -311,6 +311,7 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
 }).extend({
   aadhar: z.string().min(0).optional(),
   pan: z.string().min(0).optional(),
+  dob: z.string().nullable().optional(),
 });
 
 export const insertSalarySchema = createInsertSchema(salaryStructures).omit({
