@@ -600,15 +600,13 @@ export default function Teams() {
                             </div>
                           )}
 
-                          {!member.reportingPerson1 && !member.reportingPerson2 && !member.reportingPerson3 && (
-                            <button
-                              onClick={() => handleMemberClick(member)}
-                              className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
-                              data-testid={`button-assign-reporting-${member.id}`}
-                            >
-                              Make RP
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleMemberClick(member)}
+                            className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
+                            data-testid={`button-assign-reporting-${member.id}`}
+                          >
+                            Make RP
+                          </button>
                         </>
                       )}
                     </div>
