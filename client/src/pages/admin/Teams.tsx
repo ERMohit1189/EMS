@@ -39,6 +39,8 @@ export default function Teams() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [filterDepartment, setFilterDepartment] = useState('');
+  const [filterDesignation, setFilterDesignation] = useState('');
 
   useEffect(() => {
     fetchTeams();
@@ -174,6 +176,15 @@ export default function Teams() {
     );
   };
 
+  const filteredEmployees = employees.filter((emp) => {
+    if (filterDepartment && emp.department !== filterDepartment) return false;
+    if (filterDesignation && emp.designation !== filterDesignation) return false;
+    return true;
+  });
+
+  const departments = [...new Set(employees.map((emp) => emp.department))].sort();
+  const designations = [...new Set(employees.map((emp) => emp.designation))].sort();
+
   const handleRemoveMember = async (memberId: string) => {
     if (!selectedTeamId) return;
 
@@ -276,13 +287,47 @@ export default function Teams() {
                 ))}
               </select>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium">Filter by Department</label>
+                <select
+                  value={filterDepartment}
+                  onChange={(e) => setFilterDepartment(e.target.value)}
+                  className="w-full h-8 text-xs px-2 border rounded"
+                  data-testid="select-filter-department"
+                >
+                  <option value="">All Departments</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium">Filter by Designation</label>
+                <select
+                  value={filterDesignation}
+                  onChange={(e) => setFilterDesignation(e.target.value)}
+                  className="w-full h-8 text-xs px-2 border rounded"
+                  data-testid="select-filter-designation"
+                >
+                  <option value="">All Designations</option>
+                  {designations.map((desig) => (
+                    <option key={desig} value={desig}>
+                      {desig}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div>
               <label className="text-xs font-medium mb-2 block">Select Employees (Multiple)</label>
               <div className="border rounded p-2 space-y-2 max-h-64 overflow-y-auto bg-white">
-                {employees.length === 0 ? (
+                {filteredEmployees.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No employees available</p>
                 ) : (
-                  employees.map((emp) => (
+                  filteredEmployees.map((emp) => (
                     <div key={emp.id} className="flex items-start gap-2 p-1 hover:bg-slate-50 rounded">
                       <Checkbox
                         id={`emp-${emp.id}`}
