@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useState, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -600,16 +600,16 @@ export default function SalaryStructure() {
             </div>
           </div>
           <Separator />
-          <div className="flex items-center space-x-2 p-3 bg-white dark:bg-slate-900 rounded border border-purple-200 dark:border-purple-800">
-            <Checkbox 
-              id="quick-want-deduction" 
-              checked={wantDeduction}
-              onCheckedChange={(checked) => setWantDeduction(checked as boolean)}
-              data-testid="checkbox-quick-want-deduction"
-            />
-            <Label htmlFor="quick-want-deduction" className="font-semibold cursor-pointer">
-              Want Salary Deduction
+          <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded border border-purple-200 dark:border-purple-800">
+            <Label htmlFor="quick-apply-deductions" className="font-semibold cursor-pointer">
+              Apply Salary Deductions
             </Label>
+            <Switch 
+              id="quick-apply-deductions" 
+              checked={wantDeduction}
+              onCheckedChange={(checked) => setWantDeduction(checked)}
+              data-testid="switch-apply-deductions"
+            />
           </div>
         </CardContent>
       </Card>
