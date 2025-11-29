@@ -203,6 +203,7 @@ export const salaryStructures = pgTable("salary_structures", {
   incomeTax: decimal("income_tax", { precision: 12, scale: 2 }).notNull().default("0"),
   epf: decimal("epf", { precision: 12, scale: 2 }).notNull(),
   esic: decimal("esic", { precision: 12, scale: 2 }).notNull(),
+  wantDeduction: boolean("want_deduction").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

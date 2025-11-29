@@ -30,6 +30,7 @@ interface SalaryStructure {
   incomeTax: number;
   epf: number;
   esic: number;
+  wantDeduction: boolean;
 }
 
 interface SalaryFormula {
@@ -76,6 +77,7 @@ export default function SalaryStructure() {
   const [basicInput, setBasicInput] = useState<string>("");
   const [grossInput, setGrossInput] = useState<string>("");
   const [netInput, setNetInput] = useState<string>("");
+  const [wantDeduction, setWantDeduction] = useState<boolean>(true);
 
   useEffect(() => {
     fetchEmployees();
@@ -344,6 +346,7 @@ export default function SalaryStructure() {
         incomeTax: String(salary.incomeTax),
         epf: String(salary.epf),
         esic: String(salary.esic),
+        wantDeduction: wantDeduction,
       };
       
       const response = await fetch(endpoint, {
@@ -367,6 +370,7 @@ export default function SalaryStructure() {
         }
       });
       setSalary(convertedSalary);
+      setWantDeduction(convertedSalary.wantDeduction !== undefined ? convertedSalary.wantDeduction : true);
       toast({
         title: 'Success',
         description: 'Salary structure saved successfully',
