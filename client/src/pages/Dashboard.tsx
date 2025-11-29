@@ -26,19 +26,19 @@ export default function Dashboard() {
     const vendorEmail = localStorage.getItem('vendorEmail');
 
     if (employeeId) {
-      const employee = employees.find(e => e.id === employeeId);
+      const employee = allEmployees.find(e => e.id === employeeId);
       if (employee) {
         setUserProfile({
           type: 'employee',
           name: employee.name,
           email: employee.email,
-          designation: employee.designation,
+          designation: employee.designationName || employee.designation,
           status: employee.status,
           role: employee.role || 'Employee',
         });
       }
     } else if (vendorId) {
-      const vendor = vendors.find(v => v.id === vendorId);
+      const vendor = allVendors.find(v => v.id === vendorId);
       if (vendor) {
         setUserProfile({
           type: 'vendor',
@@ -49,7 +49,7 @@ export default function Dashboard() {
         });
       }
     }
-  }, [employees, vendors]);
+  }, [allEmployees, allVendors]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -121,8 +121,8 @@ export default function Dashboard() {
   const totalSites = allSites.length;
   const operationalPercentage = totalSites > 0 ? Math.round((activeSites / totalSites) * 100) : 0;
 
-  const totalEmployees = Math.max(employees.length, allEmployees.length);
-  const activeEmployees = employees.filter(e => e.status === 'Active').length;
+  const totalEmployees = allEmployees.length;
+  const activeEmployees = allEmployees.filter(e => e.status === 'Active').length;
 
   const stats = [
     {
