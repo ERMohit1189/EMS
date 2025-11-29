@@ -342,6 +342,10 @@ export default function Allowances() {
         description: "Allowance submitted successfully",
       });
 
+      const submittedDate = new Date(payload.date);
+      const submittedMonth = String(submittedDate.getMonth() + 1).padStart(2, '0');
+      const submittedYear = String(submittedDate.getFullYear());
+
       setFormData({
         date: new Date().toISOString().split('T')[0],
         teamId: '',
@@ -356,7 +360,7 @@ export default function Allowances() {
         notes: '',
       });
 
-      fetchAllowances();
+      fetchAllowances(true, submittedMonth, submittedYear);
     } catch (error: any) {
       toast({
         title: "Error",
