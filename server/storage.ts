@@ -591,68 +591,6 @@ export class DrizzleStorage implements IStorage {
       );
     
     return result as Site[];
-        srnRmoDate: sites.srnRmoDate,
-        hopMoDate: sites.hopMoDate,
-        hopMaterialDispatchDate: sites.hopMaterialDispatchDate,
-        hopMaterialDeliveryDate: sites.hopMaterialDeliveryDate,
-        materialDeliveryStatus: sites.materialDeliveryStatus,
-        siteAInstallationDate: sites.siteAInstallationDate,
-        ptwNumberSiteA: sites.ptwNumberSiteA,
-        ptwStatusA: sites.ptwStatusA,
-        siteBInstallationDate: sites.siteBInstallationDate,
-        ptwNumberSiteB: sites.ptwNumberSiteB,
-        ptwStatusB: sites.ptwStatusB,
-        hopIcDate: sites.hopIcDate,
-        alignmentDate: sites.alignmentDate,
-        hopInstallationRemarks: sites.hopInstallationRemarks,
-        visibleInNms: sites.visibleInNms,
-        nmsVisibleDate: sites.nmsVisibleDate,
-        softAtOfferDate: sites.softAtOfferDate,
-        softAtAcceptanceDate: sites.softAtAcceptanceDate,
-        softAtStatus: sites.softAtStatus,
-        phyAtOfferDate: sites.phyAtOfferDate,
-        phyAtAcceptanceDate: sites.phyAtAcceptanceDate,
-        phyAtStatus: sites.phyAtStatus,
-        bothAtStatus: sites.bothAtStatus,
-        priIssueCategory: sites.priIssueCategory,
-        priSiteId: sites.priSiteId,
-        priOpenDate: sites.priOpenDate,
-        priCloseDate: sites.priCloseDate,
-        priHistory: sites.priHistory,
-        rfiSurveyAllocationDate: sites.rfiSurveyAllocationDate,
-        descope: sites.descope,
-        reasonOfExtraVisit: sites.reasonOfExtraVisit,
-        wccReceived80Percent: sites.wccReceived80Percent,
-        wccReceivedDate80Percent: sites.wccReceivedDate80Percent,
-        wccReceived20Percent: sites.wccReceived20Percent,
-        wccReceivedDate20Percent: sites.wccReceivedDate20Percent,
-        wccReceivedDate100Percent: sites.wccReceivedDate100Percent,
-        survey: sites.survey,
-        finalPartnerSurvey: sites.finalPartnerSurvey,
-        surveyDate: sites.surveyDate,
-        status: sites.status,
-        createdAt: sites.createdAt,
-        updatedAt: sites.updatedAt,
-      })
-      .from(sites)
-      .leftJoin(zones, eq(sites.zoneId, zones.id))
-      .leftJoin(
-        paymentMasters,
-        and(
-          eq(sites.id, paymentMasters.siteId),
-          eq(sites.planId, paymentMasters.planId),
-          eq(sites.vendorId, paymentMasters.vendorId),
-          eq(sites.maxAntSize, paymentMasters.antennaSize)
-        )
-      )
-      .where(
-        and(
-          gte(sites.siteAInstallationDate, startDate),
-          lte(sites.siteAInstallationDate, endDate)
-        )
-      );
-    
-    return result as Site[];
   }
 
   // Salary operations
