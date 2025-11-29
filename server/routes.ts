@@ -1148,6 +1148,37 @@ export async function registerRoutes(
     try {
       const { employeeId, month, year, attendanceData } = req.body;
       
+      // Get employee to check role and validate date access
+      const employee = await storage.getEmployee(employeeId);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      const today = new Date();
+      const currentDay = today.getDate();
+      const currentMonth = today.getMonth() + 1;
+      const currentYear = today.getFullYear();
+
+      // If user role, only allow updating current day
+      if (employee.role === 'user') {
+        // Check if trying to mark past days
+        const isCurrentMonth = month === currentMonth && year === currentYear;
+        if (!isCurrentMonth) {
+          return res.status(403).json({ error: "User role can only update current month attendance" });
+        }
+
+        // Check if trying to mark future days
+        if (month === currentMonth && year === currentYear) {
+          for (const [day, value] of Object.entries(attendanceData)) {
+            const dayNum = parseInt(day);
+            if (dayNum > currentDay && value !== null) {
+              return res.status(403).json({ error: "User role can only mark current and past days of current month" });
+            }
+          }
+        }
+      }
+      // Admin role can mark any day
+      
       // Check if attendance exists for this month
       const existing = await storage.getEmployeeMonthlyAttendance(employeeId, month, year);
       

@@ -41,17 +41,32 @@ export default function Attendance() {
   const [loading, setLoading] = useState(false);
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
   const [employeeName] = useState(localStorage.getItem('employeeName') || '');
+  const [employeeRole] = useState(localStorage.getItem('employeeRole') || 'user');
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
 
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
   const daysInMonth = new Date(year, month, 0).getDate();
+  
+  const today = new Date();
+  const currentDay = today.getDate();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
+  const isCurrentMonth = month === currentMonth && year === currentYear;
 
   // Function to check if a day is Sunday
   const isSunday = (day: number) => {
     const date = new Date(year, month - 1, day);
     return date.getDay() === 0;
+  };
+
+  // Check if day can be edited based on employee role
+  const canEditDay = (day: number): boolean => {
+    if (employeeRole === 'admin') return true; // Admin can edit any day
+    // User role: only current month, only current and past days
+    if (!isCurrentMonth) return false;
+    return day <= currentDay;
   };
 
   useEffect(() => {
