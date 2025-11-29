@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Copy, RotateCcw, Download, Eye, EyeOff } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { getApiBaseUrl } from '@/lib/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +15,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  designation: string;
+}
 
 interface EmployeeCredential {
   employeeId: string;
@@ -28,18 +36,33 @@ interface EmployeeCredential {
 export default function EmployeeCredentials() {
   const { toast } = useToast();
   const [credentials, setCredentials] = useState<EmployeeCredential[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [regenerateId, setRegenerateId] = useState<string | null>(null);
   const [useCookies, setUseCookies] = useState(() => {
     return localStorage.getItem('useCredentialsCookies') === 'true';
   });
 
-  // Load credentials from localStorage on mount
+  // Load employees and credentials on mount
   useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
+        if (response.ok) {
+          const data = await response.json();
+          setEmployees(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+      }
+    };
+
     const saved = localStorage.getItem('employeeCredentials');
     if (saved) {
       setCredentials(JSON.parse(saved));
     }
+    
+    fetchEmployees();
   }, []);
 
   // Helper function to set cookie
