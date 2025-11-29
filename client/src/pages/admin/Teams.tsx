@@ -568,21 +568,7 @@ export default function Teams() {
       {selectedTeamId && (
         <Card>
           <CardHeader className="py-2 px-4">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-sm">Team Members ({teamMembers.length})</CardTitle>
-              <div className="flex gap-1">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => clearRPFromAllEmployees(2)}
-                  className="h-6 px-2 py-0 text-xs"
-                  data-testid="button-clear-rp2-all"
-                  title="Clear RP2 from all employees"
-                >
-                  Clear RP2
-                </Button>
-              </div>
-            </div>
+            <CardTitle className="text-sm">Team Members ({teamMembers.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-2">
             {teamMembers.length === 0 ? (
