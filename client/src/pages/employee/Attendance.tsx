@@ -55,6 +55,8 @@ export default function Attendance() {
   };
 
   useEffect(() => {
+    // Clear attendance when month changes to prevent data from previous month showing
+    setAttendance({});
     fetchAttendance();
   }, [month, year]);
 
