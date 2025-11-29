@@ -182,60 +182,60 @@ export default function Attendance() {
   const holidayCount = Object.values(attendance).filter((v) => getStatus(v) === 'holiday').length;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Monthly Attendance</h2>
-        <p className="text-muted-foreground mt-2">
-          {employeeName} - Mark your daily attendance for {monthName}
+    <div className="space-y-3">
+      <div className="pb-2">
+        <h2 className="text-2xl font-bold">Monthly Attendance</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {employeeName} - {monthName}
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{monthName}</CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handlePrevMonth}>
-                ← Previous
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-lg">{monthName}</CardTitle>
+            <div className="flex gap-1">
+              <Button variant="outline" size="sm" onClick={handlePrevMonth}>
+                ← Prev
               </Button>
-              <Button variant="outline" onClick={handleNextMonth}>
+              <Button variant="outline" size="sm" onClick={handleNextMonth}>
                 Next →
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-3 p-3">
           {/* Statistics */}
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <p className="text-sm text-green-600 font-medium">Present</p>
-              <p className="text-2xl font-bold text-green-700">{presentCount}</p>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="bg-green-50 p-2 rounded border border-green-200">
+              <p className="text-xs text-green-600 font-medium">Present</p>
+              <p className="text-lg font-bold text-green-700">{presentCount}</p>
             </div>
-            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-              <p className="text-sm text-red-600 font-medium">Absent</p>
-              <p className="text-2xl font-bold text-red-700">{absentCount}</p>
+            <div className="bg-red-50 p-2 rounded border border-red-200">
+              <p className="text-xs text-red-600 font-medium">Absent</p>
+              <p className="text-lg font-bold text-red-700">{absentCount}</p>
             </div>
-            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <p className="text-sm text-yellow-600 font-medium">Leave</p>
-              <p className="text-2xl font-bold text-yellow-700">{leaveCount}</p>
+            <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+              <p className="text-xs text-yellow-600 font-medium">Leave</p>
+              <p className="text-lg font-bold text-yellow-700">{leaveCount}</p>
             </div>
-            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-              <p className="text-sm text-purple-600 font-medium">Holiday</p>
-              <p className="text-2xl font-bold text-purple-700">{holidayCount}</p>
+            <div className="bg-purple-50 p-2 rounded border border-purple-200">
+              <p className="text-xs text-purple-600 font-medium">Holiday</p>
+              <p className="text-lg font-bold text-purple-700">{holidayCount}</p>
             </div>
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center font-semibold text-muted-foreground text-sm p-2">
+              <div key={day} className="text-center font-semibold text-muted-foreground text-xs p-1">
                 {day}
               </div>
             ))}
             
             {/* Empty cells for days before month starts */}
             {Array.from({ length: new Date(year, month - 1, 1).getDay() }).map((_, i) => (
-              <div key={`empty-${i}`} className="p-3"></div>
+              <div key={`empty-${i}`}></div>
             ))}
             
             {/* Calendar days */}
@@ -263,7 +263,7 @@ export default function Attendance() {
                   <button
                     onClick={() => handleDayClick(day)}
                     disabled={loading}
-                    className={`w-full h-24 p-1 border-2 rounded-lg font-semibold transition-colors cursor-pointer flex flex-col items-center justify-center ${bgColor}`}
+                    className={`w-full h-16 p-0.5 border rounded font-semibold transition-colors cursor-pointer flex flex-col items-center justify-center text-sm ${bgColor}`}
                     title={
                       leaveType
                         ? `${day} - Leave (${leaveType})`
@@ -273,9 +273,9 @@ export default function Attendance() {
                     }
                     data-testid={`button-attendance-day-${day}`}
                   >
-                    <span className="text-lg font-bold">{day}</span>
-                    <div className="flex items-center justify-center gap-0.5 h-6">
-                      {statusEmoji && <span className="text-xl leading-none">{statusEmoji}</span>}
+                    <span>{day}</span>
+                    <div className="flex items-center justify-center gap-0.5 h-4">
+                      {statusEmoji && <span className="text-sm leading-none">{statusEmoji}</span>}
                       {leaveType && <span className="text-xs font-bold text-yellow-700 leading-none">{leaveType}</span>}
                     </div>
                   </button>
@@ -302,43 +302,38 @@ export default function Attendance() {
 
           {/* Leave Type Dialog */}
           <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-            <AlertDialogContent>
+            <AlertDialogContent className="max-w-sm">
               <AlertDialogHeader>
-                <AlertDialogTitle>Select Leave Type</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Choose the type of leave for Day {selectedDay}
+                <AlertDialogTitle className="text-base">Select Leave Type</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm">
+                  Day {selectedDay}
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto">
                 {LEAVE_TYPES.map((leave) => (
                   <button
                     key={leave.code}
                     onClick={() => handleLeaveTypeSelect(leave.code)}
-                    className="px-4 py-3 text-left border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors font-medium"
+                    className="px-3 py-2 text-left text-sm border rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
                     data-testid={`button-leave-type-${leave.code}`}
                   >
-                    <span className="font-bold text-blue-600">{leave.code}</span> - {leave.name}
+                    <span className="font-bold text-blue-600">{leave.code}</span> {leave.name}
                   </button>
                 ))}
               </div>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="text-sm">Cancel</AlertDialogCancel>
             </AlertDialogContent>
           </AlertDialog>
 
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg space-y-2">
-            <p className="text-sm text-blue-900">
-              <strong>How to use:</strong>
-            </p>
-            <ul className="text-sm text-blue-900 space-y-1 ml-4 list-disc">
-              <li><strong>Sundays are auto-marked as holidays (🎉)</strong> - all Sundays start purple</li>
-              <li>Click on any day to cycle: Not marked → Present (✓) → Absent (✗)</li>
-              <li><strong>When marking Absent:</strong> A dialog will appear to select the leave type (ML, CL, EL, SL, PL, UL, LWP)</li>
-              <li>After leave type: Leave (🎯) → Holiday (🎉) → Not marked</li>
-              <li>Hover over a marked day to see a red <strong>✕</strong> button - click it to instantly reset/clear that day</li>
-              <li>Leave types appear as abbreviations on the calendar (e.g., ML, CL, EL)</li>
-              <li>Check the counters at the top to see your Present/Absent/Leave/Holiday totals</li>
-              <li>Click <strong>Submit Attendance</strong> to save your entire month's attendance</li>
+          <div className="bg-blue-50 border border-blue-200 p-2 rounded text-xs space-y-1">
+            <p className="text-blue-900 font-semibold">Quick Guide:</p>
+            <ul className="text-blue-900 space-y-0.5 ml-3 list-disc">
+              <li>Sundays auto-marked as holidays (🎉)</li>
+              <li>Click day: Not marked → Present (✓) → Absent (✗) → Leave (🎯) → Holiday (🎉)</li>
+              <li>Absent opens leave type dialog (ML/CL/EL/SL/PL/UL/LWP)</li>
+              <li>Hover day for red ✕ to clear</li>
+              <li>Submit to save</li>
             </ul>
           </div>
 
@@ -346,10 +341,11 @@ export default function Attendance() {
           <Button
             onClick={handleSubmit}
             disabled={loading}
+            size="sm"
             className="w-full bg-blue-600 hover:bg-blue-700"
             data-testid="button-submit-attendance"
           >
-            {loading ? 'Submitting...' : 'Submit Attendance'}
+            {loading ? 'Submitting...' : 'Submit'}
           </Button>
         </CardContent>
       </Card>
