@@ -11,6 +11,7 @@ import { createColorfulExcel, fetchExportHeader, type ExportHeader } from "@/lib
 
 export default function SiteList() {
   const [sites, setSites] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSite, setExpandedSite] = useState<string | null>(null);
   const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
@@ -26,16 +27,28 @@ export default function SiteList() {
     const fetchSites = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${getApiBaseUrl()}/api/sites`);
-        if (response.ok) {
-          const { data } = await response.json();
+        const [sitesResponse, vendorsResponse] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/sites`),
+          fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`)
+        ]);
+        
+        if (sitesResponse.ok) {
+          const { data } = await sitesResponse.json();
           setSites(data || []);
         } else {
           setSites([]);
         }
+        
+        if (vendorsResponse.ok) {
+          const vendorData = await vendorsResponse.json();
+          setVendors(vendorData.data || []);
+        } else {
+          setVendors([]);
+        }
       } catch (error) {
-        console.error('Failed to fetch sites:', error);
+        console.error('Failed to fetch sites or vendors:', error);
         setSites([]);
+        setVendors([]);
       } finally {
         setLoading(false);
       }
@@ -49,7 +62,7 @@ export default function SiteList() {
   }, []);
 
   const getVendorName = (vendorId: string) => {
-    return vendors.find(v => v.id === vendorId)?.name || "N/A";
+    return vendors.find((v: any) => v.id === vendorId)?.name || "N/A";
   };
 
   const columnHeaders = {
