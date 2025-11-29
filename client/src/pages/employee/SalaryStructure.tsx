@@ -358,7 +358,15 @@ export default function SalaryStructure() {
       }
 
       const saved = await response.json();
-      setSalary(saved);
+      // Convert all string numeric values to numbers from the database response
+      const numericFields = ['basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'] as const;
+      const convertedSalary = { ...saved };
+      numericFields.forEach(field => {
+        if (convertedSalary[field] !== undefined && convertedSalary[field] !== null) {
+          convertedSalary[field] = Number(convertedSalary[field]);
+        }
+      });
+      setSalary(convertedSalary);
       toast({
         title: 'Success',
         description: 'Salary structure saved successfully',
