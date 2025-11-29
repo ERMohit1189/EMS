@@ -509,37 +509,48 @@ export default function Teams() {
                       </Button>
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      {member.reportingPerson1 && (
+                      {member.reportingPerson1 === member.id ? (
                         <div
                           className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
                           data-testid={`badge-reporting-person-1-${member.id}`}
                         >
-                          {member.reportingPerson1 === member.id ? 'RP1' : `RP1: ${getReportingPersonName(member.reportingPerson1)}`}
+                          RP1
                         </div>
+                      ) : (
+                        <>
+                          {member.reportingPerson1 && (
+                            <div
+                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
+                              data-testid={`badge-reporting-person-1-${member.id}`}
+                            >
+                              RP1: {getReportingPersonName(member.reportingPerson1)}
+                            </div>
+                          )}
+                          {member.reportingPerson2 && (
+                            <div
+                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
+                              data-testid={`badge-reporting-person-2-${member.id}`}
+                            >
+                              {member.reportingPerson2 === member.id ? 'RP2' : `RP2: ${getReportingPersonName(member.reportingPerson2)}`}
+                            </div>
+                          )}
+                          {member.reportingPerson3 && (
+                            <div
+                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
+                              data-testid={`badge-reporting-person-3-${member.id}`}
+                            >
+                              {member.reportingPerson3 === member.id ? 'RP3' : `RP3: ${getReportingPersonName(member.reportingPerson3)}`}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => handleMemberClick(member)}
+                            className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
+                            data-testid={`button-assign-reporting-${member.id}`}
+                          >
+                            Make RP
+                          </button>
+                        </>
                       )}
-                      {member.reportingPerson2 && (
-                        <div
-                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
-                          data-testid={`badge-reporting-person-2-${member.id}`}
-                        >
-                          {member.reportingPerson2 === member.id ? 'RP2' : `RP2: ${getReportingPersonName(member.reportingPerson2)}`}
-                        </div>
-                      )}
-                      {member.reportingPerson3 && (
-                        <div
-                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
-                          data-testid={`badge-reporting-person-3-${member.id}`}
-                        >
-                          {member.reportingPerson3 === member.id ? 'RP3' : `RP3: ${getReportingPersonName(member.reportingPerson3)}`}
-                        </div>
-                      )}
-                      <button
-                        onClick={() => handleMemberClick(member)}
-                        className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
-                        data-testid={`button-assign-reporting-${member.id}`}
-                      >
-                        Make RP
-                      </button>
                     </div>
                   </div>
                 ))}
