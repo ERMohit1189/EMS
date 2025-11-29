@@ -590,9 +590,18 @@ export default function Teams() {
                 {getSortedTeamMembers().map((member) => (
                   <div
                     key={member.id}
-                    className="p-2 border rounded bg-slate-50 text-xs hover:bg-slate-100 transition-colors"
+                    className={`relative p-2 border rounded text-xs transition-all ${
+                      loadingRemoveMember === member.id
+                        ? 'bg-red-50 opacity-60 border-red-300 cursor-wait'
+                        : 'bg-slate-50 hover:bg-slate-100'
+                    }`}
                     data-testid={`member-item-${member.id}`}
                   >
+                    {loadingRemoveMember === member.id && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded bg-black bg-opacity-5">
+                        <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+                      </div>
+                    )}
                     <div className="flex justify-between items-start gap-1 mb-1">
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-xs truncate">{member.name}</p>
