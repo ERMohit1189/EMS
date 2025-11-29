@@ -234,39 +234,39 @@ export default function MyProfile() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Email - Read Only */}
               <div className="grid gap-4 md:grid-cols-2">
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
+                <div>
+                  <label className="text-sm font-medium">Email</label>
                   <Input
                     value={employee.email}
                     disabled
-                    className="bg-muted"
+                    className="bg-muted mt-1.5"
                     data-testid="input-email-readonly"
                   />
                   <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
-                </FormItem>
+                </div>
 
                 {/* Department - Read Only */}
-                <FormItem>
-                  <FormLabel>Department</FormLabel>
+                <div>
+                  <label className="text-sm font-medium">Department</label>
                   <Input
                     value={employee.department}
                     disabled
-                    className="bg-muted"
+                    className="bg-muted mt-1.5"
                     data-testid="input-department-readonly"
                   />
-                </FormItem>
+                </div>
               </div>
 
               {/* Designation - Read Only */}
-              <FormItem>
-                <FormLabel>Designation</FormLabel>
+              <div>
+                <label className="text-sm font-medium">Designation</label>
                 <Input
                   value={employee.designation}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted mt-1.5"
                   data-testid="input-designation-readonly"
                 />
-              </FormItem>
+              </div>
 
               {/* Editable Fields */}
               <div className="grid gap-4 md:grid-cols-2">
