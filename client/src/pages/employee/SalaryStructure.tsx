@@ -91,6 +91,21 @@ export default function SalaryStructure() {
     }
   }, [selectedEmployee]);
 
+  // Handle "Want Salary Deduction" checkbox change
+  useEffect(() => {
+    if (salary && !wantDeduction) {
+      // Set all deductions to 0 and recalculate net salary
+      setSalary({
+        ...salary,
+        pf: 0,
+        professionalTax: 0,
+        incomeTax: 0,
+        epf: 0,
+        esic: 0,
+      });
+    }
+  }, [wantDeduction]);
+
   const fetchEmployees = async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
@@ -430,6 +445,8 @@ export default function SalaryStructure() {
     const isManuallyEdited = manuallyEdited.has(field);
     const formula = formulas[field];
     const isFixed = formula.type === 'fixed';
+    const isDeductionField = ['pf', 'professionalTax', 'incomeTax', 'epf', 'esic'].includes(field);
+    const isDisabled = isDeductionField && !wantDeduction;
     
     return (
       <div key={field} className="grid grid-cols-2 items-center gap-2">
@@ -443,6 +460,7 @@ export default function SalaryStructure() {
           <Input 
             type="number" 
             step="0.01"
+            disabled={isDisabled}
             value={formatValue(salary[field])}
             onChange={(e) => {
               const numValue = parseFloat(e.target.value) || 0;
@@ -454,10 +472,10 @@ export default function SalaryStructure() {
               newManuallyEdited.add(field);
               setManuallyEdited(newManuallyEdited);
             }}
-            className={isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}
+            className={isDisabled ? 'opacity-50 cursor-not-allowed' : isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}
             placeholder="0"
           />
-          {isManuallyEdited && (
+          {isManuallyEdited && !isDisabled && (
             <Button
               size="sm"
               variant="outline"
@@ -611,18 +629,6 @@ export default function SalaryStructure() {
             <div className="flex justify-between font-bold text-lg text-red-600 bg-red-50 dark:bg-red-950 p-3 rounded">
               <span>Total Deductions</span>
               <span>₹{formatValue(deductions)}</span>
-            </div>
-            <Separator />
-            <div className="flex items-center space-x-2 p-3 bg-blue-50 dark:bg-blue-950 rounded">
-              <Checkbox 
-                id="want-deduction" 
-                checked={wantDeduction}
-                onCheckedChange={(checked) => setWantDeduction(checked as boolean)}
-                data-testid="checkbox-want-deduction"
-              />
-              <Label htmlFor="want-deduction" className="font-semibold cursor-pointer">
-                Want Salary Deduction
-              </Label>
             </div>
           </CardContent>
         </Card>
