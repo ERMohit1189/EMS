@@ -118,10 +118,14 @@ export async function registerRoutes(
         req.session.employeeEmail = employee.email;
       }
       
+      // Check if employee is a reporting person (RP1, RP2, or RP3)
+      const isReportingPerson = await storage.isEmployeeReportingPerson(employee.id);
+      
       console.log(`[Employee Login] Employee object:`, {
         id: employee.id,
         name: employee.name,
         email: employee.email,
+        isReportingPerson,
         designationId: (employee as any).designationId,
         designationName: (employee as any).designationName,
         departmentId: (employee as any).departmentId,
@@ -135,7 +139,8 @@ export async function registerRoutes(
           name: employee.name, 
           email: employee.email,
           department: (employee as any).departmentName || "Not Assigned",
-          designation: (employee as any).designationName || "Not Specified"
+          designation: (employee as any).designationName || "Not Specified",
+          isReportingPerson
         } 
       };
       

@@ -101,6 +101,7 @@ export default function EmployeeLogin() {
       localStorage.setItem("employeeName", data.employee.name);
       localStorage.setItem("employeeDepartment", data.employee.department || "Not Assigned");
       localStorage.setItem("employeeDesignation", data.employee.designation || "Not Specified");
+      localStorage.setItem("isReportingPerson", data.employee.isReportingPerson ? "true" : "false");
       
       console.log('localStorage after login:', {
         department: localStorage.getItem("employeeDepartment"),

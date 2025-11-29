@@ -184,6 +184,7 @@ export interface IStorage {
   addTeamMember(teamId: string, employeeId: string): Promise<TeamMember>;
   removeTeamMember(teamId: string, employeeId: string): Promise<void>;
   getTeamMembers(teamId: string): Promise<any[]>;
+  isEmployeeReportingPerson(employeeId: string): Promise<boolean>;
   updateTeamMemberReporting(memberId: string, reportingPerson1?: string, reportingPerson2?: string, reportingPerson3?: string): Promise<any>;
 
   // App Settings operations
@@ -1266,6 +1267,17 @@ export class DrizzleStorage implements IStorage {
       console.error('[Storage] getTeamMembers error:', error);
       throw error;
     }
+  }
+
+  async isEmployeeReportingPerson(employeeId: string): Promise<boolean> {
+    // Check if this employee is assigned as RP1, RP2, or RP3 in any team
+    const result = await db.select().from(teamMembers)
+      .where(or(
+        eq(teamMembers.reportingPerson1, employeeId),
+        eq(teamMembers.reportingPerson2, employeeId),
+        eq(teamMembers.reportingPerson3, employeeId)
+      ));
+    return result.length > 0;
   }
 
   async updateTeamMemberReporting(memberId: string, reportingPerson1?: string, reportingPerson2?: string, reportingPerson3?: string): Promise<any> {

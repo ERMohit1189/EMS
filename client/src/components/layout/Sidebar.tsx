@@ -190,6 +190,16 @@ const userEmployeeMenuGroups = [
     ],
   },
   {
+    group: 'Approvals',
+    items: [
+      {
+        title: 'Allowance Approvals',
+        icon: ClipboardCheck,
+        href: '/admin/allowance-approvals',
+      },
+    ],
+  },
+  {
     group: 'Account',
     items: [
       {
@@ -209,9 +219,15 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
   const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
   const isUserEmployee = isEmployee && employeeRole === 'user';
+  const isReportingPerson = typeof window !== 'undefined' && localStorage.getItem('isReportingPerson') === 'true';
   
   // Determine menu groups based on role
-  const menuGroups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
+  let menuGroups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
+  
+  // Filter out Approvals group if not a reporting person
+  if (isUserEmployee && !isReportingPerson) {
+    menuGroups = menuGroups.filter(group => group.group !== 'Approvals');
+  }
   
   // Initialize expanded groups based on menu groups
   useEffect(() => {
@@ -228,6 +244,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       if (isUserEmployee) {
         // For user employees
         if (route.startsWith('/settings')) return 'Settings';
+        if (route.startsWith('/admin/allowance-approvals')) return 'Approvals';
         if (route.startsWith('/employee')) return 'Employee';
         return 'Employee';
       } else {
