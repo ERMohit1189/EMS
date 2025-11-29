@@ -252,6 +252,15 @@ export default function Allowances() {
       return;
     }
 
+    if (!formData.teamId) {
+      toast({
+        title: "Error",
+        description: "Please select a team",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate against caps
     const travel = parseFloat(formData.travelAllowance) || 0;
     const food = parseFloat(formData.foodAllowance) || 0;
@@ -575,6 +584,7 @@ export default function Allowances() {
                 size="sm"
                 onClick={() => setFormData({
                   date: new Date().toISOString().split('T')[0],
+                  teamId: '',
                   travelAllowance: '',
                   foodAllowance: '',
                   accommodationAllowance: '',
