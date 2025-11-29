@@ -167,13 +167,20 @@ export default function SalaryStructure() {
   const calculateBasicFromNet = (net: number, deductionPercentages: number = 15.42): number => {
     if (!salary) return 0;
     
+    // If deductions not wanted, Net = Gross, so calculate differently
+    if (!wantDeduction) {
+      // When no deductions, Net Salary = Gross Salary
+      // So we just need to calculate Basic from Gross (which equals Net in this case)
+      return calculateBasicFromGross(net);
+    }
+    
     // Estimate deductions as percentage of basic and calculate gross
     const factor = 1 - deductionPercentages / 100;
     let estimatedBasic = net / factor;
 
     // Refine by calculating actual deductions
     for (let i = 0; i < 3; i++) {
-      const earnings = autoCalculateSalary(estimatedBasic, true);
+      const earnings = autoCalculateSalary(estimatedBasic, true, wantDeduction);
       const fixedEarnings = Number(salary.conveyance) + Number(salary.medical) + Number(salary.bonuses) + Number(salary.otherBenefits);
       const gross = estimatedBasic + earnings.hra! + earnings.da! + earnings.lta! + fixedEarnings;
       const deductions = earnings.pf! + Number(salary.professionalTax) + Number(salary.incomeTax) + earnings.epf! + earnings.esic!;
@@ -188,7 +195,7 @@ export default function SalaryStructure() {
     return Math.max(0, estimatedBasic);
   };
 
-  const autoCalculateSalary = (basicSalary: number, includeFixed: boolean = false): Partial<SalaryStructure> => {
+  const autoCalculateSalary = (basicSalary: number, includeFixed: boolean = false, considerDeduction: boolean = true): Partial<SalaryStructure> => {
     const calculated: Partial<SalaryStructure> = {};
     // Only auto-calculate percentage fields, not fixed values
     const percentageFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = [
@@ -198,7 +205,13 @@ export default function SalaryStructure() {
     percentageFields.forEach(field => {
       // Only recalculate if user hasn't manually edited it
       if (!manuallyEdited.has(field)) {
-        calculated[field] = calculateValue(field, basicSalary);
+        // Skip deduction fields if considerDeduction is false
+        const isDeductionField = ['pf', 'epf', 'esic'].includes(field);
+        if (isDeductionField && !considerDeduction) {
+          calculated[field] = 0;
+        } else {
+          calculated[field] = calculateValue(field, basicSalary);
+        }
       }
     });
 
@@ -295,7 +308,7 @@ export default function SalaryStructure() {
       newManuallyEdited.add(field as string);
       setManuallyEdited(newManuallyEdited);
 
-      const calculated = autoCalculateSalary(numValue);
+      const calculated = autoCalculateSalary(numValue, false, wantDeduction);
       setSalary({
         ...salary,
         [field]: numValue,
@@ -305,7 +318,7 @@ export default function SalaryStructure() {
     } else if (source === 'gross') {
       setEditSource('gross');
       const basicSalary = calculateBasicFromGross(numValue);
-      const calculated = autoCalculateSalary(basicSalary, true);
+      const calculated = autoCalculateSalary(basicSalary, true, wantDeduction);
       setSalary({
         ...salary,
         basicSalary,
@@ -315,7 +328,7 @@ export default function SalaryStructure() {
     } else if (source === 'net') {
       setEditSource('net');
       const basicSalary = calculateBasicFromNet(numValue);
-      const calculated = autoCalculateSalary(basicSalary, true);
+      const calculated = autoCalculateSalary(basicSalary, true, wantDeduction);
       setSalary({
         ...salary,
         basicSalary,
