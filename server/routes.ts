@@ -1172,6 +1172,10 @@ export async function registerRoutes(
     try {
       const { employeeId, month, year, attendanceData } = req.body;
       
+      if (!employeeId || !month || !year || !attendanceData) {
+        return res.status(400).json({ error: "Missing required fields: employeeId, month, year, attendanceData" });
+      }
+      
       // Get employee to check role and validate date access
       const employee = await storage.getEmployee(employeeId);
       if (!employee) {
@@ -1189,18 +1193,16 @@ export async function registerRoutes(
         const isCurrentMonth = month === currentMonth && year === currentYear;
         if (!isCurrentMonth) {
           console.error(`[Attendance] User ${employeeId} tried to update month ${month}/${year}, current is ${currentMonth}/${currentYear}`);
-          return res.status(403).json({ error: "User role can only update current day" });
+          return res.status(403).json({ error: `Can only update current month (${currentMonth}/${currentYear})` });
         }
 
         // Check if trying to mark anything other than today
-        if (month === currentMonth && year === currentYear) {
-          for (const [day, value] of Object.entries(attendanceData)) {
-            const dayNum = parseInt(day);
-            // Only allow marking today (currentDay), all other dates must be null
-            if (dayNum !== currentDay && value !== null) {
-              console.error(`[Attendance] User ${employeeId} tried to mark day ${dayNum} (today is ${currentDay}), value: ${value}`);
-              return res.status(403).json({ error: "User role can only mark current date (today)" });
-            }
+        for (const [day, value] of Object.entries(attendanceData)) {
+          const dayNum = parseInt(day);
+          // Only allow marking today (currentDay), all other dates must be null
+          if (dayNum !== currentDay && value !== null) {
+            console.error(`[Attendance] User ${employeeId} tried to mark day ${dayNum} (today is ${currentDay}), value: ${value}`);
+            return res.status(403).json({ error: `Can only mark current date. Today is ${currentDay}` });
           }
         }
       }
@@ -1225,9 +1227,11 @@ export async function registerRoutes(
         });
       }
       
-      res.json(attendance);
+      console.log(`[Attendance] Successfully saved for employee ${employeeId}, month ${month}/${year}`);
+      res.json({ success: true, attendance });
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      console.error(`[Attendance Error]`, error.message);
+      res.status(500).json({ error: error.message || "Failed to save attendance" });
     }
   });
 

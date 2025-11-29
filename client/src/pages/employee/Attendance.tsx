@@ -172,9 +172,11 @@ export default function Attendance() {
       if (response.ok) {
         toast({ title: 'Success', description: 'Attendance submitted successfully' });
       } else {
-        throw new Error('Failed to submit attendance');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to submit attendance' }));
+        throw new Error(errorData.error || `Error: ${response.status}`);
       }
     } catch (error: any) {
+      console.error('[Attendance Submit Error]', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to submit attendance',
