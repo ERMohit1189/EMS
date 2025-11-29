@@ -939,6 +939,19 @@ export class DrizzleStorage implements IStorage {
       .limit(limit);
   }
 
+  async getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<DailyAllowance[]> {
+    const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+    
+    return await db.select().from(dailyAllowances)
+      .where(and(
+        eq(dailyAllowances.employeeId, employeeId),
+        gte(dailyAllowances.date, startDate),
+        lte(dailyAllowances.date, endDate)
+      ))
+      .orderBy(dailyAllowances.date);
+  }
+
   async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance> {
     // Check if allowance is approved - cannot update if approved
     const existing = await this.getDailyAllowance(id);

@@ -56,6 +56,11 @@ export default function Allowances() {
   const [submittedEntries, setSubmittedEntries] = useState<AllowanceEntry[]>([]);
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
   const [caps, setCaps] = useState<any>({});
+  
+  // Month/Year filter - default to current month
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
+  const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
 
   const validateAllowances = (data: typeof formData, capsData: any): boolean => {
     const travel = parseFloat(data.travelAllowance) || 0;
@@ -108,11 +113,13 @@ export default function Allowances() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [formData, caps]);
 
-  const fetchAllowances = async (skipLoading = false) => {
+  const fetchAllowances = async (skipLoading = false, month?: string, year?: string) => {
     if (!employeeId) return;
     try {
       if (!skipLoading) setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}`);
+      const m = month || selectedMonth;
+      const y = year || selectedYear;
+      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}/${m}/${y}`);
       if (response.ok) {
         const data = await response.json();
         setSubmittedEntries(data.data || []);
@@ -122,6 +129,12 @@ export default function Allowances() {
     } finally {
       if (!skipLoading) setLoading(false);
     }
+  };
+
+  const handleMonthYearChange = (month: string, year: string) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+    fetchAllowances(false, month, year);
   };
 
   const handleDelete = async (allowanceId: string) => {
@@ -489,6 +502,45 @@ export default function Allowances() {
       <Card className="shadow-sm">
         <CardHeader className="pb-2 pt-3 px-3">
           <CardTitle className="text-lg">History</CardTitle>
+          <div className="flex gap-2 mt-3">
+            <div className="flex-1">
+              <label className="text-xs font-medium">Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => handleMonthYearChange(e.target.value, selectedYear)}
+                data-testid="select-month-filter"
+                className="w-full h-8 text-xs px-2 py-1 border rounded"
+              >
+                {Array.from({ length: 12 }, (_, i) => {
+                  const monthNum = String(i + 1).padStart(2, '0');
+                  const monthName = new Date(2024, i, 1).toLocaleString('default', { month: 'long' });
+                  return (
+                    <option key={monthNum} value={monthNum}>
+                      {monthName}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => handleMonthYearChange(selectedMonth, e.target.value)}
+                data-testid="select-year-filter"
+                className="w-full h-8 text-xs px-2 py-1 border rounded"
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = String(now.getFullYear() - 2 + i);
+                  return (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-3">
           {submittedEntries.length === 0 ? (

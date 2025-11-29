@@ -1360,6 +1360,17 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/allowances/:employeeId/:month/:year", async (req, res) => {
+    try {
+      const { employeeId, month, year } = req.params;
+      const allowances = await storage.getEmployeeAllowancesByMonthYear(employeeId, parseInt(month), parseInt(year));
+      res.json({ data: allowances });
+    } catch (error: any) {
+      console.error(`[Allowances Fetch Error]`, error.message);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/allowances/:employeeId/:date", async (req, res) => {
     try {
       const { employeeId, date } = req.params;
