@@ -65,6 +65,9 @@ export default function SalaryStructure() {
   const [formulas, setFormulas] = useState<Record<keyof Omit<SalaryStructure, 'id' | 'employeeId'>, SalaryFormula>>(DEFAULT_FORMULAS);
   const [manuallyEdited, setManuallyEdited] = useState<Set<string>>(new Set());
   const [editSource, setEditSource] = useState<'basic' | 'gross' | 'net' | null>(null);
+  const [basicInput, setBasicInput] = useState<string>("");
+  const [grossInput, setGrossInput] = useState<string>("");
+  const [netInput, setNetInput] = useState<string>("");
 
   useEffect(() => {
     fetchEmployees();
@@ -182,6 +185,9 @@ export default function SalaryStructure() {
     setIsLoading(true);
     setManuallyEdited(new Set());
     setEditSource(null);
+    setBasicInput("");
+    setGrossInput("");
+    setNetInput("");
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`);
       if (response.ok) {
@@ -461,13 +467,11 @@ export default function SalaryStructure() {
               <Input 
                 ref={basicSalaryRef}
                 type="number" 
-                value={salary.basicSalary} 
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  setSalary({ ...salary, basicSalary: val });
-                }}
+                value={basicInput || salary.basicSalary}
+                onChange={(e) => setBasicInput(e.target.value)}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0;
+                  setBasicInput("");
                   handleSalaryChange('basicSalary', val.toString(), 'basic');
                 }}
                 className="text-lg font-bold"
@@ -478,12 +482,11 @@ export default function SalaryStructure() {
               <Label className="font-semibold">Gross Salary</Label>
               <Input 
                 type="number" 
-                value={gross}
-                onChange={(e) => {
-                  // Just display, don't calculate
-                }}
+                value={grossInput || gross}
+                onChange={(e) => setGrossInput(e.target.value)}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0;
+                  setGrossInput("");
                   if (val > 0) handleQuickInputBlur('gross', val);
                 }}
                 className="text-lg font-bold text-green-700 dark:text-green-300"
@@ -494,12 +497,11 @@ export default function SalaryStructure() {
               <Label className="font-semibold">Net Salary</Label>
               <Input 
                 type="number" 
-                value={net}
-                onChange={(e) => {
-                  // Just display, don't calculate
-                }}
+                value={netInput || net}
+                onChange={(e) => setNetInput(e.target.value)}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0;
+                  setNetInput("");
                   if (val > 0) handleQuickInputBlur('net', val);
                 }}
                 className="text-lg font-bold text-blue-700 dark:text-blue-300"
