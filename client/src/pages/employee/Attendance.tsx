@@ -64,9 +64,9 @@ export default function Attendance() {
   // Check if day can be edited based on employee role
   const canEditDay = (day: number): boolean => {
     if (employeeRole === 'admin') return true; // Admin can edit any day
-    // User role: only current month, only current and past days
+    // User role: only current day (today) is editable
     if (!isCurrentMonth) return false;
-    return day <= currentDay;
+    return day === currentDay; // Only today, not previous or future dates
   };
 
   useEffect(() => {
