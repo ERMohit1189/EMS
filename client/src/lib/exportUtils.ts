@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from './api';
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export interface ExportHeader {
   companyName?: string;
@@ -319,12 +320,103 @@ export const createProfessionalSalaryExcel = (
   columnWidths: number[],
   filename: string
 ): void => {
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-  formatSalaryExcelWorksheet(worksheet, data, columnWidths);
-  
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Report');
-  XLSX.writeFile(workbook, filename);
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Salary Report');
+
+  // Add data rows
+  data.forEach((row, rowIndex) => {
+    worksheet.addRow(row);
+  });
+
+  // Set column widths
+  columnWidths.forEach((width, index) => {
+    worksheet.getColumn(index + 1).width = width;
+  });
+
+  const headerRowIndex = 7; // After company info
+  const headerRow = worksheet.getRow(headerRowIndex);
+  headerRow.height = 25;
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1F4E78' }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 11
+    };
+    cell.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
+    cell.border = {
+      left: { style: 'thin' },
+      right: { style: 'thin' },
+      top: { style: 'thin' },
+      bottom: { style: 'thin' }
+    };
+  });
+
+  // Apply data row styling
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber <= headerRowIndex || rowNumber === data.length) return;
+    
+    row.eachCell((cell, colNumber) => {
+      // Alternating colors
+      if (rowNumber % 2 === 0) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFEBF5FB' }
+        };
+      } else {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF4ECF7' }
+        };
+      }
+      
+      cell.border = {
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+        top: { style: 'hair' },
+        bottom: { style: 'hair' }
+      };
+      
+      if (typeof cell.value === 'number' && colNumber >= 4) {
+        cell.numFmt = '₹ #,##0.00';
+      }
+    });
+  });
+
+  // Total row styling
+  const totalRow = worksheet.getRow(data.length);
+  totalRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFC0392B' }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 11
+    };
+    cell.alignment = { horizontal: 'right', vertical: 'center' };
+    if (typeof cell.value === 'number') {
+      cell.numFmt = '₹ #,##0.00';
+    }
+  });
+
+  workbook.xlsx.writeBuffer().then((buffer) => {
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  });
 };
 
 /**
@@ -367,7 +459,7 @@ export const formatGenericExcelWorksheet = (
 };
 
 /**
- * Create a professional generic Excel export with colorful formatting
+ * Create a professional generic Excel export with colorful formatting using ExcelJS
  */
 export const createColorfulExcel = (
   data: any[],
@@ -375,17 +467,85 @@ export const createColorfulExcel = (
   filename: string,
   sheetName: string = 'Sheet1'
 ): void => {
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-  worksheet['!cols'] = columnWidths.map(width => ({ wch: width }));
-  
-  // Apply formatting
-  formatGenericExcelWorksheet(worksheet, columnWidths.length, 0);
-  
-  // Set header row height
-  worksheet['!rows'] = worksheet['!rows'] || [];
-  worksheet['!rows'][0] = { hpt: 22 };
-  
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  XLSX.writeFile(workbook, filename);
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(sheetName);
+
+  // Add data rows
+  data.forEach((row, rowIndex) => {
+    worksheet.addRow(row);
+  });
+
+  // Set column widths
+  columnWidths.forEach((width, index) => {
+    worksheet.getColumn(index + 1).width = width;
+  });
+
+  // Apply header styling (first row)
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 22;
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1F4E78' }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 11
+    };
+    cell.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
+    cell.border = {
+      left: { style: 'thin' },
+      right: { style: 'thin' },
+      top: { style: 'thin' },
+      bottom: { style: 'thin' }
+    };
+  });
+
+  // Apply data row styling with alternating colors
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return; // Skip header row
+    
+    row.eachCell((cell) => {
+      // Alternating row colors
+      if (rowNumber % 2 === 0) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFEBF5FB' } // Light blue
+        };
+      } else {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF4ECF7' } // Light purple
+        };
+      }
+      
+      cell.alignment = { vertical: 'center' };
+      cell.border = {
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+        top: { style: 'hair' },
+        bottom: { style: 'hair' }
+      };
+      
+      // Apply currency formatting to numbers
+      if (typeof cell.value === 'number') {
+        cell.numFmt = '₹ #,##0.00';
+      }
+    });
+  });
+
+  // Save the file
+  workbook.xlsx.writeBuffer().then((buffer) => {
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  });
 };
