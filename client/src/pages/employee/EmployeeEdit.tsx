@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2 } from 'lucide-react';
 
 const RequiredLabel = ({ children }: { children: string }) => (
   <span>
@@ -307,8 +308,9 @@ export default function EmployeeEdit() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
-        <p className="text-lg">Loading employee data...</p>
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">Loading employee data...</p>
       </div>
     );
   }

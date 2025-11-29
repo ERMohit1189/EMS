@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
@@ -89,7 +89,10 @@ export default function EmployeeList() {
        </div>
 
        {loading ? (
-         <div className="p-8 text-center text-muted-foreground">Loading employees...</div>
+         <div className="flex flex-col items-center justify-center h-64">
+           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+           <p className="text-muted-foreground">Loading employee data...</p>
+         </div>
        ) : (
        <div className="rounded-md border bg-card overflow-x-auto">
          <div className="grid gap-0 min-w-full" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
