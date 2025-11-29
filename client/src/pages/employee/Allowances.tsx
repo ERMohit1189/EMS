@@ -8,6 +8,11 @@ import { getApiBaseUrl } from '@/lib/api';
 interface AllowanceData {
   travelAllowance: number;
   foodAllowance: number;
+  accommodationAllowance: number;
+  mobileAllowance: number;
+  internetAllowance: number;
+  utilitiesAllowance: number;
+  parkingAllowance: number;
   miscAllowance: number;
   notes: string;
 }
@@ -23,12 +28,22 @@ export default function Allowances() {
     date: string;
     travelAllowance: string;
     foodAllowance: string;
+    accommodationAllowance: string;
+    mobileAllowance: string;
+    internetAllowance: string;
+    utilitiesAllowance: string;
+    parkingAllowance: string;
     miscAllowance: string;
     notes: string;
   }>({
     date: new Date().toISOString().split('T')[0],
     travelAllowance: '',
     foodAllowance: '',
+    accommodationAllowance: '',
+    mobileAllowance: '',
+    internetAllowance: '',
+    utilitiesAllowance: '',
+    parkingAllowance: '',
     miscAllowance: '',
     notes: '',
   });
@@ -79,6 +94,11 @@ export default function Allowances() {
           allowanceData: JSON.stringify({
             travelAllowance: parseFloat(formData.travelAllowance) || 0,
             foodAllowance: parseFloat(formData.foodAllowance) || 0,
+            accommodationAllowance: parseFloat(formData.accommodationAllowance) || 0,
+            mobileAllowance: parseFloat(formData.mobileAllowance) || 0,
+            internetAllowance: parseFloat(formData.internetAllowance) || 0,
+            utilitiesAllowance: parseFloat(formData.utilitiesAllowance) || 0,
+            parkingAllowance: parseFloat(formData.parkingAllowance) || 0,
             miscAllowance: parseFloat(formData.miscAllowance) || 0,
             notes: formData.notes,
           }),
@@ -100,6 +120,11 @@ export default function Allowances() {
         date: new Date().toISOString().split('T')[0],
         travelAllowance: '',
         foodAllowance: '',
+        accommodationAllowance: '',
+        mobileAllowance: '',
+        internetAllowance: '',
+        utilitiesAllowance: '',
+        parkingAllowance: '',
         miscAllowance: '',
         notes: '',
       });
@@ -119,6 +144,11 @@ export default function Allowances() {
   const totalAmount = (
     (parseFloat(formData.travelAllowance) || 0) +
     (parseFloat(formData.foodAllowance) || 0) +
+    (parseFloat(formData.accommodationAllowance) || 0) +
+    (parseFloat(formData.mobileAllowance) || 0) +
+    (parseFloat(formData.internetAllowance) || 0) +
+    (parseFloat(formData.utilitiesAllowance) || 0) +
+    (parseFloat(formData.parkingAllowance) || 0) +
     (parseFloat(formData.miscAllowance) || 0)
   ).toFixed(2);
 
@@ -147,7 +177,7 @@ export default function Allowances() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Travel Allowance (Rs)</label>
                 <Input
@@ -171,6 +201,71 @@ export default function Allowances() {
                   value={formData.foodAllowance}
                   onChange={(e) => setFormData({ ...formData, foodAllowance: e.target.value })}
                   data-testid="input-food-allowance"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Accommodation (Rs)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formData.accommodationAllowance}
+                  onChange={(e) => setFormData({ ...formData, accommodationAllowance: e.target.value })}
+                  data-testid="input-accommodation-allowance"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Mobile/Communication (Rs)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formData.mobileAllowance}
+                  onChange={(e) => setFormData({ ...formData, mobileAllowance: e.target.value })}
+                  data-testid="input-mobile-allowance"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Internet/Data (Rs)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formData.internetAllowance}
+                  onChange={(e) => setFormData({ ...formData, internetAllowance: e.target.value })}
+                  data-testid="input-internet-allowance"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Utilities (Rs)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formData.utilitiesAllowance}
+                  onChange={(e) => setFormData({ ...formData, utilitiesAllowance: e.target.value })}
+                  data-testid="input-utilities-allowance"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Parking/Conveyance (Rs)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formData.parkingAllowance}
+                  onChange={(e) => setFormData({ ...formData, parkingAllowance: e.target.value })}
+                  data-testid="input-parking-allowance"
                   className="mt-1"
                 />
               </div>
@@ -208,15 +303,18 @@ export default function Allowances() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setFormData({
-                    date: new Date().toISOString().split('T')[0],
-                    travelAllowance: '',
-                    foodAllowance: '',
-                    miscAllowance: '',
-                    notes: '',
-                  });
-                }}
+                onClick={() => setFormData({
+                  date: new Date().toISOString().split('T')[0],
+                  travelAllowance: '',
+                  foodAllowance: '',
+                  accommodationAllowance: '',
+                  mobileAllowance: '',
+                  internetAllowance: '',
+                  utilitiesAllowance: '',
+                  parkingAllowance: '',
+                  miscAllowance: '',
+                  notes: '',
+                })}
                 data-testid="button-reset-allowance"
               >
                 Reset
@@ -245,13 +343,13 @@ export default function Allowances() {
           ) : (
             <div className="space-y-3">
               {submittedEntries.map((entry, index) => {
-                let allowanceData = { travelAllowance: 0, foodAllowance: 0, miscAllowance: 0, notes: '' };
+                let allowanceData = { travelAllowance: 0, foodAllowance: 0, accommodationAllowance: 0, mobileAllowance: 0, internetAllowance: 0, utilitiesAllowance: 0, parkingAllowance: 0, miscAllowance: 0, notes: '' };
                 try {
                   allowanceData = JSON.parse(entry.allowanceData || '{}');
                 } catch {
                   // Handle parsing error
                 }
-                const total = (allowanceData.travelAllowance || 0) + (allowanceData.foodAllowance || 0) + (allowanceData.miscAllowance || 0);
+                const total = (allowanceData.travelAllowance || 0) + (allowanceData.foodAllowance || 0) + (allowanceData.accommodationAllowance || 0) + (allowanceData.mobileAllowance || 0) + (allowanceData.internetAllowance || 0) + (allowanceData.utilitiesAllowance || 0) + (allowanceData.parkingAllowance || 0) + (allowanceData.miscAllowance || 0);
 
                 return (
                   <div key={index} className="border rounded-lg p-4 bg-gradient-to-r from-slate-50 to-slate-100" data-testid={`allowance-entry-${index}`}>
@@ -262,7 +360,7 @@ export default function Allowances() {
                       </div>
                       <p className="font-bold text-lg text-green-600" data-testid={`allowance-total-${index}`}>Rs {total.toFixed(2)}</p>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                       <div>
                         <p className="text-slate-600">Travel</p>
                         <p className="font-semibold text-slate-900">Rs {(allowanceData.travelAllowance || 0).toFixed(2)}</p>
@@ -270,6 +368,26 @@ export default function Allowances() {
                       <div>
                         <p className="text-slate-600">Food</p>
                         <p className="font-semibold text-slate-900">Rs {(allowanceData.foodAllowance || 0).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-600">Accommodation</p>
+                        <p className="font-semibold text-slate-900">Rs {(allowanceData.accommodationAllowance || 0).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-600">Mobile</p>
+                        <p className="font-semibold text-slate-900">Rs {(allowanceData.mobileAllowance || 0).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-600">Internet</p>
+                        <p className="font-semibold text-slate-900">Rs {(allowanceData.internetAllowance || 0).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-600">Utilities</p>
+                        <p className="font-semibold text-slate-900">Rs {(allowanceData.utilitiesAllowance || 0).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-600">Parking</p>
+                        <p className="font-semibold text-slate-900">Rs {(allowanceData.parkingAllowance || 0).toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-slate-600">Misc</p>
