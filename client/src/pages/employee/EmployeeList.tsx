@@ -94,7 +94,7 @@ export default function EmployeeList() {
            <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Contact</div>
            <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Location</div>
            <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Status</div>
-           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-right">Actions</div>
+           <div className="col-span-1 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm text-left">Actions</div>
          </div>
          {employees.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">No employees found. Add one to get started.</div>
@@ -116,7 +116,7 @@ export default function EmployeeList() {
                    {e.status}
                  </Badge>
                </div>
-               <div className="p-4 flex justify-end gap-2">
+               <div className="p-4 flex justify-start gap-2">
                  <Button
                    variant="outline"
                    size="sm"
