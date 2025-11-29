@@ -103,6 +103,8 @@ export default function SalaryStructure() {
   };
 
   const calculateBasicFromGross = (gross: number): number => {
+    if (!salary) return 0;
+    
     // Calculate percentage multiplier
     const earnPercentageFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = ['hra', 'da', 'lta'];
     let percentageMultiplier = 1; // Basic salary itself
@@ -115,14 +117,8 @@ export default function SalaryStructure() {
       }
     });
 
-    // Add fixed earnings
-    const fixedEarningFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = ['conveyance', 'medical', 'bonuses', 'otherBenefits'];
-    fixedEarningFields.forEach(field => {
-      const formula = formulas[field];
-      if (formula.type === 'fixed') {
-        fixedEarnings += formula.value;
-      }
-    });
+    // Add ACTUAL fixed earnings from current salary (user-filled values)
+    fixedEarnings += salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
 
     // Gross = Basic * percentageMultiplier + fixedEarnings
     // Basic = (Gross - fixedEarnings) / percentageMultiplier
@@ -131,18 +127,18 @@ export default function SalaryStructure() {
   };
 
   const calculateBasicFromNet = (net: number, deductionPercentages: number = 15.42): number => {
+    if (!salary) return 0;
+    
     // Estimate deductions as percentage of basic and calculate gross
-    // Net ≈ Basic - (Basic * deductionPercentages/100) = Basic * (1 - deductionPercentages/100)
-    // But we'll calculate more accurately
-    // For now, use approximation then refine
     const factor = 1 - deductionPercentages / 100;
     let estimatedBasic = net / factor;
 
     // Refine by calculating actual deductions
     for (let i = 0; i < 3; i++) {
-      const earnings = autoCalculateSalary(estimatedBasic);
-      const gross = estimatedBasic + earnings.hra! + earnings.da! + earnings.lta! + earnings.conveyance! + earnings.medical! + earnings.bonuses! + earnings.otherBenefits!;
-      const deductions = earnings.pf! + earnings.professionalTax! + earnings.incomeTax! + earnings.epf! + earnings.esic!;
+      const earnings = autoCalculateSalary(estimatedBasic, true);
+      const fixedEarnings = salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
+      const gross = estimatedBasic + earnings.hra! + earnings.da! + earnings.lta! + fixedEarnings;
+      const deductions = earnings.pf! + salary.professionalTax + salary.incomeTax + earnings.epf! + earnings.esic!;
       const calculatedNet = gross - deductions;
       
       if (Math.abs(calculatedNet - net) < 1) break;
@@ -154,19 +150,30 @@ export default function SalaryStructure() {
     return Math.max(0, estimatedBasic);
   };
 
-  const autoCalculateSalary = (basicSalary: number): Partial<SalaryStructure> => {
+  const autoCalculateSalary = (basicSalary: number, includeFixed: boolean = false): Partial<SalaryStructure> => {
     const calculated: Partial<SalaryStructure> = {};
-    const fields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = [
-      'hra', 'da', 'lta', 'conveyance', 'medical', 'bonuses', 'otherBenefits',
-      'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'
+    // Only auto-calculate percentage fields, not fixed values
+    const percentageFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = [
+      'hra', 'da', 'lta', 'pf', 'epf', 'esic'
     ];
 
-    fields.forEach(field => {
+    percentageFields.forEach(field => {
       // Only recalculate if user hasn't manually edited it
       if (!manuallyEdited.has(field)) {
         calculated[field] = calculateValue(field, basicSalary);
       }
     });
+
+    // Fixed values are always user-filled, never auto-calculated
+    // But on initial load, keep existing values
+    if (includeFixed && salary) {
+      calculated.conveyance = salary.conveyance;
+      calculated.medical = salary.medical;
+      calculated.bonuses = salary.bonuses;
+      calculated.otherBenefits = salary.otherBenefits;
+      calculated.professionalTax = salary.professionalTax;
+      calculated.incomeTax = salary.incomeTax;
+    }
 
     return calculated;
   };
@@ -249,7 +256,7 @@ export default function SalaryStructure() {
     } else if (source === 'gross') {
       setEditSource('gross');
       const basicSalary = calculateBasicFromGross(numValue);
-      const calculated = autoCalculateSalary(basicSalary);
+      const calculated = autoCalculateSalary(basicSalary, true);
       setSalary({
         ...salary,
         basicSalary,
@@ -259,7 +266,7 @@ export default function SalaryStructure() {
     } else if (source === 'net') {
       setEditSource('net');
       const basicSalary = calculateBasicFromNet(numValue);
-      const calculated = autoCalculateSalary(basicSalary);
+      const calculated = autoCalculateSalary(basicSalary, true);
       setSalary({
         ...salary,
         basicSalary,
