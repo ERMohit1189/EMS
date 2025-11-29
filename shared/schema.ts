@@ -393,6 +393,9 @@ export const insertDailyAllowanceSchema = createInsertSchema(dailyAllowances).om
   approvalStatus: true,
   approvedBy: true,
   approvedAt: true,
+  paidStatus: true,
+}).extend({
+  teamId: z.string().nullable().optional(),
 });
 
 // Type Definitions
