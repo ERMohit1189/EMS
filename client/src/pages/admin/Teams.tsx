@@ -144,7 +144,18 @@ export default function Teams() {
       setLoadingAddMember(true);
       console.log('[Teams] Adding members to team:', selectedTeamId, selectedEmployeeIds);
       
-      const promises = selectedEmployeeIds.map((employeeId) =>
+      // Filter out employees already in this team
+      const existingMemberIds = teamMembers.map(m => m.employeeId);
+      const newEmployeeIds = selectedEmployeeIds.filter(id => !existingMemberIds.includes(id));
+      const duplicateCount = selectedEmployeeIds.length - newEmployeeIds.length;
+      
+      if (newEmployeeIds.length === 0) {
+        toast({ title: 'Error', description: 'All selected employees are already members of this team', variant: 'destructive' });
+        setLoadingAddMember(false);
+        return;
+      }
+      
+      const promises = newEmployeeIds.map((employeeId) =>
         fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -153,14 +164,19 @@ export default function Teams() {
       );
 
       const responses = await Promise.all(promises);
-      const allOk = responses.every(r => r.ok);
+      const successCount = responses.filter(r => r.ok).length;
+      const failCount = responses.filter(r => !r.ok).length;
 
-      if (allOk) {
-        toast({ title: 'Success', description: `Added ${selectedEmployeeIds.length} member(s) to team` });
-        setSelectedEmployeeIds([]);
-        fetchTeamMembers(selectedTeamId);
+      setSelectedEmployeeIds([]);
+      fetchTeamMembers(selectedTeamId);
+      
+      if (successCount > 0) {
+        let message = `Added ${successCount} member(s) to team`;
+        if (duplicateCount > 0) message += ` (${duplicateCount} already member${duplicateCount > 1 ? 's' : ''})`;
+        if (failCount > 0) message += ` (${failCount} failed)`;
+        toast({ title: 'Success', description: message });
       } else {
-        toast({ title: 'Error', description: 'Failed to add some members', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to add members', variant: 'destructive' });
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });

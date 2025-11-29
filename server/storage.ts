@@ -1076,6 +1076,18 @@ export class DrizzleStorage implements IStorage {
 
   async addTeamMember(teamId: string, employeeId: string): Promise<TeamMember> {
     console.log('[Storage] addTeamMember - teamId:', teamId, 'employeeId:', employeeId);
+    
+    // Check if member already exists in the team
+    const existing = await db.select().from(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.employeeId, employeeId)
+      ));
+    
+    if (existing.length > 0) {
+      throw new Error('Employee is already a member of this team');
+    }
+    
     const [result] = await db.insert(teamMembers).values({ teamId, employeeId }).returning();
     console.log('[Storage] addTeamMember result:', result);
     return result;
