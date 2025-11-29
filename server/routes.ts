@@ -1053,5 +1053,90 @@ export async function registerRoutes(
     }
   });
 
+  // Salary Report API - Get all employees with salary structures
+  app.get("/api/salary-report", async (req, res) => {
+    try {
+      const result = await db
+        .select({
+          id: salaryStructures.id,
+          employeeId: salaryStructures.employeeId,
+          employeeName: employees.name,
+          department: departments.name,
+          designation: designations.name,
+          basicSalary: salaryStructures.basicSalary,
+          hra: salaryStructures.hra,
+          da: salaryStructures.da,
+          lta: salaryStructures.lta,
+          conveyance: salaryStructures.conveyance,
+          medical: salaryStructures.medical,
+          bonuses: salaryStructures.bonuses,
+          otherBenefits: salaryStructures.otherBenefits,
+          pf: salaryStructures.pf,
+          professionalTax: salaryStructures.professionalTax,
+          incomeTax: salaryStructures.incomeTax,
+          epf: salaryStructures.epf,
+          esic: salaryStructures.esic,
+          wantDeduction: salaryStructures.wantDeduction,
+        })
+        .from(salaryStructures)
+        .leftJoin(employees, eq(salaryStructures.employeeId, employees.id))
+        .leftJoin(departments, eq(employees.departmentId, departments.id))
+        .leftJoin(designations, eq(employees.designationId, designations.id))
+        .orderBy(employees.name);
+
+      // Transform data to calculate gross, deductions, net
+      const data = result.map((row: any) => {
+        const gross =
+          Number(row.basicSalary) +
+          Number(row.hra) +
+          Number(row.da) +
+          Number(row.lta) +
+          Number(row.conveyance) +
+          Number(row.medical) +
+          Number(row.bonuses) +
+          Number(row.otherBenefits);
+        
+        const deductions =
+          Number(row.pf) +
+          Number(row.professionalTax) +
+          Number(row.incomeTax) +
+          Number(row.epf) +
+          Number(row.esic);
+        
+        const net = gross - deductions;
+
+        return {
+          id: row.id,
+          employeeId: row.employeeId,
+          employeeName: row.employeeName || "Unknown",
+          department: row.department || "Not Assigned",
+          designation: row.designation || "Not Specified",
+          basicSalary: Number(row.basicSalary),
+          hra: Number(row.hra),
+          da: Number(row.da),
+          lta: Number(row.lta),
+          conveyance: Number(row.conveyance),
+          medical: Number(row.medical),
+          bonuses: Number(row.bonuses),
+          otherBenefits: Number(row.otherBenefits),
+          gross: Math.round(gross * 100) / 100,
+          pf: Number(row.pf),
+          professionalTax: Number(row.professionalTax),
+          incomeTax: Number(row.incomeTax),
+          epf: Number(row.epf),
+          esic: Number(row.esic),
+          deductions: Math.round(deductions * 100) / 100,
+          net: Math.round(net * 100) / 100,
+          wantDeduction: row.wantDeduction,
+        };
+      });
+
+      res.json(data);
+    } catch (error: any) {
+      console.error("Salary report error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

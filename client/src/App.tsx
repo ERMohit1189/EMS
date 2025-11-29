@@ -249,6 +249,7 @@ function App() {
                   <Route path="/employee/list" component={EmployeeList} />
                   <Route path="/employee/credentials" component={EmployeeCredentials} />
                   <Route path="/employee/salary" component={SalaryStructure} />
+                  <Route path="/employee/salary-report" component={SalaryReport} />
                   <Route path="/employee/department-master" component={DepartmentMaster} />
                   <Route path="/employee/designation-master" component={DesignationMaster} />
                   <Route path="/employee/attendance" component={() => <Placeholder title="Attendance" />} />
