@@ -241,7 +241,7 @@ export default function Allowances() {
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                     autoFocus
                   />
-                  {caps.travelAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.travelAllowance}</span>}
+                  {caps.travelAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.travelAllowance}</span>}
                 </div>
               </div>
               <div>
@@ -258,7 +258,7 @@ export default function Allowances() {
                     data-testid="input-food-allowance"
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                   />
-                  {caps.foodAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.foodAllowance}</span>}
+                  {caps.foodAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.foodAllowance}</span>}
                 </div>
               </div>
               <div>
@@ -275,7 +275,7 @@ export default function Allowances() {
                     data-testid="input-accommodation-allowance"
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                   />
-                  {caps.accommodationAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.accommodationAllowance}</span>}
+                  {caps.accommodationAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.accommodationAllowance}</span>}
                 </div>
               </div>
               <div>
@@ -292,7 +292,7 @@ export default function Allowances() {
                     data-testid="input-mobile-allowance"
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                   />
-                  {caps.mobileAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.mobileAllowance}</span>}
+                  {caps.mobileAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.mobileAllowance}</span>}
                 </div>
               </div>
               <div>
@@ -309,7 +309,7 @@ export default function Allowances() {
                     data-testid="input-internet-allowance"
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                   />
-                  {caps.internetAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.internetAllowance}</span>}
+                  {caps.internetAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.internetAllowance}</span>}
                 </div>
               </div>
               <div>
@@ -326,7 +326,7 @@ export default function Allowances() {
                     data-testid="input-utilities-allowance"
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                   />
-                  {caps.utilitiesAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.utilitiesAllowance}</span>}
+                  {caps.utilitiesAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.utilitiesAllowance}</span>}
                 </div>
               </div>
               <div>
@@ -343,7 +343,7 @@ export default function Allowances() {
                     data-testid="input-parking-allowance"
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                   />
-                  {caps.parkingAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.parkingAllowance}</span>}
+                  {caps.parkingAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.parkingAllowance}</span>}
                 </div>
               </div>
               <div>
@@ -360,7 +360,7 @@ export default function Allowances() {
                     data-testid="input-misc-allowance"
                     className="h-8 text-xs p-1 pr-16 bg-slate-50"
                   />
-                  {caps.miscAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.miscAllowance}</span>}
+                  {caps.miscAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none bg-blue-100 px-1.5 py-0.5 rounded">Max: {caps.miscAllowance}</span>}
                 </div>
               </div>
             </div>
