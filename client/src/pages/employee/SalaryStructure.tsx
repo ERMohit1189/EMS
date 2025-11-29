@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
@@ -34,6 +34,7 @@ interface SalaryStructure {
 
 export default function SalaryStructure() {
   const { toast } = useToast();
+  const basicSalaryRef = useRef<HTMLInputElement>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [salary, setSalary] = useState<SalaryStructure | null>(null);
@@ -43,6 +44,13 @@ export default function SalaryStructure() {
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  // Focus basic salary input when salary is loaded
+  useEffect(() => {
+    if (salary) {
+      setTimeout(() => basicSalaryRef.current?.focus(), 0);
+    }
+  }, [salary]);
 
   const fetchEmployees = async () => {
     try {
@@ -239,7 +247,7 @@ export default function SalaryStructure() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 items-center gap-4">
               <Label>Basic Salary</Label>
-              <Input type="number" value={salary.basicSalary} onChange={(e) => handleSalaryChange('basicSalary', e.target.value)} />
+              <Input ref={basicSalaryRef} type="number" value={salary.basicSalary} onChange={(e) => handleSalaryChange('basicSalary', e.target.value)} />
             </div>
             <div className="grid grid-cols-2 items-center gap-4">
               <Label>HRA</Label>
