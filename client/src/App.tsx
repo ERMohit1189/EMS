@@ -50,6 +50,7 @@ const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
 const Teams = lazy(() => import("@/pages/admin/Teams"));
+const AllowanceApproval = lazy(() => import("@/pages/admin/AllowanceApproval"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = () => <div className="flex items-center justify-center h-screen"><Loader /></div>;
