@@ -746,14 +746,11 @@ export class DrizzleStorage implements IStorage {
     id: string,
     employee: Partial<InsertEmployee>
   ): Promise<Employee> {
-    console.log("[Storage] updateEmployee called with id:", id);
-    console.log("[Storage] updateEmployee data:", JSON.stringify(employee, null, 2));
     const [result] = await db
       .update(employees)
       .set(employee)
       .where(eq(employees.id, id))
       .returning();
-    console.log("[Storage] Updated result:", JSON.stringify(result, null, 2));
     return result;
   }
 

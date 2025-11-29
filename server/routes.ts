@@ -617,14 +617,10 @@ export async function registerRoutes(
 
   app.put("/api/employees/:id", async (req, res) => {
     try {
-      console.log("[PUT /api/employees/:id] Received body:", JSON.stringify(req.body, null, 2));
       const data = insertEmployeeSchema.partial().parse(req.body);
-      console.log("[PUT /api/employees/:id] Parsed data:", JSON.stringify(data, null, 2));
       const employee = await storage.updateEmployee(req.params.id, data);
-      console.log("[PUT /api/employees/:id] Updated employee:", JSON.stringify(employee, null, 2));
       res.json(employee);
     } catch (error: any) {
-      console.error("[PUT /api/employees/:id] Error:", error);
       res.status(400).json({ error: error.message });
     }
   });
