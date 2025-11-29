@@ -21,21 +21,23 @@ export function Breadcrumb() {
   ];
 
   return (
-    <nav className="flex items-center gap-2 px-6 py-3 bg-muted/30 border-b text-sm">
-      <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+    <nav className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 text-sm font-medium" data-testid="nav-breadcrumb">
+      <a href="/" className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1">
         <Home className="h-4 w-4" />
+        Home
       </a>
       {breadcrumbs.slice(1).map((crumb, index) => (
         <div key={crumb.href} className="flex items-center gap-2">
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <ChevronRight className="h-4 w-4 text-blue-400" />
           <a
             href={crumb.href}
             className={cn(
-              "transition-colors",
+              "transition-colors py-1 px-2 rounded",
               index === breadcrumbs.length - 2
-                ? "text-foreground font-medium"
-                : "text-muted-foreground hover:text-foreground"
+                ? "text-blue-900 font-semibold bg-white/50"
+                : "text-blue-600 hover:text-blue-700 hover:bg-white/30"
             )}
+            data-testid={`breadcrumb-${crumb.label.toLowerCase()}`}
           >
             {crumb.label}
           </a>
@@ -48,48 +50,46 @@ export function Breadcrumb() {
 export function QuickAccessMenu() {
   const [location] = useLocation();
   
-  // Determine role based on location
-  const isEmployee = location.includes('/employee') || localStorage.getItem('employeeEmail');
-  const isVendor = location.includes('/vendor');
+  // Determine role based on location and localStorage
+  const isEmployee = localStorage.getItem('employeeEmail') !== null;
+  const isVendor = localStorage.getItem('vendorId') !== null;
   
   const employeeQuickLinks = [
-    { label: 'Attendance', href: '/employee/attendance' },
-    { label: 'Salary', href: '/employee/salary-report' },
-    { label: 'Dashboard', href: '/employee/dashboard' },
+    { label: '📋 Attendance', href: '/employee/attendance' },
+    { label: '💰 Salary', href: '/employee/salary-report' },
+    { label: '🏠 Dashboard', href: '/employee/dashboard' },
   ];
   
   const vendorQuickLinks = [
-    { label: 'Sites', href: '/vendor/list' },
-    { label: 'Site Status', href: '/vendor/sites/status' },
-    { label: 'PO Generation', href: '/vendor/po' },
+    { label: '🏢 Sites', href: '/vendor/list' },
+    { label: '📊 Status', href: '/vendor/sites/status' },
+    { label: '📄 PO', href: '/vendor/po' },
   ];
   
   const adminQuickLinks = [
-    { label: 'Dashboard', href: '/' },
-    { label: 'Employees', href: '/employee/list' },
-    { label: 'Vendors', href: '/vendor/list' },
+    { label: '🏠 Dashboard', href: '/' },
+    { label: '👥 Employees', href: '/employee/list' },
+    { label: '🏪 Vendors', href: '/vendor/list' },
   ];
   
   const quickLinks = isEmployee ? employeeQuickLinks : isVendor ? vendorQuickLinks : adminQuickLinks;
   
   return (
-    <div className="hidden lg:flex items-center gap-1 px-6">
-      {quickLinks.map((link, index) => (
-        <div key={link.href} className="flex items-center gap-1">
-          <a
-            href={link.href}
-            className={cn(
-              "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-              location === link.href
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-            data-testid={`link-quickaccess-${link.label.toLowerCase()}`}
-          >
-            {link.label}
-          </a>
-          {index < quickLinks.length - 1 && <span className="text-muted-foreground">•</span>}
-        </div>
+    <div className="hidden md:flex items-center gap-0.5 px-3 py-2 bg-white/50 rounded-lg border border-blue-100" data-testid="nav-quick-access">
+      {quickLinks.map((link) => (
+        <a
+          key={link.href}
+          href={link.href}
+          className={cn(
+            "px-3 py-2 rounded-md text-sm font-medium transition-all",
+            location === link.href
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-gray-700 hover:bg-blue-100 hover:text-blue-900"
+          )}
+          data-testid={`link-quickaccess-${link.label.toLowerCase()}`}
+        >
+          {link.label}
+        </a>
       ))}
     </div>
   );

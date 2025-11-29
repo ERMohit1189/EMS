@@ -28,7 +28,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6 shadow-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-gradient-to-r from-white to-blue-50 px-6 shadow-md">
       <div className="flex flex-1 items-center gap-4">
         <div className="relative w-full max-w-md hidden md:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -43,7 +43,7 @@ export function Header() {
 
       <QuickAccessMenu />
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 border-l pl-4">
         <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
           <Bell className="h-5 w-5 text-muted-foreground" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive"></span>
