@@ -30,7 +30,7 @@ import {
   type Zone,
   type ExportHeader,
 } from "@shared/schema";
-import { eq, count, and, gte, lte, inArray, getTableColumns } from "drizzle-orm";
+import { eq, count, and, gte, lte, inArray, getTableColumns, ne } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
 
 export interface IStorage {
