@@ -254,6 +254,21 @@ export default function Teams() {
     }
   };
 
+  const getReportingPersonName = (personId: string | undefined): string | null => {
+    if (!personId) return null;
+    const person = teamMembers.find((m) => m.id === personId);
+    return person ? person.name : null;
+  };
+
+  const getReportingBadgeColor = (index: number): string => {
+    const colors = [
+      'bg-blue-100 text-blue-700 border-blue-300',
+      'bg-green-100 text-green-700 border-green-300',
+      'bg-amber-100 text-amber-700 border-amber-300',
+    ];
+    return colors[index] || colors[0];
+  };
+
   const handleDeleteTeam = async (teamId: string) => {
     if (!window.confirm('Are you sure you want to delete this team?')) return;
 
@@ -459,33 +474,62 @@ export default function Teams() {
                 {teamMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="p-2 border rounded bg-slate-50 text-xs hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="p-2 border rounded bg-slate-50 text-xs hover:bg-slate-100 transition-colors"
                     data-testid={`member-item-${member.id}`}
-                    onClick={() => openReportingModal(member)}
                   >
-                    <div className="flex justify-between items-start gap-1">
+                    <div className="flex justify-between items-start gap-1 mb-1">
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-xs truncate">{member.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.designation}</p>
-                        {(member.reportingPerson1 || member.reportingPerson2 || member.reportingPerson3) && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            RM: {[member.reportingPerson1, member.reportingPerson2, member.reportingPerson3].filter(Boolean).length}
-                          </p>
-                        )}
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveMember(member.id);
-                        }}
+                        onClick={() => handleRemoveMember(member.id)}
                         className="h-5 px-2 py-0 text-xs flex-shrink-0 ml-1"
                         data-testid={`button-remove-member-${member.id}`}
                       >
                         ✕
                       </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {member.reportingPerson1 && (
+                        <button
+                          onClick={() => openReportingModal(member)}
+                          className={`px-2 py-0.5 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${getReportingBadgeColor(0)}`}
+                          data-testid={`badge-reporting-person-1-${member.id}`}
+                        >
+                          RP1: {getReportingPersonName(member.reportingPerson1)}
+                        </button>
+                      )}
+                      {member.reportingPerson2 && (
+                        <button
+                          onClick={() => openReportingModal(member)}
+                          className={`px-2 py-0.5 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${getReportingBadgeColor(1)}`}
+                          data-testid={`badge-reporting-person-2-${member.id}`}
+                        >
+                          RP2: {getReportingPersonName(member.reportingPerson2)}
+                        </button>
+                      )}
+                      {member.reportingPerson3 && (
+                        <button
+                          onClick={() => openReportingModal(member)}
+                          className={`px-2 py-0.5 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${getReportingBadgeColor(2)}`}
+                          data-testid={`badge-reporting-person-3-${member.id}`}
+                        >
+                          RP3: {getReportingPersonName(member.reportingPerson3)}
+                        </button>
+                      )}
+                      {!member.reportingPerson1 && !member.reportingPerson2 && !member.reportingPerson3 && (
+                        <button
+                          onClick={() => openReportingModal(member)}
+                          className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
+                          data-testid={`button-add-reporting-${member.id}`}
+                        >
+                          + Add Reporting
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
