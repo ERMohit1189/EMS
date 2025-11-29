@@ -45,23 +45,23 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="flex flex-1 items-center gap-2 md:gap-4">
-        <div className="relative w-full max-w-md hidden md:block">
+      <div className="flex flex-1 items-center gap-2 md:gap-3 lg:gap-4">
+        <div className="relative hidden lg:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search..."
-            className="w-full bg-muted pl-9 md:w-[300px] lg:w-[400px] text-sm"
+            className="w-[300px] lg:w-[400px] bg-muted pl-9 text-sm"
             data-testid="input-search"
           />
         </div>
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <QuickAccessMenu />
       </div>
       
-      <div className="flex items-center gap-1 md:gap-2 md:border-l md:pl-4">
+      <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 md:border-l md:pl-3 lg:md:pl-4">
         <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10" data-testid="button-notifications">
           <Bell className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive"></span>
