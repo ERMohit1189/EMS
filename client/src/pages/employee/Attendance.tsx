@@ -155,6 +155,13 @@ export default function Attendance() {
                 {day}
               </div>
             ))}
+            
+            {/* Empty cells for days before month starts */}
+            {Array.from({ length: new Date(year, month - 1, 1).getDay() }).map((_, i) => (
+              <div key={`empty-${i}`} className="p-3"></div>
+            ))}
+            
+            {/* Calendar days */}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const status = attendance[day];
