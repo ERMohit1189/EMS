@@ -599,20 +599,20 @@ export default function Allowances() {
                 const isApproved = entry.approvalStatus === 'approved';
                 const statusColor = isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
                 
-                // Paid status colors
-                const paidStatusColor = entry.paidStatus === 'full' ? 'bg-blue-100 text-blue-800' : entry.paidStatus === 'partial' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800';
-                const paidStatusText = entry.paidStatus === 'full' ? 'Full Paid' : entry.paidStatus === 'partial' ? 'Partial Paid' : 'Unpaid';
+                // Paid status colors - enhanced styling
+                const paidStatusColor = entry.paidStatus === 'full' ? 'bg-emerald-600 text-white' : entry.paidStatus === 'partial' ? 'bg-amber-500 text-white' : 'bg-slate-400 text-white';
+                const paidStatusText = entry.paidStatus === 'full' ? '✓ Full Paid' : entry.paidStatus === 'partial' ? '◐ Partial Paid' : '◯ Unpaid';
 
                 return (
                   <div key={index} className="border rounded p-2 bg-slate-50 text-xs" data-testid={`allowance-entry-${index}`}>
                     <div className="flex justify-between items-start mb-1">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                           <p className="font-semibold text-slate-900">{entry.date}</p>
                           <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}`} data-testid={`status-${index}`}>
                             {entry.approvalStatus === 'approved' ? 'Approved' : 'Pending'}
                           </span>
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${paidStatusColor}`} data-testid={`paid-status-${index}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${paidStatusColor}`} data-testid={`paid-status-${index}`}>
                             {paidStatusText}
                           </span>
                         </div>
