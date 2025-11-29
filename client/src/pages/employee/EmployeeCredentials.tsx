@@ -59,7 +59,12 @@ export default function EmployeeCredentials() {
 
     const saved = localStorage.getItem('employeeCredentials');
     if (saved) {
-      setCredentials(JSON.parse(saved));
+      const allCreds = JSON.parse(saved);
+      // Deduplicate credentials - keep only the latest for each employeeId
+      const uniqueCreds = Array.from(
+        new Map(allCreds.map((c: EmployeeCredential) => [c.employeeId, c])).values()
+      );
+      setCredentials(uniqueCreds);
     }
     
     fetchEmployees();
@@ -75,16 +80,29 @@ export default function EmployeeCredentials() {
 
   // Save credentials to localStorage and optionally to cookies
   const saveCredentials = (creds: EmployeeCredential[]) => {
-    setCredentials(creds);
-    localStorage.setItem('employeeCredentials', JSON.stringify(creds));
+    // Deduplicate credentials before saving - keep only latest for each employeeId
+    const uniqueCreds = Array.from(
+      new Map(creds.map((c: EmployeeCredential) => [c.employeeId, c])).values()
+    );
+    setCredentials(uniqueCreds);
+    localStorage.setItem('employeeCredentials', JSON.stringify(uniqueCreds));
     
     if (useCookies) {
-      setCookie('employeeCredentials', JSON.stringify(creds), 7);
+      setCookie('employeeCredentials', JSON.stringify(uniqueCreds), 7);
       toast({
         title: 'Saved',
         description: 'Credentials saved to both storage and cookies',
       });
     }
+  };
+
+  const clearAllCredentials = () => {
+    localStorage.removeItem('employeeCredentials');
+    setCredentials([]);
+    toast({
+      title: 'Cleared',
+      description: 'All credentials have been cleared',
+    });
   };
 
   const handleCookieToggle = (checked: boolean) => {
