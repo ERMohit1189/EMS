@@ -1381,21 +1381,27 @@ export async function registerRoutes(
   app.get("/api/allowances/pending", async (req, res) => {
     try {
       const employeeId = req.query.employeeId as string;
+      console.log(`[ROUTE] GET /api/allowances/pending - ROUTE HIT!`);
       console.log(`[Allowances] GET pending - employeeId: ${employeeId}`);
       
       let allowances;
       if (employeeId) {
+        console.log(`[Allowances] Getting team allowances for employee: ${employeeId}`);
         // Get only team members' allowances for this employee's teams
         allowances = await storage.getPendingAllowancesForTeams(employeeId);
+        console.log(`[Allowances] Team allowances result:`, allowances);
       } else {
+        console.log(`[Allowances] Getting all pending allowances (admin view)`);
         // Get all pending allowances (admin view)
         allowances = await storage.getPendingAllowances();
+        console.log(`[Allowances] All pending allowances result:`, allowances);
       }
       
       console.log(`[Allowances] Found ${allowances.length} pending allowances`);
-      res.json({ data: allowances });
+      res.json({ data: allowances || [] });
     } catch (error: any) {
-      console.error(`[Allowances Fetch Error]`, error.message);
+      console.error(`[ROUTE ERROR] /api/allowances/pending - ERROR:`, error);
+      console.error(`[ROUTE ERROR] Stack:`, error.stack);
       res.status(400).json({ error: error.message });
     }
   });
