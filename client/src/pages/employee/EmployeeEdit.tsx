@@ -390,7 +390,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Blood Group</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
@@ -412,7 +412,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel><RequiredLabel>Marital Status</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || 'Single'}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
@@ -570,7 +570,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>State</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
+                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select State" />
@@ -608,7 +608,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>City</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} defaultValue={field.value}>
+                    <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select City" />
@@ -771,7 +771,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel><RequiredLabel>Employee Status</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || 'Active'}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Status" />
