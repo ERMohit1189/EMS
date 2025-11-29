@@ -652,6 +652,11 @@ export default function Allowances() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                           <p className="font-semibold text-slate-900">{entry.date}</p>
+                          {entry.teamName && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800" data-testid={`team-badge-${index}`}>
+                              Team: {entry.teamName}
+                            </span>
+                          )}
                           <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}`} data-testid={`status-${index}`}>
                             {entry.approvalStatus === 'approved' ? 'Approved' : 'Pending'}
                           </span>

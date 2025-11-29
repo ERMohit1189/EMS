@@ -1074,6 +1074,19 @@ export class DrizzleStorage implements IStorage {
     return await db.select().from(teams).orderBy(teams.name);
   }
 
+  async getTeamsForEmployee(employeeId: string): Promise<Team[]> {
+    const result = await db.select({
+      id: teams.id,
+      name: teams.name,
+      description: teams.description,
+      createdAt: teams.createdAt,
+      updatedAt: teams.updatedAt,
+    }).from(teams)
+      .innerJoin(teamMembers, eq(teamMembers.teamId, teams.id))
+      .where(eq(teamMembers.employeeId, employeeId));
+    return result;
+  }
+
   async updateTeam(id: string, team: Partial<InsertTeam>): Promise<Team> {
     const [result] = await db.update(teams).set(team).where(eq(teams.id, id)).returning();
     return result;

@@ -1423,6 +1423,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/teams/employee/:employeeId", async (req, res) => {
+    try {
+      const teams = await storage.getTeamsForEmployee(req.params.employeeId);
+      res.json(teams);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/teams/:id", async (req, res) => {
     try {
       const team = await storage.getTeam(req.params.id);
