@@ -174,8 +174,8 @@ export default function EmployeeEdit() {
   });
 
   useEffect(() => {
-    if (employee) {
-      form.reset({
+    if (employee && departments.length > 0 && designations.length > 0) {
+      const resetData = {
         name: employee.name || '',
         email: employee.email || '',
         dob: employee.dob || '',
@@ -199,10 +199,12 @@ export default function EmployeeEdit() {
         ppeKit: employee.ppeKit || false,
         kitNo: employee.kitNo || '',
         status: employee.status || 'Active',
-      });
+      };
+      form.reset(resetData);
+      console.log('Form reset with values:', resetData);
       calculateAge(employee?.dob || '');
     }
-  }, [employee, form]);
+  }, [employee, departments, designations, form]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
@@ -652,7 +654,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel><RequiredLabel>Role</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || 'user'}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Role" />
