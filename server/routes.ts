@@ -587,10 +587,6 @@ export async function registerRoutes(
 
   app.get("/api/employees", async (req, res) => {
     try {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      
       const page = parseInt(req.query.page as string) || 1;
       const pageSize = parseInt(req.query.pageSize as string) || 10;
       const offset = (page - 1) * pageSize;
@@ -612,10 +608,6 @@ export async function registerRoutes(
 
   app.get("/api/employees/:id", async (req, res) => {
     try {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      
       const employee = await storage.getEmployee(req.params.id);
       if (!employee) {
         return res.status(404).json({ error: "Employee not found" });
