@@ -153,156 +153,156 @@ export default function Allowances() {
   ).toFixed(2);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold">Daily Allowances</h2>
-        <p className="text-muted-foreground mt-1">Submit your daily allowance claims</p>
+    <div className="space-y-3">
+      <div className="pb-1">
+        <h2 className="text-2xl font-bold">Daily Allowances</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">Submit your daily allowance claims</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Submit Allowance Claim</CardTitle>
-          <CardDescription>Fill in your daily allowance details</CardDescription>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2 pt-3 px-3">
+          <CardTitle className="text-lg">Submit Claim</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="p-3">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="text-sm font-medium">Date</label>
+              <label className="text-xs font-medium">Date</label>
               <Input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 data-testid="input-allowance-date"
-                className="mt-1"
+                className="mt-0.5 h-8 text-xs"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div>
-                <label className="text-sm font-medium">Travel Allowance (Rs)</label>
+                <label className="text-xs font-medium">Travel</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.travelAllowance}
                   onChange={(e) => setFormData({ ...formData, travelAllowance: e.target.value })}
                   data-testid="input-travel-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Food Allowance (Rs)</label>
+                <label className="text-xs font-medium">Food</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.foodAllowance}
                   onChange={(e) => setFormData({ ...formData, foodAllowance: e.target.value })}
                   data-testid="input-food-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Accommodation (Rs)</label>
+                <label className="text-xs font-medium">Accommodation</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.accommodationAllowance}
                   onChange={(e) => setFormData({ ...formData, accommodationAllowance: e.target.value })}
                   data-testid="input-accommodation-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Mobile/Communication (Rs)</label>
+                <label className="text-xs font-medium">Mobile</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.mobileAllowance}
                   onChange={(e) => setFormData({ ...formData, mobileAllowance: e.target.value })}
                   data-testid="input-mobile-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Internet/Data (Rs)</label>
+                <label className="text-xs font-medium">Internet</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.internetAllowance}
                   onChange={(e) => setFormData({ ...formData, internetAllowance: e.target.value })}
                   data-testid="input-internet-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Utilities (Rs)</label>
+                <label className="text-xs font-medium">Utilities</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.utilitiesAllowance}
                   onChange={(e) => setFormData({ ...formData, utilitiesAllowance: e.target.value })}
                   data-testid="input-utilities-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Parking/Conveyance (Rs)</label>
+                <label className="text-xs font-medium">Parking</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.parkingAllowance}
                   onChange={(e) => setFormData({ ...formData, parkingAllowance: e.target.value })}
                   data-testid="input-parking-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Miscellaneous (Rs)</label>
+                <label className="text-xs font-medium">Misc</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="0"
                   value={formData.miscAllowance}
                   onChange={(e) => setFormData({ ...formData, miscAllowance: e.target.value })}
                   data-testid="input-misc-allowance"
-                  className="mt-1"
+                  className="mt-0.5 h-8 text-xs p-1"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Notes</label>
+              <label className="text-xs font-medium">Notes</label>
               <Input
-                placeholder="Add any notes (optional)"
+                placeholder="Add notes (optional)"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 data-testid="input-allowance-notes"
-                className="mt-1"
+                className="mt-0.5 h-8 text-xs p-1"
               />
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-900">Total Amount: <span className="font-bold text-lg">Rs {totalAmount}</span></p>
+            <div className="bg-blue-50 border border-blue-200 rounded px-2 py-1.5">
+              <p className="text-xs text-blue-900">Total: <span className="font-bold">Rs {totalAmount}</span></p>
             </div>
 
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end pt-1">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => setFormData({
                   date: new Date().toISOString().split('T')[0],
                   travelAllowance: '',
@@ -316,32 +316,33 @@ export default function Allowances() {
                   notes: '',
                 })}
                 data-testid="button-reset-allowance"
+                className="h-8 text-xs"
               >
                 Reset
               </Button>
               <Button
                 type="submit"
                 disabled={loading}
-                className="bg-green-600 hover:bg-green-700"
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 h-8 text-xs"
                 data-testid="button-submit-allowance"
               >
-                {loading ? 'Submitting...' : 'Submit Allowance'}
+                {loading ? 'Submitting...' : 'Submit'}
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Submitted Allowances</CardTitle>
-          <CardDescription>Your allowance submission history</CardDescription>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2 pt-3 px-3">
+          <CardTitle className="text-lg">History</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3">
           {submittedEntries.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No allowances submitted yet</p>
+            <p className="text-muted-foreground text-center py-2 text-xs">No allowances submitted yet</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {submittedEntries.map((entry, index) => {
                 let allowanceData = { travelAllowance: 0, foodAllowance: 0, accommodationAllowance: 0, mobileAllowance: 0, internetAllowance: 0, utilitiesAllowance: 0, parkingAllowance: 0, miscAllowance: 0, notes: '' };
                 try {
@@ -352,47 +353,23 @@ export default function Allowances() {
                 const total = (allowanceData.travelAllowance || 0) + (allowanceData.foodAllowance || 0) + (allowanceData.accommodationAllowance || 0) + (allowanceData.mobileAllowance || 0) + (allowanceData.internetAllowance || 0) + (allowanceData.utilitiesAllowance || 0) + (allowanceData.parkingAllowance || 0) + (allowanceData.miscAllowance || 0);
 
                 return (
-                  <div key={index} className="border rounded-lg p-4 bg-gradient-to-r from-slate-50 to-slate-100" data-testid={`allowance-entry-${index}`}>
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={index} className="border rounded p-2 bg-slate-50 text-xs" data-testid={`allowance-entry-${index}`}>
+                    <div className="flex justify-between items-start mb-1">
                       <div>
                         <p className="font-semibold text-slate-900">{entry.date}</p>
-                        {allowanceData.notes && <p className="text-sm text-slate-600 mt-1">{allowanceData.notes}</p>}
+                        {allowanceData.notes && <p className="text-slate-600">{allowanceData.notes}</p>}
                       </div>
-                      <p className="font-bold text-lg text-green-600" data-testid={`allowance-total-${index}`}>Rs {total.toFixed(2)}</p>
+                      <p className="font-bold text-green-600" data-testid={`allowance-total-${index}`}>Rs {total.toFixed(2)}</p>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                      <div>
-                        <p className="text-slate-600">Travel</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.travelAllowance || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600">Food</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.foodAllowance || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600">Accommodation</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.accommodationAllowance || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600">Mobile</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.mobileAllowance || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600">Internet</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.internetAllowance || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600">Utilities</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.utilitiesAllowance || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600">Parking</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.parkingAllowance || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600">Misc</p>
-                        <p className="font-semibold text-slate-900">Rs {(allowanceData.miscAllowance || 0).toFixed(2)}</p>
-                      </div>
+                    <div className="grid grid-cols-4 gap-1 text-xs">
+                      <div><p className="text-slate-600">Travel: Rs {(allowanceData.travelAllowance || 0).toFixed(2)}</p></div>
+                      <div><p className="text-slate-600">Food: Rs {(allowanceData.foodAllowance || 0).toFixed(2)}</p></div>
+                      <div><p className="text-slate-600">Accom: Rs {(allowanceData.accommodationAllowance || 0).toFixed(2)}</p></div>
+                      <div><p className="text-slate-600">Mobile: Rs {(allowanceData.mobileAllowance || 0).toFixed(2)}</p></div>
+                      <div><p className="text-slate-600">Internet: Rs {(allowanceData.internetAllowance || 0).toFixed(2)}</p></div>
+                      <div><p className="text-slate-600">Utilities: Rs {(allowanceData.utilitiesAllowance || 0).toFixed(2)}</p></div>
+                      <div><p className="text-slate-600">Parking: Rs {(allowanceData.parkingAllowance || 0).toFixed(2)}</p></div>
+                      <div><p className="text-slate-600">Misc: Rs {(allowanceData.miscAllowance || 0).toFixed(2)}</p></div>
                     </div>
                   </div>
                 );
