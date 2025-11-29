@@ -607,6 +607,7 @@ export default function Teams() {
                         <p className="font-semibold text-xs truncate">{member.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.designation}</p>
+                        <p className="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded mt-0.5 truncate">{member.employeeId}</p>
                       </div>
                       <Button
                         variant="outline"
