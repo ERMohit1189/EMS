@@ -349,27 +349,27 @@ export default function Teams() {
 
       {/* Teams List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Teams</CardTitle>
+        <CardHeader className="py-2 px-4">
+          <CardTitle className="text-sm">Teams ({teams.length})</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {teams.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">No teams created yet</p>
-            ) : (
-              teams.map((team) => (
+        <CardContent className="p-2">
+          {teams.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-2">No teams created yet</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+              {teams.map((team) => (
                 <div
                   key={team.id}
-                  className={`p-3 border rounded cursor-pointer ${
-                    selectedTeamId === team.id ? 'bg-blue-50 border-blue-300' : 'hover:bg-slate-50'
+                  className={`p-2 border rounded cursor-pointer text-xs transition-colors ${
+                    selectedTeamId === team.id ? 'bg-blue-50 border-blue-400' : 'hover:bg-slate-50'
                   }`}
                   onClick={() => setSelectedTeamId(team.id)}
                   data-testid={`team-card-${team.id}`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">{team.name}</p>
-                      {team.description && <p className="text-xs text-muted-foreground">{team.description}</p>}
+                  <div className="flex justify-between items-start gap-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-xs truncate">{team.name}</p>
+                      {team.description && <p className="text-xs text-muted-foreground truncate">{team.description}</p>}
                     </div>
                     <Button
                       variant="outline"
@@ -378,53 +378,56 @@ export default function Teams() {
                         e.stopPropagation();
                         handleDeleteTeam(team.id);
                       }}
-                      className="h-6 text-xs ml-2"
+                      className="h-5 px-2 py-0 text-xs flex-shrink-0 ml-1"
                       data-testid={`button-delete-team-${team.id}`}
                     >
-                      Delete
+                      ✕
                     </Button>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Team Members */}
       {selectedTeamId && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Team Members</CardTitle>
+          <CardHeader className="py-2 px-4">
+            <CardTitle className="text-sm">Team Members ({teamMembers.length})</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {teamMembers.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No members in this team</p>
-              ) : (
-                teamMembers.map((member) => (
+          <CardContent className="p-2">
+            {teamMembers.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-2">No members in this team</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                {teamMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="p-2 border rounded flex justify-between items-center bg-slate-50"
+                    className="p-2 border rounded bg-slate-50 text-xs hover:bg-slate-100 transition-colors"
                     data-testid={`member-item-${member.id}`}
                   >
-                    <div className="flex-1">
-                      <p className="font-semibold text-xs">{member.name}</p>
-                      <p className="text-xs text-muted-foreground">{member.email}</p>
+                    <div className="flex justify-between items-start gap-1">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-xs truncate">{member.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">{member.designation}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="h-5 px-2 py-0 text-xs flex-shrink-0 ml-1"
+                        data-testid={`button-remove-member-${member.id}`}
+                      >
+                        ✕
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveMember(member.id)}
-                      className="h-6 text-xs"
-                      data-testid={`button-remove-member-${member.id}`}
-                    >
-                      Remove
-                    </Button>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
