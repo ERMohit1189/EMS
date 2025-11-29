@@ -115,16 +115,27 @@ export default function EmployeeEdit() {
         () => fetch(`${getApiBaseUrl()}/api/departments`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
         () => fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
       ]).then(([emp, depts, desigs]) => {
-        if (emp) setEmployee(emp);
-        if (depts) setDepartments(depts);
-        if (desigs) setDesignations(desigs);
+        if (emp) {
+          setEmployee(emp);
+          console.log('Employee loaded:', { empDeptId: emp.departmentId, empDesigId: emp.designationId });
+        }
+        if (depts) {
+          const deptArray = Array.isArray(depts) ? depts : depts.data || [];
+          setDepartments(deptArray);
+          console.log('Departments:', deptArray);
+        }
+        if (desigs) {
+          const desigArray = Array.isArray(desigs) ? desigs : desigs.data || [];
+          setDesignations(desigArray);
+          console.log('Designations:', desigArray);
+        }
       }).catch(error => {
         console.error('Failed to load data', error);
         toast({ title: 'Error', description: 'Failed to load employee data', variant: 'destructive' });
       });
     };
     if (employeeId) loadData();
-  }, [employeeId, toast, withLoaderMultiple]);
+  }, [employeeId, toast]);
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
