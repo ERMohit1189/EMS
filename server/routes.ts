@@ -621,7 +621,9 @@ export async function registerRoutes(
   app.put("/api/employees/:id", async (req, res) => {
     try {
       const data = insertEmployeeSchema.partial().parse(req.body);
+      console.log(`[API] PUT /api/employees/${req.params.id} - DOB value:`, data.dob);
       const employee = await storage.updateEmployee(req.params.id, data);
+      console.log(`[API] Employee updated - New DOB in DB:`, employee.dob);
       res.json(employee);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
