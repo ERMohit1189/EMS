@@ -19,6 +19,9 @@ interface TeamMember {
   name: string;
   email: string;
   designation: string;
+  reportingPerson1?: string;
+  reportingPerson2?: string;
+  reportingPerson3?: string;
 }
 
 interface Employee {
@@ -40,6 +43,9 @@ export default function Teams() {
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isReportingModalOpen, setIsReportingModalOpen] = useState(false);
+  const [selectedMemberForReporting, setSelectedMemberForReporting] = useState<TeamMember | null>(null);
+  const [reportingPersons, setReportingPersons] = useState({ person1: '', person2: '', person3: '' });
 
   useEffect(() => {
     fetchTeams();
@@ -206,6 +212,42 @@ export default function Teams() {
         fetchTeamMembers(selectedTeamId);
       } else {
         toast({ title: 'Error', description: 'Failed to remove member', variant: 'destructive' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const openReportingModal = (member: TeamMember) => {
+    setSelectedMemberForReporting(member);
+    setReportingPersons({
+      person1: member.reportingPerson1 || '',
+      person2: member.reportingPerson2 || '',
+      person3: member.reportingPerson3 || '',
+    });
+    setIsReportingModalOpen(true);
+  };
+
+  const handleSaveReporting = async () => {
+    if (!selectedMemberForReporting) return;
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${selectedMemberForReporting.id}/reporting`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportingPerson1: reportingPersons.person1 || undefined,
+          reportingPerson2: reportingPersons.person2 || undefined,
+          reportingPerson3: reportingPersons.person3 || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        toast({ title: 'Success', description: 'Reporting persons saved' });
+        setIsReportingModalOpen(false);
+        if (selectedTeamId) fetchTeamMembers(selectedTeamId);
+      } else {
+        toast({ title: 'Error', description: 'Failed to save reporting persons', variant: 'destructive' });
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -417,19 +459,28 @@ export default function Teams() {
                 {teamMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="p-2 border rounded bg-slate-50 text-xs hover:bg-slate-100 transition-colors"
+                    className="p-2 border rounded bg-slate-50 text-xs hover:bg-slate-100 transition-colors cursor-pointer"
                     data-testid={`member-item-${member.id}`}
+                    onClick={() => openReportingModal(member)}
                   >
                     <div className="flex justify-between items-start gap-1">
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-xs truncate">{member.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.designation}</p>
+                        {(member.reportingPerson1 || member.reportingPerson2 || member.reportingPerson3) && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            RM: {[member.reportingPerson1, member.reportingPerson2, member.reportingPerson3].filter(Boolean).length}
+                          </p>
+                        )}
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleRemoveMember(member.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveMember(member.id);
+                        }}
                         className="h-5 px-2 py-0 text-xs flex-shrink-0 ml-1"
                         data-testid={`button-remove-member-${member.id}`}
                       >
@@ -442,6 +493,93 @@ export default function Teams() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Reporting Modal */}
+      {isReportingModalOpen && selectedMemberForReporting && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm">Set Reporting Persons</CardTitle>
+              <p className="text-xs text-muted-foreground">{selectedMemberForReporting.name}</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="text-xs font-medium block mb-1">Reporting Person 1</label>
+                <select
+                  value={reportingPersons.person1}
+                  onChange={(e) => setReportingPersons({ ...reportingPersons, person1: e.target.value })}
+                  className="w-full h-8 text-xs px-2 border rounded"
+                  data-testid="select-reporting-person-1"
+                >
+                  <option value="">Select...</option>
+                  {teamMembers
+                    .filter((m) => m.id !== selectedMemberForReporting.id)
+                    .map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name} ({member.designation})
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1">Reporting Person 2</label>
+                <select
+                  value={reportingPersons.person2}
+                  onChange={(e) => setReportingPersons({ ...reportingPersons, person2: e.target.value })}
+                  className="w-full h-8 text-xs px-2 border rounded"
+                  data-testid="select-reporting-person-2"
+                >
+                  <option value="">Select...</option>
+                  {teamMembers
+                    .filter((m) => m.id !== selectedMemberForReporting.id)
+                    .map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name} ({member.designation})
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1">Reporting Person 3</label>
+                <select
+                  value={reportingPersons.person3}
+                  onChange={(e) => setReportingPersons({ ...reportingPersons, person3: e.target.value })}
+                  className="w-full h-8 text-xs px-2 border rounded"
+                  data-testid="select-reporting-person-3"
+                >
+                  <option value="">Select...</option>
+                  {teamMembers
+                    .filter((m) => m.id !== selectedMemberForReporting.id)
+                    .map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name} ({member.designation})
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  onClick={handleSaveReporting}
+                  className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                  data-testid="button-save-reporting"
+                >
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setIsReportingModalOpen(false)}
+                  variant="outline"
+                  className="flex-1 h-8 text-xs"
+                  data-testid="button-cancel-reporting"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
