@@ -15,6 +15,8 @@ import {
   sites,
   designations,
   departments,
+  employees,
+  salaryStructures,
 } from "@shared/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
 

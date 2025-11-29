@@ -42,7 +42,7 @@ interface SalaryFormula {
   description: string;
 }
 
-const DEFAULT_FORMULAS: Record<keyof Omit<SalaryStructure, 'id' | 'employeeId'>, SalaryFormula> = {
+const DEFAULT_FORMULAS: Record<keyof Omit<SalaryStructure, 'id' | 'employeeId' | 'wantDeduction'>, SalaryFormula> = {
   basicSalary: { type: 'fixed', value: 0, description: 'Base Salary' },
   hra: { type: 'percentage', value: 50, description: '50% of Basic' },
   da: { type: 'percentage', value: 20, description: '20% of Basic' },
@@ -223,7 +223,7 @@ export default function SalaryStructure() {
   const autoCalculateSalary = (basicSalary: number, includeFixed: boolean = false, considerDeduction: boolean = true): Partial<SalaryStructure> => {
     const calculated: Partial<SalaryStructure> = {};
     // Only auto-calculate percentage fields, not fixed values
-    const percentageFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId'>)[] = [
+    const percentageFields: (keyof Omit<SalaryStructure, 'id' | 'employeeId' | 'wantDeduction'>)[] = [
       'hra', 'da', 'lta', 'pf', 'epf', 'esic'
     ];
 
@@ -233,9 +233,9 @@ export default function SalaryStructure() {
         // Skip deduction fields if considerDeduction is false
         const isDeductionField = ['pf', 'epf', 'esic'].includes(field);
         if (isDeductionField && !considerDeduction) {
-          calculated[field] = 0;
+          (calculated as any)[field] = 0;
         } else {
-          calculated[field] = calculateValue(field, basicSalary);
+          (calculated as any)[field] = calculateValue(field, basicSalary);
         }
       }
     });
