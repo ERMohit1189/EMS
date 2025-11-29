@@ -148,16 +148,22 @@ export async function registerRoutes(
   app.post("/api/employees/sync-credentials", async (req, res) => {
     try {
       const { employeeId, password } = req.body;
+      console.log(`[Sync Credentials] Request received for employee: ${employeeId}`);
+      
       if (!employeeId || !password) {
+        console.log(`[Sync Credentials] Missing required fields`);
         return res.status(400).json({ error: "Employee ID and password required" });
       }
 
       const bcrypt = require('bcrypt');
       const hashedPassword = await bcrypt.hash(password, 10);
+      console.log(`[Sync Credentials] Password hashed, updating employee ${employeeId}`);
       
       const updated = await storage.updateEmployee(employeeId, { password: hashedPassword });
+      console.log(`[Sync Credentials] Employee updated successfully`);
       res.json({ success: true, employee: updated });
     } catch (error: any) {
+      console.error(`[Sync Credentials] Error:`, error.message);
       res.status(500).json({ error: error.message });
     }
   });

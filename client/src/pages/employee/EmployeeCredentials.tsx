@@ -169,7 +169,8 @@ export default function EmployeeCredentials() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to sync password to database');
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to sync password`);
       }
 
       const existing = credentials.filter(c => c.employeeId !== employeeId);
@@ -179,11 +180,11 @@ export default function EmployeeCredentials() {
         title: 'Credentials Generated & Synced',
         description: `Credentials created and saved to database for ${employee.name}`,
       });
-    } catch (error) {
-      console.error('Error syncing credentials:', error);
+    } catch (error: any) {
+      console.error('Error syncing credentials:', error?.message || error);
       toast({
         title: 'Error',
-        description: 'Credentials generated locally but failed to sync to database',
+        description: error?.message || 'Credentials generated locally but failed to sync to database',
         variant: 'destructive',
       });
     }
