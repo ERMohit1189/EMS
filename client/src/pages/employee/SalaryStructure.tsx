@@ -93,8 +93,10 @@ export default function SalaryStructure() {
 
   // Handle "Want Salary Deduction" checkbox change
   useEffect(() => {
-    if (salary && !wantDeduction) {
-      // Set all deductions to 0 and recalculate net salary
+    if (!salary) return;
+    
+    if (!wantDeduction) {
+      // Unchecked: Set all deductions to 0
       setSalary({
         ...salary,
         pf: 0,
@@ -102,6 +104,13 @@ export default function SalaryStructure() {
         incomeTax: 0,
         epf: 0,
         esic: 0,
+      });
+    } else {
+      // Checked: Recalculate deductions based on current basic salary
+      const calculated = autoCalculateSalary(salary.basicSalary, true);
+      setSalary({
+        ...salary,
+        ...calculated,
       });
     }
   }, [wantDeduction]);
