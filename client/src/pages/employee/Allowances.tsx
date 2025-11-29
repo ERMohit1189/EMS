@@ -160,6 +160,7 @@ export default function Allowances() {
       if (response.ok) {
         const data = await response.json();
         console.log(`Received ${data.data?.length || 0} allowances`);
+        console.log('Allowances data:', data.data);
         setSubmittedEntries(data.data || []);
       } else {
         console.error('API error:', response.status);
@@ -701,17 +702,15 @@ export default function Allowances() {
             return (
               <Card key={entry.id} className="shadow-sm">
                 <CardContent className="p-3">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+                  <div className="grid grid-cols-3 md:grid-cols-3 gap-2 mb-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Date</p>
                       <p className="text-sm font-semibold" data-testid={`text-date-${entry.id}`}>{new Date(entry.date).toLocaleDateString()}</p>
                     </div>
-                    {entry.teamName && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Team</p>
-                        <p className="text-sm font-semibold" data-testid={`text-team-${entry.id}`}>{entry.teamName}</p>
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Team</p>
+                      <p className="text-sm font-semibold" data-testid={`text-team-${entry.id}`}>{entry.teamName ? entry.teamName : '—'}</p>
+                    </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Total</p>
                       <p className="text-sm font-semibold text-green-600" data-testid={`text-total-${entry.id}`}>Rs {total}</p>
