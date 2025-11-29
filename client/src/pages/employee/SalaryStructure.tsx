@@ -59,11 +59,12 @@ const DEFAULT_FORMULAS: Record<keyof Omit<SalaryStructure, 'id' | 'employeeId' |
 };
 
 // Format number to max 2 decimals without padding zeros
-const formatValue = (value: number | string): string | number => {
+const formatValue = (value: number | string): string => {
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num)) return 0;
+  if (isNaN(num)) return '0';
   const rounded = parseFloat(num.toFixed(2));
-  return rounded % 1 === 0 ? Math.floor(rounded) : rounded;
+  const result = rounded % 1 === 0 ? Math.floor(rounded) : rounded;
+  return String(result);
 };
 
 interface ExportHeader {
@@ -545,15 +546,15 @@ export default function SalaryStructure() {
     
     // Company Header
     pdf.setFontSize(14);
-    pdf.setFont(undefined, 'bold');
-    pdf.text(companyName, pageWidth / 2, yPos, { align: 'center' });
+    (pdf.setFont as any)(undefined, 'bold');
+    pdf.text(String(companyName), pageWidth / 2, yPos, { align: 'center' });
     yPos += 6;
     
     // Company Address
     if (companyAddress) {
       pdf.setFontSize(8);
-      pdf.setFont(undefined, 'normal');
-      pdf.text(companyAddress, pageWidth / 2, yPos, { align: 'center' });
+      (pdf.setFont as any)(undefined, 'normal');
+      pdf.text(String(companyAddress), pageWidth / 2, yPos, { align: 'center' });
       yPos += 5;
     }
     
@@ -564,8 +565,8 @@ export default function SalaryStructure() {
     
     // Date
     pdf.setFontSize(9);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(`Date: ${currentDate}`, margin, yPos);
+    (pdf.setFont as any)(undefined, 'normal');
+    pdf.text(`Date: ${String(currentDate)}`, margin, yPos);
     yPos += 8;
     
     // Divider line
@@ -574,27 +575,27 @@ export default function SalaryStructure() {
     
     // Employee Information Section
     pdf.setFontSize(10);
-    pdf.setFont(undefined, 'bold');
+    (pdf.setFont as any)(undefined, 'bold');
     pdf.text('EMPLOYEE INFORMATION', margin, yPos);
     yPos += lineHeight;
     
     pdf.setFontSize(9);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(`Name: ${employeeName}`, margin + 2, yPos);
+    (pdf.setFont as any)(undefined, 'normal');
+    pdf.text(`Name: ${String(employeeName)}`, margin + 2, yPos);
     yPos += lineHeight;
-    pdf.text(`Employee ID: ${selectedEmployee}`, margin + 2, yPos);
+    pdf.text(`Employee ID: ${String(selectedEmployee)}`, margin + 2, yPos);
     yPos += lineHeight;
     pdf.text(`Deductions Status: ${wantDeduction ? 'Applied' : 'Not Applied'}`, margin + 2, yPos);
     yPos += 8;
     
     // Earnings Section
     pdf.setFontSize(10);
-    pdf.setFont(undefined, 'bold');
+    (pdf.setFont as any)(undefined, 'bold');
     pdf.setTextColor(41, 128, 185);
     pdf.text('EARNINGS', margin, yPos);
     yPos += lineHeight;
     
-    pdf.setFont(undefined, 'normal');
+    (pdf.setFont as any)(undefined, 'normal');
     pdf.setTextColor(0, 0, 0);
     pdf.setFontSize(9);
     
@@ -615,20 +616,20 @@ export default function SalaryStructure() {
       yPos += lineHeight;
     });
     
-    pdf.setFont(undefined, 'bold');
+    (pdf.setFont as any)(undefined, 'bold');
     pdf.setTextColor(41, 128, 185);
     pdf.text('Gross Salary', margin + 2, yPos);
     pdf.text(`Rs ${formatValue(gross)}`, pageWidth - margin - 20, yPos);
     yPos += 8;
     
     // Deductions Section
-    pdf.setFont(undefined, 'bold');
+    (pdf.setFont as any)(undefined, 'bold');
     pdf.setTextColor(231, 76, 60);
     pdf.setFontSize(10);
     pdf.text('DEDUCTIONS', margin, yPos);
     yPos += lineHeight;
     
-    pdf.setFont(undefined, 'normal');
+    (pdf.setFont as any)(undefined, 'normal');
     pdf.setTextColor(0, 0, 0);
     pdf.setFontSize(9);
     
@@ -646,7 +647,7 @@ export default function SalaryStructure() {
       yPos += lineHeight;
     });
     
-    pdf.setFont(undefined, 'bold');
+    (pdf.setFont as any)(undefined, 'bold');
     pdf.setTextColor(231, 76, 60);
     pdf.text('Total Deductions', margin + 2, yPos);
     pdf.text(`Rs ${formatValue(deductions)}`, pageWidth - margin - 20, yPos);
@@ -657,7 +658,7 @@ export default function SalaryStructure() {
     pdf.rect(margin, yPos - 5, pageWidth - (2 * margin), 12, 'F');
     
     pdf.setFontSize(11);
-    pdf.setFont(undefined, 'bold');
+    (pdf.setFont as any)(undefined, 'bold');
     pdf.setTextColor(255, 255, 255);
     pdf.text('NET SALARY (Take Home Pay)', margin + 2, yPos + 2);
     pdf.text(`Rs ${formatValue(net)}`, pageWidth - margin - 20, yPos + 2);
@@ -667,7 +668,7 @@ export default function SalaryStructure() {
     // Footer
     pdf.setFontSize(8);
     pdf.setTextColor(128, 128, 128);
-    pdf.setFont(undefined, 'normal');
+    (pdf.setFont as any)(undefined, 'normal');
     pdf.text('This is a system-generated document. No signature required.', margin, yPos);
     yPos += lineHeight;
     pdf.text('Generated from Enterprise Management System (EMS)', margin, yPos);
@@ -738,7 +739,7 @@ export default function SalaryStructure() {
             type="number" 
             step="0.01"
             disabled={isDisabled}
-            value={formatValue(salary[field])}
+            value={String(formatValue(salary[field]))}
             onChange={(e) => {
               const numValue = parseFloat(e.target.value) || 0;
               setSalary({ ...salary, [field]: numValue });
