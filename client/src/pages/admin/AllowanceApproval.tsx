@@ -15,6 +15,8 @@ interface AllowanceForApproval {
   allowanceData: string;
   submittedAt: string;
   approvalStatus: string;
+  approvalCount?: number;
+  approvedBy?: string;
 }
 
 export default function AllowanceApproval() {
@@ -83,12 +85,28 @@ export default function AllowanceApproval() {
         throw new Error(error.error || 'Failed to approve');
       }
 
-      toast({
-        title: "Success",
-        description: "Allowance approved successfully",
-      });
+      const result = await response.json();
+      const updatedAllowance = result.data;
 
-      setAllowances(allowances.filter(a => a.id !== allowanceId));
+      if (updatedAllowance.approvalStatus === 'approved') {
+        // If fully approved (2+ approvals), remove from list
+        setAllowances(allowances.filter(a => a.id !== allowanceId));
+        toast({
+          title: "Success",
+          description: "Allowance fully approved (2 approvals complete)",
+        });
+      } else if (updatedAllowance.approvalStatus === 'processing') {
+        // If processing (1 approval), update the allowance in the list
+        setAllowances(allowances.map(a => 
+          a.id === allowanceId 
+            ? { ...a, ...updatedAllowance }
+            : a
+        ));
+        toast({
+          title: "Success",
+          description: `Allowance approved (1 of 2 approvals). Current approval count: ${updatedAllowance.approvalCount}`,
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -157,6 +175,12 @@ export default function AllowanceApproval() {
       {!loading && allowances.length > 0 && (
         <div className="space-y-2">
           {allowances.map((allowance) => {
+            const statusBadgeColor = 
+              allowance.approvalStatus === 'processing' ? 'bg-blue-100 text-blue-800' :
+              allowance.approvalStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              allowance.approvalStatus === 'approved' ? 'bg-green-100 text-green-800' :
+              'bg-gray-100 text-gray-800';
+
             let allowanceObj: any = {
               travelAllowance: 0,
               foodAllowance: 0,
@@ -189,12 +213,20 @@ export default function AllowanceApproval() {
             return (
               <Card key={allowance.id} className="shadow-sm">
                 <CardContent className="p-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Employee</p>
-                      <p className="text-sm font-semibold" data-testid={`text-employee-${allowance.id}`}>{allowance.employeeName}</p>
-                      <p className="text-xs text-gray-500">{allowance.employeeEmail}</p>
+                  <div className="mb-2 pb-2 border-b">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Employee</p>
+                        <p className="text-sm font-semibold" data-testid={`text-employee-${allowance.id}`}>{allowance.employeeName}</p>
+                        <p className="text-xs text-gray-500">{allowance.employeeEmail}</p>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded font-semibold whitespace-nowrap ${statusBadgeColor}`}>
+                        {allowance.approvalStatus.charAt(0).toUpperCase() + allowance.approvalStatus.slice(1)} 
+                        {allowance.approvalCount ? ` (${allowance.approvalCount}/2)` : ''}
+                      </span>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Date</p>
                       <p className="text-sm font-semibold" data-testid={`text-date-${allowance.id}`}>{new Date(allowance.date).toLocaleDateString()}</p>
