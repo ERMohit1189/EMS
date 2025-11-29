@@ -96,12 +96,22 @@ export default function Allowances() {
   };
 
   const fetchTeams = async () => {
-    if (!employeeId) return;
+    if (!employeeId) {
+      console.log('Fetching teams skipped - no employeeId');
+      return;
+    }
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/employee/${employeeId}`);
+      const url = `${getApiBaseUrl()}/api/teams/employee/${employeeId}`;
+      console.log('Fetching teams from:', url);
+      const response = await fetch(url);
+      console.log('Teams response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('Teams fetched:', data);
         setTeams(data || []);
+      } else {
+        const error = await response.text();
+        console.error('Teams API error:', response.status, error);
       }
     } catch (error) {
       console.error('Error fetching teams:', error);
