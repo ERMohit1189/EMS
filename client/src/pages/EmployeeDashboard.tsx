@@ -33,7 +33,6 @@ export default function EmployeeDashboard() {
     { title: 'Salary Structure', icon: DollarSign, href: '/employee/salary', color: 'text-emerald-500' },
     { title: 'Attendance', icon: Calendar, href: '/employee/attendance', color: 'text-orange-500' },
     { title: 'Allowances', icon: Activity, href: '/employee/allowances', color: 'text-purple-500' },
-    { title: 'Settings', icon: Briefcase, href: '/settings', color: 'text-indigo-500' },
   ] : [
     { title: 'My Profile', icon: User, href: '/employee/list', color: 'text-blue-500' },
     { title: 'Salary Structure', icon: DollarSign, href: '/employee/salary', color: 'text-emerald-500' },
@@ -114,29 +113,31 @@ export default function EmployeeDashboard() {
         ))}
       </div>
 
-      {/* Important Links Card */}
-      <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg">
-          <CardTitle className="text-lg">Important Information</CardTitle>
-          <CardDescription>Quick access to important documents and policies</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Link href="/employee/privacy-policy">
-              <div className="p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                <h4 className="font-semibold text-slate-900 mb-1">Privacy Policy</h4>
-                <p className="text-sm text-slate-600">Read our privacy policy and data protection practices</p>
-              </div>
-            </Link>
-            <Link href="/settings">
-              <div className="p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                <h4 className="font-semibold text-slate-900 mb-1">Settings</h4>
-                <p className="text-sm text-slate-600">Manage your account preferences and contact details</p>
-              </div>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Important Links Card - Only for non-user employees */}
+      {!isUserEmployee && (
+        <Card className="shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg">
+            <CardTitle className="text-lg">Important Information</CardTitle>
+            <CardDescription>Quick access to important documents and policies</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Link href="/employee/privacy-policy">
+                <div className="p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                  <h4 className="font-semibold text-slate-900 mb-1">Privacy Policy</h4>
+                  <p className="text-sm text-slate-600">Read our privacy policy and data protection practices</p>
+                </div>
+              </Link>
+              <Link href="/settings">
+                <div className="p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                  <h4 className="font-semibold text-slate-900 mb-1">Settings</h4>
+                  <p className="text-sm text-slate-600">Manage your account preferences and contact details</p>
+                </div>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
