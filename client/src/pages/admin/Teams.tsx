@@ -68,6 +68,7 @@ export default function Teams() {
       const response = await fetch(`${getApiBaseUrl()}/api/employees?limit=1000`);
       if (response.ok) {
         const data = await response.json();
+        console.log('[Teams] Fetched employees:', data.data || []);
         setEmployees(data.data || []);
       }
     } catch (error) {
