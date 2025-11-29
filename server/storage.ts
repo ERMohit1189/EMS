@@ -935,7 +935,7 @@ export class DrizzleStorage implements IStorage {
   async getEmployeeAllowances(employeeId: string, limit: number = 30): Promise<DailyAllowance[]> {
     return await db.select().from(dailyAllowances)
       .where(eq(dailyAllowances.employeeId, employeeId))
-      .orderBy((t) => t.date)
+      .orderBy(dailyAllowances.date)
       .limit(limit);
   }
 
