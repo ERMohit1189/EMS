@@ -1,11 +1,11 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { useLocation, useRoute } from 'wouter';
-import { useState, useEffect, useRef } from 'react';
-import { IndianStates, getCitiesByState } from '@/assets/india-data';
-import { getApiBaseUrl } from '@/lib/api';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation, useRoute } from "wouter";
+import { useState, useEffect, useRef } from "react";
+import { IndianStates, getCitiesByState } from "@/assets/india-data";
+import { getApiBaseUrl } from "@/lib/api";
 import {
   Form,
   FormControl,
@@ -13,20 +13,20 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { PageLoader } from '@/components/PageLoader';
-import { usePageLoader } from '@/hooks/usePageLoader';
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PageLoader } from "@/components/PageLoader";
+import { usePageLoader } from "@/hooks/usePageLoader";
 
 const RequiredLabel = ({ children }: { children: string }) => (
   <span>
@@ -35,43 +35,43 @@ const RequiredLabel = ({ children }: { children: string }) => (
 );
 
 const baseSchema = z.object({
-  name: z.string().min(2, 'Full name is required'),
-  email: z.string().email('Valid email is required'),
+  name: z.string().min(2, "Full name is required"),
+  email: z.string().email("Valid email is required"),
   dob: z.string().optional(),
-  fatherName: z.string().min(2, 'Father name is required'),
-  mobile: z.string().min(10, 'Mobile no. is required'),
+  fatherName: z.string().min(2, "Father name is required"),
+  mobile: z.string().min(10, "Mobile no. is required"),
   alternateNo: z.string().optional(),
-  address: z.string().min(5, 'Address is required'),
+  address: z.string().min(5, "Address is required"),
   city: z.string().optional(),
   state: z.string().optional(),
-  country: z.string().default('India'),
-  role: z.string().min(1, 'Role is required'),
+  country: z.string().default("India"),
+  role: z.string().min(1, "Role is required"),
   departmentId: z.string().optional(),
-  designationId: z.string().min(1, 'Designation is required'),
-  doj: z.string().min(1, 'Date of joining is required'),
+  designationId: z.string().min(1, "Designation is required"),
+  doj: z.string().min(1, "Date of joining is required"),
   aadhar: z.string().optional(),
   pan: z.string().optional(),
   bloodGroup: z.string().optional(),
-  maritalStatus: z.enum(['Single', 'Married']),
+  maritalStatus: z.enum(["Single", "Married"]),
   spouseName: z.string().optional(),
   nominee: z.string().optional(),
   ppeKit: z.boolean().default(false),
   kitNo: z.string().optional(),
-  status: z.enum(['Active', 'Inactive']).default('Active'),
+  status: z.enum(["Active", "Inactive"]).default("Active"),
 });
 
 const employeeSchema = baseSchema
   .refine(
     (data) => {
-      if (data.maritalStatus === 'Married' && !data.spouseName) {
+      if (data.maritalStatus === "Married" && !data.spouseName) {
         return false;
       }
       return true;
     },
     {
-      message: 'Spouse name is required if married',
-      path: ['spouseName'],
-    }
+      message: "Spouse name is required if married",
+      path: ["spouseName"],
+    },
   )
   .refine(
     (data) => {
@@ -81,26 +81,36 @@ const employeeSchema = baseSchema
       return true;
     },
     {
-      message: 'Kit number is required if PPE kit is issued',
-      path: ['kitNo'],
-    }
+      message: "Kit number is required if PPE kit is issued",
+      path: ["kitNo"],
+    },
   );
 
-interface Department { id: string; name: string; }
-interface Designation { id: string; name: string; }
+interface Department {
+  id: string;
+  name: string;
+}
+interface Designation {
+  id: string;
+  name: string;
+}
 
 export default function EmployeeEdit() {
-  const [match, params] = useRoute('/employee/edit/:id');
+  const [match, params] = useRoute("/employee/edit/:id");
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);
-  const [stateSearch, setStateSearch] = useState('');
-  const [citySearch, setCitySearch] = useState('');
+  const [stateSearch, setStateSearch] = useState("");
+  const [citySearch, setCitySearch] = useState("");
   const [stateHighlight, setStateHighlight] = useState(-1);
   const [cityHighlight, setCityHighlight] = useState(-1);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
-  const [age, setAge] = useState<{ years: number; months: number; days: number } | null>(null);
+  const [age, setAge] = useState<{
+    years: number;
+    months: number;
+    days: number;
+  } | null>(null);
   const [employee, setEmployee] = useState<any>(null);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
@@ -111,28 +121,48 @@ export default function EmployeeEdit() {
   useEffect(() => {
     const loadData = async () => {
       await withLoaderMultiple([
-        () => fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
-        () => fetch(`${getApiBaseUrl()}/api/departments`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
-        () => fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
-      ]).then(([emp, depts, desigs]) => {
-        if (emp) {
-          setEmployee(emp);
-          console.log('Employee loaded:', { empDeptId: emp.departmentId, empDesigId: emp.designationId });
-        }
-        if (depts) {
-          const deptArray = Array.isArray(depts) ? depts : depts.data || [];
-          setDepartments(deptArray);
-          console.log('Departments:', deptArray);
-        }
-        if (desigs) {
-          const desigArray = Array.isArray(desigs) ? desigs : desigs.data || [];
-          setDesignations(desigArray);
-          console.log('Designations:', desigArray);
-        }
-      }).catch(error => {
-        console.error('Failed to load data', error);
-        toast({ title: 'Error', description: 'Failed to load employee data', variant: 'destructive' });
-      });
+        () =>
+          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, {
+            cache: "no-store",
+          }).then((r) => (r.ok ? r.json() : null)),
+        () =>
+          fetch(`${getApiBaseUrl()}/api/departments`, {
+            cache: "no-store",
+          }).then((r) => (r.ok ? r.json() : [])),
+        () =>
+          fetch(`${getApiBaseUrl()}/api/designations`, {
+            cache: "no-store",
+          }).then((r) => (r.ok ? r.json() : [])),
+      ])
+        .then(([emp, depts, desigs]) => {
+          if (emp) {
+            setEmployee(emp);
+            console.log("Employee loaded:", {
+              empDeptId: emp.departmentId,
+              empDesigId: emp.designationId,
+            });
+          }
+          if (depts) {
+            const deptArray = Array.isArray(depts) ? depts : depts.data || [];
+            setDepartments(deptArray);
+            console.log("Departments:", deptArray);
+          }
+          if (desigs) {
+            const desigArray = Array.isArray(desigs)
+              ? desigs
+              : desigs.data || [];
+            setDesignations(desigArray);
+            console.log("Designations:", desigArray);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to load data", error);
+          toast({
+            title: "Error",
+            description: "Failed to load employee data",
+            variant: "destructive",
+          });
+        });
     };
     if (employeeId) loadData();
   }, [employeeId, toast]);
@@ -140,58 +170,82 @@ export default function EmployeeEdit() {
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      name: employee?.name || '',
-      email: employee?.email || '',
-      dob: employee?.dob || '',
-      fatherName: employee?.fatherName || '',
-      mobile: employee?.mobile || '',
-      alternateNo: employee?.alternateNo || '',
-      address: employee?.address || '',
-      city: employee?.city || '',
-      state: employee?.state || '',
-      country: employee?.country || 'India',
-      role: employee?.role || 'user',
-      departmentId: employee?.departmentId || '',
-      designationId: employee?.designationId || '',
-      doj: employee?.doj || '',
-      aadhar: employee?.aadhar || '',
-      pan: employee?.pan || '',
-      bloodGroup: employee?.bloodGroup || '',
-      maritalStatus: employee?.maritalStatus || 'Single',
-      spouseName: employee?.spouseName || '',
-      nominee: employee?.nominee || '',
+      name: employee?.name || "",
+      email: employee?.email || "",
+      dob: employee?.dob || "",
+      fatherName: employee?.fatherName || "",
+      mobile: employee?.mobile || "",
+      alternateNo: employee?.alternateNo || "",
+      address: employee?.address || "",
+      city: employee?.city || "",
+      state: employee?.state || "",
+      country: employee?.country || "India",
+      role: employee?.role,
+      departmentId: employee?.departmentId || "",
+      designationId: employee?.designationId || "",
+      doj: employee?.doj || "",
+      aadhar: employee?.aadhar || "",
+      pan: employee?.pan || "",
+      bloodGroup: employee?.bloodGroup || "",
+      maritalStatus: employee?.maritalStatus || "Single",
+      spouseName: employee?.spouseName || "",
+      nominee: employee?.nominee || "",
       ppeKit: employee?.ppeKit || false,
-      kitNo: employee?.kitNo || '',
-      status: employee?.status || 'Active',
+      kitNo: employee?.kitNo || "",
+      status: employee?.status || "Active",
     },
   });
 
   useEffect(() => {
     if (employee) {
       // Sync form values with employee data for all fields
-      form.setValue('name', employee.name || '', { shouldValidate: false });
-      form.setValue('email', employee.email || '', { shouldValidate: false });
-      form.setValue('dob', employee.dob || '', { shouldValidate: false });
-      form.setValue('fatherName', employee.fatherName || '', { shouldValidate: false });
-      form.setValue('mobile', employee.mobile || '', { shouldValidate: false });
-      form.setValue('alternateNo', employee.alternateNo || '', { shouldValidate: false });
-      form.setValue('address', employee.address || '', { shouldValidate: false });
-      form.setValue('city', employee.city || '', { shouldValidate: false });
-      form.setValue('state', employee.state || '', { shouldValidate: false });
-      form.setValue('country', employee.country || 'India', { shouldValidate: false });
-      form.setValue('role', employee.role || 'user', { shouldValidate: false });
-      form.setValue('departmentId', employee.departmentId || '', { shouldValidate: false });
-      form.setValue('designationId', employee.designationId || '', { shouldValidate: false });
-      form.setValue('doj', employee.doj || '', { shouldValidate: false });
-      form.setValue('aadhar', employee.aadhar || '', { shouldValidate: false });
-      form.setValue('pan', employee.pan || '', { shouldValidate: false });
-      form.setValue('bloodGroup', employee.bloodGroup || '', { shouldValidate: false });
-      form.setValue('maritalStatus', employee.maritalStatus || 'Single', { shouldValidate: false });
-      form.setValue('spouseName', employee.spouseName || '', { shouldValidate: false });
-      form.setValue('nominee', employee.nominee || '', { shouldValidate: false });
-      form.setValue('ppeKit', employee.ppeKit || false, { shouldValidate: false });
-      form.setValue('kitNo', employee.kitNo || '', { shouldValidate: false });
-      form.setValue('status', employee.status || 'Active', { shouldValidate: false });
+      form.setValue("name", employee.name || "", { shouldValidate: false });
+      form.setValue("email", employee.email || "", { shouldValidate: false });
+      form.setValue("dob", employee.dob, { shouldValidate: false });
+      form.setValue("fatherName", employee.fatherName || "", {
+        shouldValidate: false,
+      });
+      form.setValue("mobile", employee.mobile || "", { shouldValidate: false });
+      form.setValue("alternateNo", employee.alternateNo || "", {
+        shouldValidate: false,
+      });
+      form.setValue("address", employee.address || "", {
+        shouldValidate: false,
+      });
+      form.setValue("city", employee.city || "", { shouldValidate: false });
+      form.setValue("state", employee.state || "", { shouldValidate: false });
+      form.setValue("country", employee.country || "India", {
+        shouldValidate: false,
+      });
+      form.setValue("role", employee.role, { shouldValidate: false });
+      form.setValue("departmentId", employee.departmentId || "", {
+        shouldValidate: false,
+      });
+      form.setValue("designationId", employee.designationId || "", {
+        shouldValidate: false,
+      });
+      form.setValue("doj", employee.doj, { shouldValidate: false });
+      form.setValue("aadhar", employee.aadhar || "", { shouldValidate: false });
+      form.setValue("pan", employee.pan || "", { shouldValidate: false });
+      form.setValue("bloodGroup", employee.bloodGroup || "", {
+        shouldValidate: false,
+      });
+      form.setValue("maritalStatus", employee.maritalStatus || "Single", {
+        shouldValidate: false,
+      });
+      form.setValue("spouseName", employee.spouseName || "", {
+        shouldValidate: false,
+      });
+      form.setValue("nominee", employee.nominee || "", {
+        shouldValidate: false,
+      });
+      form.setValue("ppeKit", employee.ppeKit || false, {
+        shouldValidate: false,
+      });
+      form.setValue("kitNo", employee.kitNo || "", { shouldValidate: false });
+      form.setValue("status", employee.status || "Active", {
+        shouldValidate: false,
+      });
       // Only calculate age if DOB has a valid date
       if (employee.dob && employee.dob.trim()) {
         calculateAge(employee.dob);
@@ -208,51 +262,51 @@ export default function EmployeeEdit() {
     }
     const birthDate = new Date(dob);
     const today = new Date();
-    
+
     let years = today.getFullYear() - birthDate.getFullYear();
     let months = today.getMonth() - birthDate.getMonth();
     let days = today.getDate() - birthDate.getDate();
-    
+
     if (days < 0) {
       months--;
       const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
       days += prevMonth.getDate();
     }
-    
+
     if (months < 0) {
       years--;
       months += 12;
     }
-    
+
     setAge({ years, months, days });
   };
 
-  const watchedState = form.watch('state');
-  const watchedDob = form.watch('dob');
-  
+  const watchedState = form.watch("state");
+  const watchedDob = form.watch("dob");
+
   useEffect(() => {
     if (watchedState) {
       setCities(getCitiesByState(watchedState));
-      form.setValue('city', '', { shouldValidate: false });
-      setCitySearch('');
+      form.setValue("city", "", { shouldValidate: false });
+      setCitySearch("");
     }
   }, [watchedState, form]);
 
   useEffect(() => {
-    calculateAge(watchedDob || '');
+    calculateAge(watchedDob || "");
   }, [watchedDob]);
 
-  const filteredStates = IndianStates.filter(s => 
-    s.toLowerCase().includes(stateSearch.toLowerCase())
+  const filteredStates = IndianStates.filter((s) =>
+    s.toLowerCase().includes(stateSearch.toLowerCase()),
   );
-  
-  const filteredCities = cities.filter(c => 
-    c.toLowerCase().includes(citySearch.toLowerCase())
+
+  const filteredCities = cities.filter((c) =>
+    c.toLowerCase().includes(citySearch.toLowerCase()),
   );
 
   async function onSubmit(values: z.infer<typeof employeeSchema>) {
     if (!employeeId) return;
-    
+
     try {
       const payload = {
         name: values.name,
@@ -280,33 +334,36 @@ export default function EmployeeEdit() {
         kitNo: values.kitNo,
       };
 
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `${getApiBaseUrl()}/api/employees/${employeeId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
 
       if (!response.ok) {
         const error = await response.json();
         toast({
-          title: 'Error',
-          description: error.error || 'Failed to update employee',
-          variant: 'destructive',
+          title: "Error",
+          description: error.error || "Failed to update employee",
+          variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: 'Employee Updated',
-        description: 'Employee profile has been updated successfully.',
+        title: "Employee Updated",
+        description: "Employee profile has been updated successfully.",
       });
-      setLocation('/employee/list');
+      setLocation("/employee/list");
     } catch (error: any) {
-      console.error('Update error:', error);
+      console.error("Update error:", error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update employee',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to update employee",
+        variant: "destructive",
       });
     }
   }
@@ -320,7 +377,9 @@ export default function EmployeeEdit() {
       <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
         <h2 className="text-2xl font-bold mb-2">Employee Not Found</h2>
         <p>The employee you're trying to edit doesn't exist.</p>
-        <Button onClick={() => setLocation('/employee/list')} className="mt-4">Back to List</Button>
+        <Button onClick={() => setLocation("/employee/list")} className="mt-4">
+          Back to List
+        </Button>
       </div>
     );
   }
@@ -333,8 +392,11 @@ export default function EmployeeEdit() {
       </div>
 
       <Form {...form}>
-        <form key={employeeId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          
+        <form
+          key={employeeId}
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-8"
+        >
           <Card>
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
@@ -345,7 +407,9 @@ export default function EmployeeEdit() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Full Name</RequiredLabel></FormLabel>
+                    <FormLabel>
+                      <RequiredLabel>Full Name</RequiredLabel>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Enter name" {...field} />
                     </FormControl>
@@ -358,7 +422,9 @@ export default function EmployeeEdit() {
                 name="fatherName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Father's Name</RequiredLabel></FormLabel>
+                    <FormLabel>
+                      <RequiredLabel>Father's Name</RequiredLabel>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Father's Name" {...field} />
                     </FormControl>
@@ -379,22 +445,29 @@ export default function EmployeeEdit() {
                   </FormItem>
                 )}
               />
-               <FormField
+              <FormField
                 control={form.control}
                 name="bloodGroup"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Blood Group</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => (
-                          <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                        ))}
+                        {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(
+                          (bg) => (
+                            <SelectItem key={bg} value={bg}>
+                              {bg}
+                            </SelectItem>
+                          ),
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -406,8 +479,13 @@ export default function EmployeeEdit() {
                 name="maritalStatus"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Marital Status</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || 'Single'}>
+                    <FormLabel>
+                      <RequiredLabel>Marital Status</RequiredLabel>
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || "Single"}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
@@ -422,20 +500,22 @@ export default function EmployeeEdit() {
                   </FormItem>
                 )}
               />
-              {form.watch('maritalStatus') === 'Married' && (
+              {form.watch("maritalStatus") === "Married" && (
                 <FormField
                   control={form.control}
                   name="spouseName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel><RequiredLabel>Spouse Name</RequiredLabel></FormLabel>
+                      <FormLabel>
+                        <RequiredLabel>Spouse Name</RequiredLabel>
+                      </FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Spouse's Name" 
+                        <Input
+                          placeholder="Spouse's Name"
                           {...field}
                           onBlur={(e) => {
                             field.onBlur();
-                            form.trigger('spouseName');
+                            form.trigger("spouseName");
                           }}
                         />
                       </FormControl>
@@ -445,21 +525,28 @@ export default function EmployeeEdit() {
                 />
               )}
               {age !== null && (
-                <div className={`col-span-3 p-4 rounded-md border ${
-                  age.years < 18 
-                    ? 'border-red-300 bg-red-50' 
-                    : age.years >= 18 && age.years <= 60 
-                    ? 'border-green-300 bg-green-50' 
-                    : 'border-orange-300 bg-orange-50'
-                }`}>
-                  <div className={`font-semibold ${
-                    age.years < 18 
-                      ? 'text-red-900' 
-                      : age.years >= 18 && age.years <= 60 
-                      ? 'text-green-900' 
-                      : 'text-orange-900'
-                  }`}>
-                    Age: {age.years}{age.years !== 1 ? ' years' : ' year'}, {age.months}{age.months !== 1 ? ' months' : ' month'}, {age.days}{age.days !== 1 ? ' days' : ' day'}
+                <div
+                  className={`col-span-3 p-4 rounded-md border ${
+                    age.years < 18
+                      ? "border-red-300 bg-red-50"
+                      : age.years >= 18 && age.years <= 60
+                        ? "border-green-300 bg-green-50"
+                        : "border-orange-300 bg-orange-50"
+                  }`}
+                >
+                  <div
+                    className={`font-semibold ${
+                      age.years < 18
+                        ? "text-red-900"
+                        : age.years >= 18 && age.years <= 60
+                          ? "text-green-900"
+                          : "text-orange-900"
+                    }`}
+                  >
+                    Age: {age.years}
+                    {age.years !== 1 ? " years" : " year"}, {age.months}
+                    {age.months !== 1 ? " months" : " month"}, {age.days}
+                    {age.days !== 1 ? " days" : " day"}
                   </div>
                   {age.years < 18 && (
                     <div className="text-sm text-red-700 mt-2 flex items-center gap-2">
@@ -489,19 +576,21 @@ export default function EmployeeEdit() {
               <CardTitle>Contact & Address</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-3">
-               <FormField
+              <FormField
                 control={form.control}
                 name="mobile"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Mobile No.</RequiredLabel></FormLabel>
+                    <FormLabel>
+                      <RequiredLabel>Mobile No.</RequiredLabel>
+                    </FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="9876543210" 
+                      <Input
+                        placeholder="9876543210"
                         {...field}
                         onBlur={(e) => {
                           field.onBlur();
-                          form.trigger('mobile');
+                          form.trigger("mobile");
                         }}
                       />
                     </FormControl>
@@ -509,7 +598,7 @@ export default function EmployeeEdit() {
                   </FormItem>
                 )}
               />
-               <FormField
+              <FormField
                 control={form.control}
                 name="alternateNo"
                 render={({ field }) => (
@@ -527,9 +616,11 @@ export default function EmployeeEdit() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Email (Login ID)</RequiredLabel></FormLabel>
+                    <FormLabel>
+                      <RequiredLabel>Email (Login ID)</RequiredLabel>
+                    </FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         type="email"
                         placeholder="employee@company.com"
                         {...field}
@@ -539,19 +630,21 @@ export default function EmployeeEdit() {
                   </FormItem>
                 )}
               />
-               <FormField
+              <FormField
                 control={form.control}
                 name="address"
                 render={({ field }) => (
                   <FormItem className="col-span-3">
-                    <FormLabel><RequiredLabel>Address</RequiredLabel></FormLabel>
+                    <FormLabel>
+                      <RequiredLabel>Address</RequiredLabel>
+                    </FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Full Address" 
+                      <Input
+                        placeholder="Full Address"
                         {...field}
                         onBlur={(e) => {
                           field.onBlur();
-                          form.trigger('address');
+                          form.trigger("address");
                         }}
                       />
                     </FormControl>
@@ -565,18 +658,30 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>State</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} value={field.value || ''}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setStateSearch("");
+                      }}
+                      value={field.value || ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select State" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
-                        <div className="p-2" onClick={(e) => e.stopPropagation()}>
-                          <Input 
+                      <SelectContent
+                        className="max-h-[200px]"
+                        onCloseAutoFocus={(e) => e.preventDefault()}
+                      >
+                        <div
+                          className="p-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Input
                             ref={stateInputRef}
                             autoFocus
-                            placeholder="Search states..." 
+                            placeholder="Search states..."
                             value={stateSearch}
                             onChange={(e) => setStateSearch(e.target.value)}
                             className="mb-2"
@@ -585,10 +690,14 @@ export default function EmployeeEdit() {
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredStates.length > 0 ? (
                             filteredStates.map((state) => (
-                              <SelectItem key={state} value={state}>{state}</SelectItem>
+                              <SelectItem key={state} value={state}>
+                                {state}
+                              </SelectItem>
                             ))
                           ) : (
-                            <div className="px-2 py-1 text-sm text-muted-foreground">No states found</div>
+                            <div className="px-2 py-1 text-sm text-muted-foreground">
+                              No states found
+                            </div>
                           )}
                         </div>
                       </SelectContent>
@@ -603,18 +712,30 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>City</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} value={field.value || ''}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setCitySearch("");
+                      }}
+                      value={field.value || ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select City" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
-                        <div className="p-2" onClick={(e) => e.stopPropagation()}>
-                          <Input 
+                      <SelectContent
+                        className="max-h-[200px]"
+                        onCloseAutoFocus={(e) => e.preventDefault()}
+                      >
+                        <div
+                          className="p-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Input
                             ref={cityInputRef}
                             autoFocus
-                            placeholder="Search cities..." 
+                            placeholder="Search cities..."
                             value={citySearch}
                             onChange={(e) => setCitySearch(e.target.value)}
                             className="mb-2"
@@ -623,10 +744,14 @@ export default function EmployeeEdit() {
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredCities.length > 0 ? (
                             filteredCities.map((city) => (
-                              <SelectItem key={city} value={city}>{city}</SelectItem>
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
                             ))
                           ) : (
-                            <div className="px-2 py-1 text-sm text-muted-foreground">No cities found</div>
+                            <div className="px-2 py-1 text-sm text-muted-foreground">
+                              No cities found
+                            </div>
                           )}
                         </div>
                       </SelectContent>
@@ -643,13 +768,18 @@ export default function EmployeeEdit() {
               <CardTitle>Employment Details</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-3">
-               <FormField
+              <FormField
                 control={form.control}
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Role</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={employee?.role || 'user'}>
+                    <FormLabel>
+                      <RequiredLabel>Role</RequiredLabel>
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={employee?.role || "user"}
+                    >
                       <FormControl>
                         <SelectTrigger data-testid="select-role">
                           <SelectValue placeholder="Select Role" />
@@ -670,15 +800,20 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={employee?.departmentId || ''}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={employee?.departmentId || ""}
+                    >
                       <FormControl>
                         <SelectTrigger data-testid="select-department">
                           <SelectValue placeholder="Select Department" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {departments.map(dept => (
-                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            {dept.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -691,16 +826,23 @@ export default function EmployeeEdit() {
                 name="designationId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Designation</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={employee?.designationId || ''}>
+                    <FormLabel>
+                      <RequiredLabel>Designation</RequiredLabel>
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={employee?.designationId || ""}
+                    >
                       <FormControl>
                         <SelectTrigger data-testid="select-designation">
                           <SelectValue placeholder="Select Designation" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {designations.map(desig => (
-                          <SelectItem key={desig.id} value={desig.id}>{desig.name}</SelectItem>
+                        {designations.map((desig) => (
+                          <SelectItem key={desig.id} value={desig.id}>
+                            {desig.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -713,7 +855,9 @@ export default function EmployeeEdit() {
                 name="doj"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Date of Joining</RequiredLabel></FormLabel>
+                    <FormLabel>
+                      <RequiredLabel>Date of Joining</RequiredLabel>
+                    </FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -765,8 +909,13 @@ export default function EmployeeEdit() {
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel><RequiredLabel>Employee Status</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || 'Active'}>
+                    <FormLabel>
+                      <RequiredLabel>Employee Status</RequiredLabel>
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || "Active"}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select Status" />
@@ -783,10 +932,10 @@ export default function EmployeeEdit() {
               />
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
-               <CardTitle>Safety Equipment</CardTitle>
+              <CardTitle>Safety Equipment</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-6">
               <FormField
@@ -801,20 +950,23 @@ export default function EmployeeEdit() {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        PPE Kit Issued?
-                      </FormLabel>
+                      <FormLabel>PPE Kit Issued?</FormLabel>
                     </div>
                   </FormItem>
                 )}
               />
-              
-               <FormField
+
+              <FormField
                 control={form.control}
                 name="kitNo"
                 render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormLabel>{form.watch('ppeKit') && <RequiredLabel>Kit Number</RequiredLabel>}{!form.watch('ppeKit') && 'Kit Number'}</FormLabel>
+                    <FormLabel>
+                      {form.watch("ppeKit") && (
+                        <RequiredLabel>Kit Number</RequiredLabel>
+                      )}
+                      {!form.watch("ppeKit") && "Kit Number"}
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Kit ID (if issued)" {...field} />
                     </FormControl>
@@ -826,10 +978,16 @@ export default function EmployeeEdit() {
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => setLocation('/employee/list')}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocation("/employee/list")}
+            >
               Cancel
             </Button>
-            <Button type="submit" size="lg">Update Employee</Button>
+            <Button type="submit" size="lg">
+              Update Employee
+            </Button>
           </div>
         </form>
       </Form>
