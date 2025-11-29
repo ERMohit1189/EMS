@@ -1174,23 +1174,34 @@ export class DrizzleStorage implements IStorage {
       .where(eq(dailyAllowances.approvalStatus, 'pending'))
       .orderBy(dailyAllowances.submittedAt);
     
-    // Enrich with employee names and team names
-    const enriched = await Promise.all(result.map(async (allowance) => {
-      const employee = await this.getEmployee(allowance.employeeId);
-      let teamName = null;
-      if (allowance.teamId) {
-        const team = await this.getTeam(allowance.teamId);
-        teamName = team?.name || null;
-      }
+    if (result.length === 0) return [];
+    
+    // BULK FETCH: Get all unique employee IDs and team IDs at once
+    const employeeIds = [...new Set(result.map(a => a.employeeId))];
+    const teamIds = [...new Set(result.map(a => a.teamId).filter(Boolean))];
+    
+    // Fetch all employees in one query
+    const allEmployees = await db.select().from(employees).where(inArray(employees.id, employeeIds));
+    const employeeMap = new Map(allEmployees.map(e => [e.id, e]));
+    
+    // Fetch all teams in one query
+    let teamMap = new Map();
+    if (teamIds.length > 0) {
+      const allTeams = await db.select().from(teams).where(inArray(teams.id, teamIds));
+      teamMap = new Map(allTeams.map(t => [t.id, t]));
+    }
+    
+    // Enrich with cached data (no additional queries)
+    return result.map(allowance => {
+      const employee = employeeMap.get(allowance.employeeId);
+      const team = allowance.teamId ? teamMap.get(allowance.teamId) : null;
       return {
         ...allowance,
         employeeName: employee?.name || 'Unknown',
         employeeEmail: employee?.email || '',
-        teamName,
+        teamName: team?.name || null,
       };
-    }));
-    
-    return enriched;
+    });
   }
 
   async getPendingAllowancesForTeams(employeeId: string): Promise<any[]> {
@@ -1218,22 +1229,34 @@ export class DrizzleStorage implements IStorage {
       ))
       .orderBy(dailyAllowances.submittedAt);
     
-    const enriched = await Promise.all(result.map(async (allowance) => {
-      const employee = await this.getEmployee(allowance.employeeId);
-      let teamName = null;
-      if (allowance.teamId) {
-        const team = await this.getTeam(allowance.teamId);
-        teamName = team?.name || null;
-      }
+    if (result.length === 0) return [];
+    
+    // BULK FETCH: Get all unique employee IDs and team IDs at once
+    const allowanceEmployeeIds = [...new Set(result.map(a => a.employeeId))];
+    const allowanceTeamIds = [...new Set(result.map(a => a.teamId).filter(Boolean))];
+    
+    // Fetch all employees in one query
+    const allEmployees = await db.select().from(employees).where(inArray(employees.id, allowanceEmployeeIds));
+    const employeeMap = new Map(allEmployees.map(e => [e.id, e]));
+    
+    // Fetch all teams in one query
+    let teamMap = new Map();
+    if (allowanceTeamIds.length > 0) {
+      const allTeams = await db.select().from(teams).where(inArray(teams.id, allowanceTeamIds));
+      teamMap = new Map(allTeams.map(t => [t.id, t]));
+    }
+    
+    // Enrich with cached data (no additional queries)
+    return result.map(allowance => {
+      const employee = employeeMap.get(allowance.employeeId);
+      const team = allowance.teamId ? teamMap.get(allowance.teamId) : null;
       return {
         ...allowance,
         employeeName: employee?.name || 'Unknown',
         employeeEmail: employee?.email || '',
-        teamName,
+        teamName: team?.name || null,
       };
-    }));
-    
-    return enriched;
+    });
   }
 
   // Team operations
