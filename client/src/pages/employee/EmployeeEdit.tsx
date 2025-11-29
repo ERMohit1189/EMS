@@ -168,13 +168,36 @@ export default function EmployeeEdit() {
 
   useEffect(() => {
     if (employee && departments.length > 0 && designations.length > 0) {
+      const formData = {
+        name: employee.name || '',
+        email: employee.email || '',
+        dob: employee.dob || '',
+        fatherName: employee.fatherName || '',
+        mobile: employee.mobile || '',
+        alternateNo: employee.alternateNo || '',
+        address: employee.address || '',
+        city: employee.city || '',
+        state: employee.state || '',
+        country: employee.country || 'India',
+        role: employee.role || 'user',
+        departmentId: employee.departmentId || '',
+        designationId: employee.designationId || '',
+        doj: employee.doj || '',
+        aadhar: employee.aadhar || '',
+        pan: employee.pan || '',
+        bloodGroup: employee.bloodGroup || '',
+        maritalStatus: employee.maritalStatus || 'Single',
+        spouseName: employee.spouseName || '',
+        nominee: employee.nominee || '',
+        ppeKit: employee.ppeKit || false,
+        kitNo: employee.kitNo || '',
+        status: employee.status || 'Active',
+      };
+      console.log('Resetting form with:', formData);
+      form.reset(formData);
       calculateAge(employee?.dob || '');
-      // Only update specific fields that may have changed
-      form.setValue('role', employee.role || 'user', { shouldValidate: false });
-      form.setValue('departmentId', employee.departmentId || '', { shouldValidate: false });
-      form.setValue('designationId', employee.designationId || '', { shouldValidate: false });
     }
-  }, [employee, departments, designations, form]);
+  }, [employee, departments, designations]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
