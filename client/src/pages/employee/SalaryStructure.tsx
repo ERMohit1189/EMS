@@ -710,53 +710,55 @@ export default function SalaryStructure() {
     const isDisabled = isDeductionField && !wantDeduction;
     
     return (
-      <div key={field} className="grid grid-cols-2 items-center gap-2">
-        <div>
-          <Label className="text-sm">{label}</Label>
-          <p className="text-xs text-muted-foreground">
-            {formula.type === 'percentage' ? `${formula.value}% of Basic` : 'Fixed - Manual Entry'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Input 
-            type="number" 
-            step="0.01"
-            disabled={isDisabled}
-            value={String(formatValue(salary[field]))}
-            onChange={(e) => {
-              const numValue = parseFloat(e.target.value) || 0;
-              setSalary({ ...salary, [field]: numValue });
-            }}
-            onBlur={(e) => {
-              const numValue = parseFloat(e.target.value) || 0;
-              const newManuallyEdited = new Set(manuallyEdited);
-              newManuallyEdited.add(field);
-              setManuallyEdited(newManuallyEdited);
-            }}
-            className={isDisabled ? 'opacity-50 cursor-not-allowed' : isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}
-            placeholder="0"
-          />
-          {isManuallyEdited && !isDisabled && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => resetToFormula(field)}
-              title="Reset to formula"
-              className="text-xs"
-            >
-              Reset
-            </Button>
-          )}
+      <div key={field} className="space-y-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <div>
+            <Label className="text-xs md:text-sm">{label}</Label>
+            <p className="text-xs text-muted-foreground">
+              {formula.type === 'percentage' ? `${formula.value}% of Basic` : 'Fixed - Manual Entry'}
+            </p>
+          </div>
+          <div className="flex gap-1 flex-shrink-0">
+            <Input 
+              type="number" 
+              step="0.01"
+              disabled={isDisabled}
+              value={String(formatValue(salary[field]))}
+              onChange={(e) => {
+                const numValue = parseFloat(e.target.value) || 0;
+                setSalary({ ...salary, [field]: numValue });
+              }}
+              onBlur={(e) => {
+                const numValue = parseFloat(e.target.value) || 0;
+                const newManuallyEdited = new Set(manuallyEdited);
+                newManuallyEdited.add(field);
+                setManuallyEdited(newManuallyEdited);
+              }}
+              className={`w-20 md:w-24 text-right text-xs md:text-sm ${isDisabled ? 'opacity-50 cursor-not-allowed' : isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
+              placeholder="0"
+            />
+            {isManuallyEdited && !isDisabled && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => resetToFormula(field)}
+                title="Reset to formula"
+                className="text-xs h-8 px-2"
+              >
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto px-2 md:px-0">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Salary Structure</h2>
-        <p className="text-muted-foreground">Enter any of: Basic Salary, Gross Salary, or Net Salary - all other fields auto-calculate!</p>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Salary Structure</h2>
+        <p className="text-xs md:text-sm text-muted-foreground">Enter any of: Basic Salary, Gross Salary, or Net Salary - all other fields auto-calculate!</p>
       </div>
 
       <Card>
@@ -785,11 +787,11 @@ export default function SalaryStructure() {
       {/* Quick Input Section */}
       <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 border-purple-200 dark:border-purple-800">
         <CardHeader>
-          <CardTitle className="text-purple-900 dark:text-purple-100">Quick Input</CardTitle>
-          <CardDescription>Fill any one field to auto-calculate all others</CardDescription>
+          <CardTitle className="text-sm md:text-base text-purple-900 dark:text-purple-100">Quick Input</CardTitle>
+          <CardDescription className="text-xs md:text-sm">Fill any one field to auto-calculate all others</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid gap-2 md:gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label className="font-semibold">Basic Salary</Label>
               <Input 
@@ -853,13 +855,13 @@ export default function SalaryStructure() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Earnings</CardTitle>
-            <CardDescription>Allowances and Benefits (Auto-calculated)</CardDescription>
+            <CardTitle className="text-lg md:text-xl">Earnings</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Allowances and Benefits (Auto-calculated)</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {renderSalaryField('hra', 'HRA')}
             {renderSalaryField('da', 'DA')}
             {renderSalaryField('lta', 'LTA')}
@@ -868,53 +870,53 @@ export default function SalaryStructure() {
             {renderSalaryField('bonuses', 'Bonuses')}
             {renderSalaryField('otherBenefits', 'Other Benefits')}
             <Separator />
-            <div className="flex justify-between font-bold text-lg text-emerald-600 bg-green-50 dark:bg-green-950 p-3 rounded">
-              <span>Gross Salary</span>
-              <span>Rs {formatValue(gross)}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between font-bold text-emerald-600 bg-green-50 dark:bg-green-950 p-2 md:p-3 rounded gap-2">
+              <span className="text-sm md:text-base">Gross Salary</span>
+              <span className="text-base md:text-lg">Rs {formatValue(gross)}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Deductions</CardTitle>
-            <CardDescription>Deductions and Taxes (Auto-calculated)</CardDescription>
+            <CardTitle className="text-lg md:text-xl">Deductions</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Deductions and Taxes (Auto-calculated)</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {renderSalaryField('pf', 'Provident Fund (PF)')}
             {renderSalaryField('professionalTax', 'Professional Tax')}
             {renderSalaryField('incomeTax', 'Income Tax (TDS)')}
             {renderSalaryField('epf', 'EPF')}
             {renderSalaryField('esic', 'ESIC')}
             <Separator />
-            <div className="flex justify-between font-bold text-lg text-red-600 bg-red-50 dark:bg-red-950 p-3 rounded">
-              <span>Total Deductions</span>
-              <span>Rs {formatValue(deductions)}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between font-bold text-red-600 bg-red-50 dark:bg-red-950 p-2 md:p-3 rounded gap-2">
+              <span className="text-sm md:text-base">Total Deductions</span>
+              <span className="text-base md:text-lg">Rs {formatValue(deductions)}</span>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-primary/20">
-          <CardContent className="p-6 flex items-center justify-between">
+        <Card className="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-primary/20">
+          <CardContent className="p-3 md:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold">Net Salary Payable</h3>
-              <p className="text-muted-foreground">Amount to be credited to bank account</p>
+              <h3 className="text-base md:text-lg font-semibold">Net Salary Payable</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">Amount to be credited to bank account</p>
             </div>
-            <div className="text-4xl font-bold text-primary">
+            <div className="text-2xl md:text-4xl font-bold text-primary">
               Rs {formatValue(net)}
             </div>
           </CardContent>
         </Card>
         
-        <div className="col-span-2 flex justify-end gap-4">
-          <Button variant="outline" onClick={() => { setSelectedEmployee(""); setSalary(null); setManuallyEdited(new Set()); }}>Cancel</Button>
-          <Button variant="outline" onClick={downloadSalary} data-testid="button-download-salary">
+        <div className="md:col-span-2 flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <Button variant="outline" size="sm" className="text-xs md:text-sm" onClick={() => { setSelectedEmployee(""); setSalary(null); setManuallyEdited(new Set()); }}>Cancel</Button>
+          <Button variant="outline" size="sm" className="text-xs md:text-sm" onClick={downloadSalary} data-testid="button-download-salary">
             Download Excel
           </Button>
-          <Button variant="outline" onClick={downloadSalaryPDF} data-testid="button-download-pdf">
+          <Button variant="outline" size="sm" className="text-xs md:text-sm" onClick={downloadSalaryPDF} data-testid="button-download-pdf">
             Download PDF
           </Button>
-          <Button size="lg" onClick={saveSalary} disabled={isSaving}>
+          <Button size="sm" className="text-xs md:text-sm" onClick={saveSalary} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save Structure'}
           </Button>
         </div>
