@@ -22,7 +22,7 @@ interface Employee {
   mobile: string;
   city: string;
   status: string;
-  designation?: string;
+  designationName?: string;
   departmentName?: string;
 }
 
@@ -103,7 +103,7 @@ export default function EmployeeList() {
              <div key={e.id} className="grid gap-0 border-b last:border-0 hover:bg-muted/50 transition-colors items-center" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
                <div className="p-4">
                  <div className="font-medium">{e.name}</div>
-                 <div className="text-xs text-muted-foreground">{e.designation || 'Not Specified'}</div>
+                 <div className="text-xs text-muted-foreground">{e.designationName || 'Not Specified'}</div>
                </div>
                <div className="p-4 text-sm font-mono text-blue-600 truncate text-left" data-testid={`text-email-${e.id}`} title={e.email}>{e.email}</div>
                <div className="p-4 text-sm font-mono text-left">{e.mobile}</div>
