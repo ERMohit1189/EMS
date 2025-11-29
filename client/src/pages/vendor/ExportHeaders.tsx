@@ -186,8 +186,8 @@ export default function ExportHeaders() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold" data-testid="title-export-headers">Export Header Settings</h1>
-        <p className="text-gray-600 mt-2">Configure headers and footers for Excel and PDF exports</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight" data-testid="title-export-headers">Export Header Settings</h1>
+        <p className="text-xs md:text-sm text-muted-foreground mt-2">Configure headers and footers for Excel and PDF exports</p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
