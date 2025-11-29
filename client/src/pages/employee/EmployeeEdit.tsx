@@ -171,9 +171,7 @@ export default function EmployeeEdit() {
       // Sync form values with employee data for all fields
       form.setValue('name', employee.name || '', { shouldValidate: false });
       form.setValue('email', employee.email || '', { shouldValidate: false });
-      // Don't set DOB if it's the default 2000-01-01 placeholder
-      const dobValue = employee.dob && employee.dob !== '2000-01-01' ? employee.dob : '';
-      form.setValue('dob', dobValue, { shouldValidate: false });
+      form.setValue('dob', employee.dob || '', { shouldValidate: false });
       form.setValue('fatherName', employee.fatherName || '', { shouldValidate: false });
       form.setValue('mobile', employee.mobile || '', { shouldValidate: false });
       form.setValue('alternateNo', employee.alternateNo || '', { shouldValidate: false });
@@ -194,7 +192,12 @@ export default function EmployeeEdit() {
       form.setValue('ppeKit', employee.ppeKit || false, { shouldValidate: false });
       form.setValue('kitNo', employee.kitNo || '', { shouldValidate: false });
       form.setValue('status', employee.status || 'Active', { shouldValidate: false });
-      calculateAge(employee?.dob || '');
+      // Only calculate age if DOB is not the placeholder date
+      if (employee.dob && employee.dob !== '2000-01-01') {
+        calculateAge(employee.dob);
+      } else {
+        setAge(null);
+      }
     }
   }, [employee, form]);
 
