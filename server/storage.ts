@@ -691,18 +691,6 @@ export class DrizzleStorage implements IStorage {
     return result as Site[];
   }
 
-
-  async deleteEmployee(id: string): Promise<void> {
-    await db.delete(employees).where(eq(employees.id, id));
-  }
-
-  async getEmployeeCount(): Promise<number> {
-    const result = await db
-      .select({ count: count() })
-      .from(employees);
-    return Number(result[0]?.count) || 0;
-  }
-
   // Salary operations
   async createSalary(salary: InsertSalary): Promise<SalaryStructure> {
     const [result] = await db
