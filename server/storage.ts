@@ -278,12 +278,37 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async getEmployees(limit: number, offset: number): Promise<Employee[]> {
+  async getEmployees(limit: number, offset: number): Promise<any[]> {
     const results = await db
       .select({
-        ...getTableColumns(employees),
-        designationName: designations.name,
-        departmentName: departments.name,
+        id: employees.id,
+        name: employees.name,
+        email: employees.email,
+        password: employees.password,
+        dob: employees.dob,
+        fatherName: employees.fatherName,
+        mobile: employees.mobile,
+        alternateNo: employees.alternateNo,
+        address: employees.address,
+        city: employees.city,
+        state: employees.state,
+        country: employees.country,
+        departmentId: employees.departmentId,
+        designationId: employees.designationId,
+        role: employees.role,
+        doj: employees.doj,
+        aadhar: employees.aadhar,
+        pan: employees.pan,
+        bloodGroup: employees.bloodGroup,
+        maritalStatus: employees.maritalStatus,
+        nominee: employees.nominee,
+        ppeKit: employees.ppeKit,
+        kitNo: employees.kitNo,
+        status: employees.status,
+        createdAt: employees.createdAt,
+        updatedAt: employees.updatedAt,
+        designation: designations.name,
+        department: departments.name,
       })
       .from(employees)
       .leftJoin(designations, eq(employees.designationId, designations.id))
@@ -294,15 +319,9 @@ export class DrizzleStorage implements IStorage {
     
     return results.map(result => {
       const emp = result as any;
-      if (emp.designationName) {
-        (emp as any).designation = emp.designationName;
-      }
-      if (emp.departmentName) {
-        (emp as any).department = emp.departmentName;
-      }
-      delete emp.designationName;
-      delete emp.departmentName;
-      return emp as Employee;
+      emp.designation = emp.designation || '';
+      emp.department = emp.department || '';
+      return emp;
     });
   }
 
