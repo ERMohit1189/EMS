@@ -105,9 +105,9 @@ export default function EmployeeList() {
                  <div className="font-medium">{e.name}</div>
                  <div className="text-xs text-muted-foreground">{e.designation || 'Not Specified'}</div>
                </div>
-               <div className="p-4 text-sm font-mono text-blue-600 truncate" data-testid={`text-email-${e.id}`} title={e.email}>{e.email}</div>
-               <div className="p-4 text-sm font-mono">{e.mobile}</div>
-               <div className="p-4 text-sm">{e.city}</div>
+               <div className="p-4 text-sm font-mono text-blue-600 truncate text-left" data-testid={`text-email-${e.id}`} title={e.email}>{e.email}</div>
+               <div className="p-4 text-sm font-mono text-left">{e.mobile}</div>
+               <div className="p-4 text-sm text-left">{e.city}</div>
                <div className="p-4">
                  <Badge 
                    variant={e.status === 'Active' ? 'default' : 'secondary'}
