@@ -226,24 +226,37 @@ export default function Teams() {
     if (!memberToAssign || !selectedTeamId) return;
 
     try {
-      const levelKey = `reportingPerson${level}`;
+      console.log('[Teams] Assigning reporting person:', memberToAssign.name, 'Level:', level);
       
       for (const otherMember of teamMembers) {
         const updates: any = {};
-        updates[`reportingPerson${level}`] = memberToAssign.id;
+        const fieldName = `reportingPerson${level}`;
+        updates[fieldName] = memberToAssign.id;
         
-        await fetch(`${getApiBaseUrl()}/api/teams/members/${otherMember.id}/reporting`, {
+        console.log('[Teams] Updating member:', otherMember.id, 'with:', updates);
+        const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${otherMember.id}/reporting`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('[Teams] API Error:', errorData);
+          throw new Error(errorData.error || 'Failed to update');
+        }
+        
+        const result = await response.json();
+        console.log('[Teams] Update result:', result);
       }
 
+      console.log('[Teams] All updates completed, fetching team members');
       toast({ title: 'Success', description: `${memberToAssign.name} assigned as Reporting Person ${level} for all team members` });
       setIsAssignmentModalOpen(false);
       setMemberToAssign(null);
-      fetchTeamMembers(selectedTeamId);
+      await fetchTeamMembers(selectedTeamId);
     } catch (error: any) {
+      console.error('[Teams] Error assigning reporting person:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   };

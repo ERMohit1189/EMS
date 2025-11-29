@@ -1126,15 +1126,21 @@ export class DrizzleStorage implements IStorage {
   }
 
   async updateTeamMemberReporting(memberId: string, reportingPerson1?: string, reportingPerson2?: string, reportingPerson3?: string): Promise<any> {
-    console.log('[Storage] updateTeamMemberReporting - memberId:', memberId);
+    console.log('[Storage] updateTeamMemberReporting - memberId:', memberId, 'rp1:', reportingPerson1, 'rp2:', reportingPerson2, 'rp3:', reportingPerson3);
+    
+    const updates: any = {};
+    if (reportingPerson1 !== undefined) updates.reportingPerson1 = reportingPerson1 || null;
+    if (reportingPerson2 !== undefined) updates.reportingPerson2 = reportingPerson2 || null;
+    if (reportingPerson3 !== undefined) updates.reportingPerson3 = reportingPerson3 || null;
+    
+    console.log('[Storage] Updates object:', updates);
+    
     const [result] = await db.update(teamMembers)
-      .set({
-        reportingPerson1: reportingPerson1 || null,
-        reportingPerson2: reportingPerson2 || null,
-        reportingPerson3: reportingPerson3 || null,
-      })
+      .set(updates)
       .where(eq(teamMembers.id, memberId))
       .returning();
+    
+    console.log('[Storage] Updated result:', result);
     return result;
   }
 }
