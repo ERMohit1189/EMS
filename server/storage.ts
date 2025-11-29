@@ -949,12 +949,12 @@ export class DrizzleStorage implements IStorage {
     
     console.log(`[Filter] month=${month}, year=${year}, range: ${startDateStr} to ${endDateStr}`);
     
-    // Direct text-based date comparison for PostgreSQL
+    // Use Drizzle column reference with SQL casting for proper date comparison
     const result = await db.select().from(dailyAllowances)
       .where(and(
         eq(dailyAllowances.employeeId, employeeId),
-        sql`"date" >= ${startDateStr}::date`,
-        sql`"date" <= ${endDateStr}::date`
+        sql`${dailyAllowances.date}::date >= ${startDateStr}::date`,
+        sql`${dailyAllowances.date}::date <= ${endDateStr}::date`
       ))
       .orderBy(dailyAllowances.date);
     
