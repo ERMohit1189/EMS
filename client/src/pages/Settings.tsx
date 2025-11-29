@@ -10,6 +10,16 @@ export default function Settings() {
   const [hrEmail, setHrEmail] = useState('');
   const [procurementEmail, setProcurementEmail] = useState('');
   const [dpoEmail, setDpoEmail] = useState('');
+  const [allowanceCaps, setAllowanceCaps] = useState({
+    travelAllowance: '',
+    foodAllowance: '',
+    accommodationAllowance: '',
+    mobileAllowance: '',
+    internetAllowance: '',
+    utilitiesAllowance: '',
+    parkingAllowance: '',
+    miscAllowance: '',
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -20,6 +30,12 @@ export default function Settings() {
     setHrEmail(localStorage.getItem('hrContactEmail') || 'hr@company.com');
     setProcurementEmail(localStorage.getItem('procurementContactEmail') || 'procurement@company.com');
     setDpoEmail(localStorage.getItem('dpoContactEmail') || 'dpo@company.com');
+
+    // Load allowance caps
+    const caps = localStorage.getItem('allowanceCaps');
+    if (caps) {
+      setAllowanceCaps(JSON.parse(caps));
+    }
   }, []);
 
   const handleGstToggle = (checked: boolean) => {
@@ -38,6 +54,14 @@ export default function Settings() {
     toast({
       title: "Success",
       description: 'Contact and complaints emails saved successfully',
+    });
+  };
+
+  const handleSaveAllowanceCaps = () => {
+    localStorage.setItem('allowanceCaps', JSON.stringify(allowanceCaps));
+    toast({
+      title: "Success",
+      description: 'Allowance caps updated successfully',
     });
   };
 
@@ -65,6 +89,118 @@ export default function Settings() {
               data-testid="toggle-gst-input"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Daily Allowances</CardTitle>
+          <CardDescription>Set maximum limits for each allowance type</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Travel Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.travelAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, travelAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+                data-testid="input-travel-cap"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Food Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.foodAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, foodAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+                data-testid="input-food-cap"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Accommodation Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.accommodationAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, accommodationAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Mobile Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.mobileAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, mobileAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Internet Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.internetAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, internetAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Utilities Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.utilitiesAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, utilitiesAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Parking Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.parkingAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, parkingAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Miscellaneous Max (Rs)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={allowanceCaps.miscAllowance}
+                onChange={(e) => setAllowanceCaps({...allowanceCaps, miscAllowance: e.target.value})}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <Button onClick={handleSaveAllowanceCaps} className="w-full" data-testid="button-save-allowance-caps">
+            Save Allowance Caps
+          </Button>
         </CardContent>
       </Card>
 

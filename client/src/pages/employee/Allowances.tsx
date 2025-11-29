@@ -50,9 +50,15 @@ export default function Allowances() {
   const [loading, setLoading] = useState(false);
   const [submittedEntries, setSubmittedEntries] = useState<AllowanceEntry[]>([]);
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
+  const [caps, setCaps] = useState<any>({});
 
   useEffect(() => {
     fetchAllowances();
+    // Load allowance caps from settings
+    const allowanceCaps = localStorage.getItem('allowanceCaps');
+    if (allowanceCaps) {
+      setCaps(JSON.parse(allowanceCaps));
+    }
   }, []);
 
   const fetchAllowances = async () => {
@@ -80,6 +86,49 @@ export default function Allowances() {
         description: "Please select a date",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Validate against caps
+    const travel = parseFloat(formData.travelAllowance) || 0;
+    const food = parseFloat(formData.foodAllowance) || 0;
+    const accom = parseFloat(formData.accommodationAllowance) || 0;
+    const mobile = parseFloat(formData.mobileAllowance) || 0;
+    const internet = parseFloat(formData.internetAllowance) || 0;
+    const utilities = parseFloat(formData.utilitiesAllowance) || 0;
+    const parking = parseFloat(formData.parkingAllowance) || 0;
+    const misc = parseFloat(formData.miscAllowance) || 0;
+
+    if (caps.travelAllowance && travel > parseFloat(caps.travelAllowance)) {
+      toast({ title: "Error", description: `Travel allowance exceeds maximum of Rs ${caps.travelAllowance}`, variant: "destructive" });
+      return;
+    }
+    if (caps.foodAllowance && food > parseFloat(caps.foodAllowance)) {
+      toast({ title: "Error", description: `Food allowance exceeds maximum of Rs ${caps.foodAllowance}`, variant: "destructive" });
+      return;
+    }
+    if (caps.accommodationAllowance && accom > parseFloat(caps.accommodationAllowance)) {
+      toast({ title: "Error", description: `Accommodation exceeds maximum of Rs ${caps.accommodationAllowance}`, variant: "destructive" });
+      return;
+    }
+    if (caps.mobileAllowance && mobile > parseFloat(caps.mobileAllowance)) {
+      toast({ title: "Error", description: `Mobile exceeds maximum of Rs ${caps.mobileAllowance}`, variant: "destructive" });
+      return;
+    }
+    if (caps.internetAllowance && internet > parseFloat(caps.internetAllowance)) {
+      toast({ title: "Error", description: `Internet exceeds maximum of Rs ${caps.internetAllowance}`, variant: "destructive" });
+      return;
+    }
+    if (caps.utilitiesAllowance && utilities > parseFloat(caps.utilitiesAllowance)) {
+      toast({ title: "Error", description: `Utilities exceed maximum of Rs ${caps.utilitiesAllowance}`, variant: "destructive" });
+      return;
+    }
+    if (caps.parkingAllowance && parking > parseFloat(caps.parkingAllowance)) {
+      toast({ title: "Error", description: `Parking exceeds maximum of Rs ${caps.parkingAllowance}`, variant: "destructive" });
+      return;
+    }
+    if (caps.miscAllowance && misc > parseFloat(caps.miscAllowance)) {
+      toast({ title: "Error", description: `Miscellaneous exceeds maximum of Rs ${caps.miscAllowance}`, variant: "destructive" });
       return;
     }
 
@@ -178,11 +227,12 @@ export default function Allowances() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div>
-                <label className="text-xs font-medium">Travel</label>
+                <label className="text-xs font-medium">Travel {caps.travelAllowance && `(Max: Rs ${caps.travelAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.travelAllowance || undefined}
                   placeholder="0"
                   value={formData.travelAllowance}
                   onChange={(e) => setFormData({ ...formData, travelAllowance: e.target.value })}
@@ -192,11 +242,12 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Food</label>
+                <label className="text-xs font-medium">Food {caps.foodAllowance && `(Max: Rs ${caps.foodAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.foodAllowance || undefined}
                   placeholder="0"
                   value={formData.foodAllowance}
                   onChange={(e) => setFormData({ ...formData, foodAllowance: e.target.value })}
@@ -205,11 +256,12 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Accommodation</label>
+                <label className="text-xs font-medium">Accommodation {caps.accommodationAllowance && `(Max: Rs ${caps.accommodationAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.accommodationAllowance || undefined}
                   placeholder="0"
                   value={formData.accommodationAllowance}
                   onChange={(e) => setFormData({ ...formData, accommodationAllowance: e.target.value })}
@@ -218,11 +270,12 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Mobile</label>
+                <label className="text-xs font-medium">Mobile {caps.mobileAllowance && `(Max: Rs ${caps.mobileAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.mobileAllowance || undefined}
                   placeholder="0"
                   value={formData.mobileAllowance}
                   onChange={(e) => setFormData({ ...formData, mobileAllowance: e.target.value })}
@@ -231,11 +284,12 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Internet</label>
+                <label className="text-xs font-medium">Internet {caps.internetAllowance && `(Max: Rs ${caps.internetAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.internetAllowance || undefined}
                   placeholder="0"
                   value={formData.internetAllowance}
                   onChange={(e) => setFormData({ ...formData, internetAllowance: e.target.value })}
@@ -244,11 +298,12 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Utilities</label>
+                <label className="text-xs font-medium">Utilities {caps.utilitiesAllowance && `(Max: Rs ${caps.utilitiesAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.utilitiesAllowance || undefined}
                   placeholder="0"
                   value={formData.utilitiesAllowance}
                   onChange={(e) => setFormData({ ...formData, utilitiesAllowance: e.target.value })}
@@ -257,11 +312,12 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Parking</label>
+                <label className="text-xs font-medium">Parking {caps.parkingAllowance && `(Max: Rs ${caps.parkingAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.parkingAllowance || undefined}
                   placeholder="0"
                   value={formData.parkingAllowance}
                   onChange={(e) => setFormData({ ...formData, parkingAllowance: e.target.value })}
@@ -270,11 +326,12 @@ export default function Allowances() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium">Misc</label>
+                <label className="text-xs font-medium">Misc {caps.miscAllowance && `(Max: Rs ${caps.miscAllowance})`}</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
+                  max={caps.miscAllowance || undefined}
                   placeholder="0"
                   value={formData.miscAllowance}
                   onChange={(e) => setFormData({ ...formData, miscAllowance: e.target.value })}
