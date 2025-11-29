@@ -546,21 +546,21 @@ export default function Allowances() {
       </Card>
 
       <Card className="shadow-sm">
-        <CardHeader className="pb-3 pt-4 px-4 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <CardTitle className="text-lg font-bold text-slate-800 mb-4">History</CardTitle>
-          <div className="flex items-center justify-center gap-4">
+        <CardHeader className="pb-2 pt-2 px-3 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
+          <CardTitle className="text-base font-bold text-slate-800">History</CardTitle>
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={goToPreviousMonth}
               data-testid="button-previous-month"
-              className="h-9 px-3 rounded-lg border-slate-200 hover:bg-white hover:border-slate-300 transition-all duration-200"
+              className="h-7 px-2 rounded border-slate-200 hover:bg-white hover:border-slate-300 transition-all duration-200 text-sm"
             >
-              <span className="text-lg">←</span>
+              ←
             </Button>
-            <div className="text-center px-6 py-2 bg-white rounded-lg border border-slate-200 shadow-sm">
-              <p className="font-bold text-lg text-slate-800 tracking-wide" data-testid="display-month-year">
+            <div className="text-center px-3 py-1 bg-white rounded border border-slate-200 shadow-sm min-w-fit">
+              <p className="font-semibold text-xs text-slate-800 tracking-wide" data-testid="display-month-year">
                 {formatMonthYear()}
               </p>
             </div>
@@ -570,9 +570,9 @@ export default function Allowances() {
               size="sm"
               onClick={goToNextMonth}
               data-testid="button-next-month"
-              className="h-9 px-3 rounded-lg border-slate-200 hover:bg-white hover:border-slate-300 transition-all duration-200"
+              className="h-7 px-2 rounded border-slate-200 hover:bg-white hover:border-slate-300 transition-all duration-200 text-sm"
             >
-              <span className="text-lg">→</span>
+              →
             </Button>
           </div>
         </CardHeader>
