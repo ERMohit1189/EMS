@@ -167,8 +167,35 @@ export default function EmployeeEdit() {
   });
 
   useEffect(() => {
-    calculateAge(employee?.dob || '');
-  }, [employee?.dob]);
+    if (employee) {
+      form.reset({
+        name: employee.name || '',
+        email: employee.email || '',
+        dob: employee.dob || '',
+        fatherName: employee.fatherName || '',
+        mobile: employee.mobile || '',
+        alternateNo: employee.alternateNo || '',
+        address: employee.address || '',
+        city: employee.city || '',
+        state: employee.state || '',
+        country: employee.country || 'India',
+        role: employee.role || 'user',
+        departmentId: employee.departmentId || '',
+        designationId: employee.designationId || '',
+        doj: employee.doj || '',
+        aadhar: employee.aadhar || '',
+        pan: employee.pan || '',
+        bloodGroup: employee.bloodGroup || '',
+        maritalStatus: employee.maritalStatus || 'Single',
+        spouseName: employee.spouseName || '',
+        nominee: employee.nominee || '',
+        ppeKit: employee.ppeKit || false,
+        kitNo: employee.kitNo || '',
+        status: employee.status || 'Active',
+      });
+      calculateAge(employee?.dob || '');
+    }
+  }, [employee, form]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
