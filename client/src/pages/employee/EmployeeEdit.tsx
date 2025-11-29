@@ -168,17 +168,9 @@ export default function EmployeeEdit() {
 
   useEffect(() => {
     if (employee && departments.length > 0 && designations.length > 0) {
-      console.log('Setting critical values - role:', employee.role, 'deptId:', employee.departmentId, 'desigId:', employee.designationId);
-      form.setValue('role', employee.role || 'user', { shouldValidate: false, shouldDirty: false });
-      form.setValue('departmentId', employee.departmentId || '', { shouldValidate: false, shouldDirty: false });
-      form.setValue('designationId', employee.designationId || '', { shouldValidate: false, shouldDirty: false });
-      form.setValue('bloodGroup', employee.bloodGroup || '', { shouldValidate: false, shouldDirty: false });
-      form.setValue('status', employee.status || 'Active', { shouldValidate: false, shouldDirty: false });
-      form.setValue('city', employee.city || '', { shouldValidate: false, shouldDirty: false });
-      form.setValue('state', employee.state || '', { shouldValidate: false, shouldDirty: false });
       calculateAge(employee?.dob || '');
     }
-  }, [employee, departments, designations, form]);
+  }, [employee, departments, designations]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
@@ -628,7 +620,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel><RequiredLabel>Role</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={employee?.role || 'user'}>
                       <FormControl>
                         <SelectTrigger data-testid="select-role">
                           <SelectValue placeholder="Select Role" />
@@ -649,7 +641,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={employee?.departmentId || ''}>
                       <FormControl>
                         <SelectTrigger data-testid="select-department">
                           <SelectValue placeholder="Select Department" />
@@ -671,7 +663,7 @@ export default function EmployeeEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel><RequiredLabel>Designation</RequiredLabel></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={employee?.designationId || ''}>
                       <FormControl>
                         <SelectTrigger data-testid="select-designation">
                           <SelectValue placeholder="Select Designation" />
