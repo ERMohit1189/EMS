@@ -318,14 +318,33 @@ export default function SalaryStructure() {
       
       const method = salary.id ? 'PUT' : 'POST';
       
+      // Ensure all numeric fields are actual numbers
+      const salaryData = {
+        ...salary,
+        basicSalary: Number(salary.basicSalary),
+        hra: Number(salary.hra),
+        da: Number(salary.da),
+        lta: Number(salary.lta),
+        conveyance: Number(salary.conveyance),
+        medical: Number(salary.medical),
+        bonuses: Number(salary.bonuses),
+        otherBenefits: Number(salary.otherBenefits),
+        pf: Number(salary.pf),
+        professionalTax: Number(salary.professionalTax),
+        incomeTax: Number(salary.incomeTax),
+        epf: Number(salary.epf),
+        esic: Number(salary.esic),
+      };
+      
       const response = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(salary),
+        body: JSON.stringify(salaryData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save salary structure');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save salary structure');
       }
 
       const saved = await response.json();
@@ -338,7 +357,7 @@ export default function SalaryStructure() {
       console.error('Error saving salary:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save salary structure',
+        description: error instanceof Error ? error.message : 'Failed to save salary structure',
         variant: 'destructive',
       });
     } finally {

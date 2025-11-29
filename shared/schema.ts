@@ -314,26 +314,30 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
   dob: z.union([z.string(), z.null()]).optional().transform((val) => val || undefined),
 });
 
-export const insertSalarySchema = createInsertSchema(salaryStructures).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).refine(
-  (data) => {
-    // Coerce all numeric fields to handle float values properly
+export const insertSalarySchema = createInsertSchema(salaryStructures)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .transform((data) => {
+    // Transform all numeric fields to handle float values properly
     const numericFields = [
       'basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
       'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'
-    ];
+    ] as const;
+    
+    const transformed: any = { ...data };
     for (const field of numericFields) {
-      if (data[field] !== undefined && data[field] !== null) {
-        const val = typeof data[field] === 'string' ? parseFloat(data[field]) : data[field];
-        data[field] = val;
+      if (transformed[field] !== undefined && transformed[field] !== null) {
+        const num = typeof transformed[field] === 'string' 
+          ? parseFloat(transformed[field]) 
+          : Number(transformed[field]);
+        transformed[field] = isNaN(num) ? 0 : num;
       }
     }
-    return true;
-  }
-);
+    return transformed;
+  });
 
 export const insertPOSchema = createInsertSchema(purchaseOrders).omit({
   id: true,
