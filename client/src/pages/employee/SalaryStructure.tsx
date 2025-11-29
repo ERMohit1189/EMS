@@ -289,6 +289,15 @@ export default function SalaryStructure() {
     });
   };
 
+  const handleFieldBlur = (field: keyof SalaryStructure) => {
+    // When user leaves a fixed value field, recalculate gross/net
+    const fixedFields = ['conveyance', 'medical', 'bonuses', 'otherBenefits', 'professionalTax', 'incomeTax'];
+    if (fixedFields.includes(field)) {
+      // Just recalculate display values (gross/net will auto-update)
+      // No need to do anything - values are already set
+    }
+  };
+
   const saveSalary = async () => {
     if (!salary) return;
     setIsSaving(true);
@@ -368,13 +377,14 @@ export default function SalaryStructure() {
   const renderSalaryField = (field: keyof Omit<SalaryStructure, 'id' | 'employeeId'>, label: string) => {
     const isManuallyEdited = manuallyEdited.has(field);
     const formula = formulas[field];
+    const isFixed = formula.type === 'fixed';
     
     return (
       <div key={field} className="grid grid-cols-2 items-center gap-2">
         <div>
           <Label className="text-sm">{label}</Label>
           <p className="text-xs text-muted-foreground">
-            {formula.type === 'percentage' ? `${formula.value}% of Basic` : 'Fixed'}
+            {formula.type === 'percentage' ? `${formula.value}% of Basic` : 'Fixed - Manual Entry'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -382,7 +392,9 @@ export default function SalaryStructure() {
             type="number" 
             value={salary[field]} 
             onChange={(e) => handleSalaryChange(field, e.target.value, 'basic')}
-            className={isManuallyEdited ? 'border-blue-500' : ''}
+            onBlur={() => handleFieldBlur(field)}
+            className={isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}
+            placeholder="0"
           />
           {isManuallyEdited && (
             <Button
