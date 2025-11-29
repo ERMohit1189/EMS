@@ -319,18 +319,6 @@ export const insertSalarySchema = createInsertSchema(salaryStructures)
     id: true,
     createdAt: true,
     updatedAt: true,
-  })
-  .transform((data: any) => {
-    // Convert all numeric fields to strings for decimal handling
-    const fields = ['basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
-                   'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'];
-    const transformed: any = { ...data };
-    for (const field of fields) {
-      if (transformed[field] !== undefined && transformed[field] !== null) {
-        transformed[field] = String(transformed[field]);
-      }
-    }
-    return transformed;
   });
 
 export const insertPOSchema = createInsertSchema(purchaseOrders).omit({

@@ -642,7 +642,16 @@ export async function registerRoutes(
   // Salary routes
   app.post("/api/salary-structures", async (req, res) => {
     try {
-      const data = insertSalarySchema.parse(req.body);
+      // Convert all numeric fields to strings for decimal handling
+      const body = req.body;
+      const fields = ['basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
+                     'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'];
+      for (const field of fields) {
+        if (body[field] !== undefined && body[field] !== null) {
+          body[field] = String(body[field]);
+        }
+      }
+      const data = insertSalarySchema.parse(body);
       const salary = await storage.createSalary(data);
       res.json(salary);
     } catch (error: any) {
@@ -678,7 +687,16 @@ export async function registerRoutes(
 
   app.put("/api/salary-structures/:id", async (req, res) => {
     try {
-      const data = insertSalarySchema.partial().parse(req.body);
+      // Convert all numeric fields to strings for decimal handling
+      const body = req.body;
+      const fields = ['basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
+                     'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'];
+      for (const field of fields) {
+        if (body[field] !== undefined && body[field] !== null) {
+          body[field] = String(body[field]);
+        }
+      }
+      const data = insertSalarySchema.partial().parse(body);
       const salary = await storage.updateSalary(req.params.id, data);
       res.json(salary);
     } catch (error: any) {
