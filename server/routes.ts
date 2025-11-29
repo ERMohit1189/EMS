@@ -1295,5 +1295,61 @@ export async function registerRoutes(
     }
   });
 
+  // Daily Allowances routes
+  app.post("/api/allowances", async (req, res) => {
+    try {
+      const { employeeId, date, allowanceData } = req.body;
+      
+      if (!employeeId || !date || !allowanceData) {
+        return res.status(400).json({ error: "Missing required fields: employeeId, date, allowanceData" });
+      }
+      
+      // Check if allowance exists for this date
+      const existing = await storage.getEmployeeAllowancesByDate(employeeId, date);
+      
+      let allowance;
+      if (existing) {
+        // Update existing
+        allowance = await storage.updateDailyAllowance(existing.id, {
+          allowanceData: allowanceData,
+        });
+      } else {
+        // Create new
+        allowance = await storage.createDailyAllowance({
+          employeeId,
+          date,
+          allowanceData: allowanceData,
+        });
+      }
+      
+      console.log(`[Allowances] Successfully saved for employee ${employeeId}, date ${date}`);
+      res.json({ success: true, data: allowance });
+    } catch (error: any) {
+      console.error(`[Allowances Error]`, error.message);
+      res.status(500).json({ error: error.message || "Failed to save allowance" });
+    }
+  });
+
+  app.get("/api/allowances/:employeeId", async (req, res) => {
+    try {
+      const { employeeId } = req.params;
+      const allowances = await storage.getEmployeeAllowances(employeeId);
+      res.json({ data: allowances });
+    } catch (error: any) {
+      console.error(`[Allowances Fetch Error]`, error.message);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/allowances/:employeeId/:date", async (req, res) => {
+    try {
+      const { employeeId, date } = req.params;
+      const allowance = await storage.getEmployeeAllowancesByDate(employeeId, date);
+      res.json(allowance || null);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

@@ -152,6 +152,14 @@ export interface IStorage {
   getEmployeeMonthlyAttendance(employeeId: string, month: number, year: number): Promise<Attendance | undefined>;
   updateAttendance(id: string, attendance: Partial<InsertAttendance>): Promise<Attendance>;
   deleteAttendance(id: string): Promise<void>;
+
+  // Daily Allowances operations
+  createDailyAllowance(allowance: InsertDailyAllowance): Promise<DailyAllowance>;
+  getDailyAllowance(id: string): Promise<DailyAllowance | undefined>;
+  getEmployeeAllowancesByDate(employeeId: string, date: string): Promise<DailyAllowance | undefined>;
+  getEmployeeAllowances(employeeId: string, limit?: number): Promise<DailyAllowance[]>;
+  updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance>;
+  deleteDailyAllowance(id: string): Promise<void>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -901,6 +909,43 @@ export class DrizzleStorage implements IStorage {
 
   async deleteAttendance(id: string): Promise<void> {
     await db.delete(attendances).where(eq(attendances.id, id));
+  }
+
+  // Daily Allowances operations
+  async createDailyAllowance(allowance: InsertDailyAllowance): Promise<DailyAllowance> {
+    const [result] = await db.insert(dailyAllowances).values(allowance).returning();
+    return result;
+  }
+
+  async getDailyAllowance(id: string): Promise<DailyAllowance | undefined> {
+    const [result] = await db.select().from(dailyAllowances).where(eq(dailyAllowances.id, id));
+    return result;
+  }
+
+  async getEmployeeAllowancesByDate(employeeId: string, date: string): Promise<DailyAllowance | undefined> {
+    const [result] = await db.select().from(dailyAllowances).where(
+      and(
+        eq(dailyAllowances.employeeId, employeeId),
+        eq(dailyAllowances.date, date)
+      )
+    );
+    return result;
+  }
+
+  async getEmployeeAllowances(employeeId: string, limit: number = 30): Promise<DailyAllowance[]> {
+    return await db.select().from(dailyAllowances)
+      .where(eq(dailyAllowances.employeeId, employeeId))
+      .orderBy((t) => t.date)
+      .limit(limit);
+  }
+
+  async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance> {
+    const [result] = await db.update(dailyAllowances).set(allowance).where(eq(dailyAllowances.id, id)).returning();
+    return result;
+  }
+
+  async deleteDailyAllowance(id: string): Promise<void> {
+    await db.delete(dailyAllowances).where(eq(dailyAllowances.id, id));
   }
 }
 
