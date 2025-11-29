@@ -284,6 +284,38 @@ export default function Teams() {
     return colors[index] || colors[0];
   };
 
+  const deleteReportingPersonAssignment = async (level: 1 | 2 | 3) => {
+    if (!selectedTeamId) return;
+
+    try {
+      console.log('[Teams] Deleting RP', level, 'assignment');
+      
+      for (const member of teamMembers) {
+        const updates: any = {};
+        const fieldName = `reportingPerson${level}`;
+        updates[fieldName] = null;
+        
+        const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${member.id}/reporting`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('[Teams] API Error:', errorData);
+          throw new Error(errorData.error || 'Failed to delete');
+        }
+      }
+
+      toast({ title: 'Success', description: `Reporting Person ${level} assignment removed` });
+      await fetchTeamMembers(selectedTeamId);
+    } catch (error: any) {
+      console.error('[Teams] Error deleting RP assignment:', error);
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
   const handleDeleteTeam = async (teamId: string) => {
     if (!window.confirm('Are you sure you want to delete this team?')) return;
 
@@ -511,45 +543,69 @@ export default function Teams() {
                     <div className="flex flex-wrap gap-1">
                       {member.reportingPerson1 === member.id ? (
                         <div
+                          className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(0)} cursor-pointer hover:opacity-80 transition-opacity`}
+                          data-testid={`badge-reporting-person-1-${member.id}`}
+                          onClick={() => deleteReportingPersonAssignment(1)}
+                          title="Click to remove RP1 assignment"
+                        >
+                          RP1
+                          <span className="text-xs font-bold ml-0.5">✕</span>
+                        </div>
+                      ) : member.reportingPerson1 ? (
+                        <div
                           className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
                           data-testid={`badge-reporting-person-1-${member.id}`}
                         >
-                          RP1
+                          RP1: {getReportingPersonName(member.reportingPerson1)}
                         </div>
-                      ) : (
-                        <>
-                          {member.reportingPerson1 && (
-                            <div
-                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(0)}`}
-                              data-testid={`badge-reporting-person-1-${member.id}`}
-                            >
-                              RP1: {getReportingPersonName(member.reportingPerson1)}
-                            </div>
-                          )}
-                          {member.reportingPerson2 && (
-                            <div
-                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
-                              data-testid={`badge-reporting-person-2-${member.id}`}
-                            >
-                              {member.reportingPerson2 === member.id ? 'RP2' : `RP2: ${getReportingPersonName(member.reportingPerson2)}`}
-                            </div>
-                          )}
-                          {member.reportingPerson3 && (
-                            <div
-                              className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
-                              data-testid={`badge-reporting-person-3-${member.id}`}
-                            >
-                              {member.reportingPerson3 === member.id ? 'RP3' : `RP3: ${getReportingPersonName(member.reportingPerson3)}`}
-                            </div>
-                          )}
-                          <button
-                            onClick={() => handleMemberClick(member)}
-                            className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
-                            data-testid={`button-assign-reporting-${member.id}`}
-                          >
-                            Make RP
-                          </button>
-                        </>
+                      ) : null}
+                      
+                      {member.reportingPerson2 === member.id ? (
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(1)} cursor-pointer hover:opacity-80 transition-opacity`}
+                          data-testid={`badge-reporting-person-2-${member.id}`}
+                          onClick={() => deleteReportingPersonAssignment(2)}
+                          title="Click to remove RP2 assignment"
+                        >
+                          RP2
+                          <span className="text-xs font-bold ml-0.5">✕</span>
+                        </div>
+                      ) : member.reportingPerson2 ? (
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(1)}`}
+                          data-testid={`badge-reporting-person-2-${member.id}`}
+                        >
+                          RP2: {getReportingPersonName(member.reportingPerson2)}
+                        </div>
+                      ) : null}
+                      
+                      {member.reportingPerson3 === member.id ? (
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(2)} cursor-pointer hover:opacity-80 transition-opacity`}
+                          data-testid={`badge-reporting-person-3-${member.id}`}
+                          onClick={() => deleteReportingPersonAssignment(3)}
+                          title="Click to remove RP3 assignment"
+                        >
+                          RP3
+                          <span className="text-xs font-bold ml-0.5">✕</span>
+                        </div>
+                      ) : member.reportingPerson3 ? (
+                        <div
+                          className={`px-2 py-0.5 rounded text-xs border ${getReportingBadgeColor(2)}`}
+                          data-testid={`badge-reporting-person-3-${member.id}`}
+                        >
+                          RP3: {getReportingPersonName(member.reportingPerson3)}
+                        </div>
+                      ) : null}
+
+                      {!member.reportingPerson1 && !member.reportingPerson2 && !member.reportingPerson3 && (
+                        <button
+                          onClick={() => handleMemberClick(member)}
+                          className="px-2 py-0.5 rounded text-xs border border-dashed border-gray-400 text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
+                          data-testid={`button-assign-reporting-${member.id}`}
+                        >
+                          Make RP
+                        </button>
                       )}
                     </div>
                   </div>
