@@ -19,6 +19,10 @@ interface HeaderProps {
 export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
   const [, setLocation] = useLocation();
   const employeeName = localStorage.getItem('employeeName') || localStorage.getItem('vendorName') || 'User';
+  const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
+  const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
+  const isUserEmployee = isEmployee && employeeRole === 'user';
+  const showSettings = !isUserEmployee;
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -62,15 +66,17 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive"></span>
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setLocation('/settings')}
-          className="h-9 w-9 md:h-10 md:w-10 hidden md:inline-flex"
-          data-testid="button-settings"
-        >
-          <Settings className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
-        </Button>
+        {showSettings && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setLocation('/settings')}
+            className="h-9 w-9 md:h-10 md:w-10 hidden md:inline-flex"
+            data-testid="button-settings"
+          >
+            <Settings className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
+          </Button>
+        )}
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -83,14 +89,22 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel data-testid="text-account-label" className="text-sm">{employeeName}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setLocation('/settings')} data-testid="menu-item-settings" className="text-sm">
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocation('/employee/change-password')} data-testid="menu-item-change-password" className="text-sm">
-              <Lock className="h-4 w-4 mr-2" />
-              Change Password
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {showSettings && (
+              <>
+                <DropdownMenuItem onClick={() => setLocation('/settings')} data-testid="menu-item-settings" className="text-sm">
+                  Settings
+                </DropdownMenuItem>
+              </>
+            )}
+            {isUserEmployee && (
+              <>
+                <DropdownMenuItem onClick={() => setLocation('/employee/change-password')} data-testid="menu-item-change-password" className="text-sm">
+                  <Lock className="h-4 w-4 mr-2" />
+                  Change Password
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem className="text-destructive text-sm" onClick={handleLogout} data-testid="menu-item-logout">
               Log out
             </DropdownMenuItem>

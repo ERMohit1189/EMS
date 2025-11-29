@@ -186,11 +186,6 @@ const userEmployeeMenuGroups = [
         icon: Key,
         href: '/employee/change-password',
       },
-      {
-        title: 'Settings',
-        icon: SettingsIcon,
-        href: '/settings',
-      },
     ],
   },
 ];
