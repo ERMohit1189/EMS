@@ -289,12 +289,10 @@ export default function SalaryStructure() {
     });
   };
 
-  const handleFieldBlur = (field: keyof SalaryStructure) => {
-    // When user leaves a fixed value field, recalculate gross/net
-    const fixedFields = ['conveyance', 'medical', 'bonuses', 'otherBenefits', 'professionalTax', 'incomeTax'];
-    if (fixedFields.includes(field)) {
-      // Just recalculate display values (gross/net will auto-update)
-      // No need to do anything - values are already set
+  const handleQuickInputBlur = (source: 'gross' | 'net', value: number) => {
+    // Trigger calculation when user leaves Gross or Net field
+    if (value > 0) {
+      handleSalaryChange('basicSalary', value.toString(), source);
     }
   };
 
@@ -391,8 +389,18 @@ export default function SalaryStructure() {
           <Input 
             type="number" 
             value={salary[field]} 
-            onChange={(e) => handleSalaryChange(field, e.target.value, 'basic')}
-            onBlur={() => handleFieldBlur(field)}
+            onChange={(e) => {
+              // Just update the field value, don't calculate
+              const numValue = parseFloat(e.target.value) || 0;
+              setSalary({ ...salary, [field]: numValue });
+            }}
+            onBlur={(e) => {
+              // Calculate when leaving the field
+              const numValue = parseFloat(e.target.value) || 0;
+              const newManuallyEdited = new Set(manuallyEdited);
+              newManuallyEdited.add(field);
+              setManuallyEdited(newManuallyEdited);
+            }}
             className={isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}
             placeholder="0"
           />
@@ -456,7 +464,14 @@ export default function SalaryStructure() {
                 ref={basicSalaryRef}
                 type="number" 
                 value={salary.basicSalary} 
-                onChange={(e) => handleSalaryChange('basicSalary', e.target.value, 'basic')}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  setSalary({ ...salary, basicSalary: val });
+                }}
+                onBlur={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  handleSalaryChange('basicSalary', val.toString(), 'basic');
+                }}
                 className="text-lg font-bold"
                 placeholder="0"
               />
@@ -466,7 +481,13 @@ export default function SalaryStructure() {
               <Input 
                 type="number" 
                 value={gross} 
-                onChange={(e) => handleSalaryChange('basicSalary', e.target.value, 'gross')}
+                onChange={(e) => {
+                  // Just show the value being typed, don't calculate yet
+                }}
+                onBlur={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  if (val > 0) handleQuickInputBlur('gross', val);
+                }}
                 className="text-lg font-bold text-green-700 dark:text-green-300"
                 placeholder="0"
               />
@@ -476,7 +497,13 @@ export default function SalaryStructure() {
               <Input 
                 type="number" 
                 value={net} 
-                onChange={(e) => handleSalaryChange('basicSalary', e.target.value, 'net')}
+                onChange={(e) => {
+                  // Just show the value being typed, don't calculate yet
+                }}
+                onBlur={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  if (val > 0) handleQuickInputBlur('net', val);
+                }}
                 className="text-lg font-bold text-blue-700 dark:text-blue-300"
                 placeholder="0"
               />
