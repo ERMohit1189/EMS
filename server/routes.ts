@@ -1300,21 +1300,32 @@ export async function registerRoutes(
     try {
       const { employeeId, date, allowanceData } = req.body;
       
+      console.log(`[Allowances] POST request - employeeId: ${employeeId}, date: ${date}, hasData: ${!!allowanceData}`);
+      
       if (!employeeId || !date || !allowanceData) {
         return res.status(400).json({ error: "Missing required fields: employeeId, date, allowanceData" });
       }
       
       // Check if allowance exists for this date
-      const existing = await storage.getEmployeeAllowancesByDate(employeeId, date);
+      console.log(`[Allowances] Checking for existing allowance...`);
+      let existing;
+      try {
+        existing = await storage.getEmployeeAllowancesByDate(employeeId, date);
+      } catch (e: any) {
+        console.error(`[Allowances] Error checking existing:`, e.message);
+        throw e;
+      }
       
       let allowance;
       if (existing) {
         // Update existing
+        console.log(`[Allowances] Updating existing allowance ${existing.id}`);
         allowance = await storage.updateDailyAllowance(existing.id, {
           allowanceData: allowanceData,
         });
       } else {
         // Create new
+        console.log(`[Allowances] Creating new allowance`);
         allowance = await storage.createDailyAllowance({
           employeeId,
           date,
@@ -1325,7 +1336,8 @@ export async function registerRoutes(
       console.log(`[Allowances] Successfully saved for employee ${employeeId}, date ${date}`);
       res.json({ success: true, data: allowance });
     } catch (error: any) {
-      console.error(`[Allowances Error]`, error.message);
+      console.error(`[Allowances Error] Full error:`, error);
+      console.error(`[Allowances Error] Stack:`, error.stack);
       res.status(500).json({ error: error.message || "Failed to save allowance" });
     }
   });
