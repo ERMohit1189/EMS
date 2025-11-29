@@ -1101,10 +1101,49 @@ export class DrizzleStorage implements IStorage {
   }
 
   async removeTeamMember(teamId: string, employeeId: string): Promise<void> {
+    // First, get the member being removed to find their ID
+    const memberToRemove = await db.select().from(teamMembers).where(and(
+      eq(teamMembers.teamId, teamId),
+      eq(teamMembers.employeeId, employeeId)
+    ));
+
+    if (memberToRemove.length > 0) {
+      const removedMemberId = memberToRemove[0].id;
+      
+      // Clean up RP references - remove this member from all RP assignments
+      const allMembers = await db.select().from(teamMembers).where(eq(teamMembers.teamId, teamId));
+      
+      for (const member of allMembers) {
+        const updates: any = {};
+        let hasUpdates = false;
+        
+        if (member.reportingPerson1 === removedMemberId) {
+          updates.reportingPerson1 = null;
+          hasUpdates = true;
+        }
+        if (member.reportingPerson2 === removedMemberId) {
+          updates.reportingPerson2 = null;
+          hasUpdates = true;
+        }
+        if (member.reportingPerson3 === removedMemberId) {
+          updates.reportingPerson3 = null;
+          hasUpdates = true;
+        }
+        
+        if (hasUpdates) {
+          console.log('[Storage] Cleaning up RP references for member:', member.id, 'updates:', updates);
+          await db.update(teamMembers).set(updates).where(eq(teamMembers.id, member.id));
+        }
+      }
+    }
+    
+    // Now delete the member
     await db.delete(teamMembers).where(and(
       eq(teamMembers.teamId, teamId),
       eq(teamMembers.employeeId, employeeId)
     ));
+    
+    console.log('[Storage] Removed team member - teamId:', teamId, 'employeeId:', employeeId);
   }
 
   async getTeamMembers(teamId: string): Promise<any[]> {
