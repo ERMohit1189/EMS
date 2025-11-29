@@ -6,6 +6,8 @@ import { Link } from 'wouter';
 
 export default function EmployeeDashboard() {
   const [userProfile, setUserProfile] = useState<any>(null);
+  const employeeRole = localStorage.getItem('employeeRole');
+  const isUserEmployee = employeeRole === 'user';
 
   useEffect(() => {
     const employeeId = localStorage.getItem('employeeId');
@@ -25,7 +27,14 @@ export default function EmployeeDashboard() {
     }
   }, []);
 
-  const menuItems = [
+  // User role employees see restricted menu
+  const menuItems = isUserEmployee ? [
+    { title: 'My Profile', icon: User, href: '/employee/my-profile', color: 'text-blue-500' },
+    { title: 'Salary Structure', icon: DollarSign, href: '/employee/salary', color: 'text-emerald-500' },
+    { title: 'Attendance', icon: Calendar, href: '/employee/attendance', color: 'text-orange-500' },
+    { title: 'Allowances', icon: Activity, href: '/employee/allowances', color: 'text-purple-500' },
+    { title: 'Settings', icon: Briefcase, href: '/settings', color: 'text-indigo-500' },
+  ] : [
     { title: 'My Profile', icon: User, href: '/employee/list', color: 'text-blue-500' },
     { title: 'Salary Structure', icon: DollarSign, href: '/employee/salary', color: 'text-emerald-500' },
     { title: 'Attendance', icon: Calendar, href: '/employee/attendance', color: 'text-orange-500' },

@@ -24,7 +24,7 @@ interface SidebarProps {
   setIsLoggedIn?: (value: boolean) => void;
 }
 
-const menuGroups = [
+const adminMenuGroups = [
   {
     group: 'Main',
     items: [
@@ -152,55 +152,103 @@ const menuGroups = [
   },
 ];
 
+const userEmployeeMenuGroups = [
+  {
+    group: 'Employee',
+    items: [
+      {
+        title: 'My Profile',
+        icon: Users,
+        href: '/employee/my-profile',
+      },
+      {
+        title: 'Salary Structure',
+        icon: BarChart3,
+        href: '/employee/salary',
+      },
+      {
+        title: 'Attendance',
+        icon: Calendar,
+        href: '/employee/attendance',
+      },
+      {
+        title: 'Allowances',
+        icon: Wallet,
+        href: '/employee/allowances',
+      },
+      {
+        title: 'Change Credentials',
+        icon: Key,
+        href: '/employee/change-credentials',
+      },
+    ],
+  },
+  {
+    group: 'Settings',
+    items: [
+      {
+        title: 'App Settings',
+        icon: SettingsIcon,
+        href: '/settings',
+      },
+    ],
+  },
+];
+
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const [location] = useLocation();
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    Main: true,
-    'Vendor Management': false,
-    'Employee Management': false,
-    'Site Operations': false,
-    Finance: false,
-    Settings: false,
-  });
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   
   // Check if user is logged in as employee
   const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
+  const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
+  const isUserEmployee = isEmployee && employeeRole === 'user';
+  
+  // Determine menu groups based on role
+  const menuGroups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
+  
+  // Initialize expanded groups based on menu groups
+  useEffect(() => {
+    const initialExpandedGroups: Record<string, boolean> = {};
+    menuGroups.forEach(group => {
+      initialExpandedGroups[group.group] = true;
+    });
+    setExpandedGroups(initialExpandedGroups);
+  }, [menuGroups]);
 
   // Auto-expand/collapse groups based on current route
   useEffect(() => {
     const getGroupForRoute = (route: string): string | null => {
-      if (route === '/') return 'Main';
-      // Check Settings routes first (before general vendor routes)
-      if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
-      if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
-      if (route.startsWith('/employee')) return 'Employee Management';
-      if (route.startsWith('/vendor')) {
-        if (route.includes('credentials')) return 'Vendor Management';
-        if (route.includes('sites') || route.includes('payment-master') || route.includes('excel-import')) return 'Site Operations';
-        return 'Vendor Management';
+      if (isUserEmployee) {
+        // For user employees
+        if (route.startsWith('/settings')) return 'Settings';
+        if (route.startsWith('/employee')) return 'Employee';
+        return 'Employee';
+      } else {
+        // For admin
+        if (route === '/') return 'Main';
+        if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
+        if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
+        if (route.startsWith('/employee')) return 'Employee Management';
+        if (route.startsWith('/vendor')) {
+          if (route.includes('credentials')) return 'Vendor Management';
+          if (route.includes('sites') || route.includes('payment-master') || route.includes('excel-import')) return 'Site Operations';
+          return 'Vendor Management';
+        }
+        return null;
       }
-      return null;
     };
 
     const activeGroup = getGroupForRoute(location);
     
     setExpandedGroups(prev => {
-      const newExpandedGroups = {
-        Main: location === '/',
-        'Vendor Management': false,
-        'Employee Management': false,
-        'Site Operations': false,
-        Finance: false,
-        Settings: false,
-      };
-      
-      if (activeGroup) {
-        newExpandedGroups[activeGroup as keyof typeof newExpandedGroups] = true;
-      }
-      
+      const newExpandedGroups: Record<string, boolean> = {};
+      menuGroups.forEach(group => {
+        newExpandedGroups[group.group] = group.group === activeGroup;
+      });
       return newExpandedGroups;
     });
-  }, [location]);
+  }, [location, isUserEmployee, menuGroups]);
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => ({
