@@ -55,8 +55,10 @@ const DEFAULT_FORMULAS: Record<keyof Omit<SalaryStructure, 'id' | 'employeeId'>,
 };
 
 // Format number to max 2 decimals without padding zeros
-const formatValue = (value: number): string | number => {
-  const rounded = parseFloat(value.toFixed(2));
+const formatValue = (value: number | string): string | number => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return 0;
+  const rounded = parseFloat(num.toFixed(2));
   return rounded % 1 === 0 ? Math.floor(rounded) : rounded;
 };
 
