@@ -11,6 +11,7 @@ import {
   insertPaymentMasterSchema,
   insertZoneSchema,
   insertTeamSchema,
+  insertAppSettingsSchema,
   purchaseOrders,
   invoices,
   sites,
@@ -18,6 +19,7 @@ import {
   departments,
   employees,
   salaryStructures,
+  teamMembers,
 } from "@shared/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
 
@@ -1524,6 +1526,30 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error('[Teams API] Error clearing RP:', error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // App Settings routes
+  app.get("/api/app-settings", async (req, res) => {
+    try {
+      console.log('[AppSettings API] Fetching app settings');
+      const settings = await storage.getAppSettings();
+      res.json(settings || { approvalsRequiredForAllowance: 1 });
+    } catch (error: any) {
+      console.error('[AppSettings API] Error fetching settings:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/app-settings", async (req, res) => {
+    try {
+      console.log('[AppSettings API] Updating app settings:', req.body);
+      const validated = insertAppSettingsSchema.parse(req.body);
+      const settings = await storage.updateAppSettings(validated);
+      res.json(settings);
+    } catch (error: any) {
+      console.error('[AppSettings API] Error updating settings:', error);
+      res.status(400).json({ error: error.message || 'Failed to save app settings' });
     }
   });
 

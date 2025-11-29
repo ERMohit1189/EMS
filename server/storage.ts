@@ -15,6 +15,7 @@ import {
   dailyAllowances,
   teams,
   teamMembers,
+  appSettings,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
@@ -28,6 +29,7 @@ import {
   type InsertDailyAllowance,
   type InsertTeam,
   type InsertTeamMember,
+  type InsertAppSettings,
   type Vendor,
   type Site,
   type Employee,
@@ -41,6 +43,7 @@ import {
   type DailyAllowance,
   type Team,
   type TeamMember,
+  type AppSettings,
 } from "@shared/schema";
 import { eq, count, and, gte, lte, inArray, getTableColumns, ne, sql } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
@@ -177,6 +180,10 @@ export interface IStorage {
   removeTeamMember(teamId: string, employeeId: string): Promise<void>;
   getTeamMembers(teamId: string): Promise<any[]>;
   updateTeamMemberReporting(memberId: string, reportingPerson1?: string, reportingPerson2?: string, reportingPerson3?: string): Promise<any>;
+
+  // App Settings operations
+  getAppSettings(): Promise<AppSettings | undefined>;
+  updateAppSettings(settings: InsertAppSettings): Promise<AppSettings>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -1187,6 +1194,36 @@ export class DrizzleStorage implements IStorage {
     
     console.log('[Storage] Updated result:', result);
     return result;
+  }
+
+  // App Settings operations
+  async getAppSettings(): Promise<AppSettings | undefined> {
+    console.log('[Storage] getAppSettings');
+    const result = await db.select().from(appSettings).limit(1);
+    console.log('[Storage] getAppSettings result:', result);
+    return result[0];
+  }
+
+  async updateAppSettings(settings: InsertAppSettings): Promise<AppSettings> {
+    console.log('[Storage] updateAppSettings:', settings);
+    
+    // Get existing settings
+    const existing = await this.getAppSettings();
+    
+    if (existing) {
+      // Update existing
+      const [result] = await db.update(appSettings)
+        .set(settings)
+        .where(eq(appSettings.id, existing.id))
+        .returning();
+      console.log('[Storage] Updated app settings:', result);
+      return result;
+    } else {
+      // Create new
+      const [result] = await db.insert(appSettings).values(settings).returning();
+      console.log('[Storage] Created app settings:', result);
+      return result;
+    }
   }
 }
 
