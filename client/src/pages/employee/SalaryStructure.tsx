@@ -466,7 +466,7 @@ export default function SalaryStructure() {
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
     const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
-    const net = gross - deductions;
+    const net = Math.round((gross - deductions) * 100) / 100;
     
     const data = [
       [companyName],
@@ -530,7 +530,7 @@ export default function SalaryStructure() {
     
     const gross = salary.basicSalary + salary.hra + salary.da + salary.lta + salary.conveyance + salary.medical + salary.bonuses + salary.otherBenefits;
     const deductions = salary.pf + salary.professionalTax + salary.incomeTax + salary.epf + salary.esic;
-    const net = gross - deductions;
+    const net = Math.round((gross - deductions) * 100) / 100;
     
     const pdf = new jsPDF({
       orientation: 'portrait',
