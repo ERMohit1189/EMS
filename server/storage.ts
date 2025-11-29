@@ -36,7 +36,7 @@ import {
   type Attendance,
   type DailyAllowance,
 } from "@shared/schema";
-import { eq, count, and, gte, lte, inArray, getTableColumns, ne } from "drizzle-orm";
+import { eq, count, and, gte, lte, inArray, getTableColumns, ne, sql } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
 
 export interface IStorage {
@@ -942,26 +942,23 @@ export class DrizzleStorage implements IStorage {
   async getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<DailyAllowance[]> {
     // Create proper date range for the month
     const startDate = new Date(year, month - 1, 1);
-    startDate.setHours(0, 0, 0, 0);
-    
     const endDate = new Date(year, month, 0);
-    endDate.setHours(23, 59, 59, 999);
     
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
     
-    console.log(`[Allowances DB] Filtering: month=${month}, year=${year}, range: "${startDateStr}" to "${endDateStr}", employeeId: ${employeeId}`);
+    console.log(`[Filter] month=${month}, year=${year}, range: ${startDateStr} to ${endDateStr}`);
     
-    // Use raw SQL for reliable date filtering
+    // Direct text-based date comparison for PostgreSQL
     const result = await db.select().from(dailyAllowances)
       .where(and(
         eq(dailyAllowances.employeeId, employeeId),
-        sql`${dailyAllowances.date} >= ${startDateStr}`,
-        sql`${dailyAllowances.date} <= ${endDateStr}`
+        sql`"date" >= ${startDateStr}::date`,
+        sql`"date" <= ${endDateStr}::date`
       ))
       .orderBy(dailyAllowances.date);
     
-    console.log(`[Allowances DB] Query returned ${result.length} records for month=${month}`);
+    console.log(`[Filter Result] ${result.length} records for month=${month}`);
     return result;
   }
 
