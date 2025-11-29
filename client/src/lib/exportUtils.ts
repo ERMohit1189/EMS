@@ -61,11 +61,11 @@ export const getCurrentYear = (): number => {
 };
 
 /**
- * Professional Excel styling properties
+ * Professional Excel styling properties with vibrant colors
  */
 const headerStyle = {
   font: { bold: true, color: { rgb: 'FFFFFF' }, size: 11 },
-  fill: { fgColor: { rgb: '2E75B6' } },
+  fill: { fgColor: { rgb: '1F4E78' } },
   alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
   border: {
     left: { style: 'thin' },
@@ -76,18 +76,56 @@ const headerStyle = {
 };
 
 const companyHeaderStyle = {
-  font: { bold: true, size: 14, color: { rgb: '1F4E78' } },
+  font: { bold: true, size: 14, color: { rgb: 'FFFFFF' } },
+  fill: { fgColor: { rgb: '003D7A' } },
   alignment: { horizontal: 'center', vertical: 'center' },
 };
 
 const titleStyle = {
-  font: { bold: true, size: 12, color: { rgb: '2E75B6' } },
+  font: { bold: true, size: 12, color: { rgb: 'FFFFFF' } },
+  fill: { fgColor: { rgb: '0066CC' } },
   alignment: { horizontal: 'center', vertical: 'center' },
+};
+
+const earningsSectionStyle = {
+  font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
+  fill: { fgColor: { rgb: '27AE60' } },
+  alignment: { horizontal: 'left', vertical: 'center' },
+  border: {
+    left: { style: 'thin' },
+    right: { style: 'thin' },
+    top: { style: 'thin' },
+    bottom: { style: 'thin' }
+  }
+};
+
+const deductionsSectionStyle = {
+  font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
+  fill: { fgColor: { rgb: 'E74C3C' } },
+  alignment: { horizontal: 'left', vertical: 'center' },
+  border: {
+    left: { style: 'thin' },
+    right: { style: 'thin' },
+    top: { style: 'thin' },
+    bottom: { style: 'thin' }
+  }
+};
+
+const grossSalaryStyle = {
+  font: { bold: true, color: { rgb: 'FFFFFF' }, size: 11 },
+  fill: { fgColor: { rgb: '16A085' } },
+  alignment: { horizontal: 'right', vertical: 'center' },
+  border: {
+    left: { style: 'thin' },
+    right: { style: 'thin' },
+    top: { style: 'medium' },
+    bottom: { style: 'medium' }
+  }
 };
 
 const totalRowStyle = {
   font: { bold: true, size: 11, color: { rgb: 'FFFFFF' } },
-  fill: { fgColor: { rgb: '1F4E78' } },
+  fill: { fgColor: { rgb: 'C0392B' } },
   alignment: { horizontal: 'right', vertical: 'center' },
   border: {
     left: { style: 'thin' },
@@ -99,6 +137,28 @@ const totalRowStyle = {
 
 const dataRowStyle = {
   alignment: { vertical: 'center' },
+  border: {
+    left: { style: 'thin' },
+    right: { style: 'thin' },
+    top: { style: 'hair' },
+    bottom: { style: 'hair' }
+  }
+};
+
+const dataRowEvenStyle = {
+  alignment: { vertical: 'center' },
+  fill: { fgColor: { rgb: 'EBF5FB' } },
+  border: {
+    left: { style: 'thin' },
+    right: { style: 'thin' },
+    top: { style: 'hair' },
+    bottom: { style: 'hair' }
+  }
+};
+
+const dataRowOddStyle = {
+  alignment: { vertical: 'center' },
+  fill: { fgColor: { rgb: 'F4ECF7' } },
   border: {
     left: { style: 'thin' },
     right: { style: 'thin' },
@@ -137,35 +197,24 @@ export const formatSalaryExcelWorksheet = (
     }
   }
 
-  // Apply data row styling and number formatting
+  // Apply data row styling and number formatting with colorful alternating rows
   for (let row = dataStartRow - 1; row < totalRowIndex - 2; row++) {
     for (let col = 0; col < columnWidths.length; col++) {
       const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
       if (worksheet[cellRef]) {
-        worksheet[cellRef].s = dataRowStyle;
+        // Apply alternating row colors (blue and purple tints)
+        const style = row % 2 === 0 ? dataRowEvenStyle : dataRowOddStyle;
+        worksheet[cellRef].s = style;
         
-        // Apply currency formatting to currency columns (typically columns with amounts)
+        // Apply currency formatting to currency columns
         if (col >= 3 && typeof worksheet[cellRef].v === 'number') {
           worksheet[cellRef].z = currencyFormat;
         }
       }
     }
-    
-    // Alternate row background color for better readability
-    if (row % 2 === 0) {
-      for (let col = 0; col < columnWidths.length; col++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-        if (worksheet[cellRef]) {
-          worksheet[cellRef].s = {
-            ...dataRowStyle,
-            fill: { fgColor: { rgb: 'E7F0F7' } }
-          };
-        }
-      }
-    }
   }
 
-  // Apply total row styling
+  // Apply total row styling - red color for total
   if (totalRowIndex - 1 < totalRows) {
     for (let col = 0; col < columnWidths.length; col++) {
       const cellRef = XLSX.utils.encode_cell({ r: totalRowIndex - 2, c: col });
@@ -185,6 +234,80 @@ export const formatSalaryExcelWorksheet = (
   }
   worksheet['!rows'][0] = { hpt: 25 }; // Company name
   worksheet['!rows'][4] = { hpt: 20 }; // Title row
+};
+
+/**
+ * Apply colorful formatting to salary structure Excel with section colors
+ * Green for earnings, red for deductions
+ */
+export const formatSalaryStructureExcel = (
+  worksheet: XLSX.WorkSheet,
+  data: any[],
+  columnWidths: number[]
+): void => {
+  worksheet['!cols'] = columnWidths.map(width => ({ wch: width }));
+
+  let currentSection = '';
+  
+  for (let row = 0; row < data.length; row++) {
+    const firstCellValue = data[row][0]?.toString().toUpperCase() || '';
+    
+    // Detect sections
+    if (firstCellValue.includes('EARNINGS')) {
+      currentSection = 'earnings';
+    } else if (firstCellValue.includes('DEDUCTIONS')) {
+      currentSection = 'deductions';
+    } else if (firstCellValue.includes('GROSS')) {
+      currentSection = 'gross';
+    } else if (firstCellValue.includes('TOTAL')) {
+      currentSection = 'total';
+    } else if (firstCellValue.includes('NET')) {
+      currentSection = 'net';
+    }
+
+    // Apply styling based on section
+    for (let col = 0; col < columnWidths.length; col++) {
+      const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+      if (worksheet[cellRef]) {
+        let style;
+        
+        if (currentSection === 'earnings' && firstCellValue.includes('MONTHLY')) {
+          style = earningsSectionStyle;
+        } else if (currentSection === 'deductions' && firstCellValue.includes('DEDUCTIONS') && col === 0) {
+          style = deductionsSectionStyle;
+        } else if (currentSection === 'gross' && firstCellValue.includes('GROSS')) {
+          style = grossSalaryStyle;
+        } else if (currentSection === 'total' && firstCellValue.includes('TOTAL DEDUCTIONS')) {
+          style = totalRowStyle;
+        } else if (currentSection === 'net' && firstCellValue.includes('NET')) {
+          style = grossSalaryStyle;
+        } else if (row % 2 === 0 && currentSection === 'earnings') {
+          style = dataRowEvenStyle;
+        } else if (row % 2 === 1 && currentSection === 'earnings') {
+          style = dataRowOddStyle;
+        } else if (row % 2 === 0 && currentSection === 'deductions') {
+          style = dataRowEvenStyle;
+        } else if (row % 2 === 1 && currentSection === 'deductions') {
+          style = dataRowOddStyle;
+        } else {
+          style = dataRowStyle;
+        }
+        
+        worksheet[cellRef].s = style;
+        
+        // Apply currency formatting to numeric values in rightmost column
+        if (col === columnWidths.length - 1 && typeof worksheet[cellRef].v === 'number') {
+          worksheet[cellRef].z = currencyFormat;
+        }
+      }
+    }
+    
+    // Set row heights for section headers
+    if (currentSection === 'earnings' && firstCellValue.includes('MONTHLY')) {
+      worksheet['!rows'] = worksheet['!rows'] || [];
+      worksheet['!rows'][row] = { hpt: 22 };
+    }
+  }
 };
 
 /**
