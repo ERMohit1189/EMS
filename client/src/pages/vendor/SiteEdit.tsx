@@ -118,11 +118,11 @@ const renderField = (form: any, name: string, label: string, type: 'text' | 'dat
     name={name}
     render={({ field }) => (
       <FormItem>
-        <FormLabel>{label}</FormLabel>
+        <FormLabel className="block text-xs md:text-sm">{label}</FormLabel>
         <FormControl>
-          <Input type={type} placeholder={label} {...field} />
+          <Input type={type} placeholder={label} className="h-9 text-xs md:text-sm" {...field} />
         </FormControl>
-        <FormMessage />
+        <FormMessage className="text-xs" />
       </FormItem>
     )}
   />
@@ -222,10 +222,10 @@ export default function SiteEdit() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-10">
+    <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto pb-10 px-2 md:px-0">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Edit Site</h2>
-        <p className="text-muted-foreground">Update comprehensive site information.</p>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Edit Site</h2>
+        <p className="text-xs md:text-sm text-muted-foreground">Update comprehensive site information.</p>
       </div>
 
       <Form {...form}>
@@ -236,16 +236,16 @@ export default function SiteEdit() {
             <CardHeader>
               <CardTitle>Site Identification</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-3">
+            <CardContent className="grid gap-3 md:gap-6 md:grid-cols-3">
               <FormField
                 control={form.control}
                 name="vendorId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Select Vendor *</FormLabel>
+                    <FormLabel className="block text-xs md:text-sm">Select Vendor *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-9 text-xs md:text-sm">
                           <SelectValue placeholder="Select Vendor" />
                         </SelectTrigger>
                       </FormControl>
@@ -255,7 +255,7 @@ export default function SiteEdit() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -293,7 +293,7 @@ export default function SiteEdit() {
             <CardHeader>
               <CardTitle>Project Details</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-4">
+            <CardContent className="grid gap-3 md:gap-6 md:grid-cols-4">
               {renderField(form, 'nominalAop', 'Nominal AOP')}
               {renderField(form, 'hopType', 'HOP Type')}
               {renderField(form, 'hopAB', 'HOP A-B')}
