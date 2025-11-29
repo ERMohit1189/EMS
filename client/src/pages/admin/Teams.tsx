@@ -295,7 +295,6 @@ export default function Teams() {
                         className="text-xs flex-1 cursor-pointer"
                       >
                         <div className="font-medium text-xs">{emp.name}</div>
-                        <div className="text-xs text-muted-foreground">{emp.email}</div>
                         <div className="text-xs text-blue-600">
                           {emp.department} / {emp.designation}
                         </div>
