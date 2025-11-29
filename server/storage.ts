@@ -1271,12 +1271,25 @@ export class DrizzleStorage implements IStorage {
 
   async isEmployeeReportingPerson(employeeId: string): Promise<boolean> {
     // Check if this employee is assigned as RP1, RP2, or RP3 in any team
+    // First get all teamMember IDs for this employee
+    const employeeMembers = await db.select({ id: teamMembers.id }).from(teamMembers)
+      .where(eq(teamMembers.employeeId, employeeId));
+    
+    if (employeeMembers.length === 0) {
+      return false;
+    }
+    
+    const memberIds = employeeMembers.map(m => m.id);
+    
+    // Check if any of those memberIds appear as RP1, RP2, or RP3 in any team
     const result = await db.select().from(teamMembers)
       .where(or(
-        eq(teamMembers.reportingPerson1, employeeId),
-        eq(teamMembers.reportingPerson2, employeeId),
-        eq(teamMembers.reportingPerson3, employeeId)
+        inArray(teamMembers.reportingPerson1, memberIds),
+        inArray(teamMembers.reportingPerson2, memberIds),
+        inArray(teamMembers.reportingPerson3, memberIds)
       ));
+    
+    console.log(`[Storage] isEmployeeReportingPerson - employeeId: ${employeeId}, memberIds: ${memberIds}, found RP assignments: ${result.length > 0}`);
     return result.length > 0;
   }
 
