@@ -400,21 +400,32 @@ export default function Dashboard() {
       {/* Bottom Section - Activity & Approvals */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Sites by District */}
-        <Card className="shadow-md md:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-t-lg">
+        <Card className="shadow-md col-span-1 md:col-span-2">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-t-lg pb-3">
             <CardTitle className="text-base">Sites by District</CardTitle>
             <CardDescription className="text-xs">Geographic distribution across districts</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={regionData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
-                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
-                <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-2 md:pt-4 px-2 md:px-6 overflow-x-auto">
+            {regionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <BarChart data={regionData} margin={{ top: 5, right: 20, left: 50, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#6b7280" 
+                    tick={{ fontSize: 11 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis stroke="#6b7280" tick={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                  <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">No district data available.</div>
+            )}
           </CardContent>
         </Card>
 
