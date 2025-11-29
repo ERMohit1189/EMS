@@ -195,17 +195,17 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-8 text-white shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-4 md:p-8 text-white shadow-lg">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-4xl font-bold tracking-tight mb-2">Dashboard</h2>
-            <p className="text-blue-100">Overview of your enterprise operations.</p>
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight mb-1 md:mb-2">Dashboard</h2>
+            <p className="text-sm md:text-base text-blue-100">Overview of your enterprise operations.</p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/vendor/register" className="bg-white text-blue-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors">
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <Link href="/vendor/register" className="bg-white text-blue-600 px-4 py-2 rounded-md text-xs md:text-sm font-medium hover:bg-blue-50 transition-colors text-center md:whitespace-nowrap" data-testid="button-add-vendor">
               Add Vendor
             </Link>
-            <Link href="/employee/register" className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors">
+            <Link href="/employee/register" className="bg-blue-500 text-white px-4 py-2 rounded-md text-xs md:text-sm font-medium hover:bg-blue-600 transition-colors text-center md:whitespace-nowrap" data-testid="button-add-employee">
               Add Employee
             </Link>
           </div>
