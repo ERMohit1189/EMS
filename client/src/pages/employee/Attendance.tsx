@@ -3,10 +3,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+type AttendanceStatus = 'present' | 'absent' | 'leave' | 'holiday' | null;
+
+interface AttendanceDay {
+  status: AttendanceStatus;
+  leaveType?: string;
+}
 
 interface AttendanceRecord {
-  [day: number]: 'present' | 'absent' | 'leave' | 'holiday' | null;
+  [day: number]: AttendanceDay | AttendanceStatus;
 }
+
+const LEAVE_TYPES = [
+  { code: 'ML', name: 'Medical Leave' },
+  { code: 'CL', name: 'Casual Leave' },
+  { code: 'EL', name: 'Earned Leave' },
+  { code: 'SL', name: 'Sick Leave' },
+  { code: 'PL', name: 'Personal Leave' },
+  { code: 'UL', name: 'Unpaid Leave' },
+  { code: 'LWP', name: 'Leave Without Pay' },
+];
 
 export default function Attendance() {
   const { toast } = useToast();
@@ -15,6 +41,8 @@ export default function Attendance() {
   const [loading, setLoading] = useState(false);
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
   const [employeeName] = useState(localStorage.getItem('employeeName') || '');
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
 
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
@@ -59,30 +87,45 @@ export default function Attendance() {
     }
   };
 
+  const getStatus = (dayValue: any): AttendanceStatus => {
+    if (!dayValue) return null;
+    return typeof dayValue === 'string' ? dayValue : dayValue.status;
+  };
+
+  const getLeaveType = (dayValue: any): string | undefined => {
+    if (!dayValue || typeof dayValue === 'string') return undefined;
+    return dayValue.leaveType;
+  };
+
   const handleDayClick = (day: number) => {
-    console.log('📅 Clicked day:', day, 'Current status:', attendance[day]);
     const current = attendance[day];
-    let next: 'present' | 'absent' | 'leave' | 'holiday' | null;
+    const status = getStatus(current);
     
-    if (current === 'present') {
-      next = 'absent';
-    } else if (current === 'absent') {
-      next = 'leave';
-    } else if (current === 'leave') {
-      next = 'holiday';
-    } else if (current === 'holiday') {
-      next = null;
+    if (status === 'present') {
+      setAttendance({ ...attendance, [day]: 'absent' });
+    } else if (status === 'absent') {
+      // Show leave type dialog
+      setSelectedDay(day);
+      setShowLeaveDialog(true);
+    } else if (status === 'leave') {
+      setAttendance({ ...attendance, [day]: 'holiday' });
+    } else if (status === 'holiday') {
+      setAttendance({ ...attendance, [day]: null });
     } else {
-      next = 'present';
+      setAttendance({ ...attendance, [day]: 'present' });
     }
-    
-    console.log('📅 New status:', next);
-    const newAttendance = {
-      ...attendance,
-      [day]: next,
-    };
-    setAttendance(newAttendance);
-    console.log('📅 Updated attendance:', newAttendance);
+  };
+
+  const handleLeaveTypeSelect = (leaveType: string) => {
+    if (selectedDay !== null) {
+      setAttendance({
+        ...attendance,
+        [selectedDay]: { status: 'leave', leaveType },
+      });
+      setShowLeaveDialog(false);
+      setSelectedDay(null);
+      toast({ title: 'Success', description: `Leave marked as ${leaveType}` });
+    }
   };
 
   const handleSubmit = async () => {
@@ -133,10 +176,10 @@ export default function Attendance() {
     year: 'numeric',
   });
 
-  const presentCount = Object.values(attendance).filter((v) => v === 'present').length;
-  const absentCount = Object.values(attendance).filter((v) => v === 'absent').length;
-  const leaveCount = Object.values(attendance).filter((v) => v === 'leave').length;
-  const holidayCount = Object.values(attendance).filter((v) => v === 'holiday').length;
+  const presentCount = Object.values(attendance).filter((v) => getStatus(v) === 'present').length;
+  const absentCount = Object.values(attendance).filter((v) => getStatus(v) === 'absent').length;
+  const leaveCount = Object.values(attendance).filter((v) => getStatus(v) === 'leave').length;
+  const holidayCount = Object.values(attendance).filter((v) => getStatus(v) === 'holiday').length;
 
   return (
     <div className="space-y-6">
@@ -198,7 +241,10 @@ export default function Attendance() {
             {/* Calendar days */}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
-              const status = attendance[day];
+              const dayValue = attendance[day];
+              const status = getStatus(dayValue);
+              const leaveType = getLeaveType(dayValue);
+
               const bgColor =
                 status === 'present'
                   ? 'bg-green-100 border-green-300'
@@ -217,23 +263,27 @@ export default function Attendance() {
                   <button
                     onClick={() => handleDayClick(day)}
                     disabled={loading}
-                    className={`w-full p-3 border-2 rounded-lg font-semibold transition-colors cursor-pointer ${bgColor}`}
+                    className={`w-full p-2 border-2 rounded-lg font-semibold transition-colors cursor-pointer ${bgColor}`}
                     title={
-                      status
-                        ? `${day} - ${status.charAt(0).toUpperCase() + status.slice(1)} (click to change)`
-                        : `Day ${day} - Click to mark`
+                      leaveType
+                        ? `${day} - Leave (${leaveType})`
+                        : status
+                          ? `${day} - ${status.charAt(0).toUpperCase() + status.slice(1)}`
+                          : `Day ${day} - Click to mark`
                     }
                     data-testid={`button-attendance-day-${day}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span>{day}</span>
-                      {statusEmoji && <span className="text-lg">{statusEmoji}</span>}
+                    <div className="flex flex-col items-center justify-center gap-0.5">
+                      <span className="text-sm">{day}</span>
+                      <div className="flex items-center gap-1">
+                        {statusEmoji && <span className="text-base">{statusEmoji}</span>}
+                        {leaveType && <span className="text-xs font-bold text-yellow-700">{leaveType}</span>}
+                      </div>
                     </div>
                   </button>
                   {status && (
                     <button
                       onClick={() => {
-                        console.log('🗑️ Clearing day:', day);
                         setAttendance({
                           ...attendance,
                           [day]: null,
@@ -252,6 +302,31 @@ export default function Attendance() {
             })}
           </div>
 
+          {/* Leave Type Dialog */}
+          <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Select Leave Type</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Choose the type of leave for Day {selectedDay}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                {LEAVE_TYPES.map((leave) => (
+                  <button
+                    key={leave.code}
+                    onClick={() => handleLeaveTypeSelect(leave.code)}
+                    className="px-4 py-3 text-left border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors font-medium"
+                    data-testid={`button-leave-type-${leave.code}`}
+                  >
+                    <span className="font-bold text-blue-600">{leave.code}</span> - {leave.name}
+                  </button>
+                ))}
+              </div>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+            </AlertDialogContent>
+          </AlertDialog>
+
           {/* Instructions */}
           <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg space-y-2">
             <p className="text-sm text-blue-900">
@@ -259,8 +334,11 @@ export default function Attendance() {
             </p>
             <ul className="text-sm text-blue-900 space-y-1 ml-4 list-disc">
               <li><strong>Sundays are auto-marked as holidays (🎉)</strong> - all Sundays start purple</li>
-              <li>Click on any day to cycle: Not marked → Present (✓) → Absent (✗) → Leave (🎯) → Holiday (🎉) → Not marked</li>
+              <li>Click on any day to cycle: Not marked → Present (✓) → Absent (✗)</li>
+              <li><strong>When marking Absent:</strong> A dialog will appear to select the leave type (ML, CL, EL, SL, PL, UL, LWP)</li>
+              <li>After leave type: Leave (🎯) → Holiday (🎉) → Not marked</li>
               <li>Hover over a marked day to see a red <strong>✕</strong> button - click it to instantly reset/clear that day</li>
+              <li>Leave types appear as abbreviations on the calendar (e.g., ML, CL, EL)</li>
               <li>Check the counters at the top to see your Present/Absent/Leave/Holiday totals</li>
               <li>Click <strong>Submit Attendance</strong> to save your entire month's attendance</li>
             </ul>
