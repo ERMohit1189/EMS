@@ -667,6 +667,7 @@ export async function registerRoutes(
   // Change Password endpoint
   app.post("/api/employees/:id/change-password", async (req, res) => {
     try {
+      const bcrypt = require('bcrypt');
       const { currentPassword, newPassword } = req.body;
 
       if (!currentPassword || !newPassword) {
