@@ -182,6 +182,11 @@ const userEmployeeMenuGroups = [
     group: 'Account',
     items: [
       {
+        title: 'Change Password',
+        icon: Key,
+        href: '/employee/change-password',
+      },
+      {
         title: 'Settings',
         icon: SettingsIcon,
         href: '/settings',

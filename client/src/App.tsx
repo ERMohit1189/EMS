@@ -30,6 +30,7 @@ const EmployeeList = lazy(() => import("@/pages/employee/EmployeeList"));
 const EmployeeCredentials = lazy(() => import("@/pages/employee/EmployeeCredentials"));
 const MyProfile = lazy(() => import("@/pages/employee/MyProfile"));
 const EmployeeSalary = lazy(() => import("@/pages/employee/EmployeeSalary"));
+const ChangePassword = lazy(() => import("@/pages/employee/ChangePassword"));
 // Eager load privacy policies for instant access
 import EmployeePrivacyPolicy from "@/pages/employee/PrivacyPolicy";
 import VendorPrivacyPolicy from "@/pages/vendor/PrivacyPolicy";
@@ -253,6 +254,7 @@ function App() {
                   <Route path="/employee/credentials" component={EmployeeCredentials} />
                   <Route path="/employee/my-profile" component={MyProfile} />
                   <Route path="/employee/salary" component={EmployeeSalary} />
+                  <Route path="/employee/change-password" component={ChangePassword} />
                   <Route path="/employee/salary-report" component={SalaryReport} />
                   <Route path="/employee/department-master" component={DepartmentMaster} />
                   <Route path="/employee/designation-master" component={DesignationMaster} />

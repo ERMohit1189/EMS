@@ -664,6 +664,45 @@ export async function registerRoutes(
     }
   });
 
+  // Change Password endpoint
+  app.post("/api/employees/:id/change-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+
+      // Get employee
+      const employee = await storage.getEmployee(req.params.id);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // Verify current password
+      const passwordMatch = await bcrypt.compare(currentPassword, employee.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      const updated = await storage.updateEmployee(req.params.id, {
+        password: hashedPassword,
+      });
+
+      res.json({
+        success: true,
+        message: "Password changed successfully",
+      });
+    } catch (error: any) {
+      console.error("[API] Change password error:", error);
+      res.status(500).json({ error: error.message || "Failed to change password" });
+    }
+  });
+
   // Salary routes
   app.post("/api/salary-structures", async (req, res) => {
     try {

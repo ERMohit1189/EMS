@@ -42,10 +42,14 @@ export default function EmployeeSalary() {
   const employeeId = localStorage.getItem('employeeId');
   const employeeName = localStorage.getItem('employeeName');
 
-  useEffect(() => {
-    fetchSalaryData();
-    loadExportHeader();
-  }, []);
+  const loadExportHeader = async () => {
+    try {
+      const header = await fetchExportHeader();
+      setExportHeader(header);
+    } catch (error) {
+      console.error("Failed to load export header:", error);
+    }
+  };
 
   const fetchSalaryData = async () => {
     if (!employeeId) return;
@@ -82,14 +86,10 @@ export default function EmployeeSalary() {
     }
   };
 
-  const loadExportHeader = async () => {
-    try {
-      const header = await fetchExportHeader();
-      setExportHeader(header);
-    } catch (error) {
-      console.error("Failed to load export header:", error);
-    }
-  };
+  useEffect(() => {
+    fetchSalaryData();
+    loadExportHeader();
+  }, []);
 
   const calculateGross = (): number => {
     if (!salary) return 0;
