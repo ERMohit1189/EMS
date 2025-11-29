@@ -738,10 +738,6 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async getEmployees(limit: number, offset: number): Promise<Employee[]> {
-    return await db.select().from(employees).limit(limit).offset(offset);
-  }
-
   async updateEmployee(
     id: string,
     employee: Partial<InsertEmployee>
