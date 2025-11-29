@@ -144,27 +144,49 @@ export default function EmployeeCredentials() {
     return password;
   };
 
-  const generateCredentialsForEmployee = (employeeId: string) => {
+  const generateCredentialsForEmployee = async (employeeId: string) => {
     const employee = employees.find(e => e.id === employeeId);
     if (!employee) return;
 
+    const generatedPassword = generatePassword();
+    
     const newCred: EmployeeCredential = {
       employeeId,
       employeeName: employee.name,
       designation: employee.designation,
       email: employee.email,
-      password: generatePassword(),
+      password: generatedPassword,
       createdAt: new Date().toISOString().split('T')[0],
       generated: true,
     };
 
-    const existing = credentials.filter(c => c.employeeId !== employeeId);
-    saveCredentials([...existing, newCred]);
-    
-    toast({
-      title: 'Credentials Generated',
-      description: `Credentials created for ${employee.name}`,
-    });
+    // Sync password to database
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/employees/sync-credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId, password: generatedPassword }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync password to database');
+      }
+
+      const existing = credentials.filter(c => c.employeeId !== employeeId);
+      saveCredentials([...existing, newCred]);
+      
+      toast({
+        title: 'Credentials Generated & Synced',
+        description: `Credentials created and saved to database for ${employee.name}`,
+      });
+    } catch (error) {
+      console.error('Error syncing credentials:', error);
+      toast({
+        title: 'Error',
+        description: 'Credentials generated locally but failed to sync to database',
+        variant: 'destructive',
+      });
+    }
   };
 
   const regenerateCredentialsForEmployee = (employeeId: string) => {

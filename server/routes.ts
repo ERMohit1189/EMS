@@ -144,6 +144,24 @@ export async function registerRoutes(
     }
   });
 
+  // Sync employee credentials (password) to database
+  app.post("/api/employees/sync-credentials", async (req, res) => {
+    try {
+      const { employeeId, password } = req.body;
+      if (!employeeId || !password) {
+        return res.status(400).json({ error: "Employee ID and password required" });
+      }
+
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const updated = await storage.updateEmployee(employeeId, { password: hashedPassword });
+      res.json({ success: true, employee: updated });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Department routes
   app.get("/api/departments", async (req, res) => {
     try {
