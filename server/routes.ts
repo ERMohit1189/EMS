@@ -1377,6 +1377,29 @@ export async function registerRoutes(
     }
   });
 
+  // Pending allowances for approval - MUST come before parameterized routes
+  app.get("/api/allowances/pending", async (req, res) => {
+    try {
+      const employeeId = req.query.employeeId as string;
+      console.log(`[Allowances] GET pending - employeeId: ${employeeId}`);
+      
+      let allowances;
+      if (employeeId) {
+        // Get only team members' allowances for this employee's teams
+        allowances = await storage.getPendingAllowancesForTeams(employeeId);
+      } else {
+        // Get all pending allowances (admin view)
+        allowances = await storage.getPendingAllowances();
+      }
+      
+      console.log(`[Allowances] Found ${allowances.length} pending allowances`);
+      res.json({ data: allowances });
+    } catch (error: any) {
+      console.error(`[Allowances Fetch Error]`, error.message);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/allowances/:employeeId", async (req, res, next) => {
     // Check if this is actually a month/year route
     const month = req.query.month;
@@ -1440,29 +1463,6 @@ export async function registerRoutes(
       const allowance = await storage.getEmployeeAllowancesByDate(employeeId, date);
       res.json(allowance || null);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  // Pending allowances for approval
-  app.get("/api/allowances/pending", async (req, res) => {
-    try {
-      const employeeId = req.query.employeeId as string;
-      console.log(`[Allowances] GET pending - employeeId: ${employeeId}`);
-      
-      let allowances;
-      if (employeeId) {
-        // Get only team members' allowances for this employee's teams
-        allowances = await storage.getPendingAllowancesForTeams(employeeId);
-      } else {
-        // Get all pending allowances (admin view)
-        allowances = await storage.getPendingAllowances();
-      }
-      
-      console.log(`[Allowances] Found ${allowances.length} pending allowances`);
-      res.json({ data: allowances });
-    } catch (error: any) {
-      console.error(`[Allowances Fetch Error]`, error.message);
       res.status(400).json({ error: error.message });
     }
   });
