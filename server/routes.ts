@@ -595,11 +595,13 @@ export async function registerRoutes(
       const pageSize = parseInt(req.query.pageSize as string) || 10;
       const offset = (page - 1) * pageSize;
 
-      const employees = await storage.getEmployees(pageSize, offset);
-      const totalCount = await storage.getEmployeeCount();
+      const { employees: employeesTable } = await import("@shared/schema");
+      const empData = await db.select().from(employeesTable).limit(pageSize).offset(offset);
+      const countResult = await db.select({ count: (await import("drizzle-orm")).count() }).from(employeesTable);
+      const totalCount = Number(countResult[0]?.count) || 0;
 
       res.json({
-        data: employees,
+        data: empData,
         totalCount,
         pageNumber: page,
         pageSize,
