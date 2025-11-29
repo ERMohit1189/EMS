@@ -172,8 +172,8 @@ export const employees = pgTable("employees", {
   designationId: varchar("designation_id").references(() => designations.id),
   role: varchar("role").notNull().default("user"), // admin, user
   doj: date("doj").notNull(),
-  aadhar: varchar("aadhar").notNull().unique(),
-  pan: varchar("pan").notNull().unique(),
+  aadhar: varchar("aadhar").unique(),
+  pan: varchar("pan").unique(),
   bloodGroup: varchar("blood_group").notNull(),
   maritalStatus: varchar("marital_status").notNull(), // Single, Married
   nominee: text("nominee").notNull(),
