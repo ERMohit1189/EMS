@@ -394,7 +394,8 @@ export default function SalaryStructure() {
         <div className="flex gap-2">
           <Input 
             type="number" 
-            value={salary[field]} 
+            step="0.01"
+            value={(salary[field]).toFixed(2)}
             onChange={(e) => {
               const numValue = parseFloat(e.target.value) || 0;
               setSalary({ ...salary, [field]: numValue });
@@ -406,7 +407,7 @@ export default function SalaryStructure() {
               setManuallyEdited(newManuallyEdited);
             }}
             className={isManuallyEdited ? 'border-blue-500' : isFixed ? 'bg-blue-50 dark:bg-blue-950' : ''}
-            placeholder="0"
+            placeholder="0.00"
           />
           {isManuallyEdited && (
             <Button
@@ -467,7 +468,7 @@ export default function SalaryStructure() {
               <Input 
                 ref={basicSalaryRef}
                 type="number" 
-                value={basicInput || salary.basicSalary}
+                value={basicInput || (salary.basicSalary).toFixed(2)}
                 onChange={(e) => setBasicInput(e.target.value)}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0;
@@ -475,14 +476,14 @@ export default function SalaryStructure() {
                   handleSalaryChange('basicSalary', val.toString(), 'basic');
                 }}
                 className="text-lg font-bold"
-                placeholder="0"
+                placeholder="0.00"
               />
             </div>
             <div className="space-y-2">
               <Label className="font-semibold">Gross Salary</Label>
               <Input 
                 type="number" 
-                value={grossInput || gross}
+                value={grossInput || (gross).toFixed(2)}
                 onChange={(e) => setGrossInput(e.target.value)}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0;
@@ -490,14 +491,14 @@ export default function SalaryStructure() {
                   if (val > 0) handleQuickInputBlur('gross', val);
                 }}
                 className="text-lg font-bold text-green-700 dark:text-green-300"
-                placeholder="0"
+                placeholder="0.00"
               />
             </div>
             <div className="space-y-2">
               <Label className="font-semibold">Net Salary</Label>
               <Input 
                 type="number" 
-                value={netInput || net}
+                value={netInput || (net).toFixed(2)}
                 onChange={(e) => setNetInput(e.target.value)}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0;
@@ -505,7 +506,7 @@ export default function SalaryStructure() {
                   if (val > 0) handleQuickInputBlur('net', val);
                 }}
                 className="text-lg font-bold text-blue-700 dark:text-blue-300"
-                placeholder="0"
+                placeholder="0.00"
               />
             </div>
           </div>
@@ -529,7 +530,7 @@ export default function SalaryStructure() {
             <Separator />
             <div className="flex justify-between font-bold text-lg text-emerald-600 bg-green-50 dark:bg-green-950 p-3 rounded">
               <span>Gross Salary</span>
-              <span>₹{gross.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+              <span>₹{(gross).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -548,7 +549,7 @@ export default function SalaryStructure() {
             <Separator />
             <div className="flex justify-between font-bold text-lg text-red-600 bg-red-50 dark:bg-red-950 p-3 rounded">
               <span>Total Deductions</span>
-              <span>₹{deductions.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+              <span>₹{(deductions).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -560,7 +561,7 @@ export default function SalaryStructure() {
               <p className="text-muted-foreground">Amount to be credited to bank account</p>
             </div>
             <div className="text-4xl font-bold text-primary">
-              ₹{net.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              ₹{(net).toFixed(2)}
             </div>
           </CardContent>
         </Card>
