@@ -405,86 +405,102 @@ export default function Dashboard() {
             <CardTitle className="text-base">Sites by District</CardTitle>
             <CardDescription className="text-xs">Geographic distribution across districts</CardDescription>
           </CardHeader>
-          <CardContent className="pt-2 md:pt-4 px-2 md:px-6 overflow-x-auto">
+          <CardContent className="pt-3 px-3 md:px-6">
             {regionData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <BarChart data={regionData} margin={{ top: 5, right: 20, left: 50, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#6b7280" 
-                    tick={{ fontSize: 11 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis stroke="#6b7280" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
-                  <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <>
+                {/* Chart for desktop */}
+                <div className="hidden md:block">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={regionData} margin={{ top: 5, right: 20, left: 50, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#6b7280" 
+                        tick={{ fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis stroke="#6b7280" tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                      <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* List for mobile */}
+                <div className="md:hidden space-y-2">
+                  {regionData.map((district, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900 truncate">{district.name}</p>
+                      </div>
+                      <div className="ml-3 flex items-center gap-2">
+                        <div className="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-md">
+                          {district.count}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
-              <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">No district data available.</div>
+              <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">No district data available.</div>
             )}
           </CardContent>
         </Card>
 
         {/* Activity & Approvals Row */}
-        <Card className="shadow-md">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-t-lg">
-            <CardTitle className="text-base">Recent Site Activity</CardTitle>
+        <Card className="shadow-md col-span-1 md:col-span-1">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-t-lg pb-2 md:pb-3">
+            <CardTitle className="text-sm md:text-base">Recent Site Activity</CardTitle>
             <CardDescription className="text-xs">Latest updates</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+          <CardContent className="pt-3 md:pt-4">
+            <div className="space-y-2 max-h-56 md:max-h-64 overflow-y-auto">
               {allSites.slice(0, 5).map((site) => (
-                <div key={site.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                      <Activity className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-none truncate">Site {site.siteId || site.planId}</p>
-                      <p className="text-xs text-muted-foreground truncate">{site.circle || site.district} • {site.state}</p>
-                    </div>
+                <div key={site.id} className="flex items-start gap-2 p-2.5 md:p-3 hover:bg-amber-50 rounded-lg border border-amber-100 transition-colors">
+                  <div className={`flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full flex-shrink-0 text-sm ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                    <Activity className="h-3.5 w-3.5 md:h-4 md:w-4" />
                   </div>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0 ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs md:text-sm font-medium text-slate-900 truncate">Site {site.siteId || site.planId}</p>
+                    <p className="text-xs text-slate-600 truncate">{site.circle || site.district}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-1.5 py-0.5 md:px-2 md:py-1 rounded-full flex-shrink-0 whitespace-nowrap ${site.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                     {site.status}
                   </span>
                 </div>
               ))}
               {allSites.length === 0 && (
-                 <div className="text-center py-4 text-muted-foreground text-sm">No sites registered.</div>
+                 <div className="text-center py-6 text-muted-foreground text-xs md:text-sm">No sites registered.</div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
-          <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100 rounded-t-lg">
-            <CardTitle className="text-base">Pending Approvals</CardTitle>
+        <Card className="shadow-md col-span-1 md:col-span-1">
+          <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100 rounded-t-lg pb-2 md:pb-3">
+            <CardTitle className="text-sm md:text-base">Pending Approvals</CardTitle>
             <CardDescription className="text-xs">Vendors awaiting verification</CardDescription>
           </CardHeader>
-          <CardContent>
-             <div className="space-y-3 max-h-64 overflow-y-auto">
+          <CardContent className="pt-3 md:pt-4">
+             <div className="space-y-2 max-h-56 md:max-h-64 overflow-y-auto">
               {allVendors.filter(v => v.status === 'Pending').slice(0, 5).map((vendor) => (
-                <div key={vendor.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                     <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
+                <div key={vendor.id} className="flex items-start gap-2 p-2.5 md:p-3 hover:bg-rose-50 rounded-lg border border-rose-100 transition-colors group">
+                   <div className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                         {vendor.name.substring(0,2).toUpperCase()}
-                     </div>
-                     <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{vendor.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{vendor.category || 'Individual'}</p>
-                     </div>
                    </div>
-                   <Link href="/vendor/list" className="text-xs text-primary hover:text-primary/80 hover:underline flex items-center gap-1 flex-shrink-0 font-medium">
+                   <div className="min-w-0 flex-1">
+                        <p className="text-xs md:text-sm font-medium text-slate-900 truncate">{vendor.name}</p>
+                        <p className="text-xs text-slate-600">{vendor.category || 'Individual'}</p>
+                   </div>
+                   <Link href="/vendor/list" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 flex-shrink-0 font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100">
                       Review <ArrowUpRight className="h-3 w-3" />
                    </Link>
                 </div>
               ))}
                {allVendors.filter(v => v.status === 'Pending').length === 0 && (
-                 <div className="text-center py-4 text-muted-foreground text-sm">No pending vendors.</div>
+                 <div className="text-center py-6 text-muted-foreground text-xs md:text-sm">No pending vendors.</div>
               )}
              </div>
           </CardContent>
