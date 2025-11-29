@@ -1075,7 +1075,9 @@ export class DrizzleStorage implements IStorage {
   }
 
   async addTeamMember(teamId: string, employeeId: string): Promise<TeamMember> {
+    console.log('[Storage] addTeamMember - teamId:', teamId, 'employeeId:', employeeId);
     const [result] = await db.insert(teamMembers).values({ teamId, employeeId }).returning();
+    console.log('[Storage] addTeamMember result:', result);
     return result;
   }
 
@@ -1087,16 +1089,24 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getTeamMembers(teamId: string): Promise<any[]> {
-    return await db.select({
-      id: teamMembers.id,
-      employeeId: teamMembers.employeeId,
-      name: employees.name,
-      email: employees.email,
-      designation: designations.name,
-    }).from(teamMembers)
-      .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
-      .leftJoin(designations, eq(employees.designationId, designations.id))
-      .where(eq(teamMembers.teamId, teamId));
+    console.log('[Storage] getTeamMembers - teamId:', teamId);
+    try {
+      const result = await db.select({
+        id: teamMembers.id,
+        employeeId: teamMembers.employeeId,
+        name: employees.name,
+        email: employees.email,
+        designation: designations.name,
+      }).from(teamMembers)
+        .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
+        .leftJoin(designations, eq(employees.designationId, designations.id))
+        .where(eq(teamMembers.teamId, teamId));
+      console.log('[Storage] getTeamMembers result:', result);
+      return result;
+    } catch (error) {
+      console.error('[Storage] getTeamMembers error:', error);
+      throw error;
+    }
   }
 }
 

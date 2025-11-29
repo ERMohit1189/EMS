@@ -1451,18 +1451,24 @@ export async function registerRoutes(
   app.post("/api/teams/:id/members", async (req, res) => {
     try {
       const { employeeId } = req.body;
+      console.log('[Teams API] Adding member - teamId:', req.params.id, 'employeeId:', employeeId);
       const member = await storage.addTeamMember(req.params.id, employeeId);
+      console.log('[Teams API] Member added:', member);
       res.json(member);
     } catch (error: any) {
+      console.error('[Teams API] Error adding member:', error);
       res.status(400).json({ error: error.message });
     }
   });
 
   app.get("/api/teams/:id/members", async (req, res) => {
     try {
+      console.log('[Teams API] Fetching members for teamId:', req.params.id);
       const members = await storage.getTeamMembers(req.params.id);
+      console.log('[Teams API] Members fetched:', members);
       res.json(members);
     } catch (error: any) {
+      console.error('[Teams API] Error fetching members:', error);
       res.status(400).json({ error: error.message });
     }
   });
