@@ -548,7 +548,8 @@ export default function SalaryStructure() {
                   setNetInput("");
                   if (val > 0) handleQuickInputBlur('net', val);
                 }}
-                className="text-lg font-bold text-blue-700 dark:text-blue-300"
+                disabled
+                className="text-lg font-bold text-blue-700 dark:text-blue-300 opacity-60 cursor-not-allowed"
                 placeholder="0"
               />
             </div>
