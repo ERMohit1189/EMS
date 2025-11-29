@@ -158,6 +158,16 @@ export default function Attendance() {
 
     try {
       setLoading(true);
+      
+      // For user role, only send today's attendance data
+      let attendanceToSubmit = attendance;
+      if (employeeRole === 'user' && isCurrentMonth) {
+        attendanceToSubmit = {};
+        if (attendance[currentDay] !== undefined) {
+          attendanceToSubmit[currentDay] = attendance[currentDay];
+        }
+      }
+      
       const response = await fetch(`${getApiBaseUrl()}/api/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -165,7 +175,7 @@ export default function Attendance() {
           employeeId,
           month,
           year,
-          attendanceData: attendance,
+          attendanceData: attendanceToSubmit,
         }),
       });
 
