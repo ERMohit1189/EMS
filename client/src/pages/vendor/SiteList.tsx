@@ -7,12 +7,13 @@ import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader } from "@/lib/fetchWithLoader";
 import { truncateId } from "@/lib/utils";
 import * as XLSX from "xlsx";
-import { createColorfulExcel } from "@/lib/exportUtils";
+import { createColorfulExcel, fetchExportHeader, type ExportHeader } from "@/lib/exportUtils";
 
 export default function SiteList() {
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSite, setExpandedSite] = useState<string | null>(null);
+  const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
   
   // Initialize startDate to 1 year ago, endDate to today
   const today = new Date().toISOString().split('T')[0];
@@ -39,7 +40,12 @@ export default function SiteList() {
         setLoading(false);
       }
     };
+    const loadExportHeader = async () => {
+      const header = await fetchExportHeader();
+      setExportHeader(header);
+    };
     fetchSites();
+    loadExportHeader();
   }, []);
 
   const getVendorName = (vendorId: string) => {
@@ -177,7 +183,7 @@ export default function SiteList() {
       
       // Create colorful Excel export
       const columnWidths = allColumnKeys.map(() => 18);
-      createColorfulExcel(dataWithHeaders, columnWidths, `sites_export_${startDate}_to_${endDate}.xlsx`, "Sites");
+      createColorfulExcel(dataWithHeaders, columnWidths, `sites_export_${startDate}_to_${endDate}.xlsx`, "Site List", exportHeader, "SITE LIST EXPORT");
     } catch (error) {
       console.error("Export error:", error);
       alert("Failed to export sites");
