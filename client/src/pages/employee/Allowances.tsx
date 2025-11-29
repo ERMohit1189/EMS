@@ -188,6 +188,7 @@ export default function Allowances() {
                   onChange={(e) => setFormData({ ...formData, travelAllowance: e.target.value })}
                   data-testid="input-travel-allowance"
                   className="mt-0.5 h-8 text-xs p-1"
+                  autoFocus
                 />
               </div>
               <div>
