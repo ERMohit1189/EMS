@@ -312,23 +312,35 @@ export default function Teams() {
                     {employees.length === 0 ? (
                       <p className="text-xs text-muted-foreground p-2">No employees available</p>
                     ) : (
-                      employees.map((emp) => (
-                        <div key={emp.id} className="flex items-start gap-2 p-2 hover:bg-slate-100 border-b border-gray-100 last:border-b-0">
-                          <Checkbox
-                            id={`emp-${emp.id}`}
-                            checked={selectedEmployeeIds.includes(emp.id)}
-                            onCheckedChange={() => toggleEmployeeSelection(emp.id)}
-                            data-testid={`checkbox-employee-${emp.id}`}
-                          />
-                          <label
-                            htmlFor={`emp-${emp.id}`}
-                            className="text-xs flex-1 cursor-pointer"
+                      employees.map((emp) => {
+                        const isAlreadyMember = teamMembers.some(m => m.employeeId === emp.id);
+                        const isSelected = selectedEmployeeIds.includes(emp.id);
+                        return (
+                          <div 
+                            key={emp.id} 
+                            className={`flex items-start gap-2 p-2 border-b border-gray-100 last:border-b-0 ${
+                              isAlreadyMember ? 'bg-gray-50 opacity-60' : 'hover:bg-slate-100'
+                            }`}
                           >
-                            <div className="font-medium text-xs">{emp.name} - {emp.designation}</div>
-                            <div className="text-xs text-muted-foreground">{emp.department}</div>
-                          </label>
-                        </div>
-                      ))
+                            <Checkbox
+                              id={`emp-${emp.id}`}
+                              checked={isSelected || isAlreadyMember}
+                              onCheckedChange={() => !isAlreadyMember && toggleEmployeeSelection(emp.id)}
+                              disabled={isAlreadyMember}
+                              data-testid={`checkbox-employee-${emp.id}`}
+                            />
+                            <label
+                              htmlFor={`emp-${emp.id}`}
+                              className={`text-xs flex-1 ${isAlreadyMember ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              <div className="font-medium text-xs">{emp.name} - {emp.designation}</div>
+                              <div className={`text-xs ${isAlreadyMember ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                {emp.department} {isAlreadyMember && '(Already member)'}
+                              </div>
+                            </label>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 )}
