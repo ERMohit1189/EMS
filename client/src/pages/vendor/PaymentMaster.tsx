@@ -201,23 +201,23 @@ export default function PaymentMaster() {
   }
 
   return (
-    <div className="space-y-6" ref={topRef}>
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0" ref={topRef}>
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Payment Master</h2>
-        <p className="text-muted-foreground">Configure site and vendor amounts by antenna size.</p>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Payment Master</h2>
+        <p className="text-xs md:text-sm text-muted-foreground">Configure site and vendor amounts by antenna size.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Filter by Site & Vendor</CardTitle>
+          <CardTitle className="text-lg md:text-xl">Filter by Site & Vendor</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
+        <CardContent className="grid gap-3 md:gap-4 md:grid-cols-3">
           <div>
-            <label className="text-sm font-medium">Site</label>
+            <label className="block text-xs md:text-sm font-medium">Site</label>
             <select
               value={selectedSite}
               onChange={(e) => setSelectedSite(e.target.value)}
-              className="w-full mt-2 px-3 py-2 border rounded-md"
+              className="w-full mt-2 h-9 px-3 py-2 text-xs md:text-sm border rounded-md"
             >
               <option value="">Select Site</option>
               {sites.map((s) => (
@@ -229,21 +229,21 @@ export default function PaymentMaster() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Plan ID</label>
+            <label className="block text-xs md:text-sm font-medium">Plan ID</label>
             <input
               type="text"
               value={selectedPlanId}
               readOnly
-              className="w-full mt-2 px-3 py-2 border rounded-md bg-gray-100"
+              className="w-full mt-2 h-9 px-3 py-2 text-xs md:text-sm border rounded-md bg-gray-100"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Vendor</label>
+            <label className="block text-xs md:text-sm font-medium">Vendor</label>
             <select
               value={selectedVendor}
               onChange={(e) => setSelectedVendor(e.target.value)}
-              className="w-full mt-2 px-3 py-2 border rounded-md"
+              className="w-full mt-2 h-9 px-3 py-2 text-xs md:text-sm border rounded-md"
               disabled={!!selectedSite}
             >
               <option value="">All Vendors</option>
@@ -259,16 +259,16 @@ export default function PaymentMaster() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{editing ? "Edit" : "Add New"} Payment Configuration</CardTitle>
+          <CardTitle className="text-lg md:text-xl">{editing ? "Edit" : "Add New"} Payment Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-4">
+        <CardContent className="grid gap-3 md:gap-4 md:grid-cols-4">
           <div>
-            <label className="text-sm font-medium">Antenna Size (kVA)</label>
+            <label className="block text-xs md:text-sm font-medium">Antenna Size (kVA)</label>
             <select
               ref={antennaSelectRef}
               value={newMaster.antennaSize}
               onChange={(e) => setNewMaster({ ...newMaster, antennaSize: e.target.value })}
-              className="w-full mt-2 px-3 py-2 border rounded-md"
+              className="w-full mt-2 h-9 px-3 py-2 text-xs md:text-sm border rounded-md"
               disabled={editing !== null}
             >
               <option value="">Select Size</option>
@@ -279,36 +279,37 @@ export default function PaymentMaster() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Site Amount (₹)</label>
+            <label className="block text-xs md:text-sm font-medium">Site Amount (₹)</label>
             <Input
               ref={siteAmountRef}
               type="number"
               placeholder="Enter amount"
               value={newMaster.siteAmount}
               onChange={(e) => setNewMaster({ ...newMaster, siteAmount: e.target.value })}
-              className="mt-2"
+              className="mt-2 h-9 text-xs md:text-sm"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Vendor Amount (₹)</label>
+            <label className="block text-xs md:text-sm font-medium">Vendor Amount (₹)</label>
             <Input
               type="number"
               placeholder="Enter amount"
               value={newMaster.vendorAmount}
               onChange={(e) => setNewMaster({ ...newMaster, vendorAmount: e.target.value })}
-              className="mt-2"
+              className="mt-2 h-9 text-xs md:text-sm"
             />
           </div>
 
           <div className="flex gap-2 items-end">
-            <Button onClick={handleSave} className="w-full" disabled={savingLoading}>
-              {savingLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button onClick={handleSave} className="w-full h-9 text-xs md:text-sm" disabled={savingLoading}>
+              {savingLoading && <Loader2 className="h-3 w-3 md:h-4 md:w-4 mr-2 animate-spin" />}
               {editing ? "Update" : "Add"}
             </Button>
             {editing && (
               <Button
                 variant="outline"
+                className="h-9 text-xs md:text-sm"
                 onClick={() => {
                   setEditing(null);
                   setNewMaster({ antennaSize: "", siteAmount: "", vendorAmount: "" });
@@ -324,29 +325,38 @@ export default function PaymentMaster() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Current Configurations</CardTitle>
+          <CardTitle className="text-lg md:text-xl">Current Configurations</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {masters.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No payment masters configured yet.</p>
-            ) : (
-              <div className="grid gap-3">
-                {masters.map((m) => {
-                  const siteData = sites.find(s => s.id === m.siteId);
-                  const vendorData = vendors.find(v => v.id === m.vendorId);
-                  const isUsed = usedCombinations.includes(`${m.vendorId}_${m.siteId}_${m.planId}_${m.antennaSize}`);
-                  return (
-                    <div key={m.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
-                      <div className="flex-1">
-                        <p className="font-semibold">{siteData?.hopAB || 'N/A'} (Plan: {m.planId}) - {vendorData?.name || 'N/A'} - {m.antennaSize} kVA</p>
-                        <p className="text-sm text-muted-foreground">
-                          Site Amount: ₹{m.siteAmount} | Vendor Amount: ₹{m.vendorAmount}
+          {masters.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8 text-sm">No payment masters configured yet.</p>
+          ) : (
+            <div className="grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {masters.map((m) => {
+                const siteData = sites.find(s => s.id === m.siteId);
+                const vendorData = vendors.find(v => v.id === m.vendorId);
+                const isUsed = usedCombinations.includes(`${m.vendorId}_${m.siteId}_${m.planId}_${m.antennaSize}`);
+                return (
+                  <div key={m.id} className="border rounded-lg p-3 md:p-4 hover:bg-muted/50 transition-colors">
+                    <div className="space-y-2">
+                      <div className="min-h-0 pr-2">
+                        <p className="font-semibold text-xs md:text-sm truncate">{siteData?.hopAB || 'N/A'} (Plan: {m.planId})</p>
+                        <p className="text-xs text-muted-foreground truncate">{vendorData?.name || 'N/A'} - {m.antennaSize} kVA</p>
+                      </div>
+                      <div className="bg-muted/30 p-2 rounded text-xs md:text-sm">
+                        <p className="text-muted-foreground">
+                          <span className="block">Site: ₹{m.siteAmount}</span>
+                          <span className="block">Vendor: ₹{m.vendorAmount}</span>
                         </p>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(m)}>
-                          <Edit2 className="h-4 w-4" />
+                      <div className="flex gap-1 pt-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleEdit(m)}
+                          className="flex-1 h-8 text-xs"
+                        >
+                          <Edit2 className="h-3 w-3" />
                         </Button>
                         <Button 
                           size="sm" 
@@ -354,16 +364,17 @@ export default function PaymentMaster() {
                           onClick={() => handleDelete(m.id)}
                           disabled={isUsed}
                           title={isUsed ? "Cannot delete - used in PO generation" : "Delete payment master"}
+                          className="flex-1 h-8 text-xs"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
