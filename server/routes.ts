@@ -1183,20 +1183,21 @@ export async function registerRoutes(
       const currentMonth = today.getMonth() + 1;
       const currentYear = today.getFullYear();
 
-      // If user role, only allow updating current day
+      // If user role, only allow updating current day (today only)
       if (employee.role === 'user') {
-        // Check if trying to mark past days
+        // Check if trying to mark dates outside current month
         const isCurrentMonth = month === currentMonth && year === currentYear;
         if (!isCurrentMonth) {
-          return res.status(403).json({ error: "User role can only update current month attendance" });
+          return res.status(403).json({ error: "User role can only update current day" });
         }
 
-        // Check if trying to mark future days
+        // Check if trying to mark anything other than today
         if (month === currentMonth && year === currentYear) {
           for (const [day, value] of Object.entries(attendanceData)) {
             const dayNum = parseInt(day);
-            if (dayNum > currentDay && value !== null) {
-              return res.status(403).json({ error: "User role can only mark current and past days of current month" });
+            // Only allow marking today (currentDay), all other dates must be null or unchanged
+            if (dayNum !== currentDay && value !== null && value !== attendanceData[dayNum]) {
+              return res.status(403).json({ error: "User role can only mark current date (today)" });
             }
           }
         }
