@@ -603,7 +603,8 @@ export async function registerRoutes(
         pageSize,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error("[API] GET /api/employees error:", error);
+      res.status(500).json({ error: error.message || "Failed to load employees" });
     }
   });
 
