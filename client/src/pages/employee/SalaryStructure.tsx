@@ -249,6 +249,8 @@ export default function SalaryStructure() {
           }
         });
         setSalary(convertedData);
+        // Load the wantDeduction toggle state from database
+        setWantDeduction(data.wantDeduction !== undefined ? data.wantDeduction : true);
       } else {
         const newSalary: SalaryStructure = {
           employeeId,
@@ -265,8 +267,10 @@ export default function SalaryStructure() {
           incomeTax: 0,
           epf: 0,
           esic: 0,
+          wantDeduction: true,
         };
         setSalary(newSalary);
+        setWantDeduction(true);
       }
     } catch (error) {
       console.error("Failed to load salary", error);
@@ -285,8 +289,10 @@ export default function SalaryStructure() {
         incomeTax: 0,
         epf: 0,
         esic: 0,
+        wantDeduction: true,
       };
       setSalary(newSalary);
+      setWantDeduction(true);
     } finally {
       setIsLoading(false);
     }
