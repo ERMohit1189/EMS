@@ -479,7 +479,7 @@ export default function SalaryStructure() {
       ['Employee ID', selectedEmployee],
       ['Deductions Status', wantDeduction ? 'Applied' : 'Not Applied'],
       [''],
-      ['MONTHLY EARNINGS', 'Amount (₹)'],
+      ['MONTHLY EARNINGS', 'Amount (Rs)'],
       ['Basic Salary', salary.basicSalary],
       ['House Rent Allowance (HRA @ 50%)', salary.hra],
       ['Dearness Allowance (DA @ 20%)', salary.da],
@@ -490,7 +490,7 @@ export default function SalaryStructure() {
       ['Other Benefits', salary.otherBenefits],
       ['GROSS SALARY', gross],
       [''],
-      ['DEDUCTIONS', 'Amount (₹)'],
+      ['DEDUCTIONS', 'Amount (Rs)'],
       ['Provident Fund (PF @ 12%)', salary.pf],
       ['Professional Tax', salary.professionalTax],
       ['Income Tax', salary.incomeTax],
@@ -611,14 +611,14 @@ export default function SalaryStructure() {
     
     earningsLabels.forEach(({ label, value }) => {
       pdf.text(label, margin + 2, yPos);
-      pdf.text(`₹${formatValue(value)}`, pageWidth - margin - 20, yPos);
+      pdf.text(`Rs ${formatValue(value)}`, pageWidth - margin - 20, yPos);
       yPos += lineHeight;
     });
     
     pdf.setFont(undefined, 'bold');
     pdf.setTextColor(41, 128, 185);
     pdf.text('Gross Salary', margin + 2, yPos);
-    pdf.text(`₹${formatValue(gross)}`, pageWidth - margin - 20, yPos);
+    pdf.text(`Rs ${formatValue(gross)}`, pageWidth - margin - 20, yPos);
     yPos += 8;
     
     // Deductions Section
@@ -642,14 +642,14 @@ export default function SalaryStructure() {
     
     deductionLabels.forEach(({ label, value }) => {
       pdf.text(label, margin + 2, yPos);
-      pdf.text(`₹${formatValue(value)}`, pageWidth - margin - 20, yPos);
+      pdf.text(`Rs ${formatValue(value)}`, pageWidth - margin - 20, yPos);
       yPos += lineHeight;
     });
     
     pdf.setFont(undefined, 'bold');
     pdf.setTextColor(231, 76, 60);
     pdf.text('Total Deductions', margin + 2, yPos);
-    pdf.text(`₹${formatValue(deductions)}`, pageWidth - margin - 20, yPos);
+    pdf.text(`Rs ${formatValue(deductions)}`, pageWidth - margin - 20, yPos);
     yPos += 10;
     
     // Net Salary Section
@@ -660,7 +660,7 @@ export default function SalaryStructure() {
     pdf.setFont(undefined, 'bold');
     pdf.setTextColor(255, 255, 255);
     pdf.text('NET SALARY (Take Home Pay)', margin + 2, yPos + 2);
-    pdf.text(`₹${formatValue(net)}`, pageWidth - margin - 20, yPos + 2);
+    pdf.text(`Rs ${formatValue(net)}`, pageWidth - margin - 20, yPos + 2);
     
     yPos += 18;
     
@@ -886,7 +886,7 @@ export default function SalaryStructure() {
             <Separator />
             <div className="flex justify-between font-bold text-lg text-emerald-600 bg-green-50 dark:bg-green-950 p-3 rounded">
               <span>Gross Salary</span>
-              <span>₹{formatValue(gross)}</span>
+              <span>Rs {formatValue(gross)}</span>
             </div>
           </CardContent>
         </Card>
@@ -905,7 +905,7 @@ export default function SalaryStructure() {
             <Separator />
             <div className="flex justify-between font-bold text-lg text-red-600 bg-red-50 dark:bg-red-950 p-3 rounded">
               <span>Total Deductions</span>
-              <span>₹{formatValue(deductions)}</span>
+              <span>Rs {formatValue(deductions)}</span>
             </div>
           </CardContent>
         </Card>
@@ -917,7 +917,7 @@ export default function SalaryStructure() {
               <p className="text-muted-foreground">Amount to be credited to bank account</p>
             </div>
             <div className="text-4xl font-bold text-primary">
-              ₹{formatValue(net)}
+              Rs {formatValue(net)}
             </div>
           </CardContent>
         </Card>
