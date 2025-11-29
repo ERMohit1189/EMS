@@ -186,30 +186,59 @@ export default function Attendance() {
                       ? 'bg-yellow-100 border-yellow-300'
                       : 'bg-gray-50 border-gray-200 hover:bg-gray-100';
 
+              const statusEmoji = status === 'present' ? '✓' : status === 'absent' ? '✗' : status === 'leave' ? '🎯' : '';
+
               return (
-                <button
-                  key={day}
-                  onClick={() => handleDayClick(day)}
-                  disabled={loading}
-                  className={`p-3 border-2 rounded-lg font-semibold transition-colors cursor-pointer ${bgColor}`}
-                  title={
-                    status
-                      ? `${day} - ${status.charAt(0).toUpperCase() + status.slice(1)}`
-                      : `Click to mark ${day}`
-                  }
-                  data-testid={`button-attendance-day-${day}`}
-                >
-                  {day}
-                </button>
+                <div key={day} className="relative group">
+                  <button
+                    onClick={() => handleDayClick(day)}
+                    disabled={loading}
+                    className={`w-full p-3 border-2 rounded-lg font-semibold transition-colors cursor-pointer ${bgColor}`}
+                    title={
+                      status
+                        ? `${day} - ${status.charAt(0).toUpperCase() + status.slice(1)} (click to change)`
+                        : `Day ${day} - Click to mark`
+                    }
+                    data-testid={`button-attendance-day-${day}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{day}</span>
+                      {statusEmoji && <span className="text-lg">{statusEmoji}</span>}
+                    </div>
+                  </button>
+                  {status && (
+                    <button
+                      onClick={() => {
+                        console.log('🗑️ Clearing day:', day);
+                        setAttendance({
+                          ...attendance,
+                          [day]: null,
+                        });
+                      }}
+                      disabled={loading}
+                      className="absolute top-0 right-0 hidden group-hover:block bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold transition-colors"
+                      title="Clear this day"
+                      data-testid={`button-clear-day-${day}`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg space-y-2">
             <p className="text-sm text-blue-900">
-              <strong>How to use:</strong> Click on any day to cycle through Present → Absent → Leave → Not marked. Click the Submit button to save your attendance for the month.
+              <strong>How to use:</strong>
             </p>
+            <ul className="text-sm text-blue-900 space-y-1 ml-4 list-disc">
+              <li>Click on any day to cycle: Present (✓) → Absent (✗) → Leave (🎯) → Not marked</li>
+              <li>Hover over a marked day to see a red <strong>✕</strong> button - click it to instantly reset/clear that day</li>
+              <li>Check the counters at the top to see your Present/Absent/Leave totals</li>
+              <li>Click <strong>Submit Attendance</strong> to save your entire month's attendance</li>
+            </ul>
           </div>
 
           {/* Submit Button */}
