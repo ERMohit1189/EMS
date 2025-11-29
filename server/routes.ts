@@ -597,27 +597,9 @@ export async function registerRoutes(
 
       const employees = await storage.getEmployees(pageSize, offset);
       const totalCount = await storage.getEmployeeCount();
-      
-      // Enrich employees with designation and department names
-      const enrichedEmployees = await Promise.all(employees.map(async (emp: any) => {
-        let designationName = 'Not Specified';
-        let departmentName = 'Not Specified';
-        
-        if (emp.designationId) {
-          const [desig] = await db.select({ name: designations.name }).from(designations).where(eq(designations.id, emp.designationId));
-          if (desig) designationName = desig.name;
-        }
-        
-        if (emp.departmentId) {
-          const [dept] = await db.select({ name: departments.name }).from(departments).where(eq(departments.id, emp.departmentId));
-          if (dept) departmentName = dept.name;
-        }
-        
-        return { ...emp, designationName, departmentName };
-      }));
 
       res.json({
-        data: enrichedEmployees,
+        data: employees,
         totalCount,
         pageNumber: page,
         pageSize,
