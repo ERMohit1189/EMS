@@ -144,6 +144,52 @@ export async function registerRoutes(
     }
   });
 
+  // Change Password endpoint - MUST be defined before generic :id routes
+  app.post("/api/employees/:id/change-password", async (req, res) => {
+    console.log("[API] Change Password Route - POST /api/employees/:id/change-password");
+    try {
+      const bcrypt = require('bcrypt');
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+
+      // Get employee
+      const employee = await storage.getEmployee(req.params.id);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // Verify employee has a password set
+      if (!employee.password) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Verify current password
+      const passwordMatch = await bcrypt.compare(currentPassword, employee.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      const updated = await storage.updateEmployee(req.params.id, {
+        password: hashedPassword,
+      });
+
+      res.json({
+        success: true,
+        message: "Password changed successfully",
+      });
+    } catch (error: any) {
+      console.error("[API] Change password error:", error);
+      res.status(500).json({ error: error.message || "Failed to change password" });
+    }
+  });
+
   // Sync employee credentials (password) to database
   app.post("/api/employees/sync-credentials", async (req, res) => {
     try {
@@ -661,52 +707,6 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Change Password endpoint
-  app.post("/api/employees/:id/change-password", async (req, res) => {
-    console.log("[API] Change Password Route - POST /api/employees/:id/change-password");
-    try {
-      const bcrypt = require('bcrypt');
-      const { currentPassword, newPassword } = req.body;
-
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: "Current password and new password are required" });
-      }
-
-      // Get employee
-      const employee = await storage.getEmployee(req.params.id);
-      if (!employee) {
-        return res.status(404).json({ error: "Employee not found" });
-      }
-
-      // Verify employee has a password set
-      if (!employee.password) {
-        return res.status(401).json({ error: "Current password is incorrect" });
-      }
-
-      // Verify current password
-      const passwordMatch = await bcrypt.compare(currentPassword, employee.password);
-      if (!passwordMatch) {
-        return res.status(401).json({ error: "Current password is incorrect" });
-      }
-
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-      // Update password
-      const updated = await storage.updateEmployee(req.params.id, {
-        password: hashedPassword,
-      });
-
-      res.json({
-        success: true,
-        message: "Password changed successfully",
-      });
-    } catch (error: any) {
-      console.error("[API] Change password error:", error);
-      res.status(500).json({ error: error.message || "Failed to change password" });
     }
   });
 
