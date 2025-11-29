@@ -7,10 +7,11 @@ import { getApiBaseUrl } from '@/lib/api';
 
 interface AllowanceEntry {
   date: string;
-  travelAllowance: string;
-  foodAllowance: string;
-  miscAllowance: string;
-  notes: string;
+  travelAllowance?: string;
+  foodAllowance?: string;
+  miscAllowance?: string;
+  notes?: string;
+  allowanceData?: string;
 }
 
 export default function Allowances() {
