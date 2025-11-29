@@ -940,12 +940,38 @@ export class DrizzleStorage implements IStorage {
   }
 
   async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance> {
+    // Check if allowance is approved - cannot update if approved
+    const existing = await this.getDailyAllowance(id);
+    if (existing && existing.approvalStatus === 'approved') {
+      throw new Error('Cannot update an approved allowance');
+    }
     const [result] = await db.update(dailyAllowances).set(allowance).where(eq(dailyAllowances.id, id)).returning();
     return result;
   }
 
   async deleteDailyAllowance(id: string): Promise<void> {
+    // Check if allowance is approved - cannot delete if approved
+    const existing = await this.getDailyAllowance(id);
+    if (existing && existing.approvalStatus === 'approved') {
+      throw new Error('Cannot delete an approved allowance');
+    }
     await db.delete(dailyAllowances).where(eq(dailyAllowances.id, id));
+  }
+
+  async approveDailyAllowance(id: string, approvedBy: string): Promise<DailyAllowance> {
+    const [result] = await db.update(dailyAllowances).set({
+      approvalStatus: 'approved',
+      approvedBy,
+      approvedAt: new Date(),
+    }).where(eq(dailyAllowances.id, id)).returning();
+    return result;
+  }
+
+  async rejectDailyAllowance(id: string): Promise<DailyAllowance> {
+    const [result] = await db.update(dailyAllowances).set({
+      approvalStatus: 'rejected',
+    }).where(eq(dailyAllowances.id, id)).returning();
+    return result;
   }
 }
 

@@ -1363,5 +1363,20 @@ export async function registerRoutes(
     }
   });
 
+  // Delete allowance endpoint
+  app.delete("/api/allowances/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteDailyAllowance(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error.message.includes('approved')) {
+        res.status(403).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  });
+
   return httpServer;
 }

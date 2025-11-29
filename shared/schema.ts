@@ -314,6 +314,9 @@ export const dailyAllowances = pgTable("daily_allowances", {
     .references(() => employees.id),
   date: date("date").notNull(),
   allowanceData: text("allowance_data").notNull(), // JSON string of allowance details
+  approvalStatus: varchar("approval_status").notNull().default("pending"), // pending, approved, rejected
+  approvedBy: varchar("approved_by"),
+  approvedAt: timestamp("approved_at"),
   submittedAt: timestamp("submitted_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -385,6 +388,9 @@ export const insertDailyAllowanceSchema = createInsertSchema(dailyAllowances).om
   createdAt: true,
   updatedAt: true,
   submittedAt: true,
+  approvalStatus: true,
+  approvedBy: true,
+  approvedAt: true,
 });
 
 // Type Definitions

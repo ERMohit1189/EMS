@@ -476,16 +476,24 @@ export default function Allowances() {
                 }
                 const total = (allowanceData.travelAllowance || 0) + (allowanceData.foodAllowance || 0) + (allowanceData.accommodationAllowance || 0) + (allowanceData.mobileAllowance || 0) + (allowanceData.internetAllowance || 0) + (allowanceData.utilitiesAllowance || 0) + (allowanceData.parkingAllowance || 0) + (allowanceData.miscAllowance || 0);
 
+                const isApproved = entry.approvalStatus === 'approved';
+                const statusColor = isApproved ? 'bg-green-100 text-green-800' : entry.approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+
                 return (
                   <div key={index} className="border rounded p-2 bg-slate-50 text-xs" data-testid={`allowance-entry-${index}`}>
                     <div className="flex justify-between items-start mb-1">
-                      <div>
-                        <p className="font-semibold text-slate-900">{entry.date}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="font-semibold text-slate-900">{entry.date}</p>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}`} data-testid={`status-${index}`}>
+                            {entry.approvalStatus === 'approved' ? 'Approved' : entry.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
+                          </span>
+                        </div>
                         {allowanceData.notes && <p className="text-slate-600">{allowanceData.notes}</p>}
                       </div>
                       <p className="font-bold text-green-600" data-testid={`allowance-total-${index}`}>Rs {total.toFixed(2)}</p>
                     </div>
-                    <div className="grid grid-cols-4 gap-1 text-xs">
+                    <div className="grid grid-cols-4 gap-1 text-xs mb-2">
                       <div><p className="text-slate-600">Travel: Rs {(allowanceData.travelAllowance || 0).toFixed(2)}</p></div>
                       <div><p className="text-slate-600">Food: Rs {(allowanceData.foodAllowance || 0).toFixed(2)}</p></div>
                       <div><p className="text-slate-600">Accom: Rs {(allowanceData.accommodationAllowance || 0).toFixed(2)}</p></div>
@@ -495,6 +503,23 @@ export default function Allowances() {
                       <div><p className="text-slate-600">Parking: Rs {(allowanceData.parkingAllowance || 0).toFixed(2)}</p></div>
                       <div><p className="text-slate-600">Misc: Rs {(allowanceData.miscAllowance || 0).toFixed(2)}</p></div>
                     </div>
+                    {!isApproved && (
+                      <div className="flex gap-1 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs"
+                          onClick={() => {
+                            fetch(`${getApiBaseUrl()}/api/allowances/${entry.id}`, { method: 'DELETE', credentials: 'include' })
+                              .then(() => fetchAllowances())
+                              .catch(err => console.error('Delete error:', err));
+                          }}
+                          data-testid={`button-delete-allowance-${index}`}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
