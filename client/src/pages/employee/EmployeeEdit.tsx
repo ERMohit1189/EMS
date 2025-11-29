@@ -111,9 +111,9 @@ export default function EmployeeEdit() {
       try {
         setLoading(true);
         const [empRes, deptRes, desigRes] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`),
-          fetch(`${getApiBaseUrl()}/api/departments`),
-          fetch(`${getApiBaseUrl()}/api/designations`),
+          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { cache: 'no-store' }),
+          fetch(`${getApiBaseUrl()}/api/departments`, { cache: 'no-store' }),
+          fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' }),
         ]);
         if (empRes.ok) setEmployee(await empRes.json());
         if (deptRes.ok) setDepartments(await deptRes.json());
@@ -126,7 +126,7 @@ export default function EmployeeEdit() {
       }
     };
     if (employeeId) loadData();
-  }, [employeeId]);
+  }, [employeeId, toast]);
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
