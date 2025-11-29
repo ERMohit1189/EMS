@@ -174,6 +174,7 @@ export interface IStorage {
   createTeam(team: InsertTeam): Promise<Team>;
   getTeam(id: string): Promise<Team | undefined>;
   getTeams(): Promise<Team[]>;
+  getTeamsForEmployee(employeeId: string): Promise<Team[]>;
   updateTeam(id: string, team: Partial<InsertTeam>): Promise<Team>;
   deleteTeam(id: string): Promise<void>;
   addTeamMember(teamId: string, employeeId: string): Promise<TeamMember>;
