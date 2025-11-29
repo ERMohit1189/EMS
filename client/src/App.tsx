@@ -265,6 +265,9 @@ function App() {
                   <Route path="/employee/salary-structure" component={SalaryStructure} />
                   <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
                   
+                  {/* Admin Routes */}
+                  <Route path="/admin/teams" component={Teams} />
+                  
                   {/* Vendor Privacy Policy */}
                   <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
                   
