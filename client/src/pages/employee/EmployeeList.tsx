@@ -39,14 +39,30 @@ export default function EmployeeList() {
     const fetchEmployees = async () => {
       await withLoader(async () => {
         try {
-          const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { 
-            cache: 'no-store'
-          });
-          if (response.ok) {
-            const data = await response.json();
-            // Filter out superadmin employees
-            const filteredEmployees = (data.data || []).filter((e: Employee) => e.email !== 'superadmin@ems.local');
-            setEmployees(filteredEmployees);
+          const [empResponse, desigResponse] = await Promise.all([
+            fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { cache: 'no-store' }),
+            fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' })
+          ]);
+          
+          if (empResponse.ok && desigResponse.ok) {
+            const empData = await empResponse.json();
+            const designations = await desigResponse.json();
+            
+            // Create a map of designationId -> name
+            const designationMap: { [key: string]: string } = {};
+            designations.forEach((d: any) => {
+              designationMap[d.id] = d.name;
+            });
+            
+            // Enrich employees with designation names
+            const enrichedEmployees = (empData.data || [])
+              .filter((e: Employee) => e.email !== 'superadmin@ems.local')
+              .map((e: any) => ({
+                ...e,
+                designationName: e.designationId ? designationMap[e.designationId] : 'Not Specified'
+              }));
+            
+            setEmployees(enrichedEmployees);
           }
         } catch (error) {
           console.error('Failed to fetch employees:', error);
