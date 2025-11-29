@@ -1301,12 +1301,16 @@ export async function registerRoutes(
   // Daily Allowances routes
   app.post("/api/allowances", async (req, res) => {
     try {
-      const { employeeId, date, allowanceData } = req.body;
+      const { employeeId, teamId, date, allowanceData } = req.body;
       
-      console.log(`[Allowances] POST request - employeeId: ${employeeId}, date: ${date}, hasData: ${!!allowanceData}`);
+      console.log(`[Allowances] POST request - employeeId: ${employeeId}, teamId: ${teamId}, date: ${date}, hasData: ${!!allowanceData}`);
       
       if (!employeeId || !date || !allowanceData) {
         return res.status(400).json({ error: "Missing required fields: employeeId, date, allowanceData" });
+      }
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "Team selection is required" });
       }
       
       // Check if allowance exists for this date
@@ -1324,6 +1328,7 @@ export async function registerRoutes(
         // Update existing
         console.log(`[Allowances] Updating existing allowance ${existing.id}`);
         allowance = await storage.updateDailyAllowance(existing.id, {
+          teamId,
           allowanceData: allowanceData,
         });
       } else {
@@ -1331,12 +1336,13 @@ export async function registerRoutes(
         console.log(`[Allowances] Creating new allowance`);
         allowance = await storage.createDailyAllowance({
           employeeId,
+          teamId,
           date,
           allowanceData: allowanceData,
         });
       }
       
-      console.log(`[Allowances] Successfully saved for employee ${employeeId}, date ${date}`);
+      console.log(`[Allowances] Successfully saved for employee ${employeeId}, date ${date}, teamId ${teamId}`);
       res.json({ success: true, data: allowance });
     } catch (error: any) {
       console.error(`[Allowances Error] Full error:`, error);
