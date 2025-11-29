@@ -526,3 +526,20 @@ export type Team = typeof teams.$inferSelect;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+
+// App Settings Table
+export const appSettings = pgTable("app_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  approvalsRequiredForAllowance: integer("approvals_required_for_allowance").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;

@@ -4,12 +4,16 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { getApiBaseUrl } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 export default function Settings() {
   const [showGstInput, setShowGstInput] = useState(false);
   const [hrEmail, setHrEmail] = useState('');
   const [procurementEmail, setProcurementEmail] = useState('');
   const [dpoEmail, setDpoEmail] = useState('');
+  const [approvalsRequired, setApprovalsRequired] = useState('1');
+  const [loadingSaveApprovals, setLoadingSaveApprovals] = useState(false);
   const [allowanceCaps, setAllowanceCaps] = useState({
     travelAllowance: '',
     foodAllowance: '',
@@ -36,7 +40,57 @@ export default function Settings() {
     if (caps) {
       setAllowanceCaps(JSON.parse(caps));
     }
+
+    // Load app settings from API
+    fetchAppSettings();
   }, []);
+
+  const fetchAppSettings = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`);
+      if (response.ok) {
+        const data = await response.json();
+        setApprovalsRequired(data.approvalsRequiredForAllowance?.toString() || '1');
+      }
+    } catch (error) {
+      console.error('Error fetching app settings:', error);
+    }
+  };
+
+  const handleSaveApprovals = async () => {
+    setLoadingSaveApprovals(true);
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approvalsRequiredForAllowance: parseInt(approvalsRequired, 10),
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Allowance approvals required updated to ${approvalsRequired}`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to save approval settings',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error saving app settings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save approval settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingSaveApprovals(false);
+    }
+  };
 
   const handleGstToggle = (checked: boolean) => {
     setShowGstInput(checked);
@@ -71,6 +125,45 @@ export default function Settings() {
         <h1 className="text-3xl font-bold tracking-tight">Application Settings</h1>
         <p className="text-muted-foreground mt-2">Manage application preferences and features</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Allowance Approval Settings</CardTitle>
+          <CardDescription>Configure approval requirements for daily allowances</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Number of Approvals Required for Allowances</label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min="1"
+                max="5"
+                value={approvalsRequired}
+                onChange={(e) => setApprovalsRequired(e.target.value)}
+                placeholder="1"
+                data-testid="input-approvals-required"
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSaveApprovals}
+                disabled={loadingSaveApprovals}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-save-approvals"
+              >
+                {loadingSaveApprovals ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Set how many approvals are needed before an allowance is approved (1-5)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
