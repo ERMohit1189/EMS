@@ -547,7 +547,6 @@ export default function Allowances() {
 
       <Card className="shadow-sm">
         <CardHeader className="pb-2 pt-2 px-3 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
-          <CardTitle className="text-base font-bold text-slate-800">History</CardTitle>
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -575,6 +574,7 @@ export default function Allowances() {
               →
             </Button>
           </div>
+          <CardTitle className="text-base font-bold text-slate-800">History</CardTitle>
         </CardHeader>
         <CardContent className="p-3">
           {submittedEntries.length === 0 ? (
