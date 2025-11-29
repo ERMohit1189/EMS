@@ -510,13 +510,22 @@ export default function Allowances() {
                     {!isApproved && (
                       <div className="flex gap-1 justify-end">
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
                           className="h-6 text-xs"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             fetch(`${getApiBaseUrl()}/api/allowances/${entry.id}`, { method: 'DELETE', credentials: 'include' })
-                              .then(() => fetchAllowances())
-                              .catch(err => console.error('Delete error:', err));
+                              .then(() => {
+                                toast({ title: "Success", description: "Allowance deleted" });
+                                fetchAllowances();
+                              })
+                              .catch(err => {
+                                console.error('Delete error:', err);
+                                toast({ title: "Error", description: "Failed to delete allowance", variant: "destructive" });
+                              });
                           }}
                           data-testid={`button-delete-allowance-${index}`}
                         >
