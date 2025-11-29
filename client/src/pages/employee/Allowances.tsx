@@ -228,124 +228,140 @@ export default function Allowances() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div>
                 <label className="text-xs font-medium">Travel</label>
-                {caps.travelAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.travelAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.travelAllowance || undefined}
-                  placeholder="0"
-                  value={formData.travelAllowance}
-                  onChange={(e) => setFormData({ ...formData, travelAllowance: e.target.value })}
-                  data-testid="input-travel-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                  autoFocus
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.travelAllowance || undefined}
+                    placeholder="0"
+                    value={formData.travelAllowance}
+                    onChange={(e) => setFormData({ ...formData, travelAllowance: e.target.value })}
+                    data-testid="input-travel-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                    autoFocus
+                  />
+                  {caps.travelAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.travelAllowance}</span>}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium">Food</label>
-                {caps.foodAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.foodAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.foodAllowance || undefined}
-                  placeholder="0"
-                  value={formData.foodAllowance}
-                  onChange={(e) => setFormData({ ...formData, foodAllowance: e.target.value })}
-                  data-testid="input-food-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.foodAllowance || undefined}
+                    placeholder="0"
+                    value={formData.foodAllowance}
+                    onChange={(e) => setFormData({ ...formData, foodAllowance: e.target.value })}
+                    data-testid="input-food-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                  />
+                  {caps.foodAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.foodAllowance}</span>}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium">Accommodation</label>
-                {caps.accommodationAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.accommodationAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.accommodationAllowance || undefined}
-                  placeholder="0"
-                  value={formData.accommodationAllowance}
-                  onChange={(e) => setFormData({ ...formData, accommodationAllowance: e.target.value })}
-                  data-testid="input-accommodation-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.accommodationAllowance || undefined}
+                    placeholder="0"
+                    value={formData.accommodationAllowance}
+                    onChange={(e) => setFormData({ ...formData, accommodationAllowance: e.target.value })}
+                    data-testid="input-accommodation-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                  />
+                  {caps.accommodationAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.accommodationAllowance}</span>}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium">Mobile</label>
-                {caps.mobileAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.mobileAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.mobileAllowance || undefined}
-                  placeholder="0"
-                  value={formData.mobileAllowance}
-                  onChange={(e) => setFormData({ ...formData, mobileAllowance: e.target.value })}
-                  data-testid="input-mobile-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.mobileAllowance || undefined}
+                    placeholder="0"
+                    value={formData.mobileAllowance}
+                    onChange={(e) => setFormData({ ...formData, mobileAllowance: e.target.value })}
+                    data-testid="input-mobile-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                  />
+                  {caps.mobileAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.mobileAllowance}</span>}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium">Internet</label>
-                {caps.internetAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.internetAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.internetAllowance || undefined}
-                  placeholder="0"
-                  value={formData.internetAllowance}
-                  onChange={(e) => setFormData({ ...formData, internetAllowance: e.target.value })}
-                  data-testid="input-internet-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.internetAllowance || undefined}
+                    placeholder="0"
+                    value={formData.internetAllowance}
+                    onChange={(e) => setFormData({ ...formData, internetAllowance: e.target.value })}
+                    data-testid="input-internet-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                  />
+                  {caps.internetAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.internetAllowance}</span>}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium">Utilities</label>
-                {caps.utilitiesAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.utilitiesAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.utilitiesAllowance || undefined}
-                  placeholder="0"
-                  value={formData.utilitiesAllowance}
-                  onChange={(e) => setFormData({ ...formData, utilitiesAllowance: e.target.value })}
-                  data-testid="input-utilities-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.utilitiesAllowance || undefined}
+                    placeholder="0"
+                    value={formData.utilitiesAllowance}
+                    onChange={(e) => setFormData({ ...formData, utilitiesAllowance: e.target.value })}
+                    data-testid="input-utilities-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                  />
+                  {caps.utilitiesAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.utilitiesAllowance}</span>}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium">Parking</label>
-                {caps.parkingAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.parkingAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.parkingAllowance || undefined}
-                  placeholder="0"
-                  value={formData.parkingAllowance}
-                  onChange={(e) => setFormData({ ...formData, parkingAllowance: e.target.value })}
-                  data-testid="input-parking-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.parkingAllowance || undefined}
+                    placeholder="0"
+                    value={formData.parkingAllowance}
+                    onChange={(e) => setFormData({ ...formData, parkingAllowance: e.target.value })}
+                    data-testid="input-parking-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                  />
+                  {caps.parkingAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.parkingAllowance}</span>}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium">Misc</label>
-                {caps.miscAllowance && <p className="text-xs text-blue-600 font-semibold">Max: Rs {caps.miscAllowance}</p>}
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={caps.miscAllowance || undefined}
-                  placeholder="0"
-                  value={formData.miscAllowance}
-                  onChange={(e) => setFormData({ ...formData, miscAllowance: e.target.value })}
-                  data-testid="input-misc-allowance"
-                  className="mt-0.5 h-8 text-xs p-1"
-                />
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={caps.miscAllowance || undefined}
+                    placeholder="0"
+                    value={formData.miscAllowance}
+                    onChange={(e) => setFormData({ ...formData, miscAllowance: e.target.value })}
+                    data-testid="input-misc-allowance"
+                    className="h-8 text-xs p-1 pr-16"
+                  />
+                  {caps.miscAllowance && <span className="absolute right-1 top-1 text-xs text-blue-600 font-semibold pointer-events-none">Max: {caps.miscAllowance}</span>}
+                </div>
               </div>
             </div>
 
