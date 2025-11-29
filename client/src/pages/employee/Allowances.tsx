@@ -52,6 +52,7 @@ export default function Allowances() {
     notes: '',
   });
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [submittedEntries, setSubmittedEntries] = useState<AllowanceEntry[]>([]);
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
   const [caps, setCaps] = useState<any>({});
@@ -107,10 +108,10 @@ export default function Allowances() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [formData, caps]);
 
-  const fetchAllowances = async () => {
+  const fetchAllowances = async (skipLoading = false) => {
     if (!employeeId) return;
     try {
-      setLoading(true);
+      if (!skipLoading) setLoading(true);
       const response = await fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}`);
       if (response.ok) {
         const data = await response.json();
@@ -119,7 +120,30 @@ export default function Allowances() {
     } catch (error: any) {
       console.error('Error fetching allowances:', error);
     } finally {
-      setLoading(false);
+      if (!skipLoading) setLoading(false);
+    }
+  };
+
+  const handleDelete = async (allowanceId: string) => {
+    try {
+      setDeleting(true);
+      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${allowanceId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete');
+      }
+      
+      toast({ title: "Success", description: "Allowance deleted successfully" });
+      await fetchAllowances(true);
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast({ title: "Error", description: error.message || "Failed to delete allowance", variant: "destructive" });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -513,23 +537,16 @@ export default function Allowances() {
                           type="button"
                           size="sm"
                           variant="outline"
+                          disabled={deleting}
                           className="h-6 text-xs"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            fetch(`${getApiBaseUrl()}/api/allowances/${entry.id}`, { method: 'DELETE', credentials: 'include' })
-                              .then(() => {
-                                toast({ title: "Success", description: "Allowance deleted" });
-                                fetchAllowances();
-                              })
-                              .catch(err => {
-                                console.error('Delete error:', err);
-                                toast({ title: "Error", description: "Failed to delete allowance", variant: "destructive" });
-                              });
+                            handleDelete(entry.id);
                           }}
                           data-testid={`button-delete-allowance-${index}`}
                         >
-                          Delete
+                          {deleting ? 'Deleting...' : 'Delete'}
                         </Button>
                       </div>
                     )}
