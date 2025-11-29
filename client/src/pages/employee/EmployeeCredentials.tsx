@@ -50,7 +50,25 @@ export default function EmployeeCredentials() {
         const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
         if (response.ok) {
           const data = await response.json();
-          setEmployees(data.data || []);
+          const empList = data.data || [];
+          setEmployees(empList);
+          
+          // Clean up credentials for deleted employees
+          const saved = localStorage.getItem('employeeCredentials');
+          if (saved) {
+            const allCreds = JSON.parse(saved);
+            // Keep only credentials for employees that still exist
+            const validCreds = allCreds.filter((c: EmployeeCredential) =>
+              empList.some((e: Employee) => e.id === c.employeeId)
+            );
+            // Deduplicate valid credentials
+            const uniqueCreds = Array.from(
+              new Map(validCreds.map((c: EmployeeCredential) => [c.employeeId, c])).values()
+            );
+            setCredentials(uniqueCreds);
+            // Update localStorage with cleaned credentials
+            localStorage.setItem('employeeCredentials', JSON.stringify(uniqueCreds));
+          }
         }
       } catch (error) {
         console.error('Failed to fetch employees:', error);

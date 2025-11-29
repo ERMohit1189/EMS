@@ -82,9 +82,18 @@ export default function EmployeeList() {
       if (response.ok) {
         setEmployees(employees.filter(e => e.id !== id));
         setDeleteConfirm(null);
+        
+        // Also delete the employee's credentials from localStorage
+        const saved = localStorage.getItem('employeeCredentials');
+        if (saved) {
+          const allCreds = JSON.parse(saved);
+          const filteredCreds = allCreds.filter((c: any) => c.employeeId !== id);
+          localStorage.setItem('employeeCredentials', JSON.stringify(filteredCreds));
+        }
+        
         toast({
           title: 'Employee Deleted',
-          description: 'Employee record has been removed',
+          description: 'Employee record and credentials have been removed',
         });
       }
     } catch (error) {
