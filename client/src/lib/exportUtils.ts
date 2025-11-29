@@ -333,6 +333,73 @@ export const createProfessionalSalaryExcel = (
     worksheet.getColumn(index + 1).width = width;
   });
 
+  // Style company name row (row 1)
+  const companyRow = worksheet.getRow(1);
+  companyRow.height = 28;
+  companyRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF003D7A' }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 14
+    };
+    cell.alignment = { horizontal: 'center', vertical: 'center' };
+  });
+
+  // Style company address row (row 2)
+  const addressRow = worksheet.getRow(2);
+  addressRow.height = 22;
+  addressRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF0066CC' }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 10
+    };
+    cell.alignment = { horizontal: 'center', vertical: 'center' };
+  });
+
+  // Style report title row (row 4)
+  const titleRow = worksheet.getRow(4);
+  titleRow.height = 24;
+  titleRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1F4E78' }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 12
+    };
+    cell.alignment = { horizontal: 'center', vertical: 'center' };
+  });
+
+  // Style date row (row 5)
+  const dateRow = worksheet.getRow(5);
+  dateRow.height = 20;
+  dateRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE7F0F7' }
+    };
+    cell.font = {
+      color: { argb: 'FF1F4E78' },
+      size: 10
+    };
+    cell.alignment = { horizontal: 'left', vertical: 'center' };
+  });
+
   const headerRowIndex = 7; // After company info
   const headerRow = worksheet.getRow(headerRowIndex);
   headerRow.height = 25;
@@ -480,9 +547,9 @@ export const createColorfulExcel = (
     worksheet.getColumn(index + 1).width = width;
   });
 
-  // Apply header styling (first row)
+  // Apply header styling (first row) with vibrant navy blue
   const headerRow = worksheet.getRow(1);
-  headerRow.height = 22;
+  headerRow.height = 26;
   headerRow.eachCell((cell) => {
     cell.fill = {
       type: 'pattern',
@@ -492,14 +559,14 @@ export const createColorfulExcel = (
     cell.font = {
       bold: true,
       color: { argb: 'FFFFFFFF' },
-      size: 11
+      size: 12
     };
     cell.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
     cell.border = {
       left: { style: 'thin' },
       right: { style: 'thin' },
-      top: { style: 'thin' },
-      bottom: { style: 'thin' }
+      top: { style: 'medium' },
+      bottom: { style: 'medium' }
     };
   });
 
