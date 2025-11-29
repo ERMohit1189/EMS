@@ -18,7 +18,7 @@ import {
   employees,
   salaryStructures,
 } from "@shared/schema";
-import { eq, and, or, inArray } from "drizzle-orm";
+import { eq, and, or, inArray, coalesce } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1081,10 +1081,9 @@ export async function registerRoutes(
           wantDeduction: salaryStructures.wantDeduction,
         })
         .from(salaryStructures)
-        .leftJoin(employees, eq(salaryStructures.employeeId, employees.id))
+        .innerJoin(employees, eq(salaryStructures.employeeId, employees.id))
         .leftJoin(departments, eq(employees.departmentId, departments.id))
-        .leftJoin(designations, eq(employees.designationId, designations.id))
-        .orderBy(employees.name);
+        .leftJoin(designations, eq(employees.designationId, designations.id));
 
       // Transform data to calculate gross, deductions, net
       const data = result.map((row: any) => {
