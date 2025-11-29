@@ -5,18 +5,27 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
 
+interface AllowanceData {
+  travelAllowance: number;
+  foodAllowance: number;
+  miscAllowance: number;
+  notes: string;
+}
+
 interface AllowanceEntry {
   date: string;
-  travelAllowance?: string;
-  foodAllowance?: string;
-  miscAllowance?: string;
-  notes?: string;
-  allowanceData?: string;
+  allowanceData: string;
 }
 
 export default function Allowances() {
   const { toast } = useToast();
-  const [formData, setFormData] = useState<AllowanceEntry>({
+  const [formData, setFormData] = useState<{
+    date: string;
+    travelAllowance: string;
+    foodAllowance: string;
+    miscAllowance: string;
+    notes: string;
+  }>({
     date: new Date().toISOString().split('T')[0],
     travelAllowance: '',
     foodAllowance: '',
@@ -199,13 +208,15 @@ export default function Allowances() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setFormData({
-                  date: new Date().toISOString().split('T')[0],
-                  travelAllowance: '',
-                  foodAllowance: '',
-                  miscAllowance: '',
-                  notes: '',
-                })}
+                onClick={() => {
+                  setFormData({
+                    date: new Date().toISOString().split('T')[0],
+                    travelAllowance: '',
+                    foodAllowance: '',
+                    miscAllowance: '',
+                    notes: '',
+                  });
+                }}
                 data-testid="button-reset-allowance"
               >
                 Reset

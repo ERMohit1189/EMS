@@ -252,10 +252,10 @@ export default function Attendance() {
           <div className="flex items-center justify-between gap-1 md:gap-2">
             <CardTitle className="text-base md:text-lg truncate">{monthName}</CardTitle>
             <div className="flex gap-0.5 md:gap-1">
-              <Button variant="outline" size="xs" onClick={handlePrevMonth} className="h-8 px-2 text-xs md:h-9 md:px-3 md:text-sm">
+              <Button variant="outline" size="sm" onClick={handlePrevMonth} className="h-8 px-2 text-xs md:h-9 md:px-3 md:text-sm">
                 ← Prev
               </Button>
-              <Button variant="outline" size="xs" onClick={handleNextMonth} className="h-8 px-2 text-xs md:h-9 md:px-3 md:text-sm">
+              <Button variant="outline" size="sm" onClick={handleNextMonth} className="h-8 px-2 text-xs md:h-9 md:px-3 md:text-sm">
                 Next →
               </Button>
             </div>

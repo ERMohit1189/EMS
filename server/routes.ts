@@ -373,12 +373,12 @@ export async function registerRoutes(
   app.get("/api/vendors/:id/usage", async (req, res) => {
     try {
       const vendorId = req.params.id;
-      const [sites, pos, invoices] = await Promise.all([
+      const [sites, pos, vendorInvoices] = await Promise.all([
         storage.getSitesByVendor(vendorId),
         db.select().from(purchaseOrders).where(eq(purchaseOrders.vendorId, vendorId)),
         db.select().from(invoices).where(eq(invoices.vendorId, vendorId)),
       ]);
-      const isUsed = sites.length > 0 || pos.length > 0 || invoices.length > 0;
+      const isUsed = sites.length > 0 || pos.length > 0 || vendorInvoices.length > 0;
       res.json({ isUsed });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
