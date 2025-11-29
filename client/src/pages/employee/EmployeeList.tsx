@@ -43,7 +43,9 @@ export default function EmployeeList() {
         });
         if (response.ok) {
           const data = await response.json();
-          setEmployees(data.data || []);
+          // Filter out superadmin employees
+          const filteredEmployees = (data.data || []).filter((e: Employee) => e.email !== 'superadmin@ems.local');
+          setEmployees(filteredEmployees);
         }
       } catch (error) {
         console.error('Failed to fetch employees:', error);

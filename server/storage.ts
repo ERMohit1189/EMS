@@ -240,7 +240,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmployees(limit: number, offset: number): Promise<Employee[]> {
-    return await db.select().from(employees).limit(limit).offset(offset);
+    return await db.select().from(employees).where(ne(employees.role, 'superadmin')).limit(limit).offset(offset);
   }
 
   async updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee> {
@@ -257,7 +257,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmployeeCount(): Promise<number> {
-    const result = await db.select({ count: count() }).from(employees);
+    const result = await db.select({ count: count() }).from(employees).where(ne(employees.role, 'superadmin'));
     return Number(result[0]?.count) || 0;
   }
 
