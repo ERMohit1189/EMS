@@ -1303,7 +1303,9 @@ export async function registerRoutes(
     try {
       const { employeeId, teamId, date, allowanceData } = req.body;
       
-      console.log(`[Allowances] POST request - employeeId: ${employeeId}, teamId: ${teamId}, date: ${date}, hasData: ${!!allowanceData}`);
+      console.log(`[Allowances] POST request received`);
+      console.log(`[Allowances] Full body:`, req.body);
+      console.log(`[Allowances] Extracted - employeeId: ${employeeId}, teamId: ${teamId}, date: ${date}, hasData: ${!!allowanceData}`);
       
       if (!employeeId || !date || !allowanceData) {
         return res.status(400).json({ error: "Missing required fields: employeeId, date, allowanceData" });
@@ -1333,13 +1335,14 @@ export async function registerRoutes(
         });
       } else {
         // Create new
-        console.log(`[Allowances] Creating new allowance`);
+        console.log(`[Allowances] Creating new allowance with payload:`, { employeeId, teamId, date, allowanceDataLength: allowanceData.length });
         allowance = await storage.createDailyAllowance({
           employeeId,
           teamId,
           date,
           allowanceData: allowanceData,
         });
+        console.log(`[Allowances] Created allowance result:`, allowance);
       }
       
       console.log(`[Allowances] Successfully saved for employee ${employeeId}, date ${date}, teamId ${teamId}`);

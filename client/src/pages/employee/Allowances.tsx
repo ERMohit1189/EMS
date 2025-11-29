@@ -306,25 +306,29 @@ export default function Allowances() {
 
     setLoading(true);
     try {
+      const payload = {
+        employeeId,
+        teamId: formData.teamId,
+        date: formData.date,
+        allowanceData: JSON.stringify({
+          travelAllowance: parseFloat(formData.travelAllowance) || 0,
+          foodAllowance: parseFloat(formData.foodAllowance) || 0,
+          accommodationAllowance: parseFloat(formData.accommodationAllowance) || 0,
+          mobileAllowance: parseFloat(formData.mobileAllowance) || 0,
+          internetAllowance: parseFloat(formData.internetAllowance) || 0,
+          utilitiesAllowance: parseFloat(formData.utilitiesAllowance) || 0,
+          parkingAllowance: parseFloat(formData.parkingAllowance) || 0,
+          miscAllowance: parseFloat(formData.miscAllowance) || 0,
+          notes: formData.notes,
+        }),
+      };
+      
+      console.log('Frontend sending allowance payload:', payload);
+      
       const response = await fetch(`${getApiBaseUrl()}/api/allowances`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId,
-          teamId: formData.teamId || null,
-          date: formData.date,
-          allowanceData: JSON.stringify({
-            travelAllowance: parseFloat(formData.travelAllowance) || 0,
-            foodAllowance: parseFloat(formData.foodAllowance) || 0,
-            accommodationAllowance: parseFloat(formData.accommodationAllowance) || 0,
-            mobileAllowance: parseFloat(formData.mobileAllowance) || 0,
-            internetAllowance: parseFloat(formData.internetAllowance) || 0,
-            utilitiesAllowance: parseFloat(formData.utilitiesAllowance) || 0,
-            parkingAllowance: parseFloat(formData.parkingAllowance) || 0,
-            miscAllowance: parseFloat(formData.miscAllowance) || 0,
-            notes: formData.notes,
-          }),
-        }),
+        body: JSON.stringify(payload),
         credentials: 'include',
       });
 
