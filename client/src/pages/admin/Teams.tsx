@@ -84,7 +84,12 @@ export default function Teams() {
     }
   };
 
-  const handleCreateTeam = async () => {
+  const handleCreateTeam = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (!formData.name.trim()) {
       toast({ title: 'Error', description: 'Team name is required', variant: 'destructive' });
       return;
@@ -113,7 +118,12 @@ export default function Teams() {
     }
   };
 
-  const handleAddMember = async () => {
+  const handleAddMember = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (!selectedTeamId || !selectedEmployeeId) {
       toast({ title: 'Error', description: 'Please select team and employee', variant: 'destructive' });
       return;
@@ -217,7 +227,8 @@ export default function Teams() {
               />
             </div>
             <Button
-              onClick={handleCreateTeam}
+              type="button"
+              onClick={(e) => handleCreateTeam(e)}
               disabled={loading}
               className="w-full h-8 text-xs bg-green-600 hover:bg-green-700"
               data-testid="button-create-team"
@@ -266,7 +277,8 @@ export default function Teams() {
               </select>
             </div>
             <Button
-              onClick={handleAddMember}
+              type="button"
+              onClick={(e) => handleAddMember(e)}
               disabled={loading || !selectedTeamId || !selectedEmployeeId}
               className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700"
               data-testid="button-add-member"
