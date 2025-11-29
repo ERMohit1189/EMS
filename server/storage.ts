@@ -169,6 +169,7 @@ export interface IStorage {
   getEmployeeAllowances(employeeId: string, limit?: number): Promise<DailyAllowance[]>;
   getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<any[]>;
   getPendingAllowances(): Promise<any[]>;
+  getPendingAllowancesForTeams(employeeId: string): Promise<any[]>;
   updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance>;
   deleteDailyAllowance(id: string): Promise<void>;
   approveDailyAllowance(id: string, approvedBy: string): Promise<DailyAllowance>;
@@ -1116,6 +1117,42 @@ export class DrizzleStorage implements IStorage {
   async getPendingAllowances(): Promise<any[]> {
     const result = await db.select().from(dailyAllowances)
       .where(eq(dailyAllowances.approvalStatus, 'pending'))
+      .orderBy(dailyAllowances.submittedAt);
+    
+    // Enrich with employee names and team names
+    const enriched = await Promise.all(result.map(async (allowance) => {
+      const employee = await this.getEmployee(allowance.employeeId);
+      let teamName = null;
+      if (allowance.teamId) {
+        const team = await this.getTeam(allowance.teamId);
+        teamName = team?.name || null;
+      }
+      return {
+        ...allowance,
+        employeeName: employee?.name || 'Unknown',
+        employeeEmail: employee?.email || '',
+        teamName,
+      };
+    }));
+    
+    return enriched;
+  }
+
+  async getPendingAllowancesForTeams(employeeId: string): Promise<any[]> {
+    // Get all teams for this employee
+    const userTeams = await this.getTeamsForEmployee(employeeId);
+    const teamIds = userTeams.map(t => t.id);
+    
+    if (teamIds.length === 0) {
+      return [];
+    }
+    
+    // Get pending allowances only for team members in this employee's teams
+    const result = await db.select().from(dailyAllowances)
+      .where(and(
+        eq(dailyAllowances.approvalStatus, 'pending'),
+        inArray(dailyAllowances.teamId, teamIds)
+      ))
       .orderBy(dailyAllowances.submittedAt);
     
     // Enrich with employee names and team names

@@ -31,7 +31,15 @@ export default function AllowanceApproval() {
   const fetchPendingAllowances = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/pending`);
+      const employeeId = localStorage.getItem('employeeId');
+      const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
+      
+      // If user is a reporting person, pass their employeeId to filter by their teams
+      const url = isReportingPerson && employeeId
+        ? `${getApiBaseUrl()}/api/allowances/pending?employeeId=${employeeId}`
+        : `${getApiBaseUrl()}/api/allowances/pending`;
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setAllowances(data.data || []);
