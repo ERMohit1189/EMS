@@ -43,7 +43,7 @@ export default function EmployeeDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-lg p-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg p-8 text-white shadow-lg">
         <div>
