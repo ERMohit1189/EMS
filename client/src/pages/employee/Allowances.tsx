@@ -369,34 +369,39 @@ export default function Allowances() {
         </CardHeader>
         <CardContent className="p-3">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs font-medium">Date</label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  data-testid="input-allowance-date"
-                  className="mt-0.5 h-8 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium">Team (Optional)</label>
-                <select
-                  value={formData.teamId}
-                  onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
-                  data-testid="select-allowance-team"
-                  className="mt-0.5 h-8 text-xs w-full border rounded px-2 py-1"
-                >
-                  <option value="">Select Team...</option>
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="text-xs font-medium">Date</label>
+              <Input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                data-testid="input-allowance-date"
+                className="mt-0.5 h-8 text-xs"
+              />
             </div>
+
+            {teams.length > 0 && (
+              <div>
+                <label className="text-xs font-medium">Select Team</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {teams.map((team) => (
+                    <button
+                      key={team.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, teamId: formData.teamId === team.id ? '' : team.id })}
+                      data-testid={`team-badge-${team.id}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                        formData.teamId === team.id
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                      }`}
+                    >
+                      {team.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div>
