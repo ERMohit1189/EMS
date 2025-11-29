@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
+import { PageLoader } from '@/components/PageLoader';
+import { usePageLoader } from '@/hooks/usePageLoader';
 
 const RequiredLabel = ({ children }: { children: string }) => (
   <span>
@@ -101,33 +102,29 @@ export default function EmployeeEdit() {
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [age, setAge] = useState<{ years: number; months: number; days: number } | null>(null);
   const [employee, setEmployee] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
+  const { isLoading, withLoaderMultiple } = usePageLoader();
 
   const employeeId = params?.id;
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        setLoading(true);
-        const [empRes, deptRes, desigRes] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { cache: 'no-store' }),
-          fetch(`${getApiBaseUrl()}/api/departments`, { cache: 'no-store' }),
-          fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' }),
-        ]);
-        if (empRes.ok) setEmployee(await empRes.json());
-        if (deptRes.ok) setDepartments(await deptRes.json());
-        if (desigRes.ok) setDesignations(await desigRes.json());
-      } catch (error) {
+      await withLoaderMultiple([
+        () => fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
+        () => fetch(`${getApiBaseUrl()}/api/departments`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+        () => fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      ]).then(([emp, depts, desigs]) => {
+        if (emp) setEmployee(emp);
+        if (depts) setDepartments(depts);
+        if (desigs) setDesignations(desigs);
+      }).catch(error => {
         console.error('Failed to load data', error);
         toast({ title: 'Error', description: 'Failed to load employee data', variant: 'destructive' });
-      } finally {
-        setLoading(false);
-      }
+      });
     };
     if (employeeId) loadData();
-  }, [employeeId, toast]);
+  }, [employeeId, toast, withLoaderMultiple]);
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
@@ -306,13 +303,8 @@ export default function EmployeeEdit() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[50vh]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">Loading employee data...</p>
-      </div>
-    );
+  if (isLoading) {
+    return <PageLoader isLoading={true} message="Loading employee data..." />;
   }
 
   if (!employee) {

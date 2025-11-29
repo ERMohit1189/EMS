@@ -1,9 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { PageLoader } from "@/components/PageLoader";
+import { usePageLoader } from "@/hooks/usePageLoader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,33 +30,32 @@ interface Employee {
 
 export default function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const { isLoading, withLoader } = usePageLoader();
 
   useEffect(() => {
     const fetchEmployees = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { 
-          cache: 'no-store'
-        });
-        if (response.ok) {
-          const data = await response.json();
-          // Filter out superadmin employees
-          const filteredEmployees = (data.data || []).filter((e: Employee) => e.email !== 'superadmin@ems.local');
-          setEmployees(filteredEmployees);
+      await withLoader(async () => {
+        try {
+          const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { 
+            cache: 'no-store'
+          });
+          if (response.ok) {
+            const data = await response.json();
+            // Filter out superadmin employees
+            const filteredEmployees = (data.data || []).filter((e: Employee) => e.email !== 'superadmin@ems.local');
+            setEmployees(filteredEmployees);
+          }
+        } catch (error) {
+          console.error('Failed to fetch employees:', error);
+          toast({ title: 'Error', description: 'Failed to load employees', variant: 'destructive' });
         }
-      } catch (error) {
-        console.error('Failed to fetch employees:', error);
-        toast({ title: 'Error', description: 'Failed to load employees', variant: 'destructive' });
-      } finally {
-        setLoading(false);
-      }
+      });
     };
     fetchEmployees();
-  }, [toast]);
+  }, [toast, withLoader]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -88,11 +89,8 @@ export default function EmployeeList() {
          </Link>
        </div>
 
-       {loading ? (
-         <div className="flex flex-col items-center justify-center h-64">
-           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-           <p className="text-muted-foreground">Loading employee data...</p>
-         </div>
+       {isLoading ? (
+         <PageLoader isLoading={true} message="Loading employee data..." />
        ) : (
        <div className="rounded-md border bg-card overflow-x-auto">
          <div className="grid gap-0 min-w-full" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
