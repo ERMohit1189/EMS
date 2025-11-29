@@ -39,6 +39,9 @@ export default function Teams() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [loadingAddMember, setLoadingAddMember] = useState(false);
+  const [loadingRemoveMember, setLoadingRemoveMember] = useState<string | null>(null);
+  const [loadingAssignReporting, setLoadingAssignReporting] = useState(false);
+  const [loadingDeleteReporting, setLoadingDeleteReporting] = useState<number | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
@@ -218,6 +221,7 @@ export default function Teams() {
     if (!selectedTeamId) return;
 
     try {
+      setLoadingRemoveMember(memberId);
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members/${memberId}`, {
         method: 'DELETE',
       });
@@ -230,6 +234,8 @@ export default function Teams() {
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoadingRemoveMember(null);
     }
   };
 
@@ -242,6 +248,7 @@ export default function Teams() {
     if (!memberToAssign || !selectedTeamId) return;
 
     try {
+      setLoadingAssignReporting(true);
       console.log('[Teams] Assigning reporting person:', memberToAssign.name, 'Level:', level);
       
       for (const otherMember of teamMembers) {
@@ -274,6 +281,8 @@ export default function Teams() {
     } catch (error: any) {
       console.error('[Teams] Error assigning reporting person:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoadingAssignReporting(false);
     }
   };
 
