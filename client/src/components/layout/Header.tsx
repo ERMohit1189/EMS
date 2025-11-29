@@ -1,4 +1,4 @@
-import { Bell, Search, Settings, Menu } from 'lucide-react';
+import { Bell, Search, Settings, Menu, Lock } from 'lucide-react';
 import { useLocation } from 'wouter';
 import {
   DropdownMenu,
@@ -85,6 +85,10 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setLocation('/settings')} data-testid="menu-item-settings" className="text-sm">
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation('/employee/change-password')} data-testid="menu-item-change-password" className="text-sm">
+              <Lock className="h-4 w-4 mr-2" />
+              Change Password
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive text-sm" onClick={handleLogout} data-testid="menu-item-logout">
