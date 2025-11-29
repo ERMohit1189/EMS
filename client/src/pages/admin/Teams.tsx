@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { Loader2 } from 'lucide-react';
 
 interface Team {
   id: string;
@@ -602,22 +603,31 @@ export default function Teams() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleRemoveMember(member.id)}
+                        disabled={loadingRemoveMember === member.id}
                         className="h-5 px-2 py-0 text-xs flex-shrink-0 ml-1"
                         data-testid={`button-remove-member-${member.id}`}
                       >
-                        ✕
+                        {loadingRemoveMember === member.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          '✕'
+                        )}
                       </Button>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {member.reportingPerson1 === member.id ? (
                         <div
-                          className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(0)} cursor-pointer hover:opacity-80 transition-opacity`}
+                          className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(0)} ${loadingDeleteReporting === 1 ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
                           data-testid={`badge-reporting-person-1-${member.id}`}
-                          onClick={() => deleteReportingPersonAssignment(1)}
+                          onClick={() => !loadingDeleteReporting && deleteReportingPersonAssignment(1)}
                           title="Click to remove RP1 assignment"
                         >
                           RP1
-                          <span className="text-xs font-bold ml-0.5">✕</span>
+                          {loadingDeleteReporting === 1 ? (
+                            <Loader2 className="w-3 h-3 animate-spin ml-0.5" />
+                          ) : (
+                            <span className="text-xs font-bold ml-0.5">✕</span>
+                          )}
                         </div>
                       ) : member.reportingPerson2 === member.id ? (
                         <>
@@ -630,13 +640,17 @@ export default function Teams() {
                             </div>
                           )}
                           <div
-                            className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(1)} cursor-pointer hover:opacity-80 transition-opacity`}
+                            className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(1)} ${loadingDeleteReporting === 2 ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
                             data-testid={`badge-reporting-person-2-${member.id}`}
-                            onClick={() => deleteReportingPersonAssignment(2)}
+                            onClick={() => !loadingDeleteReporting && deleteReportingPersonAssignment(2)}
                             title="Click to remove RP2 assignment"
                           >
                             RP2
-                            <span className="text-xs font-bold ml-0.5">✕</span>
+                            {loadingDeleteReporting === 2 ? (
+                              <Loader2 className="w-3 h-3 animate-spin ml-0.5" />
+                            ) : (
+                              <span className="text-xs font-bold ml-0.5">✕</span>
+                            )}
                           </div>
                         </>
                       ) : member.reportingPerson3 === member.id ? (
@@ -658,13 +672,17 @@ export default function Teams() {
                             </div>
                           )}
                           <div
-                            className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(2)} cursor-pointer hover:opacity-80 transition-opacity`}
+                            className={`px-2 py-0.5 rounded text-xs border flex items-center gap-1 ${getReportingBadgeColor(2)} ${loadingDeleteReporting === 3 ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:opacity-80'} transition-opacity`}
                             data-testid={`badge-reporting-person-3-${member.id}`}
-                            onClick={() => deleteReportingPersonAssignment(3)}
+                            onClick={() => !loadingDeleteReporting && deleteReportingPersonAssignment(3)}
                             title="Click to remove RP3 assignment"
                           >
                             RP3
-                            <span className="text-xs font-bold ml-0.5">✕</span>
+                            {loadingDeleteReporting === 3 ? (
+                              <Loader2 className="w-3 h-3 animate-spin ml-0.5" />
+                            ) : (
+                              <span className="text-xs font-bold ml-0.5">✕</span>
+                            )}
                           </div>
                         </>
                       ) : (
@@ -725,34 +743,47 @@ export default function Teams() {
             <CardContent className="space-y-2">
               <Button
                 onClick={() => assignReportingPerson(1)}
-                disabled={isLevelTaken(1)}
-                className={`w-full h-8 text-xs justify-start ${isLevelTaken(1) ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                disabled={isLevelTaken(1) || loadingAssignReporting}
+                className={`w-full h-8 text-xs justify-start ${isLevelTaken(1) || loadingAssignReporting ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
                 data-testid="button-assign-rp1"
               >
-                <span className="inline-block w-2 h-2 bg-blue-700 rounded-full mr-2"></span>
+                {loadingAssignReporting ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                ) : (
+                  <span className="inline-block w-2 h-2 bg-blue-700 rounded-full mr-2"></span>
+                )}
                 Reporting Person 1 {isLevelTaken(1) ? '(Taken)' : ''}
               </Button>
               <Button
                 onClick={() => assignReportingPerson(2)}
-                disabled={isLevelTaken(2)}
-                className={`w-full h-8 text-xs justify-start ${isLevelTaken(2) ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+                disabled={isLevelTaken(2) || loadingAssignReporting}
+                className={`w-full h-8 text-xs justify-start ${isLevelTaken(2) || loadingAssignReporting ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
                 data-testid="button-assign-rp2"
               >
-                <span className="inline-block w-2 h-2 bg-green-700 rounded-full mr-2"></span>
+                {loadingAssignReporting ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                ) : (
+                  <span className="inline-block w-2 h-2 bg-green-700 rounded-full mr-2"></span>
+                )}
                 Reporting Person 2 {isLevelTaken(2) ? '(Taken)' : ''}
               </Button>
               <Button
                 onClick={() => assignReportingPerson(3)}
-                disabled={isLevelTaken(3)}
-                className={`w-full h-8 text-xs justify-start ${isLevelTaken(3) ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-amber-600 hover:bg-amber-700'}`}
+                disabled={isLevelTaken(3) || loadingAssignReporting}
+                className={`w-full h-8 text-xs justify-start ${isLevelTaken(3) || loadingAssignReporting ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-amber-600 hover:bg-amber-700'}`}
                 data-testid="button-assign-rp3"
               >
-                <span className="inline-block w-2 h-2 bg-amber-700 rounded-full mr-2"></span>
+                {loadingAssignReporting ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-2" />
+                ) : (
+                  <span className="inline-block w-2 h-2 bg-amber-700 rounded-full mr-2"></span>
+                )}
                 Reporting Person 3 {isLevelTaken(3) ? '(Taken)' : ''}
               </Button>
               <Button
                 onClick={() => setIsAssignmentModalOpen(false)}
                 variant="outline"
+                disabled={loadingAssignReporting}
                 className="w-full h-8 text-xs"
                 data-testid="button-cancel-assignment"
               >
