@@ -39,6 +39,7 @@ export default function Teams() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     fetchTeams();
@@ -279,34 +280,42 @@ export default function Teams() {
             </div>
             <div>
               <label className="text-xs font-medium mb-2 block">Select Employees (Multiple)</label>
-              <div className="border rounded p-2 space-y-2 max-h-64 overflow-y-auto bg-white">
-                {employees.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No employees available</p>
-                ) : (
-                  employees.map((emp) => (
-                    <div key={emp.id} className="flex items-start gap-2 p-1 hover:bg-slate-50 rounded">
-                      <Checkbox
-                        id={`emp-${emp.id}`}
-                        checked={selectedEmployeeIds.includes(emp.id)}
-                        onCheckedChange={() => toggleEmployeeSelection(emp.id)}
-                        data-testid={`checkbox-employee-${emp.id}`}
-                      />
-                      <label
-                        htmlFor={`emp-${emp.id}`}
-                        className="text-xs flex-1 cursor-pointer"
-                      >
-                        <div className="font-medium text-xs">{emp.name} - {emp.designation}</div>
-                        <div className="text-xs text-muted-foreground">{emp.department}</div>
-                      </label>
-                    </div>
-                  ))
+              <div className="relative">
+                <Button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full h-8 text-xs bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 justify-between"
+                  data-testid="button-employee-dropdown"
+                >
+                  <span>{selectedEmployeeIds.length === 0 ? 'Select employees...' : `${selectedEmployeeIds.length} selected`}</span>
+                  <span className="text-xs">▼</span>
+                </Button>
+                {isDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 border rounded bg-white shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {employees.length === 0 ? (
+                      <p className="text-xs text-muted-foreground p-2">No employees available</p>
+                    ) : (
+                      employees.map((emp) => (
+                        <div key={emp.id} className="flex items-start gap-2 p-2 hover:bg-slate-100 border-b border-gray-100 last:border-b-0">
+                          <Checkbox
+                            id={`emp-${emp.id}`}
+                            checked={selectedEmployeeIds.includes(emp.id)}
+                            onCheckedChange={() => toggleEmployeeSelection(emp.id)}
+                            data-testid={`checkbox-employee-${emp.id}`}
+                          />
+                          <label
+                            htmlFor={`emp-${emp.id}`}
+                            className="text-xs flex-1 cursor-pointer"
+                          >
+                            <div className="font-medium text-xs">{emp.name} - {emp.designation}</div>
+                            <div className="text-xs text-muted-foreground">{emp.department}</div>
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
-              {selectedEmployeeIds.length > 0 && (
-                <p className="text-xs text-green-600 mt-2">
-                  {selectedEmployeeIds.length} employee(s) selected
-                </p>
-              )}
             </div>
             <Button
               type="button"
