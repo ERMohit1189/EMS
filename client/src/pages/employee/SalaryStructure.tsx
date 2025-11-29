@@ -328,9 +328,9 @@ export default function SalaryStructure() {
       
       const method = salary.id ? 'PUT' : 'POST';
       
-      // Convert all numeric fields to strings for database storage
+      // Only send salary fields (no createdAt, updatedAt, or id)
       const salaryData = {
-        ...salary,
+        employeeId: salary.employeeId,
         basicSalary: String(salary.basicSalary),
         hra: String(salary.hra),
         da: String(salary.da),
