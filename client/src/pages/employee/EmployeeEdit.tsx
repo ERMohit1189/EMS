@@ -194,7 +194,11 @@ export default function EmployeeEdit() {
         status: employee.status || 'Active',
       };
       console.log('Resetting form with:', formData);
+      console.log('Role value:', formData.role, 'DeptId:', formData.departmentId, 'DesigId:', formData.designationId);
       form.reset(formData);
+      setTimeout(() => {
+        console.log('After reset - form values:', form.getValues());
+      }, 100);
       calculateAge(employee?.dob || '');
     }
   }, [employee, departments, designations]);
@@ -644,76 +648,67 @@ export default function EmployeeEdit() {
                <FormField
                 control={form.control}
                 name="role"
-                render={({ field }) => {
-                  const selectedRole = field.value === 'admin' ? 'Admin' : 'User';
-                  return (
-                    <FormItem>
-                      <FormLabel><RequiredLabel>Role</RequiredLabel></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={selectedRole} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel><RequiredLabel>Role</RequiredLabel></FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-role">
+                          <SelectValue placeholder="Select Role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
               <FormField
                 control={form.control}
                 name="departmentId"
-                render={({ field }) => {
-                  const selectedDept = departments.find(d => d.id === field.value);
-                  return (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={selectedDept?.name || 'Select Department'} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {departments.map(dept => (
-                            <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-department">
+                          <SelectValue placeholder="Select Department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {departments.map(dept => (
+                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
               <FormField
                 control={form.control}
                 name="designationId"
-                render={({ field }) => {
-                  const selectedDesig = designations.find(d => d.id === field.value);
-                  return (
-                    <FormItem>
-                      <FormLabel><RequiredLabel>Designation</RequiredLabel></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={selectedDesig?.name || 'Select Designation'} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {designations.map(desig => (
-                            <SelectItem key={desig.id} value={desig.id}>{desig.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel><RequiredLabel>Designation</RequiredLabel></FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-designation">
+                          <SelectValue placeholder="Select Designation" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {designations.map(desig => (
+                          <SelectItem key={desig.id} value={desig.id}>{desig.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
               <FormField
                 control={form.control}
