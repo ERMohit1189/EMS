@@ -168,40 +168,17 @@ export default function EmployeeEdit() {
 
   useEffect(() => {
     if (employee && departments.length > 0 && designations.length > 0) {
-      const formData = {
-        name: employee.name || '',
-        email: employee.email || '',
-        dob: employee.dob || '',
-        fatherName: employee.fatherName || '',
-        mobile: employee.mobile || '',
-        alternateNo: employee.alternateNo || '',
-        address: employee.address || '',
-        city: employee.city || '',
-        state: employee.state || '',
-        country: employee.country || 'India',
-        role: employee.role || 'user',
-        departmentId: employee.departmentId || '',
-        designationId: employee.designationId || '',
-        doj: employee.doj || '',
-        aadhar: employee.aadhar || '',
-        pan: employee.pan || '',
-        bloodGroup: employee.bloodGroup || '',
-        maritalStatus: employee.maritalStatus || 'Single',
-        spouseName: employee.spouseName || '',
-        nominee: employee.nominee || '',
-        ppeKit: employee.ppeKit || false,
-        kitNo: employee.kitNo || '',
-        status: employee.status || 'Active',
-      };
-      console.log('Resetting form with:', formData);
-      console.log('Role value:', formData.role, 'DeptId:', formData.departmentId, 'DesigId:', formData.designationId);
-      form.reset(formData);
-      setTimeout(() => {
-        console.log('After reset - form values:', form.getValues());
-      }, 100);
+      console.log('Setting critical values - role:', employee.role, 'deptId:', employee.departmentId, 'desigId:', employee.designationId);
+      form.setValue('role', employee.role || 'user', { shouldValidate: false, shouldDirty: false });
+      form.setValue('departmentId', employee.departmentId || '', { shouldValidate: false, shouldDirty: false });
+      form.setValue('designationId', employee.designationId || '', { shouldValidate: false, shouldDirty: false });
+      form.setValue('bloodGroup', employee.bloodGroup || '', { shouldValidate: false, shouldDirty: false });
+      form.setValue('status', employee.status || 'Active', { shouldValidate: false, shouldDirty: false });
+      form.setValue('city', employee.city || '', { shouldValidate: false, shouldDirty: false });
+      form.setValue('state', employee.state || '', { shouldValidate: false, shouldDirty: false });
       calculateAge(employee?.dob || '');
     }
-  }, [employee, departments, designations]);
+  }, [employee, departments, designations, form]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
