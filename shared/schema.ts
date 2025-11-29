@@ -160,7 +160,7 @@ export const employees = pgTable("employees", {
   name: text("name").notNull(),
   email: varchar("email").notNull().unique(),
   password: text("password"),
-  dob: date("dob").notNull(),
+  dob: date("dob"),
   fatherName: text("father_name").notNull(),
   mobile: varchar("mobile").notNull().unique(),
   alternateNo: varchar("alternate_no"),

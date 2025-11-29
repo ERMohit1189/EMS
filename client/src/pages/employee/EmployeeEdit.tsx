@@ -171,7 +171,9 @@ export default function EmployeeEdit() {
       // Sync form values with employee data for all fields
       form.setValue('name', employee.name || '', { shouldValidate: false });
       form.setValue('email', employee.email || '', { shouldValidate: false });
-      form.setValue('dob', employee.dob || '', { shouldValidate: false });
+      // Don't set DOB if it's the default 2000-01-01 placeholder
+      const dobValue = employee.dob && employee.dob !== '2000-01-01' ? employee.dob : '';
+      form.setValue('dob', dobValue, { shouldValidate: false });
       form.setValue('fatherName', employee.fatherName || '', { shouldValidate: false });
       form.setValue('mobile', employee.mobile || '', { shouldValidate: false });
       form.setValue('alternateNo', employee.alternateNo || '', { shouldValidate: false });
