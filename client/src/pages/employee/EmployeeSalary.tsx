@@ -114,103 +114,135 @@ export default function EmployeeSalary() {
     if (!salary) return;
 
     try {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      let yPosition = 10;
-
-      // Title
-      doc.setFontSize(16);
-      doc.text("SALARY STRUCTURE", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 10;
-
-      // Employee Details
-      doc.setFontSize(11);
-      doc.text(`Employee Name: ${employeeName || "N/A"}`, 10, yPosition);
-      yPosition += 7;
-      doc.text(`Employee ID: ${employeeId || "N/A"}`, 10, yPosition);
-      yPosition += 7;
-      doc.text(`Designation: ${localStorage.getItem('employeeDesignation') || "N/A"}`, 10, yPosition);
-      yPosition += 7;
-      doc.text(`Department: ${localStorage.getItem('employeeDepartment') || "N/A"}`, 10, yPosition);
-      yPosition += 10;
-
-      // Earnings Section
-      doc.setFontSize(12);
-      doc.text("EARNINGS", 10, yPosition);
-      yPosition += 7;
+      const doc = new jsPDF({
+        format: 'a4',
+        unit: 'mm'
+      });
       
-      const earningsData = [
-        ["Particulars", "Amount"],
-        ["Basic Salary", `₹ ${formatValue(salary.basicSalary)}`],
-        ["HRA", `₹ ${formatValue(salary.hra)}`],
-        ["DA", `₹ ${formatValue(salary.da)}`],
-        ["LTA", `₹ ${formatValue(salary.lta)}`],
-        ["Conveyance", `₹ ${formatValue(salary.conveyance)}`],
-        ["Medical", `₹ ${formatValue(salary.medical)}`],
-        ["Bonuses", `₹ ${formatValue(salary.bonuses)}`],
-        ["Other Benefits", `₹ ${formatValue(salary.otherBenefits)}`],
-        ["GROSS SALARY", `₹ ${formatValue(calculateGross())}`],
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const leftMargin = 15;
+      const rightMargin = 15;
+      const contentWidth = pageWidth - (leftMargin + rightMargin);
+      let yPosition = 15;
+
+      // Company Header Section (if available)
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'italic');
+      doc.text("SALARY STRUCTURE", leftMargin, yPosition);
+      yPosition += 8;
+
+      // Employee Details Section
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      
+      const detailsData = [
+        { label: "Employee Name", value: employeeName || "N/A" },
+        { label: "Employee ID", value: employeeId || "N/A" },
+        { label: "Designation", value: localStorage.getItem('employeeDesignation') || "N/A" },
+        { label: "Department", value: localStorage.getItem('employeeDepartment') || "N/A" },
       ];
 
+      detailsData.forEach(detail => {
+        doc.text(`${detail.label}:`, leftMargin, yPosition);
+        doc.text(detail.value, leftMargin + 45, yPosition);
+        yPosition += 5;
+      });
+      
+      yPosition += 5;
+
+      // Earnings Section
       doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text("EARNINGS", leftMargin, yPosition);
+      yPosition += 6;
+
+      const earningsData = [
+        ["Particulars", "Amount (Rs)"],
+        ["Basic Salary", formatValue(salary.basicSalary)],
+        ["HRA", formatValue(salary.hra)],
+        ["DA", formatValue(salary.da)],
+        ["LTA", formatValue(salary.lta)],
+        ["Conveyance", formatValue(salary.conveyance)],
+        ["Medical", formatValue(salary.medical)],
+        ["Bonuses", formatValue(salary.bonuses)],
+        ["Other Benefits", formatValue(salary.otherBenefits)],
+      ];
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
       let tableY = yPosition;
+      
       earningsData.forEach((row, index) => {
         const isHeader = index === 0;
-        const isGross = index === earningsData.length - 1;
-        
         if (isHeader) doc.setFont(undefined, 'bold');
-        if (isGross) doc.setFont(undefined, 'bold');
         
-        doc.text(row[0], 10, tableY);
-        doc.text(row[1], 100, tableY, { align: "right" });
-        tableY += 7;
+        doc.text(row[0], leftMargin, tableY);
+        doc.text(row[1], leftMargin + contentWidth - 20, tableY, { align: "right" });
+        tableY += 5;
         
-        if (isHeader || isGross) doc.setFont(undefined, 'normal');
+        if (isHeader) doc.setFont(undefined, 'normal');
       });
 
-      yPosition = tableY + 5;
+      // Gross Salary line
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(9);
+      doc.text("GROSS SALARY", leftMargin, tableY);
+      doc.text(formatValue(calculateGross()), leftMargin + contentWidth - 20, tableY, { align: "right" });
+      yPosition = tableY + 8;
 
       // Deductions Section
       if (salary.wantDeduction) {
-        doc.setFontSize(12);
-        doc.text("DEDUCTIONS", 10, yPosition);
-        yPosition += 7;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text("DEDUCTIONS", leftMargin, yPosition);
+        yPosition += 6;
 
         const deductionsData = [
-          ["Particulars", "Amount"],
-          ["PF", `₹ ${formatValue(salary.pf)}`],
-          ["Professional Tax", `₹ ${formatValue(salary.professionalTax)}`],
-          ["Income Tax", `₹ ${formatValue(salary.incomeTax)}`],
-          ["EPF", `₹ ${formatValue(salary.epf)}`],
-          ["ESIC", `₹ ${formatValue(salary.esic)}`],
-          ["TOTAL DEDUCTIONS", `₹ ${formatValue(calculateDeductions())}`],
+          ["Particulars", "Amount (Rs)"],
+          ["PF (Provident Fund)", formatValue(salary.pf)],
+          ["Professional Tax", formatValue(salary.professionalTax)],
+          ["Income Tax", formatValue(salary.incomeTax)],
+          ["EPF", formatValue(salary.epf)],
+          ["ESIC", formatValue(salary.esic)],
         ];
 
-        doc.setFontSize(10);
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
         tableY = yPosition;
+        
         deductionsData.forEach((row, index) => {
           const isHeader = index === 0;
-          const isTotal = index === deductionsData.length - 1;
-          
           if (isHeader) doc.setFont(undefined, 'bold');
-          if (isTotal) doc.setFont(undefined, 'bold');
           
-          doc.text(row[0], 10, tableY);
-          doc.text(row[1], 100, tableY, { align: "right" });
-          tableY += 7;
+          doc.text(row[0], leftMargin, tableY);
+          doc.text(row[1], leftMargin + contentWidth - 20, tableY, { align: "right" });
+          tableY += 5;
           
-          if (isHeader || isTotal) doc.setFont(undefined, 'normal');
+          if (isHeader) doc.setFont(undefined, 'normal');
         });
 
-        yPosition = tableY + 5;
+        // Total Deductions line
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(9);
+        doc.text("TOTAL DEDUCTIONS", leftMargin, tableY);
+        doc.text(formatValue(calculateDeductions()), leftMargin + contentWidth - 20, tableY, { align: "right" });
+        yPosition = tableY + 8;
       }
 
-      // Net Salary
-      doc.setFontSize(12);
+      // Net Salary Section - Highlighted
+      doc.setFontSize(11);
       doc.setFont(undefined, 'bold');
-      doc.text("NET SALARY: ", 10, yPosition);
-      doc.text(`₹ ${formatValue(calculateNet())}`, 100, yPosition, { align: "right" });
+      doc.setTextColor(0, 80, 0);
+      doc.text("NET SALARY (Monthly)", leftMargin, yPosition);
+      doc.setFontSize(13);
+      doc.text(`Rs ${formatValue(calculateNet())}`, leftMargin + contentWidth - 20, yPosition, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+
+      // Footer
+      yPosition += 15;
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'italic');
+      doc.text("This is a computer-generated document. No signature required.", leftMargin, yPosition);
 
       // Save PDF
       doc.save(`${employeeName}_salary_structure.pdf`);
@@ -308,14 +340,14 @@ export default function EmployeeSalary() {
             ].map((item) => (
               <div key={item.label} className="flex justify-between items-center">
                 <span className="text-muted-foreground">{item.label}</span>
-                <span className="font-medium">₹ {formatValue(item.value)}</span>
+                <span className="font-medium">Rs {formatValue(item.value)}</span>
               </div>
             ))}
           </div>
           <Separator />
           <div className="flex justify-between items-center bg-green-50 p-3 rounded-md">
             <span className="font-semibold text-green-900">Gross Salary</span>
-            <span className="font-bold text-lg text-green-900">₹ {formatValue(gross)}</span>
+            <span className="font-bold text-lg text-green-900">Rs {formatValue(gross)}</span>
           </div>
         </CardContent>
       </Card>
@@ -338,14 +370,14 @@ export default function EmployeeSalary() {
               ].map((item) => (
                 <div key={item.label} className="flex justify-between items-center">
                   <span className="text-muted-foreground">{item.label}</span>
-                  <span className="font-medium">₹ {formatValue(item.value)}</span>
+                  <span className="font-medium">Rs {formatValue(item.value)}</span>
                 </div>
               ))}
             </div>
             <Separator />
             <div className="flex justify-between items-center bg-red-50 p-3 rounded-md">
               <span className="font-semibold text-red-900">Total Deductions</span>
-              <span className="font-bold text-lg text-red-900">₹ {formatValue(deductions)}</span>
+              <span className="font-bold text-lg text-red-900">Rs {formatValue(deductions)}</span>
             </div>
           </CardContent>
         </Card>
@@ -356,7 +388,7 @@ export default function EmployeeSalary() {
         <CardContent className="pt-6">
           <div className="flex justify-between items-center">
             <span className="text-2xl font-bold text-green-900">Net Salary</span>
-            <span className="text-4xl font-bold text-green-600">₹ {formatValue(net)}</span>
+            <span className="text-4xl font-bold text-green-600">Rs {formatValue(net)}</span>
           </div>
         </CardContent>
       </Card>
