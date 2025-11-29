@@ -273,7 +273,7 @@ export class DrizzleStorage implements IStorage {
       })
       .from(employees)
       .leftJoin(departments, eq(employees.departmentId, departments.id))
-      .innerJoin(designations, eq(employees.designationId, designations.id))
+      .leftJoin(designations, eq(employees.designationId, designations.id))
       .limit(limit)
       .offset(offset);
     
