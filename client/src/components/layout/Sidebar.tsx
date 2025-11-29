@@ -15,7 +15,8 @@ import {
   Upload,
   Key,
   ChevronDown,
-  Calendar
+  Calendar,
+  UsersRound
 } from 'lucide-react';
 import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
 
@@ -92,6 +93,11 @@ const adminMenuGroups = [
         title: 'Designation Master',
         icon: FileText,
         href: '/employee/designation-master',
+      },
+      {
+        title: 'Teams',
+        icon: UsersRound,
+        href: '/admin/teams',
       },
     ],
   },
@@ -224,7 +230,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
         if (route === '/') return 'Main';
         if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
         if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
-        if (route.startsWith('/employee')) return 'Employee Management';
+        if (route.startsWith('/employee') || route.startsWith('/admin/teams')) return 'Employee Management';
         if (route.startsWith('/vendor')) {
           if (route.includes('credentials')) return 'Vendor Management';
           if (route.includes('sites') || route.includes('payment-master') || route.includes('excel-import')) return 'Site Operations';
