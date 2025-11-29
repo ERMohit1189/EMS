@@ -263,7 +263,10 @@ export default function Teams() {
 
   const isLevelTaken = (level: 1 | 2 | 3): boolean => {
     const levelKey = `reportingPerson${level}`;
-    return teamMembers.some((m) => m[levelKey as keyof TeamMember] !== undefined);
+    return teamMembers.some((m) => {
+      const value = m[levelKey as keyof TeamMember];
+      return value !== null && value !== undefined;
+    });
   };
 
   const getReportingPersonName = (personId: string | undefined): string | null => {
