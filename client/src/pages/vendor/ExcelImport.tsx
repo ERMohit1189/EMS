@@ -8,6 +8,7 @@ import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react
 import { getApiBaseUrl } from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchWithLoader } from '@/lib/fetchWithLoader';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 interface RawRowData {
   [key: string]: any;
@@ -19,6 +20,7 @@ export default function ExcelImport() {
   const [columns, setColumns] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [importType, setImportType] = useState<'site' | 'vendor' | 'employee'>('site');
+  const [loading, setLoading] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -65,6 +67,7 @@ export default function ExcelImport() {
   const handleImport = async () => {
     if (importedData.length === 0) return;
 
+    setLoading(true);
     let imported = 0;
     const importErrors: string[] = [];
 
@@ -305,6 +308,7 @@ export default function ExcelImport() {
     setImportedData([]);
     setColumns([]);
     setErrors(importErrors);
+    setLoading(false);
   };
 
   const downloadSampleTemplate = () => {

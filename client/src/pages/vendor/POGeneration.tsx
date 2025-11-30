@@ -607,7 +607,7 @@ export default function POGeneration() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+    return <SkeletonLoader type="dashboard" />;
   }
 
   return (
