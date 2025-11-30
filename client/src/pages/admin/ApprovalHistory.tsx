@@ -96,8 +96,10 @@ export default function ApprovalHistory() {
     const fetchEmployeeList = async () => {
       const employeeRole = localStorage.getItem('employeeRole');
       const isAdmin = employeeRole !== 'user';
+      const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
+      const storedEmployeeId = localStorage.getItem('employeeId');
       
-      console.log('[ApprovalHistory] fetchEmployeeList - isAdmin:', isAdmin);
+      console.log('[ApprovalHistory] fetchEmployeeList - isAdmin:', isAdmin, 'isReportingPerson:', isReportingPerson, 'employeeId:', storedEmployeeId);
       
       if (isAdmin) {
         // Admin can see ALL employees in the system
@@ -119,29 +121,35 @@ export default function ApprovalHistory() {
         } catch (error) {
           console.error('[ApprovalHistory] Failed to fetch all employees:', error);
         }
-      } else {
-        console.log('[ApprovalHistory] Non-admin user, will extract employees from records');
+      } else if (isReportingPerson || employeeRole === 'user') {
+        // For reporting person or regular employee - fetch their team members from allowances
+        try {
+          console.log('[ApprovalHistory] Fetching team members for non-admin user');
+          const url = `${getApiBaseUrl()}/api/allowances/pending?employeeId=${storedEmployeeId}`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            const teamRecords = data.data || [];
+            console.log('[ApprovalHistory] Team records fetched:', teamRecords);
+            
+            // Extract unique team members
+            const teamMembers = Array.from(
+              new Map(teamRecords.map((r: any) => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
+            );
+            console.log('[ApprovalHistory] Team members extracted:', teamMembers);
+            console.table(teamMembers);
+            setEmployees(teamMembers);
+          } else {
+            console.error('[ApprovalHistory] Failed to fetch team members, status:', response.status);
+          }
+        } catch (error) {
+          console.error('[ApprovalHistory] Failed to fetch team members:', error);
+        }
       }
     };
     
     fetchEmployeeList();
   }, []);
-
-  // Update employee list from records (for reporting persons)
-  useEffect(() => {
-    const employeeRole = localStorage.getItem('employeeRole');
-    const isAdmin = employeeRole !== 'user';
-    
-    if (!isAdmin && records.length > 0) {
-      // For reporting persons, extract from records
-      const employeesFromRecords = Array.from(
-        new Map(records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
-      );
-      console.log('[ApprovalHistory] Setting employees from records:', employeesFromRecords);
-      console.table(employeesFromRecords);
-      setEmployees(employeesFromRecords);
-    }
-  }, [records]);
 
   const fetchApprovalHistory = async () => {
     setLoading(true);
