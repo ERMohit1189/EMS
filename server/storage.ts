@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { db } from "./db";
 import {
   vendors,
