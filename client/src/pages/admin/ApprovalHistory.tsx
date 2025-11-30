@@ -36,25 +36,39 @@ export default function ApprovalHistory() {
   }, [selectedMonth, selectedYear]);
 
   const fetchApprovalHistory = async () => {
-    if (!employeeId) return;
     setLoading(true);
     try {
+      // For reporting persons, get their team members' allowances
+      // For regular employees, they can view their own allowances
       const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
-      const url = isReportingPerson && employeeId
-        ? `${getApiBaseUrl()}/api/allowances/pending?employeeId=${employeeId}`
-        : `${getApiBaseUrl()}/api/allowances/pending`;
+      
+      let url: string;
+      if (isReportingPerson && employeeId) {
+        // Get pending allowances for team members (which includes all statuses)
+        url = `${getApiBaseUrl()}/api/allowances/pending?employeeId=${employeeId}`;
+      } else if (employeeId) {
+        // Get all allowances for current employee
+        url = `${getApiBaseUrl()}/api/allowances/${employeeId}?month=${selectedMonth}&year=${selectedYear}`;
+      } else {
+        return;
+      }
       
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         const allRecords = data.data || [];
         
-        // Filter by month, year and approval status
+        // Filter by approval status (approved or rejected only)
         const filtered = allRecords.filter((record: AllowanceRecord) => {
           const recordDate = new Date(record.date);
           const recordMonth = String(recordDate.getMonth() + 1).padStart(2, '0');
           const recordYear = String(recordDate.getFullYear());
-          return recordMonth === selectedMonth && recordYear === selectedYear && 
+          // For reporting person, filter by month/year
+          // For regular employee, the API already filters by month/year
+          const matchesDate = isReportingPerson 
+            ? recordMonth === selectedMonth && recordYear === selectedYear
+            : true;
+          return matchesDate && 
                  (record.approvalStatus === 'approved' || record.approvalStatus === 'rejected');
         });
         
