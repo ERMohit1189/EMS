@@ -55,8 +55,6 @@ export default function PaymentMaster() {
       setVendors(result.data || []);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load vendors", variant: "destructive" });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -92,10 +90,20 @@ export default function PaymentMaster() {
   };
 
   useEffect(() => {
-    fetchMasters();
-    fetchSites();
-    fetchVendors();
-    fetchUsedPaymentMasters();
+    const loadAllData = async () => {
+      try {
+        // Fetch all data in parallel instead of sequential calls
+        await Promise.all([
+          fetchMasters(),
+          fetchSites(),
+          fetchVendors(),
+          fetchUsedPaymentMasters()
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAllData();
   }, []);
 
   useEffect(() => {
