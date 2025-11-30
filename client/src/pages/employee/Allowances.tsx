@@ -39,6 +39,7 @@ export default function Allowances() {
   const { toast } = useToast();
   const [formData, setFormData] = useState<{
     date: string;
+    teamId: string;
     travelAllowance: string;
     foodAllowance: string;
     accommodationAllowance: string;
@@ -50,6 +51,7 @@ export default function Allowances() {
     notes: string;
   }>({
     date: new Date().toISOString().split('T')[0],
+    teamId: '',
     travelAllowance: '',
     foodAllowance: '',
     accommodationAllowance: '',

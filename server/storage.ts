@@ -173,7 +173,7 @@ export interface IStorage {
   updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance>;
   deleteDailyAllowance(id: string): Promise<void>;
   approveDailyAllowance(id: string, approvedBy: string): Promise<DailyAllowance>;
-  rejectDailyAllowance(id: string): Promise<DailyAllowance>;
+  rejectDailyAllowance(id: string, rejectionReason: string, isHigherAuthority?: boolean): Promise<DailyAllowance>;
 
   // Team operations
   createTeam(team: InsertTeam): Promise<Team>;
@@ -1177,8 +1177,8 @@ export class DrizzleStorage implements IStorage {
     if (result.length === 0) return [];
     
     // BULK FETCH: Get all unique employee IDs and team IDs at once
-    const employeeIds = [...new Set(result.map(a => a.employeeId))];
-    const teamIds = [...new Set(result.map(a => a.teamId).filter(Boolean))];
+    const employeeIds = Array.from(new Set(result.map(a => a.employeeId)));
+    const teamIds = Array.from(new Set(result.map(a => a.teamId).filter(Boolean)));
     
     // Fetch all employees in one query
     const allEmployees = await db.select().from(employees).where(inArray(employees.id, employeeIds));
@@ -1216,7 +1216,7 @@ export class DrizzleStorage implements IStorage {
       .from(teamMembers)
       .where(inArray(teamMembers.teamId, teamIds));
     
-    const teamMemberEmployeeIds = teamMembersQuery.map(m => m.employeeId);
+    const teamMemberEmployeeIds = Array.from(new Set(teamMembersQuery.map(m => m.employeeId)));
     
     if (teamMemberEmployeeIds.length === 0) {
       return [];
