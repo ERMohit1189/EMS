@@ -1123,8 +1123,20 @@ export class DrizzleStorage implements IStorage {
     const newStatus = newApprovalCount >= 2 ? 'approved' : 'processing';
     console.log(`[Storage] New status: ${existing.approvalStatus} -> ${newStatus}`);
     
-    // Store approvers as JSON array
-    const currentApprovers = existing.approvedBy ? JSON.parse(existing.approvedBy) : [];
+    // Store approvers as JSON array - safely parse existing approvedBy
+    let currentApprovers: string[] = [];
+    if (existing.approvedBy) {
+      try {
+        // Try to parse as JSON array
+        currentApprovers = Array.isArray(JSON.parse(existing.approvedBy)) 
+          ? JSON.parse(existing.approvedBy)
+          : [existing.approvedBy];
+      } catch (e) {
+        // If parsing fails, treat it as a single string value
+        currentApprovers = [existing.approvedBy];
+      }
+    }
+    
     if (!currentApprovers.includes(approvedBy)) {
       currentApprovers.push(approvedBy);
     }
