@@ -91,16 +91,18 @@ export default function ApprovalHistory() {
     fetchApprovalHistory();
   }, [selectedMonth, selectedYear]);
 
-  // Fetch employees list - with role-based filtering
+  // Fetch employees list on mount - with role-based filtering
   useEffect(() => {
     const fetchEmployeeList = async () => {
       const employeeRole = localStorage.getItem('employeeRole');
       const isAdmin = employeeRole !== 'user';
-      const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
+      
+      console.log('[ApprovalHistory] fetchEmployeeList - isAdmin:', isAdmin);
       
       if (isAdmin) {
         // Admin can see ALL employees in the system
         try {
+          console.log('[ApprovalHistory] Fetching all employees from API');
           const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`);
           if (response.ok) {
             const data = await response.json();
@@ -108,30 +110,36 @@ export default function ApprovalHistory() {
             const allEmployees = (data.data || [])
               .filter((e: any) => e.email !== 'superadmin@ems.local')
               .map((e: any) => ({ id: e.id, name: e.name }));
-            console.log('[ApprovalHistory] Filtered employees:', allEmployees);
+            console.log('[ApprovalHistory] Filtered employees for admin:', allEmployees);
             setEmployees(allEmployees);
           } else {
             console.error('[ApprovalHistory] Failed to fetch employees, status:', response.status);
           }
         } catch (error) {
-          console.error('Failed to fetch all employees:', error);
-          // Fallback to records
-          const employeesFromRecords = Array.from(
-            new Map(records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
-          );
-          setEmployees(employeesFromRecords);
+          console.error('[ApprovalHistory] Failed to fetch all employees:', error);
         }
       } else {
-        // Reporting person or regular employee - extract from records only
-        const employeesFromRecords = Array.from(
-          new Map(records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
-        );
-        setEmployees(employeesFromRecords);
+        console.log('[ApprovalHistory] Non-admin user, will extract employees from records');
       }
     };
     
     fetchEmployeeList();
   }, []);
+
+  // Update employee list from records (for reporting persons)
+  useEffect(() => {
+    const employeeRole = localStorage.getItem('employeeRole');
+    const isAdmin = employeeRole !== 'user';
+    
+    if (!isAdmin && records.length > 0) {
+      // For reporting persons, extract from records
+      const employeesFromRecords = Array.from(
+        new Map(records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
+      );
+      console.log('[ApprovalHistory] Setting employees from records:', employeesFromRecords);
+      setEmployees(employeesFromRecords);
+    }
+  }, [records]);
 
   const fetchApprovalHistory = async () => {
     setLoading(true);
