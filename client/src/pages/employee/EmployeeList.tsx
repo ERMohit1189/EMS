@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ interface Employee {
 
 export default function EmployeeList() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -64,6 +66,8 @@ export default function EmployeeList() {
       } catch (error) {
         console.error('Failed to fetch employees:', error);
         toast({ title: 'Error', description: 'Failed to load employees', variant: 'destructive' });
+      } finally {
+        setLoading(false);
       }
     };
     fetchEmployees();
@@ -96,6 +100,10 @@ export default function EmployeeList() {
     }
   };
   
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
