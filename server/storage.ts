@@ -268,7 +268,6 @@ export class DrizzleStorage implements IStorage {
     const vendor = await this.getVendorByEmail(email);
     if (!vendor || !vendor.password) return null;
     
-    const bcrypt = require('bcrypt');
     const passwordMatch = await bcrypt.compare(password, vendor.password);
     return passwordMatch ? vendor : null;
   }
@@ -372,7 +371,6 @@ export class DrizzleStorage implements IStorage {
       return null;
     }
     
-    const bcrypt = require('bcrypt');
     console.log(`[Storage] Comparing passwords...`);
     
     try {
