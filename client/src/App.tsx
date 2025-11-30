@@ -8,7 +8,6 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { getStoredApiUrl } from "@/lib/api";
 import GlobalPerformanceIndicator from "@/components/GlobalPerformanceIndicator";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { PWAInstallGuide } from "@/components/PWAInstallGuide";
 
 // Eager load login pages for instant display
 import Login from "@/pages/Login";
@@ -289,7 +288,6 @@ function App() {
       </Suspense>
       <Toaster />
       <PWAInstallPrompt />
-      <PWAInstallGuide />
     </>
   );
 }
