@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { Zone } from "@shared/schema";
 
 export default function ZoneMaster() {
@@ -110,7 +111,7 @@ export default function ZoneMaster() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading zones...</div>;
+    return <SkeletonLoader type="dashboard" />;
   }
 
   return (

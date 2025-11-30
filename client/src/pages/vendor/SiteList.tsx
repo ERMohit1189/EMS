@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import { truncateId } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { createColorfulExcel, fetchExportHeader, type ExportHeader } from "@/lib/exportUtils";
@@ -204,22 +205,7 @@ export default function SiteList() {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Site Management</h2>
-            <p className="text-muted-foreground">Manage all registered sites.</p>
-          </div>
-          <Link href="/vendor/site/register">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> Register Site
-            </Button>
-          </Link>
-        </div>
-        <div className="p-8 text-center text-muted-foreground">Loading sites...</div>
-      </div>
-    );
+    return <SkeletonLoader type="dashboard" />;
   }
 
   if (sites.length === 0) {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 
 export default function PaymentMaster() {

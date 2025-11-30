@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { getApiBaseUrl } from "@/lib/api";
 import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { Vendor } from "@shared/schema";
 
 export default function VendorList() {
@@ -109,7 +110,7 @@ export default function VendorList() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading vendors...</div>;
+    return <SkeletonLoader type="dashboard" />;
   }
   
   return (
