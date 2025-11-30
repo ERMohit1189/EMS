@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Briefcase, Activity, Calendar, DollarSign } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { User, Briefcase, Activity, Calendar, DollarSign, Mail } from 'lucide-react';
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
