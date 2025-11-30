@@ -203,6 +203,7 @@ function App() {
     <>
       <ProgressBar isLoading={isLoading} />
       <Loader />
+      <GlobalPerformanceIndicator />
       <Suspense fallback={<PageLoader />}>
         <Switch>
           {/* API Config Route */}
