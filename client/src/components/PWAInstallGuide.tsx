@@ -1,98 +1,80 @@
-import { useState } from 'react';
-import { X, Download, Chrome, Smartphone, Apple } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-
 export function PWAInstallGuide() {
-  const [showGuide, setShowGuide] = useState(true);
-
-  if (!showGuide) return null;
-
   return (
-    <Card className="fixed bottom-4 left-4 w-96 shadow-2xl z-50 border-l-4 border-l-blue-600 max-h-96 overflow-y-auto">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Download className="h-5 w-5 text-blue-600" />
-            <CardTitle className="text-lg">Install EMS Portal</CardTitle>
-          </div>
-          <button
-            onClick={() => setShowGuide(false)}
-            className="text-slate-400 hover:text-slate-600"
-            data-testid="button-close-pwa-guide"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <div style={{
+      position: 'fixed',
+      bottom: '16px',
+      left: '16px',
+      width: '384px',
+      backgroundColor: 'white',
+      border: '1px solid #e5e7eb',
+      borderLeft: '4px solid #2563eb',
+      borderRadius: '8px',
+      padding: '16px',
+      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+      zIndex: 50,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontSize: '14px',
+      lineHeight: '1.5'
+    }} data-testid="pwa-install-guide">
+      <div style={{ marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 8px 0', color: '#1f2937' }}>
+          📱 Install EMS Portal App
+        </h3>
+      </div>
+
+      <div style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '6px' }}>
+        <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '13px', color: '#374151' }}>Chrome/Edge (Desktop):</p>
+        <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '12px', color: '#6b7280' }}>
+          <li>Refresh page (Ctrl+R)</li>
+          <li>Click "Install" in address bar</li>
+          <li>Confirm</li>
+        </ol>
+      </div>
+
+      <div style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '6px' }}>
+        <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '13px', color: '#374151' }}>Android Phone:</p>
+        <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '12px', color: '#6b7280' }}>
+          <li>Tap menu (⋮)</li>
+          <li>Select "Install app"</li>
+          <li>Confirm</li>
+        </ol>
+      </div>
+
+      <div style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '6px' }}>
+        <p style={{ margin: '0 0 8px 0', fontWeight: '600', fontSize: '13px', color: '#374151' }}>iPhone/iPad:</p>
+        <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '12px', color: '#6b7280' }}>
+          <li>Tap Share</li>
+          <li>Tap "Add to Home Screen"</li>
+          <li>Tap Add</li>
+        </ol>
+      </div>
+
+      <div style={{ 
+        backgroundColor: '#dbeafe', 
+        border: '1px solid #93c5fd',
+        borderRadius: '6px', 
+        padding: '12px',
+        fontSize: '12px',
+        color: '#1e40af'
+      }}>
+        <strong>App URL:</strong>
+        <div style={{ 
+          backgroundColor: 'white', 
+          padding: '8px', 
+          marginTop: '8px',
+          borderRadius: '4px',
+          border: '1px solid #93c5fd',
+          wordBreak: 'break-all',
+          fontFamily: 'monospace',
+          fontSize: '11px'
+        }}>
+          {window.location.href}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
-        <div className="space-y-3">
-          {/* Chrome/Edge Desktop */}
-          <div className="border rounded-lg p-3 bg-slate-50">
-            <div className="flex items-center gap-2 mb-2">
-              <Chrome className="h-4 w-4 text-blue-500" />
-              <span className="font-semibold text-sm">Chrome/Edge (Desktop)</span>
-            </div>
-            <ol className="text-xs text-slate-600 space-y-1 ml-6 list-decimal">
-              <li>Refresh this page (Ctrl+R or Cmd+R)</li>
-              <li>Look for <Badge variant="outline" className="text-xs">Install</Badge> in address bar</li>
-              <li>Click and follow prompts</li>
-            </ol>
-          </div>
-
-          {/* Android */}
-          <div className="border rounded-lg p-3 bg-slate-50">
-            <div className="flex items-center gap-2 mb-2">
-              <Smartphone className="h-4 w-4 text-green-600" />
-              <span className="font-semibold text-sm">Android Phone</span>
-            </div>
-            <ol className="text-xs text-slate-600 space-y-1 ml-6 list-decimal">
-              <li>Tap menu (⋮) in top-right</li>
-              <li>Select <Badge variant="outline" className="text-xs">Install app</Badge></li>
-              <li>Confirm installation</li>
-            </ol>
-          </div>
-
-          {/* iOS */}
-          <div className="border rounded-lg p-3 bg-slate-50">
-            <div className="flex items-center gap-2 mb-2">
-              <Apple className="h-4 w-4 text-slate-600" />
-              <span className="font-semibold text-sm">iPhone/iPad</span>
-            </div>
-            <ol className="text-xs text-slate-600 space-y-1 ml-6 list-decimal">
-              <li>Tap Share button</li>
-              <li>Scroll and tap <Badge variant="outline" className="text-xs">Add to Home Screen</Badge></li>
-              <li>Tap Add</li>
-            </ol>
-          </div>
-
-          {/* Current URL */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs text-slate-600 font-semibold mb-1">App URL:</p>
-            <p className="text-xs break-all font-mono bg-white p-2 rounded border border-blue-100">
-              {window.location.href}
-            </p>
-            <Button
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                alert('URL copied to clipboard!');
-              }}
-              size="sm"
-              variant="outline"
-              className="w-full mt-2 text-xs"
-              data-testid="button-copy-url"
-            >
-              Copy URL
-            </Button>
-          </div>
-        </div>
-
-        <p className="text-xs text-slate-500 italic">
-          💡 Tip: After installation, you can use the app offline with cached data!
-        </p>
-      </CardContent>
-    </Card>
+      <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '12px', margin: '12px 0 0 0', fontStyle: 'italic' }}>
+        💡 After installation, use offline with cached data!
+      </p>
+    </div>
   );
 }
