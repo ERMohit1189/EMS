@@ -84,10 +84,16 @@ export default function ApprovalHistory() {
     fetchApprovalHistory();
   }, [selectedMonth, selectedYear]);
 
-  // Fetch employees list
+  // Fetch employees list on records update
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    // Extract unique employees from records
+    const uniqueEmployees = Array.from(
+      new Map(
+        records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])
+      ).values()
+    );
+    setEmployees(uniqueEmployees);
+  }, [records]);
 
   const fetchApprovalHistory = async () => {
     setLoading(true);
@@ -120,14 +126,6 @@ export default function ApprovalHistory() {
         });
         
         setRecords(filtered);
-        
-        // Extract unique employees for filter
-        const uniqueEmployees = Array.from(
-          new Map(
-            filtered.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])
-          ).values()
-        );
-        setEmployees(uniqueEmployees);
       } else {
         toast({ title: "Error", description: "Failed to fetch approval history", variant: "destructive" });
       }
@@ -140,7 +138,7 @@ export default function ApprovalHistory() {
 
   // Apply filters to records
   const filteredRecords = useMemo(() => {
-    return records.filter(record => {
+    return records.filter((record: AllowanceRecord) => {
       // Status filter
       if (!selectedStatuses.has(record.approvalStatus)) {
         return false;
