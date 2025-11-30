@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 interface AllowanceForApproval {
   id: string;
@@ -149,6 +150,10 @@ export default function AllowanceApproval() {
     }
   };
 
+  if (loading) {
+    return <SkeletonLoader type="list" count={5} />;
+  }
+
   return (
     <div className="space-y-3">
       <div className="pb-1">
@@ -156,15 +161,7 @@ export default function AllowanceApproval() {
         <p className="text-xs text-muted-foreground mt-0.5">Review and approve employee allowance claims</p>
       </div>
 
-      {loading && (
-        <Card className="shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Loading pending allowances...</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {!loading && allowances.length === 0 && (
+      {allowances.length === 0 && (
         <Card className="shadow-sm border-dashed">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground">No pending allowances for approval</p>
@@ -172,7 +169,7 @@ export default function AllowanceApproval() {
         </Card>
       )}
 
-      {!loading && allowances.length > 0 && (
+      {allowances.length > 0 && (
         <div className="space-y-2">
           {allowances.map((allowance) => {
             const statusBadgeColor = 
