@@ -433,6 +433,19 @@ export default function EmployeeSalary() {
     return <SkeletonLoader type="dashboard" />;
   }
 
+  if (!employeeId) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center py-10">
+            <p className="text-muted-foreground mb-4">You are not logged in as an employee.</p>
+            <p className="text-sm text-muted-foreground">Please log in with your employee credentials to view your salary structure.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const gross = calculateGross();
   const deductions = calculateDeductions();
   const net = calculateNet();
