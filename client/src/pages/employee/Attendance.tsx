@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -237,6 +238,10 @@ export default function Attendance() {
   const absentCount = Object.values(attendance).filter((v) => getStatus(v) === 'absent').length;
   const leaveCount = Object.values(attendance).filter((v) => getStatus(v) === 'leave').length;
   const holidayCount = Object.values(attendance).filter((v) => getStatus(v) === 'holiday').length;
+
+  if (loading) {
+    return <SkeletonLoader type="cards" count={4} />;
+  }
 
   return (
     <div className="space-y-2 md:space-y-3">
