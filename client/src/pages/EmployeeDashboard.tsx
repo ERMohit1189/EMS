@@ -1,11 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Mail, Briefcase, Activity, Calendar, DollarSign } from 'lucide-react';
+import { User, Mail, Briefcase, Activity, Calendar, DollarSign, Zap, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
+import { performanceMonitor, PerformanceMetrics } from '@/lib/performanceMonitor';
 
 export default function EmployeeDashboard() {
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null);
+  const [performanceScore, setPerformanceScore] = useState<any>(null);
   const employeeRole = localStorage.getItem('employeeRole');
   const isUserEmployee = employeeRole === 'user';
 
@@ -25,6 +28,15 @@ export default function EmployeeDashboard() {
         designation: employeeDesignation || 'Not Specified',
       });
     }
+
+    // Capture performance metrics after page load
+    if (performance.timing) {
+      const metrics = performanceMonitor.getMetrics();
+      setPerformanceMetrics(metrics);
+      const assessment = performanceMonitor.getAssessment(metrics);
+      setPerformanceScore(assessment);
+      performanceMonitor.logMetrics('Employee Dashboard Load Performance');
+    }
   }, []);
 
   // User role employees see restricted menu
@@ -43,6 +55,46 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="space-y-6 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-lg p-6">
+      {/* Performance Metrics Card */}
+      {performanceMetrics && performanceScore && (
+        <Card className="border-l-4 border-l-blue-600 shadow-md bg-gradient-to-r from-blue-50 to-cyan-50" data-testid="card-performance-metrics">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`h-12 w-12 rounded-lg flex items-center justify-center bg-opacity-10 ${performanceScore.color}`}>
+                    <Zap className={`h-6 w-6 ${performanceScore.color}`} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Page Load Performance</h3>
+                    <p className={`text-sm font-semibold ${performanceScore.color}`}>{performanceScore.score}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-600 mb-4">{performanceScore.message}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-slate-600">Total Load Time</p>
+                    <p className="text-lg font-bold text-slate-900" data-testid="metric-page-load-time">{performanceMetrics.pageLoadTime}ms</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-slate-600">DOM Interactive</p>
+                    <p className="text-lg font-bold text-slate-900">{performanceMetrics.domInteractive}ms</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-slate-600">Resources Loaded</p>
+                    <p className="text-lg font-bold text-slate-900">{performanceMetrics.resourceCount}</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-slate-600">Total Size</p>
+                    <p className="text-lg font-bold text-slate-900">{performanceMetrics.totalResourceSize}KB</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg p-8 text-white shadow-lg">
         <div>
