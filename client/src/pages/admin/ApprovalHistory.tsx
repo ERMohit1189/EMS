@@ -131,8 +131,8 @@ export default function ApprovalHistory() {
       
       let url: string;
       if (isAdmin) {
-        // Admin sees ALL allowances from all employees
-        url = `${getApiBaseUrl()}/api/allowances/pending`;
+        // Admin sees ALL allowances from all employees (all statuses)
+        url = `${getApiBaseUrl()}/api/allowances/all`;
       } else if (isReportingPerson && employeeId) {
         // Reporting person sees team members' allowances
         url = `${getApiBaseUrl()}/api/allowances/pending?employeeId=${employeeId}`;
@@ -148,14 +148,14 @@ export default function ApprovalHistory() {
         const data = await response.json();
         const allRecords = data.data || [];
         
-        // Filter by month/year if needed
+        // Filter by month/year if needed (only for non-admins or for date filtering)
         const filtered = allRecords.filter((record: AllowanceRecord) => {
           const recordDate = new Date(record.date);
           const recordMonth = String(recordDate.getMonth() + 1).padStart(2, '0');
           const recordYear = String(recordDate.getFullYear());
-          const matchesDate = (isAdmin || isReportingPerson)
+          const matchesDate = (isAdmin)
             ? recordMonth === selectedMonth && recordYear === selectedYear
-            : true;
+            : (isReportingPerson ? recordMonth === selectedMonth && recordYear === selectedYear : true);
           return matchesDate;
         });
         

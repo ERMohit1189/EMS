@@ -171,6 +171,7 @@ export interface IStorage {
   getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<any[]>;
   getPendingAllowances(): Promise<any[]>;
   getPendingAllowancesForTeams(employeeId: string): Promise<any[]>;
+  getAllAllowances(): Promise<any[]>;
   updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance>;
   deleteDailyAllowance(id: string): Promise<void>;
   approveDailyAllowance(id: string, approvedBy: string): Promise<DailyAllowance>;
@@ -1206,6 +1207,40 @@ export class DrizzleStorage implements IStorage {
     }
     
     // Enrich with cached data (no additional queries)
+    return result.map(allowance => {
+      const employee = employeeMap.get(allowance.employeeId);
+      const team = allowance.teamId ? teamMap.get(allowance.teamId) : null;
+      return {
+        ...allowance,
+        employeeName: employee?.name || 'Unknown',
+        employeeEmail: employee?.email || '',
+        teamName: team?.name || null,
+      };
+    });
+  }
+
+  async getAllAllowances(): Promise<any[]> {
+    const result = await db.select().from(dailyAllowances)
+      .orderBy(dailyAllowances.submittedAt);
+    
+    if (result.length === 0) return [];
+    
+    // BULK FETCH: Get all unique employee IDs and team IDs at once
+    const employeeIds = Array.from(new Set(result.map(a => a.employeeId)));
+    const teamIds = Array.from(new Set(result.map(a => a.teamId).filter(Boolean)));
+    
+    // Fetch all employees in one query
+    const allEmployees = await db.select().from(employees).where(inArray(employees.id, employeeIds));
+    const employeeMap = new Map(allEmployees.map(e => [e.id, e]));
+    
+    // Fetch all teams in one query
+    let teamMap = new Map();
+    if (teamIds.length > 0) {
+      const allTeams = await db.select().from(teams).where(inArray(teams.id, teamIds));
+      teamMap = new Map(allTeams.map(t => [t.id, t]));
+    }
+    
+    // Enrich with cached data
     return result.map(allowance => {
       const employee = employeeMap.get(allowance.employeeId);
       const team = allowance.teamId ? teamMap.get(allowance.teamId) : null;

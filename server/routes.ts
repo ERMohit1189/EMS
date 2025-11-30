@@ -1378,6 +1378,19 @@ export async function registerRoutes(
     }
   });
 
+  // All allowances for admin view - MUST come before parameterized routes
+  app.get("/api/allowances/all", async (req, res) => {
+    try {
+      console.log(`[ROUTE] GET /api/allowances/all - Admin all allowances`);
+      const allowances = await storage.getAllAllowances();
+      console.log(`[Allowances] Found ${allowances.length} total allowances`);
+      res.json({ data: allowances || [] });
+    } catch (error: any) {
+      console.error(`[ROUTE ERROR] /api/allowances/all - ERROR:`, error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Pending allowances for approval - MUST come before parameterized routes
   app.get("/api/allowances/pending", async (req, res) => {
     try {
