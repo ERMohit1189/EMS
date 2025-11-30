@@ -140,7 +140,11 @@ export const sites = pgTable("sites", {
   status: varchar("status").notNull().default("Pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxVendor: index("idx_sites_vendor").on(table.vendorId),
+  idxZone: index("idx_sites_zone").on(table.zoneId),
+  idxStatus: index("idx_sites_status").on(table.status),
+}));
 
 // Departments Table
 export const departments = pgTable("departments", {
@@ -301,6 +305,9 @@ export const paymentMasters = pgTable("payment_masters", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
+  idxSite: index("idx_payment_site").on(table.siteId),
+  idxVendor: index("idx_payment_vendor").on(table.vendorId),
+  idxAntenna: index("idx_payment_antenna").on(table.antennaSize),
   compositeKey: sql`UNIQUE(${table.siteId}, ${table.planId}, ${table.vendorId}, ${table.antennaSize})`
 }));
 
@@ -549,7 +556,13 @@ export const teamMembers = pgTable("team_members", {
   reportingPerson3: varchar("reporting_person_3"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxTeam: index("idx_team_members_team").on(table.teamId),
+  idxEmployee: index("idx_team_members_employee").on(table.employeeId),
+  idxRp1: index("idx_team_members_rp1").on(table.reportingPerson1),
+  idxRp2: index("idx_team_members_rp2").on(table.reportingPerson2),
+  idxRp3: index("idx_team_members_rp3").on(table.reportingPerson3),
+}));
 
 export const insertTeamSchema = createInsertSchema(teams).omit({
   id: true,
