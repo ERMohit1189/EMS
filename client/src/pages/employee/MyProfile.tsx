@@ -49,11 +49,7 @@ export default function MyProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const employeeId = localStorage.getItem('employeeId');
 
-  useEffect(() => {
-    fetchEmployeeData();
-  }, []);
-
-  const fetchEmployeeData = async () => {
+  const fetchEmployeeDataParallel = async () => {
     if (!employeeId) return;
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`);
@@ -82,6 +78,14 @@ export default function MyProfile() {
       });
     }
   };
+
+  const fetchEmployeeData = async () => {
+    await fetchEmployeeDataParallel();
+  };
+
+  useEffect(() => {
+    fetchEmployeeData();
+  }, []);
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
