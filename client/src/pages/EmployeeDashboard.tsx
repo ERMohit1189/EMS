@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { User, Briefcase, Activity, Calendar, DollarSign, Mail, Zap } from 'lucide-react';
+import { User, Briefcase, Activity, Calendar, DollarSign, Mail, Zap, Shield } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
@@ -127,7 +127,7 @@ export default function EmployeeDashboard() {
                     <p className="text-sm text-slate-600">{userProfile.designation}</p>
                   </div>
                 </div>
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mt-4">
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-4 mt-4">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-slate-500" />
                     <div>
@@ -140,6 +140,15 @@ export default function EmployeeDashboard() {
                     <div>
                       <p className="text-xs text-slate-600">Department</p>
                       <p className="text-sm font-medium text-slate-900">{userProfile.department}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-slate-500" />
+                    <div>
+                      <p className="text-xs text-slate-600">Role</p>
+                      <Badge variant="default" className={`text-xs ${employeeRole === 'admin' ? 'bg-purple-600' : 'bg-blue-600'}`} data-testid="badge-employee-role">
+                        {employeeRole?.toUpperCase() || 'USER'}
+                      </Badge>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
