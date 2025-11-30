@@ -134,12 +134,12 @@ export default function EmployeeDashboard() {
                     <User className="h-6 w-6 text-green-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-slate-900 mb-1" data-testid="text-employee-name">{userProfile.name}</h3>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className={`${userProfile?.role === 'admin' ? 'bg-purple-600' : 'bg-blue-600'} text-white font-semibold px-3 py-1`} data-testid="badge-employee-role">
+                    <h3 className="text-xl font-bold text-slate-900 mb-2" data-testid="text-employee-name">{userProfile.name}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-block px-3 py-1 rounded-full font-semibold text-white text-sm ${userProfile?.role === 'admin' ? 'bg-purple-600' : 'bg-blue-600'}`} data-testid="badge-employee-role">
                         {userProfile?.role?.toUpperCase() || 'USER'}
-                      </Badge>
-                      <span className="text-sm text-slate-600">{userProfile.designation}</span>
+                      </span>
+                      <p className="text-sm text-slate-600">{userProfile.designation}</p>
                     </div>
                   </div>
                 </div>
@@ -162,7 +162,9 @@ export default function EmployeeDashboard() {
                     <Shield className="h-4 w-4 text-slate-500" />
                     <div>
                       <p className="text-xs text-slate-600">Role</p>
-                      <p className="text-sm font-semibold" data-testid="text-role-value">{userProfile?.role?.toUpperCase() || 'USER'}</p>
+                      <Badge variant="default" className={`text-xs ${userProfile?.role === 'admin' ? 'bg-purple-600' : 'bg-blue-600'}`} data-testid="badge-employee-role">
+                        {userProfile?.role?.toUpperCase() || 'USER'}
+                      </Badge>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
