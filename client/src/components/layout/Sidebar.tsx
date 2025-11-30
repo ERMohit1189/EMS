@@ -192,11 +192,6 @@ const userEmployeeMenuGroups = [
         icon: Wallet,
         href: '/employee/allowances',
       },
-      {
-        title: 'Approval History',
-        icon: BarChart3,
-        href: '/admin/approval-history',
-      },
     ],
   },
   {
@@ -206,6 +201,11 @@ const userEmployeeMenuGroups = [
         title: 'Allowance Approvals',
         icon: ClipboardCheck,
         href: '/admin/allowance-approvals',
+      },
+      {
+        title: 'Approval History',
+        icon: BarChart3,
+        href: '/admin/approval-history',
       },
     ],
   },
