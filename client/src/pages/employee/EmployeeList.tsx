@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { PageLoader } from "@/components/PageLoader";
 import { usePageLoader } from "@/hooks/usePageLoader";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,6 +102,10 @@ export default function EmployeeList() {
     }
   };
   
+  if (isLoading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
