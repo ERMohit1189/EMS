@@ -132,10 +132,11 @@ export default function Allowances() {
       const y = year || selectedYear;
       console.log(`Fetching allowances for ${employeeId}, month: ${m}, year: ${y}`);
       
-      // Parallel fetch: allowances + teams at same time
-      const [allowancesRes, teamsData] = await Promise.all([
+      // Parallel fetch: allowances + teams + settings all at the same time
+      const [allowancesRes, teamsData, settingsRes] = await Promise.all([
         fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`),
-        fetchTeams()
+        fetchTeams(),
+        fetch(`${getApiBaseUrl()}/api/app-settings`).catch(() => null)
       ]);
       
       if (allowancesRes.ok) {
@@ -148,6 +149,20 @@ export default function Allowances() {
       }
       
       setTeams(teamsData);
+      
+      // Fetch and set allowance caps if available
+      if (settingsRes && settingsRes.ok) {
+        try {
+          const settingsData = await settingsRes.json();
+          if (settingsData && settingsData.allowanceCaps) {
+            setCaps(settingsData.allowanceCaps);
+            localStorage.setItem('allowanceCaps', JSON.stringify(settingsData.allowanceCaps));
+            console.log('Allowance caps updated:', settingsData.allowanceCaps);
+          }
+        } catch (e) {
+          console.warn('Could not parse settings:', e);
+        }
+      }
     } catch (error: any) {
       console.error('Error fetching data:', error);
     } finally {
