@@ -146,22 +146,21 @@ export default function GlobalPerformanceIndicator() {
         <div 
           className="flex flex-col items-center gap-2 transition-opacity duration-300 opacity-100 pointer-events-none"
         >
-          {/* Traffic Signal Circle */}
-          <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center`}>
-            <span className="text-white text-xl font-bold">⚡</span>
+          {/* Traffic Signal Circle with Load Time */}
+          <div className={`w-16 h-16 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex flex-col items-center justify-center`}>
+            <span className="text-white text-sm font-bold">{metrics.pageLoadTime}ms</span>
           </div>
           
-          {/* Load Time and Score */}
+          {/* Time and Score */}
           <div className={`bg-white rounded-lg shadow-lg p-3 text-center border-l-4 ${getTrafficLightColor()} whitespace-nowrap`}>
             <p className={`text-xs font-semibold ${getTextColor()}`}>{currentTime}</p>
-            <p className={`text-sm font-bold ${getTextColor()}`}>{metrics.pageLoadTime}ms</p>
             <p className={`text-xs font-semibold ${getTextColor()}`}>{metrics.assessment.score}</p>
           </div>
         </div>
       ) : (
-        // Collapsed View - Just the circle (Fade Out)
-        <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center hover:scale-110 transition-all duration-300 opacity-100`}>
-          <span className="text-white text-xl font-bold">⚡</span>
+        // Collapsed View - Just the circle with load time inside
+        <div className={`w-16 h-16 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex flex-col items-center justify-center hover:scale-110 transition-all duration-300 opacity-100`}>
+          <span className="text-white text-sm font-bold">{metrics.pageLoadTime}ms</span>
         </div>
       )}
     </div>
