@@ -53,7 +53,10 @@ export default function EmployeeSalary() {
   };
 
   const fetchSalaryData = async () => {
-    if (!employeeId) return;
+    if (!employeeId) {
+      setIsLoading(false);
+      return;
+    }
     
     try {
       setIsLoading(true);
