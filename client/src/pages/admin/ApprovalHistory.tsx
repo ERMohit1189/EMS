@@ -111,6 +111,7 @@ export default function ApprovalHistory() {
               .filter((e: any) => e.email !== 'superadmin@ems.local')
               .map((e: any) => ({ id: e.id, name: e.name }));
             console.log('[ApprovalHistory] Filtered employees for admin:', allEmployees);
+            console.table(allEmployees);
             setEmployees(allEmployees);
           } else {
             console.error('[ApprovalHistory] Failed to fetch employees, status:', response.status);
@@ -137,6 +138,7 @@ export default function ApprovalHistory() {
         new Map(records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
       );
       console.log('[ApprovalHistory] Setting employees from records:', employeesFromRecords);
+      console.table(employeesFromRecords);
       setEmployees(employeesFromRecords);
     }
   }, [records]);
