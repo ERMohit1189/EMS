@@ -172,6 +172,7 @@ export interface IStorage {
   getPendingAllowances(): Promise<any[]>;
   getPendingAllowancesForTeams(employeeId: string): Promise<any[]>;
   getAllAllowances(): Promise<any[]>;
+  getAllAllowancesForTeams(employeeId: string): Promise<any[]>;
   updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>): Promise<DailyAllowance>;
   deleteDailyAllowance(id: string): Promise<void>;
   approveDailyAllowance(id: string, approvedBy: string): Promise<DailyAllowance>;
