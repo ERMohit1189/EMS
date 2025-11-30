@@ -92,7 +92,7 @@ export default function GlobalPerformanceIndicator() {
     };
   }, [isDragging]);
 
-  if (!metrics) return null;
+  if (!metrics || metrics.assessment.score === 'Fair') return null;
 
   const getTrafficLightColor = () => {
     const score = metrics.assessment.score;
