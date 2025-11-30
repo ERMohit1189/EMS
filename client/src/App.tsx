@@ -53,6 +53,7 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
 const Teams = lazy(() => import("@/pages/admin/Teams"));
 const AllowanceApproval = lazy(() => import("@/pages/admin/AllowanceApproval"));
+const ApprovalHistory = lazy(() => import("@/pages/admin/ApprovalHistory"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = () => <div className="flex items-center justify-center h-screen"><Loader /></div>;
@@ -272,6 +273,7 @@ function App() {
                   {/* Admin Routes */}
                   <Route path="/admin/teams" component={Teams} />
                   <Route path="/admin/allowance-approvals" component={AllowanceApproval} />
+                  <Route path="/admin/approval-history" component={ApprovalHistory} />
                   
                   {/* Vendor Privacy Policy */}
                   <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
