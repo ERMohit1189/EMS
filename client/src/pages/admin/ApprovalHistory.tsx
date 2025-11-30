@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
@@ -23,9 +24,23 @@ interface AllowanceRecord {
 
 export default function ApprovalHistory() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [records, setRecords] = useState<AllowanceRecord[]>([]);
   const [employeeId] = useState(localStorage.getItem('employeeId') || '');
+  
+  // Access control: Only admins and reporting persons can access this page
+  useEffect(() => {
+    const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
+    const employeeRole = localStorage.getItem('employeeRole');
+    const isAdmin = employeeRole !== 'user' || !employeeRole;
+    
+    // If not admin and not reporting person, redirect to dashboard
+    if (!isAdmin && !isReportingPerson) {
+      setLocation('/employee/dashboard');
+      return;
+    }
+  }, [setLocation]);
   
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'));
