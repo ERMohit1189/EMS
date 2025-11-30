@@ -15,15 +15,44 @@ export interface PerformanceMetrics {
   cumulativeLayoutShift?: number;
 }
 
+let navigationStartTime: number = 0;
+let initialPageLoadTime: number = 0;
+
 export const performanceMonitor = {
+  /**
+   * Mark the start of a navigation
+   */
+  markNavigationStart(): void {
+    navigationStartTime = performance.now();
+  },
+
+  /**
+   * Get navigation time (for SPA route changes)
+   */
+  getNavigationTime(): number {
+    if (navigationStartTime === 0) return 0;
+    return Math.round(performance.now() - navigationStartTime);
+  },
+
   /**
    * Get comprehensive performance metrics
    */
   getMetrics(): PerformanceMetrics {
+    // For initial page load, use navigation timing
+    if (initialPageLoadTime === 0) {
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      if (navigation) {
+        initialPageLoadTime = Math.round(navigation.loadEventEnd - navigation.fetchStart) || 0;
+      }
+    }
+
+    // Check if we have a recent navigation (within last 5 seconds)
+    const navigationTime = this.getNavigationTime();
+    const pageLoadTime = navigationTime > 0 && navigationTime < 5000 ? navigationTime : initialPageLoadTime;
+
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     const paintEntries = performance.getEntriesByType('paint');
     
-    const pageLoadTime = navigation?.loadEventEnd - navigation?.fetchStart || 0;
     const domInteractive = navigation?.domInteractive - navigation?.fetchStart || 0;
     const domComplete = navigation?.domComplete - navigation?.fetchStart || 0;
     const networkLatency = navigation?.responseEnd - navigation?.fetchStart || 0;

@@ -7,6 +7,10 @@ export default function GlobalPerformanceIndicator() {
   const [location] = useLocation();
 
   useEffect(() => {
+    // Mark navigation start when location changes
+    performanceMonitor.markNavigationStart();
+    
+    // Capture metrics after render completes
     setTimeout(() => {
       try {
         const perf = performanceMonitor.getMetrics();
@@ -15,7 +19,7 @@ export default function GlobalPerformanceIndicator() {
       } catch (e) {
         console.error('Performance indicator error:', e);
       }
-    }, 100);
+    }, 50);
   }, [location]);
 
   if (!metrics) return null;
@@ -39,7 +43,7 @@ export default function GlobalPerformanceIndicator() {
   return (
     <div className="fixed top-4 right-4 z-50 flex flex-col items-center gap-2" data-testid="performance-indicator">
       {/* Traffic Signal Circle */}
-      <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center`}>
+      <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center animate-pulse`}>
         <span className="text-white text-xl font-bold">⚡</span>
       </div>
       
