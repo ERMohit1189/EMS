@@ -104,6 +104,11 @@ const adminMenuGroups = [
         icon: ClipboardCheck,
         href: '/admin/allowance-approvals',
       },
+      {
+        title: 'Approval History',
+        icon: BarChart3,
+        href: '/admin/approval-history',
+      },
     ],
   },
   {
