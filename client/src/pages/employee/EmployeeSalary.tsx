@@ -7,6 +7,7 @@ import { getApiBaseUrl } from "@/lib/api";
 import { fetchExportHeader, type ExportHeader } from "@/lib/exportUtils";
 import jsPDF from 'jspdf';
 import { Download } from "lucide-react";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 
 interface SalaryStructure {
   id?: string;
@@ -423,6 +424,10 @@ export default function EmployeeSalary() {
         </CardContent>
       </Card>
     );
+  }
+
+  if (isLoading) {
+    return <SkeletonLoader type="dashboard" />;
   }
 
   const gross = calculateGross();
