@@ -29,18 +29,16 @@ export default function EmployeeDashboard() {
       });
     }
     
-    // Capture performance metrics asynchronously
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => {
-        try {
-          const metrics = performanceMonitor.getMetrics();
-          const assessment = performanceMonitor.getAssessment(metrics);
-          setPerfMetrics({ metrics, assessment });
-        } catch (e) {
-          console.error('Error capturing metrics:', e);
-        }
-      }, { timeout: 3000 });
-    }
+    // Capture performance metrics immediately on next tick
+    setTimeout(() => {
+      try {
+        const metrics = performanceMonitor.getMetrics();
+        const assessment = performanceMonitor.getAssessment(metrics);
+        setPerfMetrics({ metrics, assessment });
+      } catch (e) {
+        console.error('Error capturing metrics:', e);
+      }
+    }, 0);
   }, []);
 
   // User role employees see restricted menu
