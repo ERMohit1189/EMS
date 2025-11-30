@@ -4,10 +4,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
 import { performanceMonitor } from '@/lib/performanceMonitor';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 export default function EmployeeDashboard() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [perfMetrics, setPerfMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const employeeRole = localStorage.getItem('employeeRole');
   const isUserEmployee = employeeRole === 'user';
 
@@ -38,6 +40,7 @@ export default function EmployeeDashboard() {
       } catch (e) {
         console.error('Error capturing metrics:', e);
       }
+      setLoading(false);
     }, 0);
   }, []);
 
@@ -54,6 +57,10 @@ export default function EmployeeDashboard() {
     { title: 'Allowances', icon: Activity, href: '/employee/allowances', color: 'text-purple-500' },
     { title: 'Settings', icon: Briefcase, href: '/settings', color: 'text-indigo-500' },
   ];
+
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
 
   const perfCard = useMemo(() => {
     if (!perfMetrics) return null;

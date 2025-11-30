@@ -6,6 +6,7 @@ import { getApiBaseUrl } from '@/lib/api';
 import { fetchJsonWithLoader } from '@/lib/fetchWithLoader';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Badge } from '@/components/ui/badge';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 export default function Dashboard() {
   const [pendingPOCount, setPendingPOCount] = useState(0);
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [allVendors, setAllVendors] = useState<any[]>([]);
   const [allEmployees, setAllEmployees] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Load user profile from localStorage
@@ -112,6 +114,8 @@ export default function Dashboard() {
         setPendingPOCount(0);
         setPurchaseOrders([]);
         setInvoices([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -123,6 +127,10 @@ export default function Dashboard() {
 
   const totalEmployees = allEmployees.length;
   const activeEmployees = allEmployees.filter(e => e.status === 'Active').length;
+
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
 
   const stats = [
     {
