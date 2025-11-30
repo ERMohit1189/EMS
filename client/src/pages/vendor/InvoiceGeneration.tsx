@@ -6,7 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Trash2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import { getApiBaseUrl } from "@/lib/api";
-import { fetchWithLoader, fetchJsonWithLoader } from "@/lib/fetchWithLoader";
+import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { PurchaseOrder, Vendor } from "@shared/schema";
 
 interface InvoiceRecord {
@@ -107,6 +108,7 @@ export default function InvoiceGeneration() {
         const filtered = pos.filter((po: any) => !posWithInvoices.has(po.id));
         setAvailablePOs(filtered);
       } catch (error) {
+        console.error('Failed to load data:', error);
         toast({ title: "Error", description: "Failed to load data", variant: "destructive" });
       } finally {
         setLoading(false);

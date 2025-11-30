@@ -56,13 +56,23 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         // Fetch all data in parallel
-        const [posData, invData, sitesData, vendorsData, empData] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`).then(r => r.json()),
-          fetch(`${getApiBaseUrl()}/api/invoices?pageSize=10000`).then(r => r.json()),
-          fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`).then(r => r.json()),
-          fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`).then(r => r.json()),
-          fetch(`${getApiBaseUrl()}/api/employees?pageSize=10000`).then(r => r.json()),
+        const [posRes, invRes, sitesRes, vendorsRes, empRes] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`),
+          fetch(`${getApiBaseUrl()}/api/invoices?pageSize=10000`),
+          fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`),
+          fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`),
+          fetch(`${getApiBaseUrl()}/api/employees?pageSize=10000`),
         ]);
+
+        if (!posRes.ok || !invRes.ok || !sitesRes.ok || !vendorsRes.ok || !empRes.ok) {
+          throw new Error("Failed to fetch dashboard data");
+        }
+
+        const posData = await posRes.json();
+        const invData = await invRes.json();
+        const sitesData = await sitesRes.json();
+        const vendorsData = await vendorsRes.json();
+        const empData = await empRes.json();
 
         const pos = posData.data || [];
         setPurchaseOrders(pos);

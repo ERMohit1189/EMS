@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { getApiBaseUrl } from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchWithLoader, fetchJsonWithLoader } from '@/lib/fetchWithLoader';
+import { fetchWithLoader } from '@/lib/fetchWithLoader';
 
 interface RawRowData {
   [key: string]: any;
@@ -71,11 +71,14 @@ export default function ExcelImport() {
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
     try {
-      const zonesData = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
-      zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
-        acc[zone.shortName] = zone.id;
-        return acc;
-      }, {});
+      const zonesRes = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
+      if (zonesRes.ok) {
+        const zonesData = await zonesRes.json();
+        zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
+          acc[zone.shortName] = zone.id;
+          return acc;
+        }, {});
+      }
     } catch (error) {
       console.error('Failed to fetch zones');
     }

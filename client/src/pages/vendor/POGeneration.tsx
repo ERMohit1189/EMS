@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Trash2, FileText } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
-import { fetchWithLoader, fetchJsonWithLoader } from "@/lib/fetchWithLoader";
+import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import { truncateId } from "@/lib/utils";
 import type { Site, Vendor } from "@shared/schema";
 import jsPDF from 'jspdf';
