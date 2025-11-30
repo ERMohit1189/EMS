@@ -8,6 +8,7 @@ import { fetchExportHeader, type ExportHeader } from "@/lib/exportUtils";
 import jsPDF from 'jspdf';
 import { Download } from "lucide-react";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SalaryStructure {
   id?: string;
@@ -28,6 +29,15 @@ interface SalaryStructure {
   wantDeduction: boolean;
 }
 
+interface SalaryWithEmployee extends SalaryStructure {
+  employee?: {
+    id: string;
+    name: string;
+    designation?: string;
+    department?: string;
+  };
+}
+
 const formatValue = (value: number | string): string => {
   const num = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(num)) return '0.00';
@@ -40,8 +50,13 @@ export default function EmployeeSalary() {
   const [isLoading, setIsLoading] = useState(false);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
+  const [allSalaries, setAllSalaries] = useState<SalaryWithEmployee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  
   const employeeId = localStorage.getItem('employeeId');
   const employeeName = localStorage.getItem('employeeName');
+  const vendorId = localStorage.getItem('vendorId');
+  const isSuperAdmin = !employeeId && vendorId;
 
   const loadExportHeader = async () => {
     try {
@@ -53,7 +68,7 @@ export default function EmployeeSalary() {
   };
 
   const fetchSalaryData = async () => {
-    if (!employeeId) {
+    if (!employeeId && !isSuperAdmin) {
       setIsLoading(false);
       return;
     }
@@ -61,27 +76,49 @@ export default function EmployeeSalary() {
     try {
       setIsLoading(true);
       
-      // Parallel fetch: salary + employee data at same time
-      const [salaryResponse, empResponse] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`),
-        fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`)
-      ]);
-
-      if (salaryResponse.ok) {
-        const salaryData = await salaryResponse.json();
-        setSalary(salaryData);
+      if (isSuperAdmin) {
+        // For superadmin: fetch all salary structures
+        const response = await fetch(`${getApiBaseUrl()}/api/salary-structures?page=1&pageSize=1000`);
+        if (response.ok) {
+          const result = await response.json();
+          const salaries = result.data || [];
+          setAllSalaries(salaries);
+          
+          // Auto-select first employee if available
+          if (salaries.length > 0) {
+            setSelectedEmployeeId(salaries[0].employeeId);
+            setSalary(salaries[0]);
+          }
+        } else {
+          toast({
+            title: "Info",
+            description: "No salary structures found",
+          });
+        }
       } else {
-        toast({
-          title: "Info",
-          description: "Salary structure not yet configured",
-        });
-      }
+        // For employee: fetch their own salary
+        const [salaryResponse, empResponse] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`),
+          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`)
+        ]);
 
-      if (empResponse.ok) {
-        const empData = await empResponse.json();
-        setEmployeeData(empData);
+        if (salaryResponse.ok) {
+          const salaryData = await salaryResponse.json();
+          setSalary(salaryData);
+        } else {
+          toast({
+            title: "Info",
+            description: "Salary structure not yet configured",
+          });
+        }
+
+        if (empResponse.ok) {
+          const empData = await empResponse.json();
+          setEmployeeData(empData);
+        }
       }
     } catch (error) {
+      console.error("Error fetching salary data:", error);
       toast({
         title: "Error",
         description: "Failed to load salary data",
@@ -89,6 +126,14 @@ export default function EmployeeSalary() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEmployeeChange = (newEmployeeId: string) => {
+    setSelectedEmployeeId(newEmployeeId);
+    const selected = allSalaries.find(s => s.employeeId === newEmployeeId);
+    if (selected) {
+      setSalary(selected);
     }
   };
 
