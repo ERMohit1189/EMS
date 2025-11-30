@@ -76,7 +76,10 @@ export default function ApprovalHistory() {
         const data = await response.json();
         const allRecords = data.data || [];
         
-        // Filter by approval status (approved or rejected only)
+        // In development, show all statuses. In production, show only approved/rejected
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        // Filter by approval status (approved or rejected only, or all in development)
         const filtered = allRecords.filter((record: AllowanceRecord) => {
           const recordDate = new Date(record.date);
           const recordMonth = String(recordDate.getMonth() + 1).padStart(2, '0');
@@ -86,6 +89,13 @@ export default function ApprovalHistory() {
           const matchesDate = isReportingPerson 
             ? recordMonth === selectedMonth && recordYear === selectedYear
             : true;
+          
+          // In development, show all statuses to help with testing
+          if (isDev) {
+            return matchesDate;
+          }
+          
+          // In production, only show approved/rejected
           return matchesDate && 
                  (record.approvalStatus === 'approved' || record.approvalStatus === 'rejected');
         });
