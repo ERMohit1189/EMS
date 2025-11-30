@@ -1106,7 +1106,7 @@ export class DrizzleStorage implements IStorage {
     if (!existing) throw new Error('Allowance not found');
     
     // Cannot approve if already rejected by higher authority
-    if (existing.rejectedBy) {
+    if (existing.rejectionReason) {
       throw new Error('Cannot approve a rejected allowance. Status is locked.');
     }
     
@@ -1140,15 +1140,15 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async rejectDailyAllowance(id: string, rejectedBy: string, isHigherAuthority: boolean = true): Promise<DailyAllowance> {
-    console.log(`[Storage] rejectDailyAllowance - allowanceId: ${id}, rejectedBy: ${rejectedBy}, isHigherAuthority: ${isHigherAuthority}`);
+  async rejectDailyAllowance(id: string, rejectionReason: string, isHigherAuthority: boolean = true): Promise<DailyAllowance> {
+    console.log(`[Storage] rejectDailyAllowance - allowanceId: ${id}, rejectionReason: ${rejectionReason}, isHigherAuthority: ${isHigherAuthority}`);
     
     // Get current allowance
     const existing = await this.getDailyAllowance(id);
     if (!existing) throw new Error('Allowance not found');
     
     // If already rejected by higher authority, cannot change
-    if (existing.rejectedBy) {
+    if (existing.rejectionReason) {
       throw new Error('Allowance already rejected by higher authority. Status is locked and cannot be changed.');
     }
     
@@ -1157,7 +1157,7 @@ export class DrizzleStorage implements IStorage {
       console.log(`[Storage] Higher authority rejection - status will be locked`);
       const [result] = await db.update(dailyAllowances).set({
         approvalStatus: 'rejected',
-        rejectedBy,
+        rejectionReason,
       }).where(eq(dailyAllowances.id, id)).returning();
       return result;
     }
