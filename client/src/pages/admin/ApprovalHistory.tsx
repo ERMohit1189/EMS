@@ -33,13 +33,16 @@ export default function ApprovalHistory() {
   useEffect(() => {
     const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
     const employeeRole = localStorage.getItem('employeeRole');
-    const isAdmin = employeeRole !== 'user' || !employeeRole;
+    // Admin access: if not a regular user employee (employeeRole is 'user')
+    const isAdmin = employeeRole !== 'user';
     
     // If not admin and not reporting person, redirect to dashboard
     if (!isAdmin && !isReportingPerson) {
+      console.log('[ApprovalHistory] Access denied - redirecting to dashboard');
       setLocation('/employee/dashboard');
       return;
     }
+    console.log('[ApprovalHistory] Access granted - isAdmin:', isAdmin, 'isReportingPerson:', isReportingPerson);
   }, [setLocation]);
   
   const now = new Date();
