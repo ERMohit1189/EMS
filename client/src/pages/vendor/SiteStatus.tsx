@@ -166,8 +166,8 @@ export default function SiteStatus() {
   const filteredSites = sites.filter(site => {
     const matchesSearch = 
       site.planId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      site.circle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      site.district.toLowerCase().includes(searchTerm.toLowerCase());
+      site.circle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      site.district?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // If card filter is set, use it; otherwise use status filter
     const matchesStatus = cardStatusFilter ? site.status === cardStatusFilter : (selectedStatus === 'All' || site.status === selectedStatus);
@@ -366,7 +366,7 @@ export default function SiteStatus() {
 
       // Convert to array-of-arrays format for colorful export
       const headers = Object.keys(excelData[0] || {});
-      const dataArray = [headers, ...excelData.map(row => headers.map(h => row[h]))];
+      const dataArray = [headers, ...excelData.map(row => headers.map(h => (row as Record<string, any>)[h]))];
       const columnWidths = Array(headers.length).fill(18);
       
       createColorfulExcel(dataArray, columnWidths, `site-status-${new Date().getTime()}.xlsx`, 'Site Status');
@@ -545,11 +545,11 @@ export default function SiteStatus() {
 
         // Draw field label
         pdf.setFontSize(8);
-        pdf.setFont(undefined, 'bold');
+        pdf.setFont('Helvetica', 'bold');
         pdf.text(field.label + ':', margin + 2, yPosition + 4);
 
         // Draw field value
-        pdf.setFont(undefined, 'normal');
+        pdf.setFont('Helvetica', 'normal');
         const wrappedText = pdf.splitTextToSize(displayValue, valueWidth - 2);
         pdf.text(wrappedText, margin + labelWidth + 2, yPosition + 4);
 
@@ -741,11 +741,11 @@ export default function SiteStatus() {
 
           // Draw field label
           pdf.setFontSize(8);
-          pdf.setFont(undefined, 'bold');
+          pdf.setFont('Helvetica', 'bold');
           pdf.text(field.label + ':', margin + 2, yPosition + 3.5);
 
           // Draw field value
-          pdf.setFont(undefined, 'normal');
+          pdf.setFont('Helvetica', 'normal');
           const wrappedText = pdf.splitTextToSize(displayValue, valueWidth - 2);
           pdf.text(wrappedText, margin + labelWidth + 2, yPosition + 3.5);
 
