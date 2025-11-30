@@ -383,7 +383,34 @@ export default function EmployeeSalary() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-10">Loading salary structure...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+            <div className="h-4 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          </div>
+          <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardHeader>
+              <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              {i === 2 && <div className="h-4 w-56 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mt-2"></div>}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[1, 2, 3].map((j) => (
+                <div key={j} className="flex justify-between items-center">
+                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (!salary) {
