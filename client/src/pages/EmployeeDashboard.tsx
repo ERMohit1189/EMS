@@ -20,24 +20,22 @@ export default function EmployeeDashboard() {
     const employeeDesignation = localStorage.getItem('employeeDesignation');
     const role = localStorage.getItem('employeeRole');
 
-    console.log('[EmployeeDashboard] Loading profile:', {
-      employeeId,
-      employeeName,
-      employeeEmail,
-      employeeDepartment,
-      employeeDesignation,
-      role
-    });
+    console.log('[EmployeeDashboard] ===== PROFILE LOADING =====');
+    console.log('[EmployeeDashboard] Role from localStorage:', role);
+    console.log('[EmployeeDashboard] Employee ID:', employeeId);
+    console.log('[EmployeeDashboard] Employee Name:', employeeName);
 
     if (employeeId) {
-      setUserProfile({
+      const profileData = {
         id: employeeId,
         name: employeeName,
         email: employeeEmail,
         department: employeeDepartment || 'Not Assigned',
         designation: employeeDesignation || 'Not Specified',
         role: role || 'user',
-      });
+      };
+      console.log('[EmployeeDashboard] Setting profile:', profileData);
+      setUserProfile(profileData);
     }
     
     // Capture performance metrics immediately on next tick
@@ -135,8 +133,22 @@ export default function EmployeeDashboard() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-slate-900 mb-2" data-testid="text-employee-name">{userProfile.name}</h3>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-block px-3 py-1 rounded-full font-semibold text-white text-sm ${userProfile?.role === 'admin' ? 'bg-purple-600' : 'bg-blue-600'}`} data-testid="badge-employee-role">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span 
+                        style={{
+                          display: 'inline-block',
+                          paddingLeft: '12px',
+                          paddingRight: '12px',
+                          paddingTop: '6px',
+                          paddingBottom: '6px',
+                          borderRadius: '9999px',
+                          fontWeight: '600',
+                          color: 'white',
+                          fontSize: '14px',
+                          backgroundColor: userProfile?.role === 'admin' ? '#9333ea' : '#2563eb',
+                        }}
+                        data-testid="badge-employee-role"
+                      >
                         {userProfile?.role?.toUpperCase() || 'USER'}
                       </span>
                       <p className="text-sm text-slate-600">{userProfile.designation}</p>
