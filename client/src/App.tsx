@@ -82,12 +82,14 @@ function App() {
     const employeeEmail = localStorage.getItem('employeeEmail');
     setIsEmployee(!!employeeEmail);
     
-    // If employee is on root path, redirect to employee dashboard
-    if (loggedIn && !!employeeEmail && location === '/') {
-      setLocation('/employee/dashboard');
+    // If employee is on root path or invalid path, redirect to employee dashboard
+    if (loggedIn && !!employeeEmail) {
+      if (location === '/' || location === '') {
+        setLocation('/employee/dashboard');
+      }
     }
     
-    console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail);
+    console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail, 'location:', location);
     setLoading(false);
 
     // Listen for logout events
