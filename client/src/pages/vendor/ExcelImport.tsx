@@ -477,6 +477,10 @@ export default function ExcelImport() {
     }
   };
 
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
