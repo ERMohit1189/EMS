@@ -84,16 +84,31 @@ export default function ApprovalHistory() {
     fetchApprovalHistory();
   }, [selectedMonth, selectedYear]);
 
-  // Fetch employees list on records update
+  // Fetch employees list on records update - with role-based filtering
   useEffect(() => {
+    const employeeRole = localStorage.getItem('employeeRole');
+    const isAdmin = employeeRole !== 'user';
+    const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
+    
     // Extract unique employees from records
-    const uniqueEmployees = Array.from(
+    const allEmployeesFromRecords = Array.from(
       new Map(
         records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])
       ).values()
     );
-    setEmployees(uniqueEmployees);
-  }, [records]);
+
+    if (isAdmin) {
+      // Admin can see all employees
+      setEmployees(allEmployeesFromRecords);
+    } else if (isReportingPerson && employeeId) {
+      // Reporting person can only see their team members' allowances
+      // So show only employees from their records (which are their team members)
+      setEmployees(allEmployeesFromRecords);
+    } else {
+      // Regular employees can only see their own allowances
+      setEmployees(allEmployeesFromRecords);
+    }
+  }, [records, employeeId]);
 
   const fetchApprovalHistory = async () => {
     setLoading(true);
