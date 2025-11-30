@@ -5,6 +5,7 @@ import { performanceMonitor } from '@/lib/performanceMonitor';
 export default function GlobalPerformanceIndicator() {
   const [metrics, setMetrics] = useState<any>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>('');
   const [location] = useLocation();
   const [position, setPosition] = useState({ x: 16, y: 16 });
   const [isDragging, setIsDragging] = useState(false);
@@ -22,6 +23,23 @@ export default function GlobalPerformanceIndicator() {
         console.error('Error loading saved position:', e);
       }
     }
+  }, []);
+
+  // Update current time every second
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      }));
+    };
+    
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   // Save position to localStorage whenever it changes
@@ -135,6 +153,7 @@ export default function GlobalPerformanceIndicator() {
           
           {/* Load Time and Score */}
           <div className={`bg-white rounded-lg shadow-lg p-3 text-center border-l-4 ${getTrafficLightColor()} whitespace-nowrap`}>
+            <p className={`text-xs font-semibold ${getTextColor()}`}>{currentTime}</p>
             <p className={`text-sm font-bold ${getTextColor()}`}>{metrics.pageLoadTime}ms</p>
             <p className={`text-xs font-semibold ${getTextColor()}`}>{metrics.assessment.score}</p>
           </div>
