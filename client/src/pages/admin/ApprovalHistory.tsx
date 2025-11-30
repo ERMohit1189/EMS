@@ -76,10 +76,7 @@ export default function ApprovalHistory() {
         const data = await response.json();
         const allRecords = data.data || [];
         
-        // In development, show all statuses. In production, show only approved/rejected
-        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
-        // Filter by approval status (approved or rejected only, or all in development)
+        // Filter by approval status and date
         const filtered = allRecords.filter((record: AllowanceRecord) => {
           const recordDate = new Date(record.date);
           const recordMonth = String(recordDate.getMonth() + 1).padStart(2, '0');
@@ -90,14 +87,9 @@ export default function ApprovalHistory() {
             ? recordMonth === selectedMonth && recordYear === selectedYear
             : true;
           
-          // In development, show all statuses to help with testing
-          if (isDev) {
-            return matchesDate;
-          }
-          
-          // In production, only show approved/rejected
-          return matchesDate && 
-                 (record.approvalStatus === 'approved' || record.approvalStatus === 'rejected');
+          // Show all statuses (approved, rejected, processing, pending)
+          // This helps with testing and visibility of approval workflow
+          return matchesDate;
         });
         
         setRecords(filtered);
