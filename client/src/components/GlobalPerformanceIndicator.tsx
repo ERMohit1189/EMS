@@ -32,7 +32,7 @@ export default function GlobalPerformanceIndicator() {
     // Mark navigation start when location changes
     performanceMonitor.markNavigationStart();
     
-    // Capture metrics after render completes
+    // Capture metrics after page fully displays (including loading time)
     setTimeout(() => {
       try {
         const perf = performanceMonitor.getMetrics();
@@ -41,7 +41,7 @@ export default function GlobalPerformanceIndicator() {
       } catch (e) {
         console.error('Performance indicator error:', e);
       }
-    }, 50);
+    }, 300); // Wait 300ms to capture full page display time including all loading
   }, [location]);
 
   // Handle mouse down to start dragging
@@ -99,8 +99,9 @@ export default function GlobalPerformanceIndicator() {
       }}
       onMouseDown={handleMouseDown}
       data-testid="performance-indicator"
+      title={`Page fully displayed in ${metrics.pageLoadTime}ms`}
     >
-      {/* Traffic Signal Circle with Load Time */}
+      {/* Traffic Signal Circle with Full Display Load Time */}
       <div className={`w-10 h-10 rounded-full ${getTrafficLightColor()} shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all duration-300`}>
         <span className="text-white text-xs font-bold">{metrics.pageLoadTime}ms</span>
       </div>
