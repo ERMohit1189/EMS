@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 interface AllowanceData {
   travelAllowance: number;
@@ -399,6 +400,10 @@ export default function Allowances() {
     (parseFloat(formData.parkingAllowance) || 0) +
     (parseFloat(formData.miscAllowance) || 0)
   ).toFixed(2);
+
+  if (loading) {
+    return <SkeletonLoader type="form" />;
+  }
 
   return (
     <div className="space-y-3">
