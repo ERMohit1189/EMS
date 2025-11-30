@@ -282,11 +282,12 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     setExpandedGroups(prev => {
       const newExpandedGroups: Record<string, boolean> = {};
       menuGroups.forEach(group => {
-        newExpandedGroups[group.group] = group.group === activeGroup;
+        // Keep all groups expanded - don't collapse them on route change
+        newExpandedGroups[group.group] = true;
       });
       return newExpandedGroups;
     });
-  }, [location, isUserEmployee]);
+  }, [location, menuGroups]);
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => ({
