@@ -8,6 +8,7 @@ import {
   boolean,
   decimal,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -33,7 +34,10 @@ export const vendors = pgTable("vendors", {
   password: varchar("password"), // Hashed password for vendor login
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxStatus: index("idx_vendors_status").on(table.status),
+  idxEmail: index("idx_vendors_email").on(table.email),
+}));
 
 // Sites Table - Comprehensive HOP Management (Excel columns retained)
 export const sites = pgTable("sites", {
@@ -182,7 +186,12 @@ export const employees = pgTable("employees", {
   status: varchar("status").notNull().default("Active"), // Active, Inactive
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxEmail: index("idx_employees_email").on(table.email),
+  idxDepartment: index("idx_employees_department").on(table.departmentId),
+  idxDesignation: index("idx_employees_designation").on(table.designationId),
+  idxStatus: index("idx_employees_status").on(table.status),
+}));
 
 // Salary Structure Table
 export const salaryStructures = pgTable("salary_structures", {
@@ -206,7 +215,9 @@ export const salaryStructures = pgTable("salary_structures", {
   wantDeduction: boolean("want_deduction").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxEmployeeId: index("idx_salary_employee").on(table.employeeId),
+}));
 
 // Purchase Orders Table
 export const purchaseOrders = pgTable("purchase_orders", {
@@ -238,7 +249,12 @@ export const purchaseOrders = pgTable("purchase_orders", {
   remarks: text("remarks"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxVendor: index("idx_po_vendor").on(table.vendorId),
+  idxSite: index("idx_po_site").on(table.siteId),
+  idxStatus: index("idx_po_status").on(table.status),
+  idxPoDate: index("idx_po_date").on(table.poDate),
+}));
 
 // Invoices Table
 export const invoices = pgTable("invoices", {
@@ -262,7 +278,12 @@ export const invoices = pgTable("invoices", {
   remarks: text("remarks"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxVendor: index("idx_invoice_vendor").on(table.vendorId),
+  idxPo: index("idx_invoice_po").on(table.poId),
+  idxStatus: index("idx_invoice_status").on(table.status),
+  idxInvoiceDate: index("idx_invoice_date").on(table.invoiceDate),
+}));
 
 // Payment Master Table - Site & Vendor Amount Configuration by Antenna Size
 export const paymentMasters = pgTable("payment_masters", {
@@ -304,7 +325,9 @@ export const attendances = pgTable("attendances", {
   submittedAt: timestamp("submitted_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxEmployeeMonth: index("idx_employee_month_year").on(table.employeeId, table.month, table.year),
+}));
 
 // Daily Allowances Table
 export const dailyAllowances = pgTable("daily_allowances", {
@@ -324,7 +347,13 @@ export const dailyAllowances = pgTable("daily_allowances", {
   submittedAt: timestamp("submitted_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  idxApprovalStatus: index("idx_approval_status").on(table.approvalStatus),
+  idxTeamId: index("idx_team_id").on(table.teamId),
+  idxRejectedBy: index("idx_rejected_by").on(table.rejectedBy),
+  idxApprovalCount: index("idx_approval_count").on(table.approvalCount),
+  idxPaidStatus: index("idx_paid_status").on(table.paidStatus),
+}));
 
 // Zod Schemas
 export const insertVendorSchema = createInsertSchema(vendors).omit({
