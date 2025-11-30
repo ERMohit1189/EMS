@@ -138,6 +138,7 @@ export async function registerRoutes(
           id: employee.id, 
           name: employee.name, 
           email: employee.email,
+          role: employee.role || 'user',
           department: (employee as any).departmentName || "Not Assigned",
           designation: (employee as any).designationName || "Not Specified",
           isReportingPerson

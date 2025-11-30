@@ -100,12 +100,12 @@ export default function EmployeeLogin() {
       localStorage.setItem("employeeId", data.employee.id);
       localStorage.setItem("employeeEmail", data.employee.email);
       localStorage.setItem("employeeName", data.employee.name);
-      localStorage.setItem("employeeRole", "user");
+      localStorage.setItem("employeeRole", data.employee.role || "user");
       localStorage.setItem("employeeDepartment", data.employee.department || "Not Assigned");
       localStorage.setItem("employeeDesignation", data.employee.designation || "Not Specified");
       const isRPValue = data.employee.isReportingPerson ? "true" : "false";
       localStorage.setItem("isReportingPerson", isRPValue);
-      console.log('[EmployeeLogin] Stored employeeRole: user');
+      console.log('[EmployeeLogin] Stored employeeRole:', data.employee.role || "user");
       console.log('[EmployeeLogin] Stored isReportingPerson:', isRPValue);
       console.log('[EmployeeLogin] localStorage.getItem("isReportingPerson"):', localStorage.getItem("isReportingPerson"));
       
