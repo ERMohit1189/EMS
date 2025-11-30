@@ -101,7 +101,7 @@ export default function Allowances() {
   const fetchTeams = async () => {
     if (!employeeId) {
       console.log('Fetching teams skipped - no employeeId');
-      return;
+      return [];
     }
     try {
       const url = `${getApiBaseUrl()}/api/teams/employee/${employeeId}`;
@@ -111,19 +111,51 @@ export default function Allowances() {
       if (response.ok) {
         const data = await response.json();
         console.log('Teams fetched:', data);
-        setTeams(data || []);
+        return data || [];
       } else {
         const error = await response.text();
         console.error('Teams API error:', response.status, error);
+        return [];
       }
     } catch (error) {
       console.error('Error fetching teams:', error);
+      return [];
+    }
+  };
+
+  const fetchAllowancesParallel = async (skipLoading = false, month?: string, year?: string) => {
+    if (!employeeId) return;
+    try {
+      if (!skipLoading) setLoading(true);
+      const m = month || selectedMonth;
+      const y = year || selectedYear;
+      console.log(`Fetching allowances for ${employeeId}, month: ${m}, year: ${y}`);
+      
+      // Parallel fetch: allowances + teams at same time
+      const [allowancesRes, teamsData] = await Promise.all([
+        fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`),
+        fetchTeams()
+      ]);
+      
+      if (allowancesRes.ok) {
+        const data = await allowancesRes.json();
+        console.log(`Received ${data.data?.length || 0} allowances`);
+        console.log('Allowances data:', data.data);
+        setSubmittedEntries(data.data || []);
+      } else {
+        console.error('API error:', allowancesRes.status);
+      }
+      
+      setTeams(teamsData);
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
+    } finally {
+      if (!skipLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAllowances(true, defaultMonth, defaultYear);
-    fetchTeams();
+    fetchAllowancesParallel(true, defaultMonth, defaultYear);
     // Load allowance caps from settings
     const allowanceCaps = localStorage.getItem('allowanceCaps');
     if (allowanceCaps) {
@@ -153,26 +185,7 @@ export default function Allowances() {
   }, [formData, caps]);
 
   const fetchAllowances = async (skipLoading = false, month?: string, year?: string) => {
-    if (!employeeId) return;
-    try {
-      if (!skipLoading) setLoading(true);
-      const m = month || selectedMonth;
-      const y = year || selectedYear;
-      console.log(`Fetching allowances for ${employeeId}, month: ${m}, year: ${y}`);
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`Received ${data.data?.length || 0} allowances`);
-        console.log('Allowances data:', data.data);
-        setSubmittedEntries(data.data || []);
-      } else {
-        console.error('API error:', response.status);
-      }
-    } catch (error: any) {
-      console.error('Error fetching allowances:', error);
-    } finally {
-      if (!skipLoading) setLoading(false);
-    }
+    await fetchAllowancesParallel(skipLoading, month, year);
   };
 
   const handleMonthYearChange = (month: string, year: string) => {
