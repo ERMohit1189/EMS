@@ -1312,6 +1312,60 @@ export class DrizzleStorage implements IStorage {
     });
   }
 
+  async getAllAllowancesForTeams(employeeId: string): Promise<any[]> {
+    // Get all allowances for team members (all statuses: pending, processing, approved, rejected)
+    const userTeams = await this.getTeamsForEmployee(employeeId);
+    const teamIds = userTeams.map(t => t.id);
+    
+    if (teamIds.length === 0) {
+      return [];
+    }
+    
+    const teamMembersQuery = await db.select({ employeeId: teamMembers.employeeId })
+      .from(teamMembers)
+      .where(inArray(teamMembers.teamId, teamIds));
+    
+    const teamMemberEmployeeIds = Array.from(new Set(teamMembersQuery.map(m => m.employeeId)));
+    
+    if (teamMemberEmployeeIds.length === 0) {
+      return [];
+    }
+    
+    // Get ALL allowances regardless of status (pending, processing, approved, rejected)
+    const result = await db.select().from(dailyAllowances)
+      .where(inArray(dailyAllowances.employeeId, teamMemberEmployeeIds))
+      .orderBy(dailyAllowances.submittedAt);
+    
+    if (result.length === 0) return [];
+    
+    // BULK FETCH: Get all unique employee IDs and team IDs at once
+    const allowanceEmployeeIds = [...new Set(result.map(a => a.employeeId))];
+    const allowanceTeamIds = [...new Set(result.map(a => a.teamId).filter(Boolean))];
+    
+    // Fetch all employees in one query
+    const allEmployees = await db.select().from(employees).where(inArray(employees.id, allowanceEmployeeIds));
+    const employeeMap = new Map(allEmployees.map(e => [e.id, e]));
+    
+    // Fetch all teams in one query
+    let teamMap = new Map();
+    if (allowanceTeamIds.length > 0) {
+      const allTeams = await db.select().from(teams).where(inArray(teams.id, allowanceTeamIds));
+      teamMap = new Map(allTeams.map(t => [t.id, t]));
+    }
+    
+    // Enrich with cached data (no additional queries)
+    return result.map(allowance => {
+      const employee = employeeMap.get(allowance.employeeId);
+      const team = allowance.teamId ? teamMap.get(allowance.teamId) : null;
+      return {
+        ...allowance,
+        employeeName: employee?.name || 'Unknown',
+        employeeEmail: employee?.email || '',
+        teamName: team?.name || null,
+      };
+    });
+  }
+
   // Team operations
   async createTeam(team: InsertTeam): Promise<Team> {
     const [result] = await db.insert(teams).values(team).returning();

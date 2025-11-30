@@ -1420,6 +1420,28 @@ export async function registerRoutes(
     }
   });
 
+  // All allowances for team members (for reporting purposes - all statuses) - MUST come before parameterized routes
+  app.get("/api/allowances/team/all", async (req, res) => {
+    try {
+      const employeeId = req.query.employeeId as string;
+      console.log(`[ROUTE] GET /api/allowances/team/all - ROUTE HIT!`);
+      console.log(`[Allowances] GET team all allowances - employeeId: ${employeeId}`);
+      
+      if (!employeeId) {
+        return res.status(400).json({ error: "employeeId is required" });
+      }
+      
+      // Get all team members' allowances (all statuses: pending, processing, approved, rejected)
+      const allowances = await storage.getAllAllowancesForTeams(employeeId);
+      console.log(`[Allowances] Found ${allowances.length} total team allowances (all statuses)`);
+      res.json({ data: allowances || [] });
+    } catch (error: any) {
+      console.error(`[ROUTE ERROR] /api/allowances/team/all - ERROR:`, error);
+      console.error(`[ROUTE ERROR] Stack:`, error.stack);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/allowances/:employeeId", async (req, res, next) => {
     // Check if this is actually a month/year route
     const month = req.query.month;
