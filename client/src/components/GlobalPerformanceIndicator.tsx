@@ -8,8 +8,9 @@ export default function GlobalPerformanceIndicator() {
   const [location] = useLocation();
   const [position, setPosition] = useState({ x: 16, y: 16 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<HTMLDivElement>(null);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const startMouseRef = useRef({ x: 0, y: 0 });
 
   // Load saved position from localStorage
   useEffect(() => {
@@ -57,38 +58,39 @@ export default function GlobalPerformanceIndicator() {
   }, [isExpanded]);
 
   // Handle mouse down to start dragging
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!dragRef.current) return;
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
     setIsDragging(true);
-    const rect = dragRef.current.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
+    startMouseRef.current = { x: e.clientX, y: e.clientY };
+    startPosRef.current = { x: position.x, y: position.y };
   };
 
-  // Handle mouse move to drag
+  // Handle mouse move and mouse up for dragging
   useEffect(() => {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newX = e.clientX - dragOffset.x;
-      const newY = e.clientY - dragOffset.y;
-      setPosition({ x: newX, y: newY });
+      const deltaX = e.clientX - startMouseRef.current.x;
+      const deltaY = e.clientY - startMouseRef.current.y;
+      
+      setPosition({
+        x: startPosRef.current.x + deltaX,
+        y: startPosRef.current.y + deltaY,
+      });
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragOffset]);
+  }, [isDragging]);
 
   if (!metrics) return null;
 
@@ -111,21 +113,20 @@ export default function GlobalPerformanceIndicator() {
   return (
     <div
       ref={dragRef}
-      className={`fixed z-50 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      className={`fixed z-50 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
       }}
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
+      onMouseEnter={() => !isDragging && setIsExpanded(true)}
+      onMouseLeave={() => !isDragging && setIsExpanded(false)}
       onMouseDown={handleMouseDown}
       data-testid="performance-indicator"
     >
       {isExpanded ? (
         // Expanded View - Fade In
         <div 
-          className="flex flex-col items-center gap-2 transition-opacity duration-300 opacity-100" 
-          onMouseDown={(e) => e.stopPropagation()}
+          className="flex flex-col items-center gap-2 transition-opacity duration-300 opacity-100 pointer-events-none"
         >
           {/* Traffic Signal Circle */}
           <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center`}>
