@@ -182,7 +182,7 @@ export default function ExportHeaders() {
     }
   };
 
-  if (loading) return <div className="text-center py-10">Loading...</div>;
+  if (loading) return <SkeletonLoader type="dashboard" />;
 
   return (
     <div className="space-y-6">
