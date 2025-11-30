@@ -1491,8 +1491,10 @@ export async function registerRoutes(
   app.put("/api/allowances/:id/reject", async (req, res) => {
     try {
       const { id } = req.params;
-      console.log(`[Allowances] Rejecting ${id}`);
-      const allowance = await storage.rejectDailyAllowance(id);
+      const { rejectionReason } = req.body;
+      const isHigherAuthority = req.session?.isHigherAuthority || false;
+      console.log(`[Allowances] Rejecting ${id} with reason: ${rejectionReason}`);
+      const allowance = await storage.rejectDailyAllowance(id, rejectionReason, isHigherAuthority);
       res.json({ success: true, data: allowance });
     } catch (error: any) {
       console.error(`[Allowances Reject Error]`, error.message);
