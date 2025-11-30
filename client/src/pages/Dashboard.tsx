@@ -128,10 +128,6 @@ export default function Dashboard() {
   const totalEmployees = allEmployees.length;
   const activeEmployees = allEmployees.filter(e => e.status === 'Active').length;
 
-  if (loading) {
-    return <SkeletonLoader type="dashboard" />;
-  }
-
   const stats = [
     {
       title: 'Total Vendors',
@@ -199,6 +195,10 @@ export default function Dashboard() {
     { name: 'Pending', value: purchaseOrders.filter(po => po.status === 'Pending').length, fill: '#f59e0b' },
     { name: 'Approved', value: purchaseOrders.filter(po => po.status === 'Approved').length, fill: '#10b981' },
   ];
+
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
 
   return (
     <div className="space-y-6">
