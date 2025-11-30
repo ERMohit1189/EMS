@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 import { performanceMonitor } from '@/lib/performanceMonitor';
 
 export default function GlobalPerformanceIndicator() {
   const [metrics, setMetrics] = useState<any>(null);
+  const [location] = useLocation();
 
   useEffect(() => {
     setTimeout(() => {
@@ -14,7 +16,7 @@ export default function GlobalPerformanceIndicator() {
         console.error('Performance indicator error:', e);
       }
     }, 100);
-  }, []);
+  }, [location]);
 
   if (!metrics) return null;
 
