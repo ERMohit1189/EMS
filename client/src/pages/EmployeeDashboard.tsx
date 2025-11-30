@@ -18,6 +18,16 @@ export default function EmployeeDashboard() {
     const employeeEmail = localStorage.getItem('employeeEmail');
     const employeeDepartment = localStorage.getItem('employeeDepartment');
     const employeeDesignation = localStorage.getItem('employeeDesignation');
+    const role = localStorage.getItem('employeeRole');
+
+    console.log('[EmployeeDashboard] Loading profile:', {
+      employeeId,
+      employeeName,
+      employeeEmail,
+      employeeDepartment,
+      employeeDesignation,
+      role
+    });
 
     if (employeeId) {
       setUserProfile({
@@ -26,6 +36,7 @@ export default function EmployeeDashboard() {
         email: employeeEmail,
         department: employeeDepartment || 'Not Assigned',
         designation: employeeDesignation || 'Not Specified',
+        role: role || 'user',
       });
     }
     
@@ -146,8 +157,8 @@ export default function EmployeeDashboard() {
                     <Shield className="h-4 w-4 text-slate-500" />
                     <div>
                       <p className="text-xs text-slate-600">Role</p>
-                      <Badge variant="default" className={`text-xs ${employeeRole === 'admin' ? 'bg-purple-600' : 'bg-blue-600'}`} data-testid="badge-employee-role">
-                        {employeeRole?.toUpperCase() || 'USER'}
+                      <Badge variant="default" className={`text-xs ${userProfile?.role === 'admin' ? 'bg-purple-600' : 'bg-blue-600'}`} data-testid="badge-employee-role">
+                        {userProfile?.role?.toUpperCase() || 'USER'}
                       </Badge>
                     </div>
                   </div>
