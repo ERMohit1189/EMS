@@ -313,24 +313,20 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
           {/* Employee Dashboard Link - Only for Logged In Employees */}
           {isEmployee && (
             <div className="mb-4 pb-4 border-b border-sidebar-border">
-              <a
-                href="/employee/dashboard"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.history.pushState({}, '', '/employee/dashboard');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }}
-                className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-green-500 hover:text-white cursor-pointer',
-                  (location === '/employee/dashboard' || location === '/')
-                    ? 'bg-green-600 text-white shadow-md'
-                    : 'bg-green-400 text-white shadow-sm'
-                )}
-                data-testid="link-employee-dashboard"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                My Dashboard
-              </a>
+              <Link href="/employee/dashboard">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-green-500 hover:text-white cursor-pointer',
+                    (location === '/employee/dashboard' || location === '/')
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-green-400 text-white shadow-sm'
+                  )}
+                  data-testid="link-employee-dashboard"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  My Dashboard
+                </div>
+              </Link>
             </div>
           )}
           
@@ -351,25 +347,20 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
               {expandedGroups[group.group] && (
                 <div className="grid gap-1 mt-1">
                   {group.items.map((item, itemIndex) => (
-                    <a
-                      key={itemIndex}
-                      href={item.href}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.history.pushState({}, '', item.href);
-                        window.dispatchEvent(new PopStateEvent('popstate'));
-                      }}
-                      className={cn(
-                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer',
-                        location === item.href
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                          : 'text-sidebar-foreground/70'
-                      )}
-                      data-testid={`nav-link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.title}
-                    </a>
+                    <Link key={itemIndex} href={item.href}>
+                      <div
+                        className={cn(
+                          'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer',
+                          location === item.href
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                            : 'text-sidebar-foreground/70'
+                        )}
+                        data-testid={`nav-link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.title}
+                      </div>
+                    </Link>
                   ))}
                 </div>
               )}
