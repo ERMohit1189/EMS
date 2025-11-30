@@ -6,7 +6,7 @@ export default function GlobalPerformanceIndicator() {
   const [metrics, setMetrics] = useState<any>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [location] = useLocation();
-  const [position, setPosition] = useState({ x: 16, y: 16 }); // top-right: right-4 = 16px, top-4 = 16px
+  const [position, setPosition] = useState({ x: 16, y: 16 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<HTMLDivElement>(null);
@@ -38,7 +38,7 @@ export default function GlobalPerformanceIndicator() {
         const perf = performanceMonitor.getMetrics();
         const assessment = performanceMonitor.getAssessment(perf);
         setMetrics({ ...perf, assessment });
-        setIsExpanded(false); // Auto-collapse on new page
+        setIsExpanded(false);
       } catch (e) {
         console.error('Performance indicator error:', e);
       }
@@ -122,8 +122,11 @@ export default function GlobalPerformanceIndicator() {
       data-testid="performance-indicator"
     >
       {isExpanded ? (
-        // Expanded View
-        <div className="flex flex-col items-center gap-2 animate-in slide-in-from-right" onMouseDown={(e) => e.stopPropagation()}>
+        // Expanded View - Fade In
+        <div 
+          className="flex flex-col items-center gap-2 transition-opacity duration-300 opacity-100" 
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           {/* Traffic Signal Circle */}
           <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center`}>
             <span className="text-white text-xl font-bold">⚡</span>
@@ -136,8 +139,8 @@ export default function GlobalPerformanceIndicator() {
           </div>
         </div>
       ) : (
-        // Collapsed View - Just the circle
-        <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center hover:scale-110 transition-transform`}>
+        // Collapsed View - Just the circle (Fade Out)
+        <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center hover:scale-110 transition-all duration-300 opacity-100`}>
           <span className="text-white text-xl font-bold">⚡</span>
         </div>
       )}
