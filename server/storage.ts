@@ -1171,7 +1171,10 @@ export class DrizzleStorage implements IStorage {
 
   async getPendingAllowances(): Promise<any[]> {
     const result = await db.select().from(dailyAllowances)
-      .where(eq(dailyAllowances.approvalStatus, 'pending'))
+      .where(or(
+        eq(dailyAllowances.approvalStatus, 'pending'),
+        eq(dailyAllowances.approvalStatus, 'processing')
+      ))
       .orderBy(dailyAllowances.submittedAt);
     
     if (result.length === 0) return [];
@@ -1224,7 +1227,10 @@ export class DrizzleStorage implements IStorage {
     
     const result = await db.select().from(dailyAllowances)
       .where(and(
-        eq(dailyAllowances.approvalStatus, 'pending'),
+        or(
+          eq(dailyAllowances.approvalStatus, 'pending'),
+          eq(dailyAllowances.approvalStatus, 'processing')
+        ),
         inArray(dailyAllowances.employeeId, teamMemberEmployeeIds)
       ))
       .orderBy(dailyAllowances.submittedAt);
