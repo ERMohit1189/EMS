@@ -125,12 +125,19 @@ export default function ApprovalHistory() {
   const fetchApprovalHistory = async () => {
     setLoading(true);
     try {
+      const employeeRole = localStorage.getItem('employeeRole');
+      const isAdmin = employeeRole !== 'user';
       const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
       
       let url: string;
-      if (isReportingPerson && employeeId) {
+      if (isAdmin) {
+        // Admin sees ALL allowances from all employees
+        url = `${getApiBaseUrl()}/api/allowances/pending`;
+      } else if (isReportingPerson && employeeId) {
+        // Reporting person sees team members' allowances
         url = `${getApiBaseUrl()}/api/allowances/pending?employeeId=${employeeId}`;
       } else if (employeeId) {
+        // Regular employee sees only their own allowances
         url = `${getApiBaseUrl()}/api/allowances/${employeeId}?month=${selectedMonth}&year=${selectedYear}`;
       } else {
         return;
@@ -146,7 +153,7 @@ export default function ApprovalHistory() {
           const recordDate = new Date(record.date);
           const recordMonth = String(recordDate.getMonth() + 1).padStart(2, '0');
           const recordYear = String(recordDate.getFullYear());
-          const matchesDate = isReportingPerson 
+          const matchesDate = (isAdmin || isReportingPerson)
             ? recordMonth === selectedMonth && recordYear === selectedYear
             : true;
           return matchesDate;
