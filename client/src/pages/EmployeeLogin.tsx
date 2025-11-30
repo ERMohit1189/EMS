@@ -71,7 +71,8 @@ export default function EmployeeLogin() {
 
     try {
       const apiUrl = `${getApiBaseUrl()}/api/employees/login`;
-      console.log('Login attempt to:', apiUrl);
+      console.log('[EmployeeLogin] Login attempt to:', apiUrl);
+      console.log('[EmployeeLogin] Email:', email);
       
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -80,15 +81,28 @@ export default function EmployeeLogin() {
         credentials: 'include',
       });
 
+      console.log('[EmployeeLogin] Response status:', response.status);
+      console.log('[EmployeeLogin] Response ok:', response.ok);
+      
       const data = await response.json();
-      console.log('Login response data:', data);
+      console.log('[EmployeeLogin] Response data:', data);
 
-      if (!response.ok) {
-        const errorMsg = data.error || `API Error: ${response.status} ${response.statusText}`;
-        console.error('Login error:', errorMsg);
+      if (!response.ok || !data.success) {
+        const errorMsg = data.error || `Login failed: ${response.status} ${response.statusText}`;
+        console.error('[EmployeeLogin] Error:', errorMsg);
         toast({
           title: "Login Failed",
           description: errorMsg,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!data.employee) {
+        console.error('[EmployeeLogin] No employee data in response');
+        toast({
+          title: "Login Failed",
+          description: "No employee data received from server",
           variant: "destructive",
         });
         return;
