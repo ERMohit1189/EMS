@@ -86,28 +86,40 @@ export default function ApprovalHistory() {
 
   // Fetch employees list on records update - with role-based filtering
   useEffect(() => {
-    const employeeRole = localStorage.getItem('employeeRole');
-    const isAdmin = employeeRole !== 'user';
-    const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
+    const fetchEmployeeList = async () => {
+      const employeeRole = localStorage.getItem('employeeRole');
+      const isAdmin = employeeRole !== 'user';
+      const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
+      
+      if (isAdmin) {
+        // Admin can see ALL employees in the system
+        try {
+          const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`);
+          if (response.ok) {
+            const data = await response.json();
+            const allEmployees = (data.data || [])
+              .filter((e: any) => e.email !== 'superadmin@ems.local')
+              .map((e: any) => ({ id: e.id, name: e.name }));
+            setEmployees(allEmployees);
+          }
+        } catch (error) {
+          console.error('Failed to fetch all employees:', error);
+          // Fallback to records
+          const employeesFromRecords = Array.from(
+            new Map(records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
+          );
+          setEmployees(employeesFromRecords);
+        }
+      } else {
+        // Reporting person or regular employee - extract from records only
+        const employeesFromRecords = Array.from(
+          new Map(records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])).values()
+        );
+        setEmployees(employeesFromRecords);
+      }
+    };
     
-    // Extract unique employees from records
-    const allEmployeesFromRecords = Array.from(
-      new Map(
-        records.map(r => [r.employeeId, { id: r.employeeId, name: r.employeeName }])
-      ).values()
-    );
-
-    if (isAdmin) {
-      // Admin can see all employees
-      setEmployees(allEmployeesFromRecords);
-    } else if (isReportingPerson && employeeId) {
-      // Reporting person can only see their team members' allowances
-      // So show only employees from their records (which are their team members)
-      setEmployees(allEmployeesFromRecords);
-    } else {
-      // Regular employees can only see their own allowances
-      setEmployees(allEmployeesFromRecords);
-    }
+    fetchEmployeeList();
   }, [records, employeeId]);
 
   const fetchApprovalHistory = async () => {
