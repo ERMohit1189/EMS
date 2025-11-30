@@ -41,7 +41,7 @@ export default function GlobalPerformanceIndicator() {
       } catch (e) {
         console.error('Performance indicator error:', e);
       }
-    }, 300); // Wait 300ms to capture full page display time including all loading
+    }, 300);
   }, [location]);
 
   // Handle mouse down to start dragging
@@ -101,9 +101,10 @@ export default function GlobalPerformanceIndicator() {
       data-testid="performance-indicator"
       title={`Page fully displayed in ${metrics.pageLoadTime}ms`}
     >
-      {/* Traffic Signal Circle with Full Display Load Time */}
-      <div className={`w-10 h-10 rounded-full ${getTrafficLightColor()} shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all duration-300`}>
-        <span className="text-white text-xs font-bold">{metrics.pageLoadTime}ms</span>
+      {/* Traffic Signal Circle with Load Time */}
+      <div className={`w-10 h-10 rounded-full ${getTrafficLightColor()} shadow-lg border-2 border-white flex flex-col items-center justify-center hover:scale-110 transition-all duration-300`}>
+        <span className="text-white text-xs font-bold leading-tight">{metrics.pageLoadTime}</span>
+        <span className="text-white text-xs font-bold leading-tight">ms</span>
       </div>
     </div>
   );
