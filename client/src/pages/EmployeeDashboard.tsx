@@ -133,8 +133,13 @@ export default function EmployeeDashboard() {
                   <div className="h-12 w-12 rounded-full bg-green-600/20 flex items-center justify-center">
                     <User className="h-6 w-6 text-green-600" />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900" data-testid="text-employee-name">{userProfile.name}</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-slate-900" data-testid="text-employee-name">{userProfile.name}</h3>
+                      <Badge className={`${userProfile?.role === 'admin' ? 'bg-purple-600' : 'bg-blue-600'} text-white`} data-testid="badge-employee-role">
+                        {userProfile?.role?.toUpperCase() || 'USER'}
+                      </Badge>
+                    </div>
                     <p className="text-sm text-slate-600">{userProfile.designation}</p>
                   </div>
                 </div>
