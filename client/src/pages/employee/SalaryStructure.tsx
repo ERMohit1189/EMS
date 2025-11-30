@@ -87,8 +87,14 @@ export default function SalaryStructure() {
   const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
 
   useEffect(() => {
-    fetchEmployees();
-    fetchExportHeader();
+    // Parallel fetch: employees + export header at same time
+    const loadInitialData = async () => {
+      await Promise.all([
+        fetchEmployeesParallel(),
+        fetchExportHeaderParallel()
+      ]);
+    };
+    loadInitialData();
   }, []);
 
   // Focus basic salary input only when salary is first loaded, not on edits
@@ -122,7 +128,7 @@ export default function SalaryStructure() {
     }
   }, [wantDeduction]);
 
-  const fetchEmployees = async () => {
+  const fetchEmployeesParallel = async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
       if (response.ok) {
@@ -139,7 +145,7 @@ export default function SalaryStructure() {
     }
   };
 
-  const fetchExportHeader = async () => {
+  const fetchExportHeaderParallel = async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
       if (response.ok) {
@@ -149,6 +155,14 @@ export default function SalaryStructure() {
     } catch (error) {
       console.error("Failed to fetch export header", error);
     }
+  };
+
+  const fetchEmployees = async () => {
+    await fetchEmployeesParallel();
+  };
+
+  const fetchExportHeader = async () => {
+    await fetchExportHeaderParallel();
   };
 
   const calculateValue = (field: keyof Omit<SalaryStructure, 'id' | 'employeeId'>, basicSalary: number): number => {

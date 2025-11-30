@@ -57,8 +57,12 @@ export default function EmployeeSalary() {
     try {
       setIsLoading(true);
       
-      // Fetch salary
-      const salaryResponse = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`);
+      // Parallel fetch: salary + employee data at same time
+      const [salaryResponse, empResponse] = await Promise.all([
+        fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`),
+        fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`)
+      ]);
+
       if (salaryResponse.ok) {
         const salaryData = await salaryResponse.json();
         setSalary(salaryData);
@@ -69,8 +73,6 @@ export default function EmployeeSalary() {
         });
       }
 
-      // Fetch employee data
-      const empResponse = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`);
       if (empResponse.ok) {
         const empData = await empResponse.json();
         setEmployeeData(empData);
@@ -87,8 +89,14 @@ export default function EmployeeSalary() {
   };
 
   useEffect(() => {
-    fetchSalaryData();
-    loadExportHeader();
+    // Parallel fetch: salary data + export header at same time
+    const loadInitialData = async () => {
+      await Promise.all([
+        fetchSalaryData(),
+        loadExportHeader()
+      ]);
+    };
+    loadInitialData();
   }, []);
 
   const calculateGross = (): number => {
