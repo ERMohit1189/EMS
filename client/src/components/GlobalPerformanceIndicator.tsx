@@ -3,7 +3,6 @@ import { performanceMonitor } from '@/lib/performanceMonitor';
 
 export default function GlobalPerformanceIndicator() {
   const [metrics, setMetrics] = useState<any>(null);
-  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     setTimeout(() => {
@@ -11,39 +10,41 @@ export default function GlobalPerformanceIndicator() {
         const perf = performanceMonitor.getMetrics();
         const assessment = performanceMonitor.getAssessment(perf);
         setMetrics({ ...perf, assessment });
-        setVisible(true);
-        // Auto-hide after 8 seconds
-        const timer = setTimeout(() => setVisible(false), 8000);
-        return () => clearTimeout(timer);
       } catch (e) {
         console.error('Performance indicator error:', e);
       }
     }, 100);
   }, []);
 
-  if (!metrics || !visible) return null;
+  if (!metrics) return null;
 
-  const colorMap: any = {
-    'Excellent': 'bg-green-100 border-green-300 text-green-800',
-    'Good': 'bg-blue-100 border-blue-300 text-blue-800',
-    'Fair': 'bg-yellow-100 border-yellow-300 text-yellow-800',
-    'Poor': 'bg-red-100 border-red-300 text-red-800',
+  const getTrafficLightColor = () => {
+    const score = metrics.assessment.score;
+    if (score === 'Excellent') return 'bg-green-500';
+    if (score === 'Good') return 'bg-blue-500';
+    if (score === 'Fair') return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
-  const color = colorMap[metrics.assessment.score] || colorMap['Fair'];
+  const getTextColor = () => {
+    const score = metrics.assessment.score;
+    if (score === 'Excellent') return 'text-green-700';
+    if (score === 'Good') return 'text-blue-700';
+    if (score === 'Fair') return 'text-yellow-700';
+    return 'text-red-700';
+  };
 
   return (
-    <div className={`fixed bottom-4 right-4 z-50 p-3 rounded-lg border ${color} text-sm font-medium shadow-lg max-w-xs`}>
-      <div className="flex items-center gap-2">
-        <span className="font-bold">⚡ Page Load:</span>
-        <span>{metrics.pageLoadTime}ms</span>
-        <span className="text-xs opacity-75">({metrics.assessment.score})</span>
-        <button
-          onClick={() => setVisible(false)}
-          className="ml-2 text-xs opacity-50 hover:opacity-100"
-        >
-          ✕
-        </button>
+    <div className="fixed top-4 right-4 z-50 flex flex-col items-center gap-2" data-testid="performance-indicator">
+      {/* Traffic Signal Circle */}
+      <div className={`w-12 h-12 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center`}>
+        <span className="text-white text-xl font-bold">⚡</span>
+      </div>
+      
+      {/* Load Time and Score */}
+      <div className={`bg-white rounded-lg shadow-lg p-2 text-center border-l-4 ${getTrafficLightColor()}`}>
+        <p className={`text-sm font-bold ${getTextColor()}`}>{metrics.pageLoadTime}ms</p>
+        <p className={`text-xs font-semibold ${getTextColor()}`}>{metrics.assessment.score}</p>
       </div>
     </div>
   );
