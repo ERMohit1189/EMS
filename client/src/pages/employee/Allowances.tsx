@@ -23,8 +23,9 @@ interface AllowanceEntry {
   teamId?: string;
   teamName?: string;
   allowanceData: string;
-  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvalStatus: 'pending' | 'processing' | 'approved' | 'rejected';
   paidStatus: 'unpaid' | 'partial' | 'full';
+  approvalCount?: number;
   approvedBy?: string;
   approvedAt?: string;
 }
