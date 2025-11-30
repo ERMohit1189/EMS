@@ -162,6 +162,17 @@ export default function Allowances() {
     if (allowanceCaps) {
       setCaps(JSON.parse(allowanceCaps));
     }
+
+    // Listen for storage changes (when caps are updated in Settings)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'allowanceCaps' && e.newValue) {
+        setCaps(JSON.parse(e.newValue));
+        console.log('Allowance caps updated from storage:', JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [employeeId]);
 
   useEffect(() => {

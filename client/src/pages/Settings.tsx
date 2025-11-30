@@ -117,6 +117,8 @@ export default function Settings() {
 
   const handleSaveAllowanceCaps = () => {
     localStorage.setItem('allowanceCaps', JSON.stringify(allowanceCaps));
+    // Dispatch custom event to update allowances page in real-time
+    window.dispatchEvent(new CustomEvent('allowanceCapsUpdated', { detail: allowanceCaps }));
     toast({
       title: "Success",
       description: 'Allowance caps updated successfully',
