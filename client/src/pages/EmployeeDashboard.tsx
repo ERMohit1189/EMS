@@ -1,18 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { User, Briefcase, Activity, Calendar, DollarSign, Mail } from 'lucide-react';
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { User, Briefcase, Activity, Calendar, DollarSign, Mail, Zap } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
-
-// Lazy load performance monitoring
-const PerformanceMonitor = lazy(() => import('@/components/PerformanceMonitor'));
+import { performanceMonitor } from '@/lib/performanceMonitor';
 
 export default function EmployeeDashboard() {
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [perfMetrics, setPerfMetrics] = useState<any>(null);
   const employeeRole = localStorage.getItem('employeeRole');
   const isUserEmployee = employeeRole === 'user';
 
   useEffect(() => {
+    // Load user profile
     const employeeId = localStorage.getItem('employeeId');
     const employeeName = localStorage.getItem('employeeName');
     const employeeEmail = localStorage.getItem('employeeEmail');
@@ -27,6 +27,19 @@ export default function EmployeeDashboard() {
         department: employeeDepartment || 'Not Assigned',
         designation: employeeDesignation || 'Not Specified',
       });
+    }
+    
+    // Capture performance metrics asynchronously
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        try {
+          const metrics = performanceMonitor.getMetrics();
+          const assessment = performanceMonitor.getAssessment(metrics);
+          setPerfMetrics({ metrics, assessment });
+        } catch (e) {
+          console.error('Error capturing metrics:', e);
+        }
+      }, { timeout: 3000 });
     }
   }, []);
 
@@ -44,12 +57,53 @@ export default function EmployeeDashboard() {
     { title: 'Settings', icon: Briefcase, href: '/settings', color: 'text-indigo-500' },
   ];
 
+  const perfCard = useMemo(() => {
+    if (!perfMetrics) return null;
+    const { metrics, assessment } = perfMetrics;
+    return (
+      <Card className="border-l-4 border-l-blue-600 shadow-md bg-gradient-to-r from-blue-50 to-cyan-50" data-testid="card-performance-metrics">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`h-12 w-12 rounded-lg flex items-center justify-center bg-opacity-10 ${assessment.color}`}>
+                  <Zap className={`h-6 w-6 ${assessment.color}`} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Page Load Performance</h3>
+                  <p className={`text-sm font-semibold ${assessment.color}`}>{assessment.score}</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 mb-4">{assessment.message}</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-slate-600">Total Load Time</p>
+                  <p className="text-lg font-bold text-slate-900" data-testid="metric-page-load-time">{metrics.pageLoadTime}ms</p>
+                </div>
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-slate-600">DOM Interactive</p>
+                  <p className="text-lg font-bold text-slate-900">{metrics.domInteractive}ms</p>
+                </div>
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-slate-600">Resources Loaded</p>
+                  <p className="text-lg font-bold text-slate-900">{metrics.resourceCount}</p>
+                </div>
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-slate-600">Total Size</p>
+                  <p className="text-lg font-bold text-slate-900">{metrics.totalResourceSize}KB</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }, [perfMetrics]);
+
   return (
     <div className="space-y-6 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-lg p-6">
-      {/* Performance Metrics Card - Lazy loaded */}
-      <Suspense fallback={null}>
-        <PerformanceMonitor />
-      </Suspense>
+      {/* Performance Metrics Card */}
+      {perfCard}
 
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg p-8 text-white shadow-lg">
