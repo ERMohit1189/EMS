@@ -72,8 +72,15 @@ export default function ApprovalHistory() {
 
   // Initialize date range to current month
   useEffect(() => {
-    const firstDay = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1);
-    const lastDay = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0);
+    const year = parseInt(selectedYear);
+    const month = parseInt(selectedMonth);
+    const firstDay = new Date(year, month - 1, 1);
+    // Get last day of the month by going to first day of next month and subtracting 1 day
+    const lastDay = new Date(year, month, 0);
+    
+    console.log('[ApprovalHistory] Calculated dates - Month:', month, 'Year:', year);
+    console.log('[ApprovalHistory] First day:', firstDay.toISOString());
+    console.log('[ApprovalHistory] Last day:', lastDay.toISOString());
     
     setStartDate(firstDay.toISOString().split('T')[0]);
     setEndDate(lastDay.toISOString().split('T')[0]);
@@ -84,7 +91,7 @@ export default function ApprovalHistory() {
     fetchApprovalHistory();
   }, [selectedMonth, selectedYear]);
 
-  // Fetch employees list on records update - with role-based filtering
+  // Fetch employees list - with role-based filtering
   useEffect(() => {
     const fetchEmployeeList = async () => {
       const employeeRole = localStorage.getItem('employeeRole');
@@ -97,10 +104,14 @@ export default function ApprovalHistory() {
           const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`);
           if (response.ok) {
             const data = await response.json();
+            console.log('[ApprovalHistory] All employees from API:', data);
             const allEmployees = (data.data || [])
               .filter((e: any) => e.email !== 'superadmin@ems.local')
               .map((e: any) => ({ id: e.id, name: e.name }));
+            console.log('[ApprovalHistory] Filtered employees:', allEmployees);
             setEmployees(allEmployees);
+          } else {
+            console.error('[ApprovalHistory] Failed to fetch employees, status:', response.status);
           }
         } catch (error) {
           console.error('Failed to fetch all employees:', error);
@@ -120,7 +131,7 @@ export default function ApprovalHistory() {
     };
     
     fetchEmployeeList();
-  }, [records, employeeId]);
+  }, []);
 
   const fetchApprovalHistory = async () => {
     setLoading(true);
