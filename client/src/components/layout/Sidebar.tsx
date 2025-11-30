@@ -251,7 +251,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       initialExpandedGroups[group.group] = true;
     });
     setExpandedGroups(initialExpandedGroups);
-  }, [isUserEmployee, isReportingPerson]);
+  }, [menuGroups]);
 
   // Auto-expand/collapse groups based on current route
   useEffect(() => {
@@ -286,7 +286,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       });
       return newExpandedGroups;
     });
-  }, [location, isUserEmployee]);
+  }, [location, menuGroups]);
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => ({
