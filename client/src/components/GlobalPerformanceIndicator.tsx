@@ -4,8 +4,6 @@ import { performanceMonitor } from '@/lib/performanceMonitor';
 
 export default function GlobalPerformanceIndicator() {
   const [metrics, setMetrics] = useState<any>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [currentTime, setCurrentTime] = useState<string>('');
   const [location] = useLocation();
   const [position, setPosition] = useState({ x: 16, y: 16 });
   const [isDragging, setIsDragging] = useState(false);
@@ -25,23 +23,6 @@ export default function GlobalPerformanceIndicator() {
     }
   }, []);
 
-  // Update current time every second
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit',
-        hour12: true 
-      }));
-    };
-    
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Save position to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('performanceIndicatorPosition', JSON.stringify(position));
@@ -57,23 +38,11 @@ export default function GlobalPerformanceIndicator() {
         const perf = performanceMonitor.getMetrics();
         const assessment = performanceMonitor.getAssessment(perf);
         setMetrics({ ...perf, assessment });
-        setIsExpanded(false);
       } catch (e) {
         console.error('Performance indicator error:', e);
       }
     }, 50);
   }, [location]);
-
-  // Auto-collapse after 5 seconds if expanded
-  useEffect(() => {
-    if (!isExpanded) return;
-    
-    const timer = setTimeout(() => {
-      setIsExpanded(false);
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, [isExpanded]);
 
   // Handle mouse down to start dragging
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -120,14 +89,6 @@ export default function GlobalPerformanceIndicator() {
     return 'bg-red-500';
   };
 
-  const getTextColor = () => {
-    const score = metrics.assessment.score;
-    if (score === 'Excellent') return 'text-green-700';
-    if (score === 'Good') return 'text-blue-700';
-    if (score === 'Fair') return 'text-yellow-700';
-    return 'text-red-700';
-  };
-
   return (
     <div
       ref={dragRef}
@@ -136,33 +97,13 @@ export default function GlobalPerformanceIndicator() {
         left: `${position.x}px`,
         top: `${position.y}px`,
       }}
-      onMouseEnter={() => !isDragging && setIsExpanded(true)}
-      onMouseLeave={() => !isDragging && setIsExpanded(false)}
       onMouseDown={handleMouseDown}
       data-testid="performance-indicator"
     >
-      {isExpanded ? (
-        // Expanded View - Fade In
-        <div 
-          className="flex flex-col items-center gap-2 transition-opacity duration-300 opacity-100 pointer-events-none"
-        >
-          {/* Traffic Signal Circle with Load Time */}
-          <div className={`w-16 h-16 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex flex-col items-center justify-center`}>
-            <span className="text-white text-sm font-bold">{metrics.pageLoadTime}ms</span>
-          </div>
-          
-          {/* Time and Score */}
-          <div className={`bg-white rounded-lg shadow-lg p-3 text-center border-l-4 ${getTrafficLightColor()} whitespace-nowrap`}>
-            <p className={`text-xs font-semibold ${getTextColor()}`}>{currentTime}</p>
-            <p className={`text-xs font-semibold ${getTextColor()}`}>{metrics.assessment.score}</p>
-          </div>
-        </div>
-      ) : (
-        // Collapsed View - Just the circle with load time inside
-        <div className={`w-16 h-16 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex flex-col items-center justify-center hover:scale-110 transition-all duration-300 opacity-100`}>
-          <span className="text-white text-sm font-bold">{metrics.pageLoadTime}ms</span>
-        </div>
-      )}
+      {/* Traffic Signal Circle with Load Time */}
+      <div className={`w-16 h-16 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center hover:scale-110 transition-all duration-300`}>
+        <span className="text-white text-sm font-bold">{metrics.pageLoadTime}ms</span>
+      </div>
     </div>
   );
 }
