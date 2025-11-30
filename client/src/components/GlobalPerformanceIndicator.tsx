@@ -101,8 +101,8 @@ export default function GlobalPerformanceIndicator() {
       data-testid="performance-indicator"
     >
       {/* Traffic Signal Circle with Load Time */}
-      <div className={`w-16 h-16 rounded-full ${getTrafficLightColor()} shadow-lg border-4 border-white flex items-center justify-center hover:scale-110 transition-all duration-300`}>
-        <span className="text-white text-sm font-bold">{metrics.pageLoadTime}ms</span>
+      <div className={`w-10 h-10 rounded-full ${getTrafficLightColor()} shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all duration-300`}>
+        <span className="text-white text-xs font-bold">{metrics.pageLoadTime}ms</span>
       </div>
     </div>
   );
