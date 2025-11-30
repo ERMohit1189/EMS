@@ -156,7 +156,7 @@ export default function Allowances() {
   };
 
   useEffect(() => {
-    fetchAllowancesParallel(true, defaultMonth, defaultYear);
+    fetchAllowancesParallel(false, defaultMonth, defaultYear);
     // Load allowance caps from settings
     const allowanceCaps = localStorage.getItem('allowanceCaps');
     if (allowanceCaps) {
