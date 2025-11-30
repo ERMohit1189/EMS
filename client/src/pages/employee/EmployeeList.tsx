@@ -5,8 +5,6 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
-import { PageLoader } from "@/components/PageLoader";
-import { usePageLoader } from "@/hooks/usePageLoader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,45 +32,42 @@ export default function EmployeeList() {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const { isLoading, withLoader } = usePageLoader();
 
   useEffect(() => {
     const fetchEmployees = async () => {
-      await withLoader(async () => {
-        try {
-          const [empResponse, desigResponse] = await Promise.all([
-            fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { cache: 'no-store' }),
-            fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' })
-          ]);
+      try {
+        const [empResponse, desigResponse] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { cache: 'no-store' }),
+          fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' })
+        ]);
+        
+        if (empResponse.ok && desigResponse.ok) {
+          const empData = await empResponse.json();
+          const designations = await desigResponse.json();
           
-          if (empResponse.ok && desigResponse.ok) {
-            const empData = await empResponse.json();
-            const designations = await desigResponse.json();
-            
-            // Create a map of designationId -> name
-            const designationMap: { [key: string]: string } = {};
-            designations.forEach((d: any) => {
-              designationMap[d.id] = d.name;
-            });
-            
-            // Enrich employees with designation names
-            const enrichedEmployees = (empData.data || [])
-              .filter((e: Employee) => e.email !== 'superadmin@ems.local')
-              .map((e: any) => ({
-                ...e,
-                designationName: e.designationId ? designationMap[e.designationId] : 'Not Specified'
-              }));
-            
-            setEmployees(enrichedEmployees);
-          }
-        } catch (error) {
-          console.error('Failed to fetch employees:', error);
-          toast({ title: 'Error', description: 'Failed to load employees', variant: 'destructive' });
+          // Create a map of designationId -> name
+          const designationMap: { [key: string]: string } = {};
+          designations.forEach((d: any) => {
+            designationMap[d.id] = d.name;
+          });
+          
+          // Enrich employees with designation names
+          const enrichedEmployees = (empData.data || [])
+            .filter((e: Employee) => e.email !== 'superadmin@ems.local')
+            .map((e: any) => ({
+              ...e,
+              designationName: e.designationId ? designationMap[e.designationId] : 'Not Specified'
+            }));
+          
+          setEmployees(enrichedEmployees);
         }
-      });
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+        toast({ title: 'Error', description: 'Failed to load employees', variant: 'destructive' });
+      }
     };
     fetchEmployees();
-  }, [toast, withLoader]);
+  }, [toast]);
 
   const handleDelete = async (id: string) => {
     try {
