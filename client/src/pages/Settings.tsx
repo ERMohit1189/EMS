@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 
 export default function Settings() {
   const [showGstInput, setShowGstInput] = useState(false);
@@ -14,6 +15,7 @@ export default function Settings() {
   const [dpoEmail, setDpoEmail] = useState('');
   const [approvalsRequired, setApprovalsRequired] = useState('1');
   const [loadingSaveApprovals, setLoadingSaveApprovals] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [allowanceCaps, setAllowanceCaps] = useState({
     travelAllowance: '',
     foodAllowance: '',
@@ -54,6 +56,8 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('Error fetching app settings:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,6 +122,10 @@ export default function Settings() {
       description: 'Allowance caps updated successfully',
     });
   };
+
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
