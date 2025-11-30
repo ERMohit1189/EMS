@@ -2,20 +2,22 @@ const CACHE_NAME = 'ems-portal-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/favicon.png',
   '/manifest.json'
 ];
 
 // Install event - cache essential files
 self.addEventListener('install', event => {
+  console.log('[Service Worker] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
+      console.log('[Service Worker] Caching essential files');
       return cache.addAll(urlsToCache).catch(err => {
-        console.log('Cache addAll error:', err);
+        console.log('[Service Worker] Cache addAll error:', err);
       });
     })
   );
   self.skipWaiting();
+  console.log('[Service Worker] Installation complete');
 });
 
 // Activate event - clean up old caches
