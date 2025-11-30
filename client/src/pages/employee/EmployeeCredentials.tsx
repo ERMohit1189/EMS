@@ -6,6 +6,7 @@ import { Copy, RotateCcw, Download, Eye, EyeOff } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,7 @@ export default function EmployeeCredentials() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [regenerateId, setRegenerateId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [useCookies, setUseCookies] = useState(() => {
     return localStorage.getItem('useCredentialsCookies') === 'true';
   });
@@ -72,6 +74,8 @@ export default function EmployeeCredentials() {
         }
       } catch (error) {
         console.error('Failed to fetch employees:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -255,6 +259,10 @@ export default function EmployeeCredentials() {
   };
 
   const employeesWithoutCreds = employees.filter(e => !credentials.find(c => c.employeeId === e.id));
+
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
 
   return (
     <div className="space-y-6">
