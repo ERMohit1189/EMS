@@ -83,6 +83,23 @@ function App() {
     setIsEmployee(!!employeeEmail);
     
     console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail, 'location:', location);
+    
+    // Preserve current URL on app restart - store it before page reload
+    if (loggedIn && location && !location.startsWith('/login')) {
+      // Store current location so we can restore it if page reloads
+      sessionStorage.setItem('lastValidLocation', location);
+    }
+    
+    // If on root path and logged in as employee, restore from session or go to dashboard
+    if (loggedIn && !!employeeEmail && location === '/') {
+      const lastLocation = sessionStorage.getItem('lastValidLocation');
+      if (lastLocation && lastLocation !== '/' && !lastLocation.startsWith('/login')) {
+        setLocation(lastLocation);
+      } else {
+        setLocation('/employee/dashboard');
+      }
+    }
+    
     setLoading(false);
 
     // Listen for logout events
