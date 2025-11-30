@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { Copy, RotateCw } from "lucide-react";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { Vendor } from "@shared/schema";
 
 export default function VendorCredentials() {
@@ -76,7 +77,7 @@ export default function VendorCredentials() {
   };
 
   if (pageLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <SkeletonLoader type="dashboard" />;
   }
 
   return (
