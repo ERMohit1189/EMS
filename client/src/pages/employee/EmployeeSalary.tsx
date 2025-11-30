@@ -478,7 +478,7 @@ export default function EmployeeSalary() {
     return <SkeletonLoader type="dashboard" />;
   }
 
-  if (!employeeId) {
+  if (!employeeId && !isSuperAdmin) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -494,6 +494,10 @@ export default function EmployeeSalary() {
   const gross = calculateGross();
   const deductions = calculateDeductions();
   const net = calculateNet();
+  
+  const displayEmployeeName = isSuperAdmin 
+    ? allSalaries.find(s => s.employeeId === selectedEmployeeId)?.employee?.name || 'N/A'
+    : employeeName;
 
   return (
     <div className="space-y-6">
@@ -508,6 +512,29 @@ export default function EmployeeSalary() {
         </Button>
       </div>
 
+      {/* Employee Selection for Superadmin */}
+      {isSuperAdmin && allSalaries.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Employee</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedEmployeeId} onValueChange={handleEmployeeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {allSalaries.map((s) => (
+                  <SelectItem key={s.employeeId} value={s.employeeId}>
+                    {s.employee?.name || 'Employee'} - {s.employeeId}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Employee Info */}
       <Card>
         <CardHeader>
@@ -517,19 +544,19 @@ export default function EmployeeSalary() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium">{employeeName}</p>
+              <p className="font-medium">{displayEmployeeName}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Employee ID</p>
-              <p className="font-medium">{employeeId}</p>
+              <p className="font-medium">{selectedEmployeeId || employeeId}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Department</p>
-              <p className="font-medium">{localStorage.getItem('employeeDepartment') || 'N/A'}</p>
+              <p className="font-medium">{isSuperAdmin ? (allSalaries.find(s => s.employeeId === selectedEmployeeId)?.employee?.department || 'N/A') : (localStorage.getItem('employeeDepartment') || 'N/A')}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Designation</p>
-              <p className="font-medium">{localStorage.getItem('employeeDesignation') || 'N/A'}</p>
+              <p className="font-medium">{isSuperAdmin ? (allSalaries.find(s => s.employeeId === selectedEmployeeId)?.employee?.designation || 'N/A') : (localStorage.getItem('employeeDesignation') || 'N/A')}</p>
             </div>
           </div>
         </CardContent>
