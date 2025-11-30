@@ -349,7 +349,7 @@ export const dailyAllowances = pgTable("daily_allowances", {
   approvalCount: integer("approval_count").notNull().default(0), // Number of approvals received
   paidStatus: varchar("paid_status").notNull().default("unpaid"), // unpaid, partial, full
   approvedBy: varchar("approved_by"), // JSON array of approver IDs
-  rejectedBy: varchar("rejected_by"), // Higher authority that rejected
+  rejectionReason: varchar("rejection_reason"), // Reason for rejection
   approvedAt: timestamp("approved_at"),
   submittedAt: timestamp("submitted_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -357,7 +357,6 @@ export const dailyAllowances = pgTable("daily_allowances", {
 }, (table) => ({
   idxApprovalStatus: index("idx_approval_status").on(table.approvalStatus),
   idxTeamId: index("idx_team_id").on(table.teamId),
-  idxRejectedBy: index("idx_rejected_by").on(table.rejectedBy),
   idxApprovalCount: index("idx_approval_count").on(table.approvalCount),
   idxPaidStatus: index("idx_paid_status").on(table.paidStatus),
 }));
