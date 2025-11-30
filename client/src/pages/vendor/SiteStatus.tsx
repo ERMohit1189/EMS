@@ -21,6 +21,7 @@ import { fetchWithLoader } from '@/lib/fetchWithLoader';
 import { truncateId } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { createColorfulExcel, fetchExportHeader, type ExportHeader } from '@/lib/exportUtils';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   Table,
   TableBody,
@@ -839,6 +840,10 @@ export default function SiteStatus() {
       toast({ title: 'Error', description: error.message || 'Failed to update sites', variant: 'destructive' });
     }
   };
+
+  if (loading) {
+    return <SkeletonLoader type="dashboard" />;
+  }
 
   return (
     <div className="space-y-3">
