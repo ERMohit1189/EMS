@@ -110,10 +110,6 @@ export default function EmployeeList() {
          </Link>
        </div>
 
-       {isLoading ? (
-         <PageLoader isLoading={true} message="Loading employee data..." />
-       ) : (
-       <>
        {/* Desktop Table */}
        <div className="hidden md:block rounded-md border bg-card">
          <div className="grid gap-0" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
@@ -232,8 +228,6 @@ export default function EmployeeList() {
            ))
          )}
        </div>
-       </>
-       )}
 
        <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
          <AlertDialogContent className="max-w-sm">
