@@ -85,9 +85,13 @@ function App() {
     console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail, 'location:', location);
     
     // Preserve current URL on app restart - store it before page reload
-    if (loggedIn && location && !location.startsWith('/login')) {
+    // Only for logged in users, and not on login pages
+    if (loggedIn && location && !location.startsWith('/login') && !location.startsWith('/employee-login')) {
       // Store current location so we can restore it if page reloads
       sessionStorage.setItem('lastValidLocation', location);
+    } else if (!loggedIn) {
+      // Clear stored location if user is not logged in
+      sessionStorage.removeItem('lastValidLocation');
     }
     
     // If on root path and logged in as employee, restore from session or go to dashboard
@@ -122,6 +126,8 @@ function App() {
       localStorage.removeItem('employeeName');
       localStorage.removeItem('employeeDepartment');
       localStorage.removeItem('employeeDesignation');
+      // Clear session storage to prevent URL preservation after logout
+      sessionStorage.removeItem('lastValidLocation');
       // NOTE: NOT clearing rememberMe_email and rememberMe_password - they stay saved
       
       setIsLoggedIn(false);
