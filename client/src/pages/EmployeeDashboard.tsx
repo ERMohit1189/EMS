@@ -58,6 +58,7 @@ export default function EmployeeDashboard() {
   const perfCard = useMemo(() => {
     if (!perfMetrics) return null;
     const { metrics, assessment } = perfMetrics;
+    if (assessment.score === 'Fair') return null;
     return (
       <Card className="border-l-4 border-l-blue-600 shadow-md bg-gradient-to-r from-blue-50 to-cyan-50" data-testid="card-performance-metrics">
         <CardContent className="p-6">
