@@ -29,14 +29,20 @@ export default function EmployeeDashboard() {
       });
     }
 
-    // Capture performance metrics after page load
-    if (performance.timing) {
-      const metrics = performanceMonitor.getMetrics();
-      setPerformanceMetrics(metrics);
-      const assessment = performanceMonitor.getAssessment(metrics);
-      setPerformanceScore(assessment);
-      performanceMonitor.logMetrics('Employee Dashboard Load Performance');
-    }
+    // Capture performance metrics after a slight delay to ensure page is fully rendered
+    const timer = setTimeout(() => {
+      try {
+        const metrics = performanceMonitor.getMetrics();
+        setPerformanceMetrics(metrics);
+        const assessment = performanceMonitor.getAssessment(metrics);
+        setPerformanceScore(assessment);
+        performanceMonitor.logMetrics('Employee Dashboard Load Performance');
+      } catch (error) {
+        console.error('Error capturing performance metrics:', error);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // User role employees see restricted menu

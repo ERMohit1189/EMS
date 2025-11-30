@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import {
@@ -222,18 +222,17 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const isReportingPersonValue = typeof window !== 'undefined' ? localStorage.getItem('isReportingPerson') : null;
   const isReportingPerson = isReportingPersonValue === 'true';
   
-  console.log('[Sidebar] DEBUG - isEmployee:', isEmployee, 'isUserEmployee:', isUserEmployee, 'isReportingPersonValue:', isReportingPersonValue, 'isReportingPerson:', isReportingPerson);
-  
-  // Determine menu groups based on role
-  let menuGroups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
-  
-  // Filter out Approvals group if not a reporting person
-  if (isUserEmployee && !isReportingPerson) {
-    console.log('[Sidebar] Filtering out Approvals group - user is not a reporting person');
-    menuGroups = menuGroups.filter(group => group.group !== 'Approvals');
-  } else if (isUserEmployee && isReportingPerson) {
-    console.log('[Sidebar] User IS a reporting person - Approvals group should be visible');
-  }
+  // Memoize menuGroups to prevent infinite loop
+  const menuGroups = useMemo(() => {
+    let groups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
+    
+    // Filter out Approvals group if not a reporting person
+    if (isUserEmployee && !isReportingPerson) {
+      groups = groups.filter(group => group.group !== 'Approvals');
+    }
+    
+    return groups;
+  }, [isUserEmployee, isReportingPerson]);
   
   // Initialize expanded groups based on menu groups
   useEffect(() => {
@@ -242,7 +241,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       initialExpandedGroups[group.group] = true;
     });
     setExpandedGroups(initialExpandedGroups);
-  }, [menuGroups]);
+  }, [isUserEmployee, isReportingPerson]);
 
   // Auto-expand/collapse groups based on current route
   useEffect(() => {
@@ -277,7 +276,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       });
       return newExpandedGroups;
     });
-  }, [location, isUserEmployee, menuGroups]);
+  }, [location, isUserEmployee]);
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => ({
