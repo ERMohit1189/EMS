@@ -64,12 +64,40 @@ export default function ExcelImport() {
     reader.readAsArrayBuffer(file);
   };
 
+  // Helper function to add vendor
+  const addVendor = async (vendorData: any) => {
+    const response = await fetchWithLoader(`${getApiBaseUrl()}/api/vendors`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(vendorData),
+    });
+    if (!response.ok) {
+      throw new Error(`Vendor import failed: ${response.status}`);
+    }
+    return response.json();
+  };
+
+  // Helper function to add employee
+  const addEmployee = async (employeeData: any) => {
+    const response = await fetchWithLoader(`${getApiBaseUrl()}/api/employees`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(employeeData),
+    });
+    if (!response.ok) {
+      throw new Error(`Employee import failed: ${response.status}`);
+    }
+    return response.json();
+  };
+
   const handleImport = async () => {
     if (importedData.length === 0) return;
 
     setLoading(true);
     let imported = 0;
     const importErrors: string[] = [];
+
+    console.log(`[ExcelImport] Starting import of ${importedData.length} records as ${importType}`);
 
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
@@ -240,9 +268,15 @@ export default function ExcelImport() {
             });
             if (response.ok) {
               imported++;
+              console.log(`[ExcelImport] Row ${idx + 2}: Site imported successfully`);
             } else {
-              importErrors.push(`Row ${idx + 2}: Failed to import site`);
+              const errorText = await response.text();
+              console.error(`[ExcelImport] Row ${idx + 2}: Site import failed - ${response.status} - ${errorText}`);
+              importErrors.push(`Row ${idx + 2}: Failed to import site (${response.status})`);
             }
+          } else {
+            console.warn(`[ExcelImport] Row ${idx + 2}: Missing siteId or planId`);
+            importErrors.push(`Row ${idx + 2}: Missing required fields (siteId or planId)`);
           }
         } else if (importType === 'vendor') {
           // Map all columns for vendor
@@ -264,8 +298,17 @@ export default function ExcelImport() {
           };
 
           if (vendorData.name && vendorData.aadhar && vendorData.pan) {
-            addVendor(vendorData);
-            imported++;
+            try {
+              await addVendor(vendorData);
+              imported++;
+              console.log(`[ExcelImport] Row ${idx + 2}: Vendor imported successfully`);
+            } catch (err: any) {
+              console.error(`[ExcelImport] Row ${idx + 2}: Vendor import error -`, err.message);
+              importErrors.push(`Row ${idx + 2}: ${err.message}`);
+            }
+          } else {
+            console.warn(`[ExcelImport] Row ${idx + 2}: Missing vendor required fields`);
+            importErrors.push(`Row ${idx + 2}: Missing required vendor fields (name, aadhar, pan)`);
           }
         } else if (importType === 'employee') {
           // Map all columns for employee
@@ -291,18 +334,35 @@ export default function ExcelImport() {
           };
 
           if (employeeData.name && employeeData.aadhar && employeeData.pan) {
-            addEmployee(employeeData);
-            imported++;
+            try {
+              await addEmployee(employeeData);
+              imported++;
+              console.log(`[ExcelImport] Row ${idx + 2}: Employee imported successfully`);
+            } catch (err: any) {
+              console.error(`[ExcelImport] Row ${idx + 2}: Employee import error -`, err.message);
+              importErrors.push(`Row ${idx + 2}: ${err.message}`);
+            }
+          } else {
+            console.warn(`[ExcelImport] Row ${idx + 2}: Missing employee required fields`);
+            importErrors.push(`Row ${idx + 2}: Missing required employee fields (name, aadhar, pan)`);
           }
         }
-      } catch (err) {
-        importErrors.push(`Row ${idx + 2}: Error processing data`);
+      } catch (err: any) {
+        console.error(`[ExcelImport] Row ${idx + 2}: Unexpected error -`, err);
+        importErrors.push(`Row ${idx + 2}: ${err.message || 'Error processing data'}`);
       }
+    }
+
+    console.log(`[ExcelImport] Import complete: ${imported} imported, ${importErrors.length} errors`);
+
+    if (importErrors.length > 0) {
+      console.error('[ExcelImport] Errors:', importErrors);
     }
 
     toast({
       title: 'Import Complete',
       description: `${imported} records imported successfully. ${importErrors.length} errors found.`,
+      variant: importErrors.length > 0 ? 'destructive' : 'default',
     });
 
     setImportedData([]);
