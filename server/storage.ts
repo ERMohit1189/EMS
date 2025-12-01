@@ -200,8 +200,32 @@ export class DrizzleStorage implements IStorage {
   // Vendor operations
   async createVendor(vendor: InsertVendor): Promise<Vendor> {
     try {
-      const [result] = await db.insert(vendors).values(vendor).returning();
-      return result;
+      let vendorCode = vendor.vendorCode;
+      
+      // Auto-generate vendor code if not provided
+      if (!vendorCode) {
+        // Find the maximum vendor code
+        const result = await db.select().from(vendors).orderBy((table) => {
+          const codeAsNumber = sql<number>`CAST(SUBSTRING(vendor_code, 1) AS INTEGER)`;
+          return codeAsNumber;
+        }).limit(1);
+        
+        // If no vendors exist, start from 1001, otherwise increment the max code
+        let nextCode = 1001;
+        if (result && result.length > 0 && result[0].vendorCode) {
+          const maxCode = parseInt(result[0].vendorCode);
+          nextCode = maxCode + 1;
+        } else {
+          // Find max by counting and adding to base
+          const count = await this.getVendorCount();
+          nextCode = 1001 + count;
+        }
+        vendorCode = nextCode.toString();
+      }
+      
+      const vendorToInsert = { ...vendor, vendorCode };
+      const [insertedVendor] = await db.insert(vendors).values(vendorToInsert).returning();
+      return insertedVendor;
     } catch (error: any) {
       console.error('[Storage] Vendor creation error:', {
         vendor,

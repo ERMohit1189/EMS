@@ -29,7 +29,6 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const vendorSchema = z.object({
-  vendorCode: z.string().min(1, 'Vendor Code is required').optional().or(z.literal('')),
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email'),
   mobile: z.string().min(10, 'Valid mobile number required'),
@@ -73,7 +72,6 @@ export default function VendorRegistration() {
   const form = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
     defaultValues: {
-      vendorCode: '',
       name: '',
       email: '',
       mobile: '',
@@ -113,7 +111,6 @@ export default function VendorRegistration() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...values,
-          vendorCode: values.vendorCode || undefined,
           gstin: values.gstin || '',
           status: 'Pending',
           moa: values.moa ? 'uploaded_doc.pdf' : '',
@@ -158,24 +155,9 @@ export default function VendorRegistration() {
             <CardContent className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="vendorCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vendor Code (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="1001" {...field} />
-                    </FormControl>
-                    <FormDescription>Unique identifier for vendor (auto-generated if left empty)</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="category"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
+                  <FormItem className="col-span-2 space-y-3">
                     <FormLabel>Vendor Category</FormLabel>
                     <FormControl>
                       <RadioGroup
