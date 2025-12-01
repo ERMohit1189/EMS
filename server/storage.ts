@@ -647,7 +647,7 @@ export class DrizzleStorage implements IStorage {
       // Check if both softAtStatus and phyAtStatus are "Approved"
       if (existingSite.softAtStatus === 'Approved' && existingSite.phyAtStatus === 'Approved') {
         console.log(`[Storage] Site not updated: planId ${site.planId} - both SOFT-AT and PHY-AT are Approved`);
-        throw new Error(`Site not updated with planid ${site.planId} because soft at and phy at are approved`);
+        throw new Error(`can not update ${site.planId} due to both soft at and phy at is approved`);
       }
       
       // Update existing site - keep existing siteId and exclude planId from update
