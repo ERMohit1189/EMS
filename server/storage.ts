@@ -226,6 +226,9 @@ export class DrizzleStorage implements IStorage {
     }
 
     // Create a new vendor with minimal required fields
+    const tempPassword = Math.random().toString(36).slice(-10);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    
     const newVendor: InsertVendor = {
       name,
       email: `${name.replace(/\s+/g, '')}@vendor.local`,
@@ -236,6 +239,7 @@ export class DrizzleStorage implements IStorage {
       pincode: '',
       aadhar: `TEMP${Date.now()}`,
       pan: `TEMP${Date.now()}`,
+      password: hashedPassword,
     };
     return await this.createVendor(newVendor);
   }
