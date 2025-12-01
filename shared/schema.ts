@@ -16,7 +16,7 @@ import { z } from "zod";
 // Vendors Table
 export const vendors = pgTable("vendors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vendorCode: varchar("vendor_code").notNull().unique(),
+  vendorCode: varchar("vendor_code").unique(),
   name: text("name").notNull(),
   email: varchar("email").notNull(),
   mobile: varchar("mobile").notNull(),
