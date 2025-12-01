@@ -644,9 +644,16 @@ export class DrizzleStorage implements IStorage {
     const existingSite = await this.getSiteByPlanId(site.planId);
     
     if (existingSite) {
+      // Check if both softAtStatus and phyAtStatus are "Approved"
+      if (existingSite.softAtStatus === 'Approved' && existingSite.phyAtStatus === 'Approved') {
+        console.log(`[Storage] Site not updated: planId ${site.planId} - both SOFT-AT and PHY-AT are Approved`);
+        throw new Error(`Site not updated with planid ${site.planId} because soft at and phy at are approved`);
+      }
+      
       // Update existing site (exclude planId from update)
       const { planId, ...updateData } = site;
       const finalUpdateData = this.autoUpdateSiteStatus(updateData);
+      console.log(`[Storage] Updating site planId: ${site.planId}`);
       const [result] = await db
         .update(sites)
         .set(finalUpdateData)
@@ -655,6 +662,7 @@ export class DrizzleStorage implements IStorage {
       return result;
     } else {
       // Insert new site with auto-updated status
+      console.log(`[Storage] Inserting new site planId: ${site.planId}`);
       const finalSite = this.autoUpdateSiteStatus(site);
       const [result] = await db.insert(sites).values(finalSite).returning();
       return result;
