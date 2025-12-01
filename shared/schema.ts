@@ -16,7 +16,8 @@ import { z } from "zod";
 // Vendors Table
 export const vendors = pgTable("vendors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
+  vendorCode: varchar("vendor_code").notNull().unique(),
+  name: text("name").notNull(),
   email: varchar("email").notNull(),
   mobile: varchar("mobile").notNull(),
   address: text("address").notNull(),
@@ -37,6 +38,7 @@ export const vendors = pgTable("vendors", {
 }, (table) => ({
   idxStatus: index("idx_vendors_status").on(table.status),
   idxEmail: index("idx_vendors_email").on(table.email),
+  idxVendorCode: index("idx_vendors_vendor_code").on(table.vendorCode),
 }));
 
 // Sites Table - Comprehensive HOP Management (Excel columns retained)

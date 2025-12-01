@@ -368,20 +368,22 @@ export async function registerRoutes(
 
   app.post("/api/vendors/find-or-create", async (req, res) => {
     try {
-      const { name } = req.body;
+      const { vendorCode, name } = req.body;
       if (!name) {
         return res.status(400).json({ error: "Vendor name is required" });
       }
-      const vendor = await storage.getOrCreateVendorByName(name);
+      if (!vendorCode) {
+        return res.status(400).json({ error: `Partner or ${name} must have PARTNER CODE` });
+      }
+      const vendor = await storage.getOrCreateVendorByCode(vendorCode, name);
       res.json(vendor);
     } catch (error: any) {
       console.error('[Routes] find-or-create error:', {
+        vendorCode: req.body.vendorCode,
         name: req.body.name,
         errorMessage: error.message,
-        errorCode: error.code,
-        errorDetail: error.detail,
       });
-      res.status(500).json({ error: error.message, detail: error.detail, code: error.code });
+      res.status(400).json({ error: error.message });
     }
   });
 

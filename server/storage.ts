@@ -229,12 +229,21 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
-  async getOrCreateVendorByName(name: string): Promise<Vendor> {
+  async getVendorByCode(vendorCode: string): Promise<Vendor | undefined> {
+    const result = await db.select().from(vendors).where(eq(vendors.vendorCode, vendorCode));
+    return result[0];
+  }
+
+  async getOrCreateVendorByCode(vendorCode: string, name: string): Promise<Vendor> {
     try {
-      // Check if vendor with this name already exists
-      const existing = await this.getVendorByName(name);
+      if (!vendorCode) {
+        throw new Error(`Partner or ${name} must have PARTNER CODE`);
+      }
+
+      // Check if vendor with this code already exists
+      const existing = await this.getVendorByCode(vendorCode);
       if (existing) {
-        console.log(`[Storage] Vendor found: ${name} (id: ${existing.id})`);
+        console.log(`[Storage] Vendor found by code: ${vendorCode} (${name})`);
         return existing;
       }
 
@@ -244,6 +253,7 @@ export class DrizzleStorage implements IStorage {
       const uniqueSuffix = Math.random().toString(36).slice(-8).toUpperCase();
       
       const newVendor: InsertVendor = {
+        vendorCode,
         name,
         email: `${name.replace(/\s+/g, '').toLowerCase()}${Math.random().toString(36).slice(-6)}@vendor.local`,
         mobile: '',
@@ -255,16 +265,15 @@ export class DrizzleStorage implements IStorage {
         pan: `TEMP${uniqueSuffix}`,
         password: hashedPassword,
       };
-      console.log(`[Storage] Creating vendor: ${name}`, { aadhar: newVendor.aadhar, pan: newVendor.pan, email: newVendor.email });
+      console.log(`[Storage] Creating vendor: ${name} (code: ${vendorCode})`);
       const result = await this.createVendor(newVendor);
-      console.log(`[Storage] Vendor created: ${name} (id: ${result.id})`);
+      console.log(`[Storage] Vendor created: ${name} (code: ${vendorCode}, id: ${result.id})`);
       return result;
     } catch (error: any) {
-      console.error(`[Storage] getOrCreateVendorByName error for "${name}":`, {
+      console.error(`[Storage] getOrCreateVendorByCode error for "${vendorCode}":`, {
         errorMessage: error.message,
         errorCode: error.code,
         errorDetail: error.detail,
-        error: error.toString()
       });
       throw error;
     }

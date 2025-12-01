@@ -149,10 +149,17 @@ export default function ExcelImport() {
           const toDate = excelDateToISO;
 
           // Map all 81 columns for site from Excel
-          // Get vendor from Partner Name column, creating if needed
+          // Get vendor from Partner Name and Partner Code columns
           const partnerName = toString(row['PARTNER NAME']);
+          const partnerCode = toString(row['PARTNER CODE']);
+          
           if (!partnerName) {
             importErrors.push(`Row ${idx + 2}: Partner Name (vendor) is required`);
+            continue;
+          }
+
+          if (!partnerCode) {
+            importErrors.push(`Row ${idx + 2}: Partner or ${partnerName} must have PARTNER CODE`);
             continue;
           }
 
@@ -161,7 +168,7 @@ export default function ExcelImport() {
             const response = await fetch(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: partnerName }),
+              body: JSON.stringify({ vendorCode: partnerCode, name: partnerName }),
             });
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({ error: response.statusText }));
@@ -171,7 +178,7 @@ export default function ExcelImport() {
             }
             const vendor = await response.json();
             vendorId = vendor.id;
-            console.log(`[ExcelImport] Row ${idx + 2}: Vendor created/found - ${partnerName} (id: ${vendorId})`);
+            console.log(`[ExcelImport] Row ${idx + 2}: Vendor created/found - ${partnerName} (code: ${partnerCode}, id: ${vendorId})`);
           } catch (err: any) {
             console.error(`[ExcelImport] Row ${idx + 2}: Vendor error details:`, err?.message, err?.response, err);
             importErrors.push(`Row ${idx + 2}: Vendor error - ${err?.message || String(err)}`);
