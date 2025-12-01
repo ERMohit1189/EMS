@@ -120,8 +120,9 @@ export default function ExcelImport() {
         if (importType === 'site') {
           // Helper functions to handle Excel values
           const toString = (val: any) => {
-            if (val === null || val === undefined || val === '') return '';
-            return String(val);
+            if (val === null || val === undefined || val === '') return null;
+            const str = String(val).trim();
+            return str && str !== 'undefined' && str !== 'null' ? str : null;
           };
 
           // Convert Excel serial numbers to ISO date strings
@@ -172,13 +173,19 @@ export default function ExcelImport() {
           const circleValue = toString(row['Circle']);
           const zoneId = circleValue && zonesMap[circleValue] ? zonesMap[circleValue] : undefined;
 
+          // Generate IDs with fallbacks - accept any ID from available columns
+          const planIdValue = toString(row['PLAN ID']) || toString(row['planId']);
+          const siteIdValue = toString(row['SITE ID']) || toString(row['siteId']) || toString(row['Nominal Aop']);
+          const generatedSiteId = siteIdValue || `SITE-${idx}-${Date.now()}`;
+          const generatedPlanId = planIdValue || generatedSiteId; // Use siteId as fallback for planId
+
           const siteData = {
-            siteId: toString(row['PLAN ID']) || `SITE-${idx}`,
+            siteId: generatedSiteId,
             vendorId,
             zoneId,
             sno: Number(row['S.No.']) || undefined,
             circle: circleValue,
-            planId: toString(row['PLAN ID']),
+            planId: generatedPlanId,
             nominalAop: toString(row['Nominal Aop']),
             hopType: toString(row['HOP TYPE']),
             hopAB: toString(row['HOP A-B']),
@@ -260,33 +267,25 @@ export default function ExcelImport() {
             status: 'Pending' as const,
           };
 
-          console.log(`[ExcelImport] Row ${idx + 2}: Checking required fields - siteId: "${siteData.siteId}", planId: "${siteData.planId}"`);
+          console.log(`[ExcelImport] Row ${idx + 2}: Prepared siteId: "${siteData.siteId}", planId: "${siteData.planId}", vendor: "${siteData.partnerName}"`);
           
-          if (siteData.siteId && siteData.planId) {
-            try {
-              const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/upsert`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(siteData),
-              });
-              if (response.ok) {
-                imported++;
-                console.log(`[ExcelImport] Row ${idx + 2}: Site imported successfully`);
-              } else {
-                const errorText = await response.text();
-                console.error(`[ExcelImport] Row ${idx + 2}: Site import failed - ${response.status} - ${errorText}`);
-                importErrors.push(`Row ${idx + 2}: API error ${response.status}`);
-              }
-            } catch (apiError: any) {
-              console.error(`[ExcelImport] Row ${idx + 2}: API call error -`, apiError.message);
-              importErrors.push(`Row ${idx + 2}: ${apiError.message}`);
+          try {
+            const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/upsert`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(siteData),
+            });
+            if (response.ok) {
+              imported++;
+              console.log(`[ExcelImport] Row ${idx + 2}: Site imported successfully`);
+            } else {
+              const errorText = await response.text();
+              console.error(`[ExcelImport] Row ${idx + 2}: Site import failed - ${response.status} - ${errorText}`);
+              importErrors.push(`Row ${idx + 2}: API error ${response.status} - ${errorText}`);
             }
-          } else {
-            const missingFields = [];
-            if (!siteData.siteId) missingFields.push('SITE ID');
-            if (!siteData.planId) missingFields.push('PLAN ID');
-            console.warn(`[ExcelImport] Row ${idx + 2}: Missing required fields:`, missingFields);
-            importErrors.push(`Row ${idx + 2}: Missing Excel columns (${missingFields.join(', ')})`);
+          } catch (apiError: any) {
+            console.error(`[ExcelImport] Row ${idx + 2}: API call error -`, apiError.message);
+            importErrors.push(`Row ${idx + 2}: ${apiError.message}`);
           }
         } else if (importType === 'vendor') {
           // Map all columns for vendor
