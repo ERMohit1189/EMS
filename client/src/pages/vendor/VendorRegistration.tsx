@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
 import { IndianStates, getCitiesByState } from '@/assets/india-data';
+import { getApiBaseUrl } from '@/lib/api';
 import {
   Form,
   FormControl,
@@ -28,6 +29,7 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const vendorSchema = z.object({
+  vendorCode: z.string().min(1, 'Vendor Code is required').optional().or(z.literal('')),
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email'),
   mobile: z.string().min(10, 'Valid mobile number required'),
@@ -68,6 +70,7 @@ export default function VendorRegistration() {
   const form = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
     defaultValues: {
+      vendorCode: '',
       name: '',
       email: '',
       mobile: '',
@@ -100,20 +103,38 @@ export default function VendorRegistration() {
     c.toLowerCase().includes(citySearch.toLowerCase())
   );
 
-  function onSubmit(values: z.infer<typeof vendorSchema>) {
-    addVendor({
-      ...values,
-      gstin: values.gstin || '',
-      status: 'Pending',
-      moa: values.moa ? 'uploaded_doc.pdf' : '',
-    });
-    
-    toast({
-      title: 'Vendor Registered',
-      description: 'Vendor has been successfully registered and is pending approval.',
-    });
-    
-    setLocation('/vendor/list');
+  async function onSubmit(values: z.infer<typeof vendorSchema>) {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/vendors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...values,
+          vendorCode: values.vendorCode || undefined,
+          gstin: values.gstin || '',
+          status: 'Pending',
+          moa: values.moa ? 'uploaded_doc.pdf' : '',
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to register vendor' }));
+        throw new Error(error.error || 'Failed to register vendor');
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Vendor has been successfully registered and is pending approval.',
+      });
+      
+      setLocation('/vendor/list');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to register vendor',
+        variant: 'destructive',
+      });
+    }
   }
 
   return (
@@ -134,9 +155,24 @@ export default function VendorRegistration() {
             <CardContent className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
+                name="vendorCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vendor Code (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="1001" {...field} />
+                    </FormControl>
+                    <FormDescription>Unique identifier for vendor (auto-generated if left empty)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="category"
                 render={({ field }) => (
-                  <FormItem className="col-span-2 space-y-3">
+                  <FormItem className="space-y-3">
                     <FormLabel>Vendor Category</FormLabel>
                     <FormControl>
                       <RadioGroup
