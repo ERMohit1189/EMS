@@ -65,32 +65,6 @@ export default function ExcelImport() {
     reader.readAsArrayBuffer(file);
   };
 
-  // Helper function to add vendor
-  const addVendor = async (vendorData: any) => {
-    const response = await fetchWithLoader(`${getApiBaseUrl()}/api/vendors`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(vendorData),
-    });
-    if (!response.ok) {
-      throw new Error(`Vendor import failed: ${response.status}`);
-    }
-    return response.json();
-  };
-
-  // Helper function to add employee
-  const addEmployee = async (employeeData: any) => {
-    const response = await fetchWithLoader(`${getApiBaseUrl()}/api/employees`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(employeeData),
-    });
-    if (!response.ok) {
-      throw new Error(`Employee import failed: ${response.status}`);
-    }
-    return response.json();
-  };
-
   const handleImport = async () => {
     if (importedData.length === 0) return;
 
