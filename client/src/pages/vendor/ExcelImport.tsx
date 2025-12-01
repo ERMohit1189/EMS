@@ -164,8 +164,11 @@ export default function ExcelImport() {
               body: JSON.stringify({ name: partnerName }),
             });
             vendorId = vendor.id;
-          } catch (err) {
-            importErrors.push(`Row ${idx + 2}: Failed to process vendor "${partnerName}"`);
+            console.log(`[ExcelImport] Row ${idx + 2}: Vendor created/found - ${partnerName} (id: ${vendorId})`);
+          } catch (err: any) {
+            console.error(`[ExcelImport] Row ${idx + 2}: Vendor error:`, err);
+            const errorMsg = err?.message || String(err);
+            importErrors.push(`Row ${idx + 2}: Vendor error - ${errorMsg}`);
             continue;
           }
 
