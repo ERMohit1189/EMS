@@ -94,10 +94,10 @@ export default function ExcelImport() {
     if (importedData.length === 0) return;
 
     setLoading(true);
-    let imported = 0;
     const importErrors: string[] = [];
+    const validData: any[] = [];
 
-    console.log(`[ExcelImport] Starting import of ${importedData.length} records as ${importType}`);
+    console.log(`[ExcelImport] STEP 1: Validating ${importedData.length} records as ${importType}`);
 
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
@@ -114,6 +114,7 @@ export default function ExcelImport() {
       console.error('Failed to fetch zones');
     }
 
+    // STEP 1: VALIDATION PHASE - Check all data before uploading
     for (let idx = 0; idx < importedData.length; idx++) {
       const row = importedData[idx];
       try {
@@ -285,26 +286,8 @@ export default function ExcelImport() {
             status: 'Pending' as const,
           };
 
-          console.log(`[ExcelImport] Row ${idx + 2}: Prepared siteId: "${siteData.siteId}", planId: "${siteData.planId}", vendor: "${siteData.partnerName}"`);
-          
-          try {
-            const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/upsert`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(siteData),
-            });
-            if (response.ok) {
-              imported++;
-              console.log(`[ExcelImport] Row ${idx + 2}: Site imported successfully`);
-            } else {
-              const errorText = await response.text();
-              console.error(`[ExcelImport] Row ${idx + 2}: Site import failed - ${response.status} - ${errorText}`);
-              importErrors.push(`Row ${idx + 2}: API error ${response.status} - ${errorText}`);
-            }
-          } catch (apiError: any) {
-            console.error(`[ExcelImport] Row ${idx + 2}: API call error -`, apiError.message);
-            importErrors.push(`Row ${idx + 2}: ${apiError.message}`);
-          }
+          console.log(`[ExcelImport] Row ${idx + 2}: Validation passed - siteId: "${siteData.siteId}", planId: "${siteData.planId}", vendor: "${siteData.partnerName}"`);
+          validData.push({ type: 'site', data: siteData, rowNum: idx + 2 });
         } else if (importType === 'vendor') {
           // Map all columns for vendor
           const vendorData = {
@@ -325,14 +308,8 @@ export default function ExcelImport() {
           };
 
           if (vendorData.name && vendorData.aadhar && vendorData.pan) {
-            try {
-              await addVendor(vendorData);
-              imported++;
-              console.log(`[ExcelImport] Row ${idx + 2}: Vendor imported successfully`);
-            } catch (err: any) {
-              console.error(`[ExcelImport] Row ${idx + 2}: Vendor import error -`, err.message);
-              importErrors.push(`Row ${idx + 2}: ${err.message}`);
-            }
+            console.log(`[ExcelImport] Row ${idx + 2}: Vendor validation passed - ${vendorData.name}`);
+            validData.push({ type: 'vendor', data: vendorData, rowNum: idx + 2 });
           } else {
             console.warn(`[ExcelImport] Row ${idx + 2}: Missing vendor required fields`);
             importErrors.push(`Row ${idx + 2}: Missing required vendor fields (name, aadhar, pan)`);
@@ -361,14 +338,8 @@ export default function ExcelImport() {
           };
 
           if (employeeData.name && employeeData.aadhar && employeeData.pan) {
-            try {
-              await addEmployee(employeeData);
-              imported++;
-              console.log(`[ExcelImport] Row ${idx + 2}: Employee imported successfully`);
-            } catch (err: any) {
-              console.error(`[ExcelImport] Row ${idx + 2}: Employee import error -`, err.message);
-              importErrors.push(`Row ${idx + 2}: ${err.message}`);
-            }
+            console.log(`[ExcelImport] Row ${idx + 2}: Employee validation passed - ${employeeData.name}`);
+            validData.push({ type: 'employee', data: employeeData, rowNum: idx + 2 });
           } else {
             console.warn(`[ExcelImport] Row ${idx + 2}: Missing employee required fields`);
             importErrors.push(`Row ${idx + 2}: Missing required employee fields (name, aadhar, pan)`);
@@ -380,21 +351,91 @@ export default function ExcelImport() {
       }
     }
 
-    console.log(`[ExcelImport] Import complete: ${imported} imported, ${importErrors.length} errors`);
+    console.log(`[ExcelImport] Validation complete: ${validData.length} valid records, ${importErrors.length} validation errors`);
 
+    // If there are any validation errors, stop here and show errors
     if (importErrors.length > 0) {
-      console.error('[ExcelImport] Errors:', importErrors);
+      console.error('[ExcelImport] Validation errors found:', importErrors);
+      toast({
+        title: 'Validation Failed',
+        description: `${importErrors.length} validation errors found. Please fix these before uploading.`,
+        variant: 'destructive',
+      });
+      setErrors(importErrors);
+      setLoading(false);
+      return;
+    }
+
+    // STEP 2: UPLOAD PHASE - If all validation passes, upload all data at once
+    console.log(`[ExcelImport] STEP 2: Uploading ${validData.length} validated records`);
+    let imported = 0;
+    const uploadErrors: string[] = [];
+
+    // Upload all data in parallel
+    const uploadPromises = validData.map(async (item) => {
+      try {
+        if (item.type === 'site') {
+          const response = await fetch(`${getApiBaseUrl()}/api/sites/upsert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item.data),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`${response.status} - ${errorText}`);
+          }
+          console.log(`[ExcelImport] Row ${item.rowNum}: Site uploaded successfully`);
+          return { success: true };
+        } else if (item.type === 'vendor') {
+          const response = await fetch(`${getApiBaseUrl()}/api/vendors`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item.data),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`${response.status} - ${errorText}`);
+          }
+          console.log(`[ExcelImport] Row ${item.rowNum}: Vendor uploaded successfully`);
+          return { success: true };
+        } else if (item.type === 'employee') {
+          const response = await fetch(`${getApiBaseUrl()}/api/employees`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item.data),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`${response.status} - ${errorText}`);
+          }
+          console.log(`[ExcelImport] Row ${item.rowNum}: Employee uploaded successfully`);
+          return { success: true };
+        }
+      } catch (err: any) {
+        console.error(`[ExcelImport] Row ${item.rowNum}: Upload failed -`, err.message);
+        uploadErrors.push(`Row ${item.rowNum}: ${err.message}`);
+        return { success: false };
+      }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    imported = results.filter(r => r.success).length;
+
+    console.log(`[ExcelImport] Upload complete: ${imported} uploaded, ${uploadErrors.length} upload errors`);
+
+    if (uploadErrors.length > 0) {
+      console.error('[ExcelImport] Upload errors:', uploadErrors);
     }
 
     toast({
       title: 'Import Complete',
-      description: `${imported} records imported successfully. ${importErrors.length} errors found.`,
-      variant: importErrors.length > 0 ? 'destructive' : 'default',
+      description: `${imported} records uploaded successfully. ${uploadErrors.length} errors found.`,
+      variant: uploadErrors.length > 0 ? 'destructive' : 'default',
     });
 
     setImportedData([]);
     setColumns([]);
-    setErrors(importErrors);
+    setErrors(uploadErrors);
     setLoading(false);
   };
 
