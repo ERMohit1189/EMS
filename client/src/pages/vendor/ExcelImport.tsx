@@ -19,6 +19,7 @@ export default function ExcelImport() {
   const [importedData, setImportedData] = useState<RawRowData[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [errorDetails, setErrorDetails] = useState<any[]>([]);
   const [importType, setImportType] = useState<'site' | 'vendor' | 'employee'>('site');
   const [loading, setLoading] = useState(false);
 
@@ -115,6 +116,7 @@ export default function ExcelImport() {
     }
 
     // STEP 1: VALIDATION PHASE - Check all data before uploading
+    const errorDetailsArray: any[] = [];
     for (let idx = 0; idx < importedData.length; idx++) {
       const row = importedData[idx];
       try {
@@ -155,12 +157,16 @@ export default function ExcelImport() {
           const partnerCode = toString(row['PARTNER CODE']);
           
           if (!partnerName) {
-            importErrors.push(`Row ${idx + 2}: Partner Name (vendor) is required`);
+            const error = `Row ${idx + 2}: Partner Name (vendor) is required`;
+            importErrors.push(error);
+            errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-' });
             continue;
           }
 
           if (!partnerCode) {
-            importErrors.push(`Row ${idx + 2}: Partner or ${partnerName} must have PARTNER CODE`);
+            const error = `Row ${idx + 2}: Partner or ${partnerName} must have PARTNER CODE`;
+            importErrors.push(error);
+            errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-', partner: partnerName });
             continue;
           }
 
@@ -173,16 +179,20 @@ export default function ExcelImport() {
             });
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({ error: response.statusText }));
+              const error = `Row ${idx + 2}: Vendor error - ${errorData.error || response.statusText}`;
               console.error(`[ExcelImport] Row ${idx + 2}: Vendor API error - Status: ${response.status}`, errorData);
-              importErrors.push(`Row ${idx + 2}: Vendor error - ${errorData.error || response.statusText}`);
+              importErrors.push(error);
+              errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-', partner: partnerName });
               continue;
             }
             const vendor = await response.json();
             vendorId = vendor.id;
             console.log(`[ExcelImport] Row ${idx + 2}: Vendor created/found - ${partnerName} (code: ${partnerCode}, id: ${vendorId})`);
           } catch (err: any) {
+            const error = `Row ${idx + 2}: Vendor error - ${err?.message || String(err)}`;
             console.error(`[ExcelImport] Row ${idx + 2}: Vendor error details:`, err?.message, err?.response, err);
-            importErrors.push(`Row ${idx + 2}: Vendor error - ${err?.message || String(err)}`);
+            importErrors.push(error);
+            errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-', partner: partnerName });
             continue;
           }
 
@@ -362,6 +372,7 @@ export default function ExcelImport() {
         variant: 'destructive',
       });
       setErrors(importErrors);
+      setErrorDetails(errorDetailsArray);
       setLoading(false);
       return;
     }
@@ -425,6 +436,18 @@ export default function ExcelImport() {
 
     if (uploadErrors.length > 0) {
       console.error('[ExcelImport] Upload errors:', uploadErrors);
+      // Collect upload error details
+      const uploadErrorDetails = validData.map((item, idx) => {
+        if (!results[idx].success) {
+          return {
+            rowNum: item.rowNum,
+            planId: item.data.planId || item.data.name || '-',
+            siteId: item.data.siteId || '-',
+            error: uploadErrors.find(e => e.includes(`Row ${item.rowNum}`)) || `Upload failed`
+          };
+        }
+      }).filter(Boolean);
+      setErrorDetails(uploadErrorDetails);
     }
 
     toast({
@@ -437,6 +460,29 @@ export default function ExcelImport() {
     setColumns([]);
     setErrors(uploadErrors);
     setLoading(false);
+  };
+
+  const downloadErrorsReport = () => {
+    if (errorDetails.length === 0) return;
+
+    const errorData = errorDetails.map(err => ({
+      'Row Number': err.rowNum,
+      'Plan ID': err.planId,
+      'Site ID': err.siteId || '-',
+      'Partner Name': err.partner || '-',
+      'Error Message': err.error,
+      'Timestamp': new Date().toISOString()
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(errorData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Errors');
+    XLSX.writeFile(workbook, `import_errors_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast({
+      title: 'Success',
+      description: `Downloaded ${errorDetails.length} error records`,
+    });
   };
 
   const downloadSampleTemplate = () => {
@@ -713,10 +759,24 @@ export default function ExcelImport() {
           </div>
 
           {errors.length > 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <div className="flex gap-2 mb-2">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-                <span className="font-medium text-amber-900">Errors Found</span>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+              <div className="flex gap-2 mb-2 items-center justify-between">
+                <div className="flex gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                  <span className="font-medium text-amber-900">{errors.length} Errors Found</span>
+                </div>
+                {errorDetails.length > 0 && (
+                  <Button
+                    onClick={downloadErrorsReport}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 text-amber-700 border-amber-300 hover:bg-amber-100"
+                    data-testid="button-download-errors"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Errors
+                  </Button>
+                )}
               </div>
               <ul className="space-y-1 text-sm text-amber-800 max-h-40 overflow-y-auto">
                 {errors.map((error, idx) => (
