@@ -1,23 +1,10 @@
-// API base URL configuration - runtime configurable
-let apiBaseUrl = '';
+// API base URL configuration - uses config file
+import { API_CONFIG } from '../config/api.config';
 
 const _getApiBaseUrlInternal = () => {
-  // First check localStorage (user-set configuration)
-  const stored = window.localStorage.getItem('API_BASE_URL');
-  if (stored) return stored;
-  
-  // Check for environment variable (set during build)
-  if (typeof import.meta !== 'undefined' && import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // Development: use relative URLs (same domain)
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return '';
-  }
-  
-  // Production on different domain: return empty (will need to be configured)
-  return '';
+  // Use API configuration from config file
+  // Edit client/src/config/api.config.ts to change the API URL
+  return API_CONFIG.API_URL;
 };
 
 export const getApiBaseUrl = () => _getApiBaseUrlInternal();
