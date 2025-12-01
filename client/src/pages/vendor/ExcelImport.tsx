@@ -443,6 +443,7 @@ export default function ExcelImport() {
             rowNum: item.rowNum,
             planId: item.data.planId || item.data.name || '-',
             siteId: item.data.siteId || '-',
+            partner: item.data.partnerName || item.data.name || '-',
             error: uploadErrors.find(e => e.includes(`Row ${item.rowNum}`)) || `Upload failed`
           };
         }
