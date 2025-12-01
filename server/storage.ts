@@ -204,27 +204,32 @@ export class DrizzleStorage implements IStorage {
       
       // Auto-generate vendor code if not provided
       if (!vendorCode) {
-        // Find the maximum vendor code
-        const result = await db.select().from(vendors).orderBy((table) => {
-          const codeAsNumber = sql<number>`CAST(SUBSTRING(vendor_code, 1) AS INTEGER)`;
-          return codeAsNumber;
-        }).limit(1);
-        
-        // If no vendors exist, start from 1001, otherwise increment the max code
+        // Get all vendors and find the maximum vendor code
+        const allVendors = await db.select().from(vendors);
         let nextCode = 1001;
-        if (result && result.length > 0 && result[0].vendorCode) {
-          const maxCode = parseInt(result[0].vendorCode);
-          nextCode = maxCode + 1;
-        } else {
-          // Find max by counting and adding to base
-          const count = await this.getVendorCount();
-          nextCode = 1001 + count;
+        
+        if (allVendors && allVendors.length > 0) {
+          // Get numeric values from existing codes and find max
+          const numericCodes = allVendors
+            .filter(v => v.vendorCode && !isNaN(parseInt(v.vendorCode)))
+            .map(v => parseInt(v.vendorCode!))
+            .sort((a, b) => b - a);
+          
+          if (numericCodes.length > 0) {
+            nextCode = numericCodes[0] + 1;
+          } else {
+            nextCode = 1001 + allVendors.length;
+          }
         }
+        
         vendorCode = nextCode.toString();
+        console.log(`[Storage] Auto-generated vendor code: ${vendorCode}`);
       }
       
       const vendorToInsert = { ...vendor, vendorCode };
+      console.log(`[Storage] Creating vendor with code: ${vendorCode}`);
       const [insertedVendor] = await db.insert(vendors).values(vendorToInsert).returning();
+      console.log(`[Storage] Vendor created with code: ${insertedVendor.vendorCode}`);
       return insertedVendor;
     } catch (error: any) {
       console.error('[Storage] Vendor creation error:', {
