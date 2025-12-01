@@ -10,6 +10,7 @@ import { SkeletonLoader } from "@/components/SkeletonLoader";
 
 export default function Settings() {
   const [showGstInput, setShowGstInput] = useState(false);
+  const [pwaEnabled, setPwaEnabled] = useState(false);
   const [hrEmail, setHrEmail] = useState('');
   const [procurementEmail, setProcurementEmail] = useState('');
   const [dpoEmail, setDpoEmail] = useState('');
@@ -31,6 +32,10 @@ export default function Settings() {
   useEffect(() => {
     const stored = localStorage.getItem('showGstInputInPO');
     setShowGstInput(stored === 'true');
+    
+    // Load PWA setting
+    const pwaStored = localStorage.getItem('pwaEnabled');
+    setPwaEnabled(pwaStored === 'true');
     
     // Load contact emails
     setHrEmail(localStorage.getItem('hrContactEmail') || 'hr@company.com');
@@ -102,6 +107,15 @@ export default function Settings() {
     toast({
       title: "Success",
       description: `GST input in PO Generation is now ${checked ? 'enabled' : 'disabled'}`,
+    });
+  };
+
+  const handlePwaToggle = (checked: boolean) => {
+    setPwaEnabled(checked);
+    localStorage.setItem('pwaEnabled', checked.toString());
+    toast({
+      title: "Success",
+      description: `PWA Installation prompt is now ${checked ? 'enabled' : 'disabled'}`,
     });
   };
 
@@ -190,6 +204,26 @@ export default function Settings() {
               checked={showGstInput}
               onCheckedChange={handleGstToggle}
               data-testid="toggle-gst-input"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>App Features</CardTitle>
+          <CardDescription>Configure optional application features</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
+            <div>
+              <p className="font-semibold">PWA Installation Prompt</p>
+              <p className="text-sm text-muted-foreground">Show install prompt to allow users to install the app</p>
+            </div>
+            <Switch
+              checked={pwaEnabled}
+              onCheckedChange={handlePwaToggle}
+              data-testid="toggle-pwa-enabled"
             />
           </div>
         </CardContent>

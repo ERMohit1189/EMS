@@ -12,8 +12,22 @@ export function PWAInstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [pwaEnabled, setPwaEnabled] = useState(false);
+
+  // Check if PWA is enabled in localStorage (can be enabled in production settings)
+  const isDev = import.meta.env.DEV;
+  const isPwaEnabledInProduction = typeof window !== 'undefined' ? localStorage.getItem('pwaEnabled') === 'true' : false;
 
   useEffect(() => {
+    // Check if PWA is allowed (dev mode OR explicitly enabled)
+    const allowPWA = isDev || isPwaEnabledInProduction;
+    setPwaEnabled(allowPWA);
+
+    // If PWA is not allowed, don't set up listeners
+    if (!allowPWA) {
+      return;
+    }
+
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
       setIsInstalled(true);
@@ -39,7 +53,7 @@ export function PWAInstallPrompt() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isDev, isPwaEnabledInProduction]);
 
   const handleInstall = async () => {
     if (!installPrompt) return;
@@ -61,7 +75,7 @@ export function PWAInstallPrompt() {
     setShowPrompt(false);
   };
 
-  if (isInstalled || !showPrompt || !installPrompt) {
+  if (!pwaEnabled || isInstalled || !showPrompt || !installPrompt) {
     return null;
   }
 
