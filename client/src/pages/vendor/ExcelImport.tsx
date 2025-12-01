@@ -260,23 +260,33 @@ export default function ExcelImport() {
             status: 'Pending' as const,
           };
 
+          console.log(`[ExcelImport] Row ${idx + 2}: Checking required fields - siteId: "${siteData.siteId}", planId: "${siteData.planId}"`);
+          
           if (siteData.siteId && siteData.planId) {
-            const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/upsert`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(siteData),
-            });
-            if (response.ok) {
-              imported++;
-              console.log(`[ExcelImport] Row ${idx + 2}: Site imported successfully`);
-            } else {
-              const errorText = await response.text();
-              console.error(`[ExcelImport] Row ${idx + 2}: Site import failed - ${response.status} - ${errorText}`);
-              importErrors.push(`Row ${idx + 2}: Failed to import site (${response.status})`);
+            try {
+              const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites/upsert`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(siteData),
+              });
+              if (response.ok) {
+                imported++;
+                console.log(`[ExcelImport] Row ${idx + 2}: Site imported successfully`);
+              } else {
+                const errorText = await response.text();
+                console.error(`[ExcelImport] Row ${idx + 2}: Site import failed - ${response.status} - ${errorText}`);
+                importErrors.push(`Row ${idx + 2}: API error ${response.status}`);
+              }
+            } catch (apiError: any) {
+              console.error(`[ExcelImport] Row ${idx + 2}: API call error -`, apiError.message);
+              importErrors.push(`Row ${idx + 2}: ${apiError.message}`);
             }
           } else {
-            console.warn(`[ExcelImport] Row ${idx + 2}: Missing siteId or planId`);
-            importErrors.push(`Row ${idx + 2}: Missing required fields (siteId or planId)`);
+            const missingFields = [];
+            if (!siteData.siteId) missingFields.push('SITE ID');
+            if (!siteData.planId) missingFields.push('PLAN ID');
+            console.warn(`[ExcelImport] Row ${idx + 2}: Missing required fields:`, missingFields);
+            importErrors.push(`Row ${idx + 2}: Missing Excel columns (${missingFields.join(', ')})`);
           }
         } else if (importType === 'vendor') {
           // Map all columns for vendor
