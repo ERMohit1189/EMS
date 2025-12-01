@@ -5,7 +5,6 @@ import { Loader } from "@/components/Loader";
 import { useLoadingState } from "@/hooks/useLoadingState";
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState, lazy, Suspense } from "react";
-import { getStoredApiUrl } from "@/lib/api";
 import GlobalPerformanceIndicator from "@/components/GlobalPerformanceIndicator";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
@@ -16,7 +15,6 @@ import EmployeeLogin from "@/pages/EmployeeLogin";
 
 // Lazy load other pages for code splitting
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const ApiConfig = lazy(() => import("@/pages/ApiConfig"));
 const VendorRegistration = lazy(() => import("@/pages/vendor/VendorRegistration"));
 const VendorList = lazy(() => import("@/pages/vendor/VendorList"));
 const VendorEdit = lazy(() => import("@/pages/vendor/VendorEdit"));
@@ -201,7 +199,7 @@ function App() {
           <Route path="/employee-login" component={EmployeeLogin} />
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-          <Route component={Login} />
+          <Route component={EmployeeLogin} />
         </Switch>
         <Toaster />
       </>
@@ -215,9 +213,6 @@ function App() {
       <GlobalPerformanceIndicator />
       <Suspense fallback={<PageLoader />}>
         <Switch>
-          {/* API Config Route */}
-          <Route path="/api-config" component={ApiConfig} />
-          
           {/* Login Routes */}
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
