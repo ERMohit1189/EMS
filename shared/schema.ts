@@ -368,8 +368,15 @@ export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).partial({
-  vendorCode: true,
+}).extend({
+  vendorCode: z.string().optional(),
+  aadhar: z.string().optional(),
+  pan: z.string().optional(),
+  pincode: z.string().optional(),
+  gstin: z.string().optional(),
+  moa: z.string().optional(),
+  status: z.string().optional(),
+  role: z.string().optional(),
 });
 
 export const insertSiteSchema = createInsertSchema(sites).omit({
