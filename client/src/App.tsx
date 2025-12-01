@@ -186,19 +186,8 @@ function App() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  // If on Plesk (not localhost) and no API URL configured, show config page
-  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-  if (isProduction && !getStoredApiUrl() && location !== '/api-config' && location !== '/login') {
-    return (
-      <>
-        <Switch>
-          <Route path="/api-config" component={ApiConfig} />
-          <Route component={ApiConfig} />
-        </Switch>
-        <Toaster />
-      </>
-    );
-  }
+  // Skip ApiConfig page - using static config file instead
+  // Users can manually edit client/src/config/api.config.ts to change the API URL
 
   // If not logged in and not on login page, show login screens
   if (!isLoggedIn) {
