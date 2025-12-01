@@ -368,6 +368,8 @@ export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).partial({
+  vendorCode: true,
 });
 
 export const insertSiteSchema = createInsertSchema(sites).omit({
