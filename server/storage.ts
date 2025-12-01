@@ -650,10 +650,10 @@ export class DrizzleStorage implements IStorage {
         throw new Error(`Site not updated with planid ${site.planId} because soft at and phy at are approved`);
       }
       
-      // Update existing site (exclude planId from update)
-      const { planId, ...updateData } = site;
+      // Update existing site - keep existing siteId and exclude planId from update
+      const { planId, siteId, ...updateData } = site;
       const finalUpdateData = this.autoUpdateSiteStatus(updateData);
-      console.log(`[Storage] Updating site planId: ${site.planId}`);
+      console.log(`[Storage] Updating site planId: ${site.planId} (keeping existing siteId: ${existingSite.siteId})`);
       const [result] = await db
         .update(sites)
         .set(finalUpdateData)
@@ -661,9 +661,20 @@ export class DrizzleStorage implements IStorage {
         .returning();
       return result;
     } else {
-      // Insert new site with auto-updated status
-      console.log(`[Storage] Inserting new site planId: ${site.planId}`);
-      const finalSite = this.autoUpdateSiteStatus(site);
+      // Insert new site - generate unique siteId if not provided or conflicts exist
+      let finalSite = this.autoUpdateSiteStatus(site);
+      
+      // Check if siteId already exists
+      if (finalSite.siteId) {
+        const existingBySiteId = await db.select().from(sites).where(eq(sites.siteId, finalSite.siteId));
+        if (existingBySiteId.length > 0) {
+          // siteId already exists, generate a new unique one
+          finalSite.siteId = `${finalSite.siteId}-${Math.random().toString(36).slice(-8)}`;
+          console.log(`[Storage] siteId conflict detected, generated new unique siteId: ${finalSite.siteId}`);
+        }
+      }
+      
+      console.log(`[Storage] Inserting new site planId: ${site.planId}, siteId: ${finalSite.siteId}`);
       const [result] = await db.insert(sites).values(finalSite).returning();
       return result;
     }
