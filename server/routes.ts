@@ -375,7 +375,13 @@ export async function registerRoutes(
       const vendor = await storage.getOrCreateVendorByName(name);
       res.json(vendor);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('[Routes] find-or-create error:', {
+        name: req.body.name,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetail: error.detail,
+      });
+      res.status(500).json({ error: error.message, detail: error.detail, code: error.code });
     }
   });
 

@@ -199,8 +199,19 @@ export interface IStorage {
 export class DrizzleStorage implements IStorage {
   // Vendor operations
   async createVendor(vendor: InsertVendor): Promise<Vendor> {
-    const [result] = await db.insert(vendors).values(vendor).returning();
-    return result;
+    try {
+      const [result] = await db.insert(vendors).values(vendor).returning();
+      return result;
+    } catch (error: any) {
+      console.error('[Storage] Vendor creation error:', {
+        vendor,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetail: error.detail,
+        error: error.toString()
+      });
+      throw error;
+    }
   }
 
   async getVendor(id: string): Promise<Vendor | undefined> {
@@ -219,30 +230,44 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getOrCreateVendorByName(name: string): Promise<Vendor> {
-    // Check if vendor with this name already exists
-    const existing = await this.getVendorByName(name);
-    if (existing) {
-      return existing;
-    }
+    try {
+      // Check if vendor with this name already exists
+      const existing = await this.getVendorByName(name);
+      if (existing) {
+        console.log(`[Storage] Vendor found: ${name} (id: ${existing.id})`);
+        return existing;
+      }
 
-    // Create a new vendor with minimal required fields
-    const tempPassword = Math.random().toString(36).slice(-10);
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
-    const uniqueSuffix = Math.random().toString(36).slice(-8).toUpperCase();
-    
-    const newVendor: InsertVendor = {
-      name,
-      email: `${name.replace(/\s+/g, '').toLowerCase()}${Math.random().toString(36).slice(-6)}@vendor.local`,
-      mobile: '',
-      address: '',
-      city: '',
-      state: '',
-      pincode: '',
-      aadhar: `TEMP${Date.now()}${uniqueSuffix}`,
-      pan: `TEMP${uniqueSuffix}`,
-      password: hashedPassword,
-    };
-    return await this.createVendor(newVendor);
+      // Create a new vendor with minimal required fields
+      const tempPassword = Math.random().toString(36).slice(-10);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      const uniqueSuffix = Math.random().toString(36).slice(-8).toUpperCase();
+      
+      const newVendor: InsertVendor = {
+        name,
+        email: `${name.replace(/\s+/g, '').toLowerCase()}${Math.random().toString(36).slice(-6)}@vendor.local`,
+        mobile: '',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        aadhar: `TEMP${Date.now()}${uniqueSuffix}`,
+        pan: `TEMP${uniqueSuffix}`,
+        password: hashedPassword,
+      };
+      console.log(`[Storage] Creating vendor: ${name}`, { aadhar: newVendor.aadhar, pan: newVendor.pan, email: newVendor.email });
+      const result = await this.createVendor(newVendor);
+      console.log(`[Storage] Vendor created: ${name} (id: ${result.id})`);
+      return result;
+    } catch (error: any) {
+      console.error(`[Storage] getOrCreateVendorByName error for "${name}":`, {
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetail: error.detail,
+        error: error.toString()
+      });
+      throw error;
+    }
   }
 
   async getVendors(limit: number, offset: number): Promise<Vendor[]> {
