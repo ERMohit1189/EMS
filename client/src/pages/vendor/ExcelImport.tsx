@@ -158,17 +158,23 @@ export default function ExcelImport() {
 
           let vendorId: string;
           try {
-            const vendor = await fetchJsonWithLoader<any>(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
+            const response = await fetch(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: partnerName }),
             });
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: response.statusText }));
+              console.error(`[ExcelImport] Row ${idx + 2}: Vendor API error - Status: ${response.status}`, errorData);
+              importErrors.push(`Row ${idx + 2}: Vendor error - ${errorData.error || response.statusText}`);
+              continue;
+            }
+            const vendor = await response.json();
             vendorId = vendor.id;
             console.log(`[ExcelImport] Row ${idx + 2}: Vendor created/found - ${partnerName} (id: ${vendorId})`);
           } catch (err: any) {
-            console.error(`[ExcelImport] Row ${idx + 2}: Vendor error:`, err);
-            const errorMsg = err?.message || String(err);
-            importErrors.push(`Row ${idx + 2}: Vendor error - ${errorMsg}`);
+            console.error(`[ExcelImport] Row ${idx + 2}: Vendor error details:`, err?.message, err?.response, err);
+            importErrors.push(`Row ${idx + 2}: Vendor error - ${err?.message || String(err)}`);
             continue;
           }
 
