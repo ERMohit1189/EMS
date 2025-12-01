@@ -496,6 +496,7 @@ export default function ExcelImport() {
         'RFAI OFFERED DATE SITE A': '2024-02-01',
         'RFAI OFFERED DATE SITE B': '2024-02-01',
         'ACTUAL HOP RFAI OFFERED DATE': '2024-02-02',
+        'PARTNER CODE': '1001',
         'PARTNER NAME': 'Jiya',
         'RFAI SURVEY COMPLETION DATE': '2024-02-05',
         'MO NUMBER SITE A': 'MO-001',

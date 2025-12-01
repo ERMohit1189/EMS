@@ -312,6 +312,7 @@ export default function SiteStatus() {
       'RFAI Offered Date Site A': site.rfaiOfferedDateSiteA || '-',
       'RFAI Offered Date Site B': site.rfaiOfferedDateSiteB || '-',
       'Actual HOP RFAI Offered Date': site.actualHopRfaiOfferedDate || '-',
+      'Partner Code': site.vendorCode || '-',
       'Partner Name': site.partnerName || '-',
       'RFAI Survey Completion Date': site.rfaiSurveyCompletionDate || '-',
       'MO Number Site A': site.moNumberSiteA || '-',
