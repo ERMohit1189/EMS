@@ -70,6 +70,9 @@ function App() {
   const [isEmployee, setIsEmployee] = useState(false);
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const isLoading = useLoadingState();
+  
+  // Check if employee management is hidden in production
+  const isDev = import.meta.env.DEV;
 
   useEffect(() => {
     // Check if user is logged in
@@ -196,10 +199,10 @@ function App() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
-          <Route path="/employee-login" component={EmployeeLogin} />
+          {isDev && <Route path="/employee-login" component={EmployeeLogin} />}
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-          <Route component={EmployeeLogin} />
+          <Route component={isDev ? EmployeeLogin : VendorLogin} />
         </Switch>
         <Toaster />
       </>
@@ -216,7 +219,7 @@ function App() {
           {/* Login Routes */}
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
-          <Route path="/employee-login" component={EmployeeLogin} />
+          {isDev && <Route path="/employee-login" component={EmployeeLogin} />}
           
           {/* Privacy Policy Routes */}
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
@@ -256,26 +259,26 @@ function App() {
                   {/* Settings Route */}
                   <Route path="/settings" component={Settings} />
                   
-                  {/* Employee Routes */}
-                  <Route path="/employee/register" component={EmployeeRegistration} />
-                  <Route path="/employee/edit/:id" component={EmployeeEdit} />
-                  <Route path="/employee/list" component={EmployeeList} />
-                  <Route path="/employee/credentials" component={EmployeeCredentials} />
-                  <Route path="/employee/my-profile" component={MyProfile} />
-                  <Route path="/employee/salary" component={EmployeeSalary} />
-                  <Route path="/employee/change-password" component={ChangePassword} />
-                  <Route path="/employee/salary-report" component={SalaryReport} />
-                  <Route path="/employee/department-master" component={DepartmentMaster} />
-                  <Route path="/employee/designation-master" component={DesignationMaster} />
-                  <Route path="/employee/attendance" component={Attendance} />
-                  <Route path="/employee/allowances" component={Allowances} />
-                  <Route path="/employee/salary-structure" component={SalaryStructure} />
+                  {/* Employee Routes - Only in Development */}
+                  {isDev && <Route path="/employee/register" component={EmployeeRegistration} />}
+                  {isDev && <Route path="/employee/edit/:id" component={EmployeeEdit} />}
+                  {isDev && <Route path="/employee/list" component={EmployeeList} />}
+                  {isDev && <Route path="/employee/credentials" component={EmployeeCredentials} />}
+                  {isDev && <Route path="/employee/my-profile" component={MyProfile} />}
+                  {isDev && <Route path="/employee/salary" component={EmployeeSalary} />}
+                  {isDev && <Route path="/employee/change-password" component={ChangePassword} />}
+                  {isDev && <Route path="/employee/salary-report" component={SalaryReport} />}
+                  {isDev && <Route path="/employee/department-master" component={DepartmentMaster} />}
+                  {isDev && <Route path="/employee/designation-master" component={DesignationMaster} />}
+                  {isDev && <Route path="/employee/attendance" component={Attendance} />}
+                  {isDev && <Route path="/employee/allowances" component={Allowances} />}
+                  {isDev && <Route path="/employee/salary-structure" component={SalaryStructure} />}
                   <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
                   
-                  {/* Admin Routes */}
-                  <Route path="/admin/teams" component={Teams} />
-                  <Route path="/admin/allowance-approvals" component={AllowanceApproval} />
-                  <Route path="/admin/approval-history" component={ApprovalHistory} />
+                  {/* Admin Routes - Only in Development */}
+                  {isDev && <Route path="/admin/teams" component={Teams} />}
+                  {isDev && <Route path="/admin/allowance-approvals" component={AllowanceApproval} />}
+                  {isDev && <Route path="/admin/approval-history" component={ApprovalHistory} />}
                   
                   {/* Vendor Privacy Policy */}
                   <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />

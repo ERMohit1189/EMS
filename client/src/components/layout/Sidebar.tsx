@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
+
+// Check if employee management is hidden in production
+const isDev = import.meta.env.DEV;
 import {
   LayoutDashboard,
   Users,
@@ -51,7 +54,7 @@ const adminMenuGroups = [
       },
     ],
   },
-  {
+  ...(isDev ? [{
     group: 'Employee Management',
     items: [
       {
@@ -110,7 +113,7 @@ const adminMenuGroups = [
         href: '/admin/approval-history',
       },
     ],
-  },
+  }] : []),
   {
     group: 'Site Operations',
     items: [
