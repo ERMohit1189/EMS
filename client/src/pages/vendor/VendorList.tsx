@@ -145,7 +145,7 @@ export default function VendorList() {
                <div className="col-span-2">
                  <div className="font-medium text-sm">{v.name}</div>
                  <div className="text-xs text-muted-foreground truncate">{v.email}</div>
-                 <div className="text-xs font-mono font-bold text-primary mt-1" data-testid={`vendor-code-${v.id}`}>Code: {v.vendorCode || '-'}</div>
+                 <div className="text-xs font-mono font-bold text-primary mt-1" data-testid={`vendor-code-${v.id}`}>Vendor Code: {v.vendorCode || '-'}</div>
                </div>
                <div className="text-sm">{v.city}, {v.state}</div>
                <div className="text-sm">{v.category}</div>
@@ -196,7 +196,7 @@ export default function VendorList() {
                    <div className="flex-1 min-w-0">
                      <p className="font-medium text-sm truncate">{v.name}</p>
                      <p className="text-xs text-muted-foreground truncate">{v.email}</p>
-                     <p className="text-xs font-mono font-bold text-primary mt-1" data-testid={`vendor-code-mobile-${v.id}`}>Code: {v.vendorCode || 'N/A'}</p>
+                     <p className="text-xs font-mono font-bold text-primary mt-1" data-testid={`vendor-code-mobile-${v.id}`}>Vendor Code: {v.vendorCode || '-'}</p>
                    </div>
                    <div className="flex gap-1 flex-shrink-0">
                      <Link href={`/vendor/edit/${v.id}`}>
