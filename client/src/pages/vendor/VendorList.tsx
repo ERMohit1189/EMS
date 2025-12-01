@@ -129,8 +129,9 @@ export default function VendorList() {
 
        {/* Desktop Table */}
        <div className="hidden md:block rounded-md border bg-card">
-         <div className="grid grid-cols-7 gap-4 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">
+         <div className="grid grid-cols-8 gap-4 p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">
            <div className="col-span-2">Name / Email</div>
+           <div>Vendor Code</div>
            <div>Location</div>
            <div>Category</div>
            <div>Status</div>
@@ -141,11 +142,12 @@ export default function VendorList() {
            <div className="p-8 text-center text-muted-foreground">No vendors found. Register one to get started.</div>
          ) : (
            vendors.map(v => (
-             <div key={v.id} className="grid grid-cols-7 gap-4 p-4 border-b last:border-0 items-center hover:bg-muted/50 transition-colors">
+             <div key={v.id} className="grid grid-cols-8 gap-4 p-4 border-b last:border-0 items-center hover:bg-muted/50 transition-colors">
                <div className="col-span-2">
                  <div className="font-medium text-sm">{v.name}</div>
                  <div className="text-xs text-muted-foreground truncate">{v.email}</div>
                </div>
+               <div className="text-sm font-mono font-bold text-primary" data-testid={`vendor-code-${v.id}`}>{v.vendorCode || 'N/A'}</div>
                <div className="text-sm">{v.city}, {v.state}</div>
                <div className="text-sm">{v.category}</div>
                <div>
@@ -195,6 +197,7 @@ export default function VendorList() {
                    <div className="flex-1 min-w-0">
                      <p className="font-medium text-sm truncate">{v.name}</p>
                      <p className="text-xs text-muted-foreground truncate">{v.email}</p>
+                     <p className="text-xs font-mono font-bold text-primary mt-1" data-testid={`vendor-code-mobile-${v.id}`}>Code: {v.vendorCode || 'N/A'}</p>
                    </div>
                    <div className="flex gap-1 flex-shrink-0">
                      <Link href={`/vendor/edit/${v.id}`}>
