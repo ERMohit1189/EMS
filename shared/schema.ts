@@ -16,16 +16,16 @@ import { z } from "zod";
 // Vendors Table
 export const vendors = pgTable("vendors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  email: varchar("email").notNull().unique(),
+  name: text("name").notNull().unique(),
+  email: varchar("email").notNull(),
   mobile: varchar("mobile").notNull(),
   address: text("address").notNull(),
   city: varchar("city").notNull(),
   state: varchar("state").notNull(),
   pincode: varchar("pincode").notNull(),
   country: varchar("country").notNull().default("India"),
-  aadhar: varchar("aadhar").notNull().unique(),
-  pan: varchar("pan").notNull().unique(),
+  aadhar: varchar("aadhar").notNull(),
+  pan: varchar("pan").notNull(),
   gstin: varchar("gstin"),
   moa: text("moa"),
   category: varchar("category").notNull().default("Individual"), // Individual, Company
