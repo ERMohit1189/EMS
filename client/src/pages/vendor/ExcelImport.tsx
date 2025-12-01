@@ -185,8 +185,10 @@ export default function ExcelImport() {
           // Generate IDs with fallbacks - accept any ID from available columns
           const planIdValue = toString(row['PLAN ID']) || toString(row['planId']);
           const siteIdValue = toString(row['SITE ID']) || toString(row['siteId']) || toString(row['Nominal Aop']);
-          const generatedSiteId = siteIdValue || `SITE-${idx}-${Date.now()}`;
-          const generatedPlanId = planIdValue || generatedSiteId; // Use siteId as fallback for planId
+          // Use unique suffix combining index and random to ensure no duplicates
+          const uniqueSuffix = `${idx}-${Math.random().toString(36).slice(-8)}`;
+          const generatedSiteId = siteIdValue || `SITE-${uniqueSuffix}`;
+          const generatedPlanId = planIdValue || `PLAN-${uniqueSuffix}`; // Use unique suffix as fallback for planId
 
           const siteData = {
             siteId: generatedSiteId,
