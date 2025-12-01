@@ -158,7 +158,7 @@ export default function VendorRegistration() {
                 name="category"
                 render={({ field }) => (
                   <FormItem className="col-span-2 space-y-3">
-                    <FormLabel>Vendor Category</FormLabel>
+                    <FormLabel>Vendor Category <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
@@ -189,9 +189,9 @@ export default function VendorRegistration() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name / Company Name</FormLabel>
+                    <FormLabel>Full Name / Company Name <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input autoFocus placeholder="Enter name" {...field} />
+                      <Input autoFocus placeholder="Enter name" {...field} onBlur={(e) => { field.onBlur(); form.trigger('name'); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -203,9 +203,9 @@ export default function VendorRegistration() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel>Email Address <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="vendor@example.com" {...field} />
+                      <Input type="email" placeholder="vendor@example.com" {...field} onBlur={(e) => { field.onBlur(); form.trigger('email'); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -217,9 +217,9 @@ export default function VendorRegistration() {
                 name="mobile"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mobile Number</FormLabel>
+                    <FormLabel>Mobile Number <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input placeholder="9876543210" {...field} />
+                      <Input placeholder="9876543210" {...field} onBlur={(e) => { field.onBlur(); form.trigger('mobile'); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -239,9 +239,9 @@ export default function VendorRegistration() {
                 name="address"
                 render={({ field }) => (
                   <FormItem className="col-span-3">
-                    <FormLabel>Street Address</FormLabel>
+                    <FormLabel>Street Address <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input placeholder="123 Main St, Block A" {...field} />
+                      <Input placeholder="123 Main St, Block A" {...field} onBlur={(e) => { field.onBlur(); form.trigger('address'); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -253,7 +253,7 @@ export default function VendorRegistration() {
                 name="state"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>State</FormLabel>
+                    <FormLabel>State <span className="text-red-500">*</span></FormLabel>
                     <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -338,7 +338,7 @@ export default function VendorRegistration() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel>City <span className="text-red-500">*</span></FormLabel>
                     <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -423,11 +423,11 @@ export default function VendorRegistration() {
                 name="pincode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pincode (Optional)</FormLabel>
+                    <FormLabel>Pincode</FormLabel>
                     <FormControl>
-                      <Input placeholder="110001" {...field} />
+                      <Input placeholder="110001" {...field} onBlur={(e) => { field.onBlur(); form.trigger('pincode'); }} />
                     </FormControl>
-                    <FormDescription>Leave empty if not available</FormDescription>
+                    <FormDescription>Optional - Leave empty if not available</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -460,11 +460,11 @@ export default function VendorRegistration() {
                 name="aadhar"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Aadhar Number (Optional)</FormLabel>
+                    <FormLabel>Aadhar Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="12-digit Aadhar" maxLength={12} {...field} />
+                      <Input placeholder="12-digit Aadhar" maxLength={12} {...field} onBlur={(e) => { field.onBlur(); form.trigger('aadhar'); }} />
                     </FormControl>
-                    <FormDescription>12 digits if available</FormDescription>
+                    <FormDescription>Optional - 12 digits if available</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -475,11 +475,11 @@ export default function VendorRegistration() {
                 name="pan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>PAN Number (Optional)</FormLabel>
+                    <FormLabel>PAN Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="10-digit PAN" maxLength={10} {...field} />
+                      <Input placeholder="10-digit PAN" maxLength={10} {...field} onBlur={(e) => { field.onBlur(); form.trigger('pan'); }} />
                     </FormControl>
-                    <FormDescription>Format: AAAAA9999A if available</FormDescription>
+                    <FormDescription>Optional - Format: AAAAA9999A if available</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -490,10 +490,11 @@ export default function VendorRegistration() {
                 name="gstin"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>GSTIN (Optional)</FormLabel>
+                    <FormLabel>GSTIN</FormLabel>
                     <FormControl>
-                      <Input placeholder="GST Number" maxLength={15} {...field} />
+                      <Input placeholder="GST Number" maxLength={15} {...field} onBlur={(e) => { field.onBlur(); form.trigger('gstin'); }} />
                     </FormControl>
+                    <FormDescription>Optional - 15 character GST number</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
