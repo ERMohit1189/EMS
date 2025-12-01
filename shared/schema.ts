@@ -23,10 +23,10 @@ export const vendors = pgTable("vendors", {
   address: text("address").notNull(),
   city: varchar("city").notNull(),
   state: varchar("state").notNull(),
-  pincode: varchar("pincode").notNull(),
+  pincode: varchar("pincode"),
   country: varchar("country").notNull().default("India"),
-  aadhar: varchar("aadhar").notNull(),
-  pan: varchar("pan").notNull(),
+  aadhar: varchar("aadhar"),
+  pan: varchar("pan"),
   gstin: varchar("gstin"),
   moa: text("moa"),
   category: varchar("category").notNull().default("Individual"), // Individual, Company

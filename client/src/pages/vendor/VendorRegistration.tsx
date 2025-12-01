@@ -36,16 +36,19 @@ const vendorSchema = z.object({
   address: z.string().min(5, 'Address is required'),
   city: z.string().min(2, 'City is required'),
   state: z.string().min(2, 'State is required'),
-  pincode: z.string().min(6, 'Valid pincode required'),
+  pincode: z.string()
+    .min(0, 'Pincode is optional')
+    .optional()
+    .or(z.literal('')),
   country: z.string().default('India'),
   aadhar: z.string()
-    .min(12, 'Aadhar must be at least 12 digits')
-    .max(12, 'Aadhar must not exceed 12 digits')
-    .regex(/^\d{12}$/, 'Aadhar must be exactly 12 digits'),
+    .min(0, 'Aadhar is optional')
+    .optional()
+    .or(z.literal('')),
   pan: z.string()
-    .min(10, 'PAN must be at least 10 characters')
-    .max(10, 'PAN must not exceed 10 characters')
-    .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN must be in format: AAAAA9999A (5 letters, 4 digits, 1 letter)'),
+    .min(0, 'PAN is optional')
+    .optional()
+    .or(z.literal('')),
   gstin: z.string()
     .min(15, 'GSTIN must be at least 15 characters')
     .max(15, 'GSTIN must not exceed 15 characters')
@@ -438,10 +441,11 @@ export default function VendorRegistration() {
                 name="pincode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pincode</FormLabel>
+                    <FormLabel>Pincode (Optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="110001" {...field} />
                     </FormControl>
+                    <FormDescription>Leave empty if not available</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -474,10 +478,11 @@ export default function VendorRegistration() {
                 name="aadhar"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Aadhar Number</FormLabel>
+                    <FormLabel>Aadhar Number (Optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="12-digit Aadhar" maxLength={12} {...field} />
                     </FormControl>
+                    <FormDescription>12 digits if available</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -488,10 +493,11 @@ export default function VendorRegistration() {
                 name="pan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>PAN Number</FormLabel>
+                    <FormLabel>PAN Number (Optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="10-digit PAN" maxLength={10} {...field} />
                     </FormControl>
+                    <FormDescription>Format: AAAAA9999A if available</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
