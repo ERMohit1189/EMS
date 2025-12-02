@@ -76,6 +76,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEmployee, setIsEmployee] = useState(false);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const isLoading = useLoadingState();
   
@@ -91,7 +92,11 @@ function App() {
     const employeeEmail = localStorage.getItem('employeeEmail');
     setIsEmployee(!!employeeEmail);
     
-    console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail, 'location:', location);
+    // Check if user is superadmin
+    const employeeRole = localStorage.getItem('employeeRole');
+    setIsSuperadmin(employeeRole === 'superadmin' || employeeRole === 'Superadmin');
+    
+    console.log('[App] Login check - isLoggedIn:', loggedIn, 'isEmployee:', !!employeeEmail, 'isSuperadmin:', employeeRole === 'superadmin', 'location:', location);
     
     // Preserve current URL on app restart - store it before page reload
     // Only for logged in users, and not on login pages
@@ -185,8 +190,10 @@ function App() {
     const handleLogin = () => {
       setIsLoggedIn(true);
       const employeeEmail = localStorage.getItem('employeeEmail');
+      const employeeRole = localStorage.getItem('employeeRole');
       setIsEmployee(!!employeeEmail);
-      console.log('[App] Login event - isEmployee:', !!employeeEmail);
+      setIsSuperadmin(employeeRole === 'superadmin' || employeeRole === 'Superadmin');
+      console.log('[App] Login event - isEmployee:', !!employeeEmail, 'isSuperadmin:', employeeRole === 'superadmin');
     };
 
     // Listen for login events (storage changes)
@@ -274,7 +281,7 @@ function App() {
                   {/* Dashboard Routes */}
                   <Route path="/employee/dashboard" component={EmployeeDashboard} />
                   <Route path="/">
-                    {localStorage.getItem('employeeRole') === 'superadmin' || localStorage.getItem('employeeRole') === 'Superadmin' ? <Dashboard /> : isEmployee ? <EmployeeDashboard /> : <Dashboard />}
+                    {isSuperadmin ? <Dashboard /> : isEmployee ? <EmployeeDashboard /> : <Dashboard />}
                   </Route>
                   
                   {/* Vendor Routes */}
