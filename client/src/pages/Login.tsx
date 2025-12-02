@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,27 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Clear all non-superadmin session data when login page loads
+  useEffect(() => {
+    // Clear vendor session data
+    localStorage.removeItem('vendorId');
+    localStorage.removeItem('vendorEmail');
+    localStorage.removeItem('vendorName');
+    localStorage.removeItem('vendorCode');
+    
+    // Clear employee session data
+    localStorage.removeItem('employeeId');
+    localStorage.removeItem('employeeEmail');
+    localStorage.removeItem('employeeName');
+    localStorage.removeItem('employeeRole');
+    localStorage.removeItem('employeeDepartment');
+    localStorage.removeItem('employeeDesignation');
+    
+    // Clear user data
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +67,20 @@ export default function Login() {
       const superadminPassword = 'password';
       
       if (email !== superadminEmail || password !== superadminPassword) {
+        // Clear any lingering session data on failed login
+        localStorage.removeItem('vendorId');
+        localStorage.removeItem('vendorEmail');
+        localStorage.removeItem('vendorName');
+        localStorage.removeItem('vendorCode');
+        localStorage.removeItem('employeeId');
+        localStorage.removeItem('employeeEmail');
+        localStorage.removeItem('employeeName');
+        localStorage.removeItem('employeeRole');
+        localStorage.removeItem('employeeDepartment');
+        localStorage.removeItem('employeeDesignation');
+        localStorage.removeItem('user');
+        localStorage.removeItem('isLoggedIn');
+        
         toast({
           title: 'Error',
           description: 'Invalid credentials. Only superadmin can access this portal.',
