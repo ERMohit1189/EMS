@@ -153,6 +153,24 @@ export async function registerRoutes(
     }
   });
 
+  // Employee logout route
+  app.post("/api/employees/logout", async (req, res) => {
+    try {
+      if (req.session) {
+        req.session.destroy((err) => {
+          if (err) {
+            return res.status(500).json({ error: "Failed to logout" });
+          }
+          res.json({ success: true, message: "Logged out successfully" });
+        });
+      } else {
+        res.json({ success: true, message: "Already logged out" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Change Password endpoint - MUST be defined before generic :id routes
   app.post("/api/employees/:id/change-password", async (req, res) => {
     console.log("[API] Change Password Route - POST /api/employees/:id/change-password");
