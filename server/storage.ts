@@ -169,6 +169,7 @@ export interface IStorage {
   getEmployeeAllowancesByDate(employeeId: string, date: string): Promise<DailyAllowance | undefined>;
   getEmployeeAllowances(employeeId: string, limit?: number): Promise<DailyAllowance[]>;
   getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<any[]>;
+  getTeamsForEmployee(employeeId: string): Promise<any[]>;
   getPendingAllowances(): Promise<any[]>;
   getPendingAllowancesForTeams(employeeId: string): Promise<any[]>;
   getAllAllowances(): Promise<any[]>;
@@ -1099,6 +1100,7 @@ export class DrizzleStorage implements IStorage {
       teamId: allowance.teamId || null,
       date: allowance.date,
       allowanceData: allowance.allowanceData,
+      selectedEmployeeIds: allowance.selectedEmployeeIds || null,
     };
     console.log('[Storage] createDailyAllowance - will insert:', insertData);
     const [result] = await db.insert(dailyAllowances).values(insertData).returning();
@@ -1144,25 +1146,37 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmployeeAllowancesByMonthYear(employeeId: string, month: number, year: number): Promise<any[]> {
-    // Fetch all allowances for the employee
+    // Fetch allowances where employee is either the primary owner OR in selectedEmployeeIds
     const allAllowances = await db.select().from(dailyAllowances)
-      .where(eq(dailyAllowances.employeeId, employeeId))
+      .where(or(
+        eq(dailyAllowances.employeeId, employeeId),
+        sql`${dailyAllowances.selectedEmployeeIds}::text LIKE ${`%"${employeeId}"%`}`
+      ))
       .orderBy(dailyAllowances.date);
     
     console.log('[Storage] Raw allowances count:', allAllowances.length);
     
-    // Enrich with team names
-    const enriched = await Promise.all(allAllowances.map(async (allowance) => {
-      let teamName = null;
-      if (allowance.teamId) {
-        const team = await this.getTeam(allowance.teamId);
-        teamName = team?.name || null;
-      }
+    // Bulk fetch employee and teams
+    const allowanceTeamIds = [...new Set(allAllowances.map(a => a.teamId).filter(Boolean))];
+    
+    // Get the logged-in employee's info
+    const employee = await this.getEmployee(employeeId);
+    
+    let teamMap = new Map();
+    if (allowanceTeamIds.length > 0) {
+      const allTeams = await db.select().from(teams).where(inArray(teams.id, allowanceTeamIds));
+      teamMap = new Map(allTeams.map(t => [t.id, t]));
+    }
+    
+    // Enrich with employee and team names
+    const enriched = allAllowances.map(allowance => {
+      const team = allowance.teamId ? teamMap.get(allowance.teamId) : null;
       return {
         ...allowance,
-        teamName,
+        employeeName: employee?.name || 'Unknown',
+        teamName: team?.name || null,
       };
-    }));
+    });
     
     // Filter by month and year in JavaScript
     const filtered = enriched.filter(allowance => {
@@ -1172,7 +1186,7 @@ export class DrizzleStorage implements IStorage {
       return allowanceMonth === month && allowanceYear === year;
     });
     
-    console.log('[Storage] Enriched allowances with team names:', filtered.length);
+    console.log('[Storage] Filtered allowances with team names:', filtered.length);
     return filtered;
   }
 
@@ -1182,12 +1196,12 @@ export class DrizzleStorage implements IStorage {
     if (existing && existing.approvalStatus === 'approved') {
       throw new Error('Cannot update an approved allowance');
     }
+    
     console.log('[Storage] updateDailyAllowance - input:', allowance);
     const updateData = {
-      ...(allowance.employeeId && { employeeId: allowance.employeeId }),
       ...(allowance.teamId !== undefined && { teamId: allowance.teamId || null }),
-      ...(allowance.date && { date: allowance.date }),
       ...(allowance.allowanceData && { allowanceData: allowance.allowanceData }),
+      ...(allowance.selectedEmployeeIds !== undefined && { selectedEmployeeIds: allowance.selectedEmployeeIds }),
     };
     console.log('[Storage] updateDailyAllowance - will update with:', updateData);
     const [result] = await db.update(dailyAllowances).set(updateData).where(eq(dailyAllowances.id, id)).returning();

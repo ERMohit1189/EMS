@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
@@ -20,6 +21,8 @@ interface AllowanceData {
 
 interface AllowanceEntry {
   id: string;
+  employeeId?: string;
+  employeeName?: string;
   date: string;
   teamId?: string;
   teamName?: string;
@@ -33,6 +36,11 @@ interface AllowanceEntry {
 
 interface Team {
   id: string;
+  name: string;
+}
+
+interface TeamMember {
+  employeeId: string;
   name: string;
 }
 
@@ -70,6 +78,8 @@ export default function Allowances() {
   const [caps, setCaps] = useState<any>({});
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   
   // Month/Year filter - default to current month
   const now = new Date();
@@ -121,6 +131,26 @@ export default function Allowances() {
     } catch (error) {
       console.error('Error fetching teams:', error);
       return [];
+    }
+  };
+
+  const fetchTeamMembers = async (teamId: string) => {
+    try {
+      const url = `${getApiBaseUrl()}/api/teams/${teamId}/members`;
+      console.log('Fetching team members from:', url);
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Team members fetched:', data);
+        setTeamMembers(data || []);
+        setSelectedMemberIds(new Set());
+      } else {
+        console.error('Team members API error:', response.status);
+        setTeamMembers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      setTeamMembers([]);
     }
   };
 
@@ -246,6 +276,34 @@ export default function Allowances() {
     return `${monthName} ${yearShort}`;
   };
 
+  const handleTeamSelect = (teamId: string) => {
+    setFormData({ ...formData, teamId });
+    if (teamId) {
+      fetchTeamMembers(teamId);
+    } else {
+      setTeamMembers([]);
+      setSelectedMemberIds(new Set());
+    }
+  };
+
+  const handleMemberToggle = (memberId: string) => {
+    const newSelected = new Set(selectedMemberIds);
+    if (newSelected.has(memberId)) {
+      newSelected.delete(memberId);
+    } else {
+      newSelected.add(memberId);
+    }
+    setSelectedMemberIds(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedMemberIds.size === teamMembers.length) {
+      setSelectedMemberIds(new Set());
+    } else {
+      setSelectedMemberIds(new Set(teamMembers.map(m => m.employeeId)));
+    }
+  };
+
   const handleDelete = async (allowanceId: string) => {
     try {
       setDeleting(true);
@@ -335,26 +393,33 @@ export default function Allowances() {
 
     setLoading(true);
     try {
+      const allowanceData = {
+        travelAllowance: parseFloat(formData.travelAllowance) || 0,
+        foodAllowance: parseFloat(formData.foodAllowance) || 0,
+        accommodationAllowance: parseFloat(formData.accommodationAllowance) || 0,
+        mobileAllowance: parseFloat(formData.mobileAllowance) || 0,
+        internetAllowance: parseFloat(formData.internetAllowance) || 0,
+        utilitiesAllowance: parseFloat(formData.utilitiesAllowance) || 0,
+        parkingAllowance: parseFloat(formData.parkingAllowance) || 0,
+        miscAllowance: parseFloat(formData.miscAllowance) || 0,
+        notes: formData.notes,
+      };
+
+      // If no employees selected, apply to current employee only
+      const employeeIds = selectedMemberIds.size > 0 ? Array.from(selectedMemberIds) : [employeeId];
+
+      // Submit allowances for selected members or current employee
       const payload = {
-        employeeId,
-        teamId: formData.teamId,
         date: formData.date,
-        allowanceData: JSON.stringify({
-          travelAllowance: parseFloat(formData.travelAllowance) || 0,
-          foodAllowance: parseFloat(formData.foodAllowance) || 0,
-          accommodationAllowance: parseFloat(formData.accommodationAllowance) || 0,
-          mobileAllowance: parseFloat(formData.mobileAllowance) || 0,
-          internetAllowance: parseFloat(formData.internetAllowance) || 0,
-          utilitiesAllowance: parseFloat(formData.utilitiesAllowance) || 0,
-          parkingAllowance: parseFloat(formData.parkingAllowance) || 0,
-          miscAllowance: parseFloat(formData.miscAllowance) || 0,
-          notes: formData.notes,
-        }),
+        teamId: formData.teamId,
+        employeeIds: employeeIds,
+        selectedEmployeeIds: employeeIds,
+        allowanceData: JSON.stringify(allowanceData),
       };
       
-      console.log('Frontend sending allowance payload:', payload);
+      console.log('Frontend sending bulk allowance payload:', payload);
       
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/allowances/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -363,17 +428,13 @@ export default function Allowances() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to submit allowance');
+        throw new Error(error.error || 'Failed to submit allowances');
       }
 
       toast({
         title: "Success",
-        description: "Allowance submitted successfully",
+        description: `Allowances submitted for ${employeeIds.length} employee(s)`,
       });
-
-      const submittedDate = new Date(payload.date);
-      const submittedMonth = String(submittedDate.getMonth() + 1).padStart(2, '0');
-      const submittedYear = String(submittedDate.getFullYear());
 
       setFormData({
         date: new Date().toISOString().split('T')[0],
@@ -388,12 +449,18 @@ export default function Allowances() {
         miscAllowance: '',
         notes: '',
       });
+      setTeamMembers([]);
+      setSelectedMemberIds(new Set());
+
+      const submittedDate = new Date(payload.date);
+      const submittedMonth = String(submittedDate.getMonth() + 1).padStart(2, '0');
+      const submittedYear = String(submittedDate.getFullYear());
 
       fetchAllowances(true, submittedMonth, submittedYear);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || 'Failed to submit allowance',
+        description: error.message || 'Failed to submit allowances',
         variant: "destructive",
       });
     } finally {
@@ -420,12 +487,12 @@ export default function Allowances() {
     <div className="space-y-3">
       <div className="pb-1">
         <h2 className="text-2xl font-bold">Daily Allowances</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Submit your daily allowance claims</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Submit daily allowance claims for team members</p>
       </div>
 
       <Card className="shadow-sm">
         <CardHeader className="pb-2 pt-3 px-3">
-          <CardTitle className="text-lg">Submit Claim</CardTitle>
+          <CardTitle className="text-lg">Submit Allowances</CardTitle>
         </CardHeader>
         <CardContent className="p-3">
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -448,7 +515,7 @@ export default function Allowances() {
                     <button
                       key={team.id}
                       type="button"
-                      onClick={() => setFormData({ ...formData, teamId: formData.teamId === team.id ? '' : team.id })}
+                      onClick={() => handleTeamSelect(formData.teamId === team.id ? '' : team.id)}
                       data-testid={`team-badge-${team.id}`}
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         formData.teamId === team.id
@@ -457,6 +524,29 @@ export default function Allowances() {
                       }`}
                     >
                       {team.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {formData.teamId && teamMembers.length > 0 && (
+              <div>
+                <label className="text-xs font-medium">Team Members (Optional - {selectedMemberIds.size}/{teamMembers.length})</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {teamMembers.map((member) => (
+                    <button
+                      key={member.employeeId}
+                      type="button"
+                      onClick={() => handleMemberToggle(member.employeeId)}
+                      data-testid={`member-badge-${member.employeeId}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                        selectedMemberIds.has(member.employeeId)
+                          ? 'bg-green-600 text-white shadow-md'
+                          : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                      }`}
+                    >
+                      {member.name}
                     </button>
                   ))}
                 </div>
@@ -585,7 +675,7 @@ export default function Allowances() {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium">Misc</label>
+                <label className="text-xs font-medium">Miscellaneous</label>
                 <div className="relative mt-0.5">
                   <Input
                     type="number"
@@ -606,47 +696,21 @@ export default function Allowances() {
             <div>
               <label className="text-xs font-medium">Notes</label>
               <Input
-                placeholder="Add notes (optional)"
+                placeholder="Add any notes..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                data-testid="input-allowance-notes"
-                className="mt-0.5 h-8 text-xs p-1"
+                data-testid="input-notes"
+                className="h-8 text-xs mt-0.5 p-1"
               />
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded px-2 py-1.5">
-              <p className="text-xs text-blue-900">Total: <span className="font-bold">Rs {totalAmount}</span></p>
-            </div>
-
-            <div className="flex gap-2 justify-end pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setFormData({
-                  date: new Date().toISOString().split('T')[0],
-                  teamId: '',
-                  travelAllowance: '',
-                  foodAllowance: '',
-                  accommodationAllowance: '',
-                  mobileAllowance: '',
-                  internetAllowance: '',
-                  utilitiesAllowance: '',
-                  parkingAllowance: '',
-                  miscAllowance: '',
-                  notes: '',
-                })}
-                data-testid="button-reset-allowance"
-                className="h-8 text-xs"
-              >
-                Reset
-              </Button>
+            <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
+              <span className="text-xs font-semibold">Total: Rs {totalAmount}</span>
               <Button
                 type="submit"
                 disabled={loading}
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 h-8 text-xs"
                 data-testid="button-submit-allowance"
+                className="h-8 text-xs bg-green-600 hover:bg-green-700"
               >
                 {loading ? 'Submitting...' : 'Submit'}
               </Button>
@@ -655,146 +719,194 @@ export default function Allowances() {
         </CardContent>
       </Card>
 
-      {/* Submitted Entries Display */}
-      <div className="pb-1">
-        <div className="flex items-center justify-between">
+      {/* Submitted Entries Section */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2 pt-3 px-3 flex flex-row items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Submitted Claims</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{formatMonthYear()}</p>
+            <CardTitle className="text-lg">Submitted Claims</CardTitle>
+            <CardDescription className="text-xs">{formatMonthYear()}</CardDescription>
           </div>
           <div className="flex gap-1">
             <button
+              type="button"
               onClick={goToPreviousMonth}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+              className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
               data-testid="button-prev-month"
             >
-              ← Prev
+              ←
             </button>
             <button
+              type="button"
               onClick={goToNextMonth}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+              className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
               data-testid="button-next-month"
             >
-              Next →
+              →
             </button>
           </div>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="p-3">
+          {submittedEntries.length === 0 ? (
+            <p className="text-xs text-gray-500 text-center py-4">No allowances submitted for {formatMonthYear()}</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {submittedEntries.map((entry, index) => {
+                const allowanceData = typeof entry.allowanceData === 'string' 
+                  ? JSON.parse(entry.allowanceData) 
+                  : entry.allowanceData;
+                
+                const entryTotal = (
+                  (allowanceData.travelAllowance || 0) +
+                  (allowanceData.foodAllowance || 0) +
+                  (allowanceData.accommodationAllowance || 0) +
+                  (allowanceData.mobileAllowance || 0) +
+                  (allowanceData.internetAllowance || 0) +
+                  (allowanceData.utilitiesAllowance || 0) +
+                  (allowanceData.parkingAllowance || 0) +
+                  (allowanceData.miscAllowance || 0)
+                ).toFixed(2);
 
-      {submittedEntries.length === 0 ? (
-        <Card className="shadow-sm border-dashed">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">No claims submitted for {formatMonthYear()}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {submittedEntries.map((entry) => {
-            let allowanceObj: AllowanceData = {
-              travelAllowance: 0,
-              foodAllowance: 0,
-              accommodationAllowance: 0,
-              mobileAllowance: 0,
-              internetAllowance: 0,
-              utilitiesAllowance: 0,
-              parkingAllowance: 0,
-              miscAllowance: 0,
-              notes: '',
-            };
-            
-            try {
-              allowanceObj = JSON.parse(entry.allowanceData);
-            } catch (e) {
-              console.error('Failed to parse allowance data:', e);
-            }
-
-            const total = (
-              (allowanceObj.travelAllowance || 0) +
-              (allowanceObj.foodAllowance || 0) +
-              (allowanceObj.accommodationAllowance || 0) +
-              (allowanceObj.mobileAllowance || 0) +
-              (allowanceObj.internetAllowance || 0) +
-              (allowanceObj.utilitiesAllowance || 0) +
-              (allowanceObj.parkingAllowance || 0) +
-              (allowanceObj.miscAllowance || 0)
-            ).toFixed(2);
-
-            const statusColor = entry.approvalStatus === 'approved' 
-              ? 'bg-green-100 text-green-800' 
-              : entry.approvalStatus === 'rejected'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800';
-
-            const paidColor = entry.paidStatus === 'full'
-              ? 'bg-green-100 text-green-800'
-              : entry.paidStatus === 'partial'
-              ? 'bg-orange-100 text-orange-800'
-              : 'bg-gray-100 text-gray-800';
-
-            return (
-              <Card key={entry.id} className="shadow-sm">
-                <CardContent className="p-3">
-                  <div className="grid grid-cols-3 md:grid-cols-3 gap-2 mb-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Date</p>
-                      <p className="text-sm font-semibold" data-testid={`text-date-${entry.id}`}>{new Date(entry.date).toLocaleDateString()}</p>
+                return (
+                  <div
+                    key={entry.id}
+                    className="border rounded p-3 bg-white hover:bg-gray-50"
+                    data-testid={`allowance-entry-${entry.id}`}
+                  >
+                    {/* Header Row: Date | Team | Employee | Total */}
+                    <div className="grid grid-cols-4 gap-2 mb-2 pb-2 border-b">
+                      <div>
+                        <p className="text-xs text-gray-500">Date</p>
+                        <p className="text-xs font-semibold text-gray-900" data-testid={`text-date-${entry.id}`}>
+                          {new Date(entry.date).toLocaleDateString('en-IN')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Team</p>
+                        <p className="text-xs font-semibold text-blue-600" data-testid={`text-team-${entry.id}`}>
+                          {entry.teamName || '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Employee</p>
+                        <p className="text-xs font-semibold text-gray-900" data-testid={`text-employee-${entry.id}`}>
+                          {entry.employeeName || entry.employeeId || '-'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Total</p>
+                        <p className="text-xs font-bold text-green-600" data-testid={`text-total-${entry.id}`}>
+                          Rs {entryTotal}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Team</p>
-                      <p className="text-sm font-semibold" data-testid={`text-team-${entry.id}`}>{entry.teamName ? entry.teamName : '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total</p>
-                      <p className="text-sm font-semibold text-green-600" data-testid={`text-total-${entry.id}`}>Rs {total}</p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2 text-xs">
-                    {allowanceObj.travelAllowance > 0 && <div><span className="text-muted-foreground">Travel:</span> <span className="font-semibold">Rs {allowanceObj.travelAllowance}</span></div>}
-                    {allowanceObj.foodAllowance > 0 && <div><span className="text-muted-foreground">Food:</span> <span className="font-semibold">Rs {allowanceObj.foodAllowance}</span></div>}
-                    {allowanceObj.accommodationAllowance > 0 && <div><span className="text-muted-foreground">Accom:</span> <span className="font-semibold">Rs {allowanceObj.accommodationAllowance}</span></div>}
-                    {allowanceObj.mobileAllowance > 0 && <div><span className="text-muted-foreground">Mobile:</span> <span className="font-semibold">Rs {allowanceObj.mobileAllowance}</span></div>}
-                    {allowanceObj.internetAllowance > 0 && <div><span className="text-muted-foreground">Internet:</span> <span className="font-semibold">Rs {allowanceObj.internetAllowance}</span></div>}
-                    {allowanceObj.utilitiesAllowance > 0 && <div><span className="text-muted-foreground">Utilities:</span> <span className="font-semibold">Rs {allowanceObj.utilitiesAllowance}</span></div>}
-                    {allowanceObj.parkingAllowance > 0 && <div><span className="text-muted-foreground">Parking:</span> <span className="font-semibold">Rs {allowanceObj.parkingAllowance}</span></div>}
-                    {allowanceObj.miscAllowance > 0 && <div><span className="text-muted-foreground">Misc:</span> <span className="font-semibold">Rs {allowanceObj.miscAllowance}</span></div>}
-                  </div>
+                    {/* Submitted For Row - Show all selected employees if bulk submission */}
+                    {entry.selectedEmployeeIds && (() => {
+                      try {
+                        const selectedIds = JSON.parse(entry.selectedEmployeeIds);
+                        if (selectedIds && selectedIds.length > 0) {
+                          return (
+                            <div className="mb-2 pb-2 border-b">
+                              <p className="text-xs text-gray-500 mb-1">Submitted for:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {selectedIds.map((id, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium"
+                                    data-testid={`text-submitted-employee-${entry.id}-${idx}`}
+                                  >
+                                    {id}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                      } catch (e) {
+                        return null;
+                      }
+                      return null;
+                    })()}
 
-                  {allowanceObj.notes && (
-                    <div className="mb-2 text-xs">
-                      <p className="text-muted-foreground">Notes:</p>
-                      <p className="text-sm">{allowanceObj.notes}</p>
+                    {/* Allowance Details: 4 columns per row */}
+                    <div className="grid grid-cols-4 gap-2 mb-2 text-xs">
+                      <div>
+                        <p className="text-gray-500">Travel</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.travelAllowance || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Food</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.foodAllowance || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Accom</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.accommodationAllowance || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Mobile</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.mobileAllowance || 0}</p>
+                      </div>
                     </div>
-                  )}
 
-                  <div className="flex flex-wrap gap-2 items-center justify-between pt-2 border-t">
-                    <div className="flex gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusColor}`} data-testid={`badge-status-${entry.id}`}>
-                        {entry.approvalStatus.charAt(0).toUpperCase() + entry.approvalStatus.slice(1)}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${paidColor}`} data-testid={`badge-paid-${entry.id}`}>
-                        {entry.paidStatus.charAt(0).toUpperCase() + entry.paidStatus.slice(1)}
-                      </span>
+                    <div className="grid grid-cols-4 gap-2 mb-2 text-xs">
+                      <div>
+                        <p className="text-gray-500">Internet</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.internetAllowance || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Utilities</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.utilitiesAllowance || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Parking</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.parkingAllowance || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Misc</p>
+                        <p className="font-semibold text-gray-900">Rs {allowanceData.miscAllowance || 0}</p>
+                      </div>
                     </div>
-                    {entry.approvalStatus === 'pending' && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
+
+                    {/* Status Row: Approval & Paid Status | Delete Button */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex gap-1">
+                        <span className={`inline-block px-2 py-0.5 rounded text-white text-xs font-semibold ${
+                          entry.approvalStatus === 'approved' ? 'bg-green-600' :
+                          entry.approvalStatus === 'rejected' ? 'bg-red-600' :
+                          entry.approvalStatus === 'processing' ? 'bg-yellow-600' :
+                          'bg-gray-600'
+                        }`} data-testid={`status-approval-${entry.id}`}>
+                          {entry.approvalStatus.charAt(0).toUpperCase() + entry.approvalStatus.slice(1)}
+                        </span>
+                        <span className={`inline-block px-2 py-0.5 rounded text-white text-xs font-semibold ${
+                          entry.paidStatus === 'full' ? 'bg-green-600' :
+                          entry.paidStatus === 'partial' ? 'bg-yellow-600' :
+                          'bg-gray-600'
+                        }`} data-testid={`status-paid-${entry.id}`}>
+                          {entry.paidStatus.charAt(0).toUpperCase() + entry.paidStatus.slice(1)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
                         onClick={() => handleDelete(entry.id)}
                         disabled={deleting}
-                        className="h-7 text-xs"
-                        data-testid={`button-delete-${entry.id}`}
+                        className="text-xs text-red-600 hover:text-red-700 font-semibold bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded"
+                        data-testid={`button-delete-allowance-${entry.id}`}
                       >
                         Delete
-                      </Button>
+                      </button>
+                    </div>
+
+                    {allowanceData.notes && (
+                      <p className="text-xs text-gray-600 mt-2 italic border-t pt-2">Note: {allowanceData.notes}</p>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

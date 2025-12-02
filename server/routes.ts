@@ -1744,6 +1744,83 @@ export async function registerRoutes(
     }
   });
 
+  // Bulk allowances endpoint - for multiple team members
+  app.post("/api/allowances/bulk", async (req, res) => {
+    try {
+      const { employeeIds, teamId, date, allowanceData, selectedEmployeeIds } = req.body;
+
+      console.log(`[Allowances Bulk] POST request received`);
+      console.log(`[Allowances Bulk] Full body:`, req.body);
+
+      if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
+        return res.status(400).json({ error: "employeeIds array is required" });
+      }
+
+      if (!date || !allowanceData || !teamId) {
+        return res.status(400).json({
+          error: "Missing required fields: date, allowanceData, teamId",
+        });
+      }
+
+      // Create ONE record per date/team with all selected employees stored as JSON
+      const primaryEmployeeId = employeeIds[0];
+      const selectedEmployeeIdsJson = selectedEmployeeIds ? JSON.stringify(selectedEmployeeIds) : null;
+      
+      console.log(`[Allowances Bulk] Creating single record for date: ${date}, team: ${teamId}`);
+      console.log(`[Allowances Bulk] Primary employee: ${primaryEmployeeId}`);
+      console.log(`[Allowances Bulk] All selected employees: ${selectedEmployeeIdsJson}`);
+
+      try {
+        // Check if allowance exists for this date and team
+        let existing;
+        try {
+          existing = await storage.getEmployeeAllowancesByDate(primaryEmployeeId, date);
+        } catch (e: any) {
+          console.error(`[Allowances Bulk] Error checking existing:`, e.message);
+        }
+
+        let allowance;
+        if (existing) {
+          // Update existing record
+          console.log(`[Allowances Bulk] Updating existing allowance ${existing.id}`);
+          allowance = await storage.updateDailyAllowance(existing.id, {
+            teamId,
+            allowanceData: allowanceData,
+            selectedEmployeeIds: selectedEmployeeIdsJson,
+          });
+        } else {
+          // Create new single record
+          console.log(`[Allowances Bulk] Creating new single allowance record`);
+          allowance = await storage.createDailyAllowance({
+            employeeId: primaryEmployeeId,
+            teamId,
+            date,
+            allowanceData: allowanceData,
+            selectedEmployeeIds: selectedEmployeeIdsJson,
+          });
+        }
+        
+        console.log(`[Allowances Bulk] Successfully saved single record for ${employeeIds.length} employees`);
+        res.json({ 
+          success: true, 
+          totalRequested: employeeIds.length,
+          successCount: 1,
+          allowanceId: allowance.id,
+          message: `Allowance record created for ${employeeIds.length} employees`
+        });
+      } catch (error: any) {
+        console.error(`[Allowances Bulk] Error creating record:`, error.message);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    } catch (error: any) {
+      console.error(`[Allowances Bulk Error]`, error);
+      res.status(500).json({ error: error.message || "Failed to save bulk allowances" });
+    }
+  });
+
   // Delete allowance endpoint - must come before other param routes
   app.delete("/api/allowances/:id", async (req, res) => {
     try {

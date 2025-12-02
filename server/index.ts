@@ -44,7 +44,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(
   session({
     store: sessionStore,
-    secret: process.env.SESSION_SECRET || "your-secret-key-change-in-production",
+    secret:
+      process.env.SESSION_SECRET || "your-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -53,22 +54,28 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       sameSite: "lax",
     },
-  })
+  }),
 );
 
 // CORS middleware - Allow requests from any origin for API access
 app.use((req, res, next) => {
-  const origin = req.headers.origin || '*';
-  
+  const origin = req.headers.origin || "*";
+
   // Allow all origins for API access
-  res.header('Access-Control-Allow-Origin', origin);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '3600');
-  
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With",
+  );
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Max-Age", "3600");
+
   // Handle preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     res.sendStatus(200);
   } else {
     next();
@@ -132,7 +139,9 @@ app.use((req, res, next) => {
   // CRITICAL: Protect ALL unmatched API routes - return JSON 404 instead of HTML
   app.use("/api/", (req, res) => {
     res.setHeader("Content-Type", "application/json");
-    res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.path}` });
+    res
+      .status(404)
+      .json({ error: `API endpoint not found: ${req.method} ${req.path}` });
   });
 
   // importantly only setup vite in development and after
@@ -150,11 +159,15 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
+  // Use localhost for local development (works on Windows/Mac/Linux)
+  // Use 0.0.0.0 only when deployed on Replit
+  const host = process.env.REPLIT_DEV_DOMAIN ? "0.0.0.0" : "localhost";
+
   httpServer.listen(
     {
       port,
-      host: "0.0.0.0",
-      reusePort: true,
+      host,
+      reusePort: process.env.REPLIT_DEV_DOMAIN ? true : false, // reusePort not supported on Windows
     },
     () => {
       log(`serving on port ${port}`);
