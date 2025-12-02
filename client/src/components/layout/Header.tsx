@@ -1,5 +1,6 @@
 import { Bell, Search, Settings, Menu } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +19,37 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
   const [, setLocation] = useLocation();
-  const employeeName = localStorage.getItem('employeeName') || localStorage.getItem('vendorName') || 'User';
-  const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
-  const isVendor = typeof window !== 'undefined' && localStorage.getItem('vendorId') !== null;
-  const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
+  const [employeeName, setEmployeeName] = useState('User');
+  const [isEmployee, setIsEmployee] = useState(false);
+  const [isVendor, setIsVendor] = useState(false);
+  const [employeeRole, setEmployeeRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Update user info from localStorage
+    const updateUserInfo = () => {
+      const name = localStorage.getItem('employeeName') || localStorage.getItem('vendorName') || 'User';
+      const empId = localStorage.getItem('employeeId') !== null;
+      const vendId = localStorage.getItem('vendorId') !== null;
+      const role = localStorage.getItem('employeeRole');
+      
+      setEmployeeName(name);
+      setIsEmployee(empId);
+      setIsVendor(vendId);
+      setEmployeeRole(role);
+    };
+    
+    updateUserInfo();
+    
+    // Listen for storage changes
+    window.addEventListener('storage', updateUserInfo);
+    window.addEventListener('login', updateUserInfo);
+    
+    return () => {
+      window.removeEventListener('storage', updateUserInfo);
+      window.removeEventListener('login', updateUserInfo);
+    };
+  }, []);
+
   const isUserEmployee = isEmployee && employeeRole === 'user';
   const showSettings = !isUserEmployee && !isVendor;
 
