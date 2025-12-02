@@ -159,7 +159,7 @@ export default function VendorProfile() {
             </CardHeader>
             <CardContent className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
               <FormField control={form.control} name="category" render={({ field }) => (
-                <FormItem className="col-span-2 space-y-3">
+                <FormItem className="sm:col-span-1 col-span-2 space-y-3">
                   <FormLabel>Vendor Category <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
                     <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-8">
@@ -202,7 +202,7 @@ export default function VendorProfile() {
             </CardHeader>
             <CardContent className="grid gap-6 sm:grid-cols-1 md:grid-cols-3">
               <FormField control={form.control} name="address" render={({ field }) => (
-                <FormItem className="col-span-3">
+                <FormItem className="sm:col-span-1 col-span-3">
                   <FormLabel>Street Address <span className="text-red-500">*</span></FormLabel>
                   <FormControl><Input placeholder="123 Main St, Block A" {...field} /></FormControl>
                   <FormMessage />
@@ -293,7 +293,7 @@ export default function VendorProfile() {
               )} />
 
               <FormField control={form.control} name="gstin" render={({ field }) => (
-                <FormItem className="col-span-2 md:col-span-1">
+                <FormItem className="sm:col-span-1 md:col-span-1">
                   <FormLabel>GSTIN</FormLabel>
                   <FormControl><Input placeholder="GST Number" maxLength={15} {...field} /></FormControl>
                   <FormDescription>Optional</FormDescription>

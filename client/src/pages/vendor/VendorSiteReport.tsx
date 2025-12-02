@@ -485,7 +485,7 @@ export default function VendorSiteReport() {
               <div className="h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : filteredSites.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="w-full">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
