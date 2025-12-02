@@ -154,7 +154,7 @@ export default function Login() {
               </label>
               <Input
                 type="email"
-                placeholder="admin@ems.com"
+                placeholder="superadmin@ems.local"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"

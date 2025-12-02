@@ -1899,7 +1899,7 @@ export async function registerRoutes(
   // Initialize superadmin - creates default superadmin if not exists
   app.post("/api/admin/init-superadmin", async (req, res) => {
     try {
-      const superadminEmail = 'admin@ems.com';
+      const superadminEmail = 'superadmin@ems.local';
       const existingAdmin = await storage.getEmployeeByEmail(superadminEmail);
       
       if (existingAdmin) {
@@ -1910,7 +1910,7 @@ export async function registerRoutes(
       const hashedPassword = await bcrypt.hash('password', 10);
       
       const newAdmin = await storage.createEmployee({
-        name: 'Superadmin',
+        name: 'System Administrator',
         email: superadminEmail,
         password: hashedPassword,
         fatherName: 'System',
