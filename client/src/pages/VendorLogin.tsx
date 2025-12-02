@@ -75,6 +75,7 @@ export default function VendorLogin() {
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("vendorId", data.vendor.id);
       localStorage.setItem("vendorEmail", data.vendor.email);
+      localStorage.setItem("vendorName", data.vendor.name);
 
       // Save credentials to cookies if Remember Me is checked and cookies are enabled
       const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
@@ -96,7 +97,7 @@ export default function VendorLogin() {
       }
 
       window.dispatchEvent(new Event("login"));
-      setLocation("/");
+      setLocation("/vendor/dashboard");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -207,6 +208,16 @@ export default function VendorLogin() {
                 Protected by enterprise-grade security. Your data is encrypted and secure.
               </p>
             </form>
+
+            {/* Sign Up Link */}
+            <div className="mt-6 text-center border-t pt-4">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <Link href="/vendor-signup" className="text-blue-600 hover:text-blue-800 font-semibold" data-testid="link-signup">
+                  Sign Up
+                </Link>
+              </p>
+            </div>
           </CardContent>
         </Card>
 

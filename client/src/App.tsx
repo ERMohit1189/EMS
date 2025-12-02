@@ -11,6 +11,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 // Eager load login pages for instant display
 import Login from "@/pages/Login";
 import VendorLogin from "@/pages/VendorLogin";
+import VendorSignUp from "@/pages/VendorSignUp";
 import EmployeeLogin from "@/pages/EmployeeLogin";
 
 // Lazy load other pages for code splitting
@@ -49,6 +50,10 @@ const Allowances = lazy(() => import("@/pages/employee/Allowances"));
 const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
+const VendorDashboard = lazy(() => import("@/pages/VendorDashboard"));
+const VendorPOReport = lazy(() => import("@/pages/vendor/VendorPOReport"));
+const VendorInvoiceReport = lazy(() => import("@/pages/vendor/VendorInvoiceReport"));
+const VendorSiteReport = lazy(() => import("@/pages/vendor/VendorSiteReport"));
 const Teams = lazy(() => import("@/pages/admin/Teams"));
 const AllowanceApproval = lazy(() => import("@/pages/admin/AllowanceApproval"));
 const ApprovalHistory = lazy(() => import("@/pages/admin/ApprovalHistory"));
@@ -199,6 +204,7 @@ function App() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
+          <Route path="/vendor-signup" component={VendorSignUp} />
           {isDev && <Route path="/employee-login" component={EmployeeLogin} />}
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
@@ -219,6 +225,7 @@ function App() {
           {/* Login Routes */}
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
+          <Route path="/vendor-signup" component={VendorSignUp} />
           {isDev && <Route path="/employee-login" component={EmployeeLogin} />}
           
           {/* Privacy Policy Routes */}
@@ -240,6 +247,7 @@ function App() {
                   </Route>
                   
                   {/* Vendor Routes */}
+                  <Route path="/vendor/dashboard" component={VendorDashboard} />
                   <Route path="/vendor/register" component={VendorRegistration} />
                   <Route path="/vendor/list" component={VendorList} />
                   <Route path="/vendor/edit/:id" component={VendorEdit} />
@@ -255,6 +263,11 @@ function App() {
                   <Route path="/vendor/excel-import" component={ExcelImport} />
                   <Route path="/vendor/po" component={POGeneration} />
                   <Route path="/vendor/invoices" component={InvoiceGeneration} />
+                  
+                  {/* Vendor Report Routes */}
+                  <Route path="/reports/vendor-po" component={VendorPOReport} />
+                  <Route path="/reports/vendor-invoice" component={VendorInvoiceReport} />
+                  <Route path="/reports/vendor-site" component={VendorSiteReport} />
                   
                   {/* Settings Route */}
                   <Route path="/settings" component={Settings} />

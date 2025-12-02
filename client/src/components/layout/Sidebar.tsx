@@ -155,6 +155,26 @@ const adminMenuGroups = [
     ],
   },
   {
+    group: 'Reports',
+    items: [
+      {
+        title: 'Vendor PO',
+        icon: FileText,
+        href: '/reports/vendor-po',
+      },
+      {
+        title: 'Vendor Invoice',
+        icon: FileText,
+        href: '/reports/vendor-invoice',
+      },
+      {
+        title: 'Vendor Site',
+        icon: Building2,
+        href: '/reports/vendor-site',
+      },
+    ],
+  },
+  {
     group: 'Settings',
     items: [
       {

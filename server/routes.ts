@@ -96,6 +96,76 @@ export async function registerRoutes(
     });
   });
 
+  // Check if vendor email exists
+  app.get("/api/vendors/check-email", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      const vendor = await storage.getVendorByEmail(email);
+      res.json({ exists: !!vendor });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Vendor signup with Zod validation
+  app.post("/api/vendors/signup", async (req, res) => {
+    try {
+      const { name, email, mobile, address, state, city, password } = req.body;
+      
+      // Basic validation
+      if (!name || !email || !mobile || !address || !state || !city || !password) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ error: "Password must be at least 6 characters" });
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      // Check if email already exists
+      const existingVendor = await storage.getVendorByEmail(email);
+      if (existingVendor) {
+        return res.status(400).json({ error: "Email already registered" });
+      }
+
+      // Hash password
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Validate and create vendor using schema
+      const vendorData = insertVendorSchema.parse({
+        name,
+        email,
+        mobile,
+        address,
+        state,
+        city,
+        password: hashedPassword,
+        country: "India",
+        category: "Individual",
+        status: "Pending",
+        role: "Vendor",
+      });
+
+      const vendor = await storage.createVendor(vendorData);
+      res.json({ success: true, vendor: { id: vendor.id, name: vendor.name, email: vendor.email } });
+    } catch (error: any) {
+      console.error("[Vendor Signup Error]:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Validation error: " + error.errors?.map((e: any) => e.message).join(", ") });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Employee login route
   app.post("/api/employees/login", async (req, res) => {
     try {
@@ -471,6 +541,15 @@ export async function registerRoutes(
         pageNumber: page,
         pageSize,
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vendors/:vendorId/sites", async (req, res) => {
+    try {
+      const sites = await storage.getSitesByVendor(req.params.vendorId);
+      res.json(sites);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
