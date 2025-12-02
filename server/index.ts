@@ -14,6 +14,7 @@ declare module "express-session" {
     employeeEmail?: string;
     vendorId?: string;
     vendorEmail?: string;
+    isHigherAuthority?: boolean;
   }
 }
 
