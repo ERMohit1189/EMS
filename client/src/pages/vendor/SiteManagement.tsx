@@ -21,13 +21,12 @@ interface SiteData {
   planId: string;
   vendorId: string;
   vendorAmount: number;
-  siteAmount: number;
   [key: string]: any;
 }
 
 // All 81 fields in order (matching PDF export)
 const fieldColumns = [
-  'ID', 'Site ID', 'Vendor ID', 'Zone ID', 'Plan ID', 'Site Amount', 'Vendor Amount', 'S.No',
+  'ID', 'Site ID', 'Vendor ID', 'Zone ID', 'Plan ID', 'Vendor Amount', 'S.No',
   'Circle', 'Nominal AOP', 'HOP Type', 'HOP A-B', 'HOP B-A', 'District', 'Project',
   'Site A Ant Dia', 'Site B Ant Dia', 'Max Ant Size', 'Site A Name', 'TOCO Vendor A', 'TOCO ID A',
   'Site B Name', 'TOCO Vendor B', 'TOCO ID B', 'Media Availability Status',
@@ -49,7 +48,7 @@ const fieldColumns = [
 ];
 
 const fieldKeys = [
-  'id', 'siteId', 'vendorId', 'zoneId', 'planId', 'siteAmount', 'vendorAmount', 'sno',
+  'id', 'siteId', 'vendorId', 'zoneId', 'planId', 'vendorAmount', 'sno',
   'circle', 'nominalAop', 'hopType', 'hopAB', 'hopBA', 'district', 'project',
   'siteAAntDia', 'siteBAntDia', 'maxAntSize', 'siteAName', 'tocoVendorA', 'tocoIdA',
   'siteBName', 'tocoVendorB', 'tocoIdB', 'mediaAvailabilityStatus',
