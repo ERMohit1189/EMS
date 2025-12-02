@@ -557,7 +557,25 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSitesByVendor(vendorId: string): Promise<Site[]> {
-    return await db.select().from(sites).where(eq(sites.vendorId, vendorId));
+    const result = await db
+      .select({
+        ...getTableColumns(sites),
+        vendorAmount: paymentMasters.vendorAmount,
+        siteAmount: paymentMasters.siteAmount,
+      })
+      .from(sites)
+      .leftJoin(
+        paymentMasters,
+        and(
+          eq(sites.id, paymentMasters.siteId),
+          eq(sites.planId, paymentMasters.planId),
+          eq(sites.vendorId, paymentMasters.vendorId),
+          eq(sites.maxAntSize, paymentMasters.antennaSize)
+        )
+      )
+      .where(eq(sites.vendorId, vendorId));
+    
+    return result as Site[];
   }
 
   async getSitesForPOGeneration(): Promise<Site[]> {
