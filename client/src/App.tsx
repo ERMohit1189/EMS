@@ -214,6 +214,7 @@ function App() {
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
           <Route path="/vendor-signup" component={VendorSignUp} />
+          <Route path="/vendor/forgot-password" component={VendorForgotPassword} />
           {isDev && <Route path="/employee-login" component={EmployeeLogin} />}
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
