@@ -1907,7 +1907,7 @@ export async function registerRoutes(
       }
       
       const bcrypt = require('bcrypt');
-      const hashedPassword = await bcrypt.hash('password', 10);
+      const hashedPassword = await bcrypt.hash('SuperAdmin@123', 10);
       
       const newAdmin = await storage.createEmployee({
         name: 'System Administrator',
@@ -1915,9 +1915,16 @@ export async function registerRoutes(
         password: hashedPassword,
         fatherName: 'System',
         mobile: '9999999999',
+        doj: new Date().toISOString().split('T')[0],
+        bloodGroup: 'O+',
+        maritalStatus: 'Single',
+        nominee: 'System Administrator',
+        address: 'System Address',
+        city: 'System',
+        state: 'System',
         role: 'superadmin',
         status: 'Active'
-      });
+      } as any);
       
       res.json({ success: true, message: "Superadmin created successfully", email: superadminEmail });
     } catch (error: any) {
