@@ -4,10 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
-import { Building2, FileText, Receipt, MapPin, User, Mail, Phone, Calendar, Package, DollarSign, Eye, AlertCircle } from "lucide-react";
+import { FileText, Receipt, MapPin, User, Mail, Phone, Calendar, Eye, AlertCircle, Download, X, Building2 } from "lucide-react";
 import { format } from "date-fns";
+import * as XLSX from 'xlsx';
 
 interface Vendor {
   id: string;
@@ -55,6 +57,7 @@ interface Site {
   siteBName: string;
   hopType: string;
   status?: string;
+  [key: string]: any;
 }
 
 export default function VendorDashboard() {
@@ -65,10 +68,25 @@ export default function VendorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("info");
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
   const vendorId = localStorage.getItem("vendorId");
+
+  const downloadSitesExcel = () => {
+    if (sites.length === 0) {
+      toast({ title: "No data", description: "No sites to download", variant: "destructive" });
+      return;
+    }
+    
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(sites);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sites");
+    XLSX.writeFile(workbook, `vendor-sites-${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({ title: "Success", description: "Sites data downloaded successfully" });
+  };
 
   useEffect(() => {
     if (!vendorId) {
@@ -369,12 +387,18 @@ export default function VendorDashboard() {
 
         <TabsContent value="site" className="mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Vendor Site
-              </CardTitle>
-              <CardDescription>Your assigned sites ({sites.length})</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Vendor Site
+                </CardTitle>
+                <CardDescription>Your assigned sites ({sites.length})</CardDescription>
+              </div>
+              <Button onClick={downloadSitesExcel} className="gap-2" data-testid="button-download-sites">
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
             </CardHeader>
             <CardContent>
               {sites.length > 0 ? (
@@ -388,6 +412,7 @@ export default function VendorDashboard() {
                         <th className="px-4 py-3 text-left font-medium">Site A</th>
                         <th className="px-4 py-3 text-left font-medium">Site B</th>
                         <th className="px-4 py-3 text-left font-medium">HOP Type</th>
+                        <th className="px-4 py-3 text-center font-medium">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -399,6 +424,16 @@ export default function VendorDashboard() {
                           <td className="px-4 py-3">{site.siteAName || "N/A"}</td>
                           <td className="px-4 py-3">{site.siteBName || "N/A"}</td>
                           <td className="px-4 py-3">{site.hopType || "N/A"}</td>
+                          <td className="px-4 py-3 text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedSite(site)}
+                              data-testid={`button-view-site-${site.id}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -411,6 +446,50 @@ export default function VendorDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Site Details Modal */}
+      <Dialog open={!!selectedSite} onOpenChange={(open) => !open && setSelectedSite(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Site Details - {selectedSite?.siteId}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedSite && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {Object.entries(selectedSite).map(([key, value]) => (
+                  <div key={key} className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 uppercase font-semibold">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                    <p className="font-medium text-sm mt-1">
+                      {value !== null && value !== undefined ? String(value) : "N/A"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    const csv = XLSX.utils.json_to_sheet([selectedSite]);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, csv, "Site");
+                    XLSX.writeFile(workbook, `site-${selectedSite.siteId}.xlsx`);
+                    toast({ title: "Success", description: "Site data downloaded" });
+                  }}
+                  className="gap-2"
+                  data-testid="button-download-site-detail"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Site
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
