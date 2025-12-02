@@ -5,6 +5,28 @@ Build an Enterprise Management System (EMS) Portal with React/Vite frontend and 
 
 ## Recent Changes (Latest First)
 
+### Vendor Account Management Features (In Progress)
+- **Vendor Profile Editor** (`/vendor/profile`) - Created editable profile page where vendors can update:
+  - Name, mobile, address, city, state, pincode
+  - Category (Individual/Company)
+  - Documents (Aadhar, PAN, GSTIN)
+  - Email and Vendor Code are locked for security
+  - Uses PUT `/api/vendors/:id` endpoint for updates
+- **Change Password** (`/vendor/change-password`) - Secure password change page:
+  - Requires current password verification
+  - Password confirmation required
+  - Linked in vendor sidebar under Account menu
+- **Forgot Password** (`/vendor/forgot-password`) - Password reset page:
+  - Accessible from vendor login page with "Forgot Password?" link
+  - Allows password reset using email address
+  - Redirects to login after successful reset
+- **Frontend Updates**:
+  - Added "Forgot Password?" link on VendorLogin.tsx
+  - Added "Profile" and "Change Password" menu items to vendor sidebar
+- **Backend Endpoints Still Needed**:
+  - `POST /api/vendors/:id/change-password` - Validate current password and update
+  - `POST /api/vendors/forgot-password` - Reset password by email
+
 ### Monthly Attendance Feature Implementation
 - **Database Schema**: Added `attendances` table with employee ID, month, year, and JSON-based attendance data storage
 - **Backend Storage**: Implemented CRUD operations for attendance management (create, read, update, delete)

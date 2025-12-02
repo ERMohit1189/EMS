@@ -179,6 +179,13 @@ export default function VendorLogin() {
                 </label>
               </div>
 
+              {/* Forgot Password Link */}
+              <div className="text-right">
+                <Link href="/vendor/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 font-semibold" data-testid="link-forgot-password">
+                  Forgot Password?
+                </Link>
+              </div>
+
               {/* Divider */}
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">

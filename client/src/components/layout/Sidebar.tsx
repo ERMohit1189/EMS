@@ -274,6 +274,16 @@ const vendorMenuGroups = [
         icon: LayoutDashboard,
         href: '/vendor/dashboard',
       },
+      {
+        title: 'Profile',
+        icon: Users,
+        href: '/vendor/profile',
+      },
+      {
+        title: 'Change Password',
+        icon: Key,
+        href: '/vendor/change-password',
+      },
     ],
   },
 ];
