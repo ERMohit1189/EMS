@@ -95,6 +95,9 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('employeeRole', 'superadmin');
+      
+      // Clear any saved last location to prevent redirecting to old vendor/employee dashboards
+      sessionStorage.removeItem('lastValidLocation');
 
       toast({
         title: 'Success',
