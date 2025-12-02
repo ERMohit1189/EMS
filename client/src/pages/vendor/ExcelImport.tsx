@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
-import { getApiBaseUrl } from '@/lib${getApiBaseUrl()}/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchWithLoader } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';

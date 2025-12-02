@@ -5,7 +5,6 @@ import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useParams } from 'wouter';
 import { useState, useEffect } from 'react';
-import { getApiBaseUrl } from '@/lib${getApiBaseUrl()}/api';
 import {
   Form,
   FormControl,
