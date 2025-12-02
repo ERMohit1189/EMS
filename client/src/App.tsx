@@ -109,13 +109,15 @@ function App() {
       const vendorId = localStorage.getItem('vendorId');
       const employeeRole = localStorage.getItem('employeeRole');
       
-      if (lastLocation && lastLocation !== '/' && !lastLocation.startsWith('/login')) {
-        setLocation(lastLocation);
-      } else if (employeeRole === 'superadmin' || employeeRole === 'Superadmin') {
+      // Check role FIRST - superadmin must stay on admin dashboard
+      if (employeeRole === 'superadmin' || employeeRole === 'Superadmin') {
         // Superadmin stays on admin dashboard (root /)
         // No redirect needed
+      } else if (lastLocation && lastLocation !== '/' && !lastLocation.startsWith('/login')) {
+        // For non-superadmin users, restore last location if available
+        setLocation(lastLocation);
       } else if (employeeEmail) {
-        // Employee dashboard for employees (check employee first)
+        // Employee dashboard for employees
         setLocation('/employee/dashboard');
       } else if (vendorId) {
         // Vendor dashboard for vendors
