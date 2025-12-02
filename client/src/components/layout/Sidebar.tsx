@@ -19,7 +19,8 @@ import {
   Key,
   ChevronDown,
   Calendar,
-  UsersRound
+  UsersRound,
+  Receipt
 } from 'lucide-react';
 import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
 
@@ -244,12 +245,46 @@ const userEmployeeMenuGroups = [
   },
 ];
 
+const vendorMenuGroups = [
+  {
+    group: 'Reports',
+    items: [
+      {
+        title: 'Vendor PO',
+        icon: FileText,
+        href: '/reports/vendor-po',
+      },
+      {
+        title: 'Vendor Invoice',
+        icon: Receipt,
+        href: '/reports/vendor-invoice',
+      },
+      {
+        title: 'Vendor Site',
+        icon: Building2,
+        href: '/reports/vendor-site',
+      },
+    ],
+  },
+  {
+    group: 'Account',
+    items: [
+      {
+        title: 'Dashboard',
+        icon: LayoutDashboard,
+        href: '/vendor/dashboard',
+      },
+    ],
+  },
+];
+
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const [location] = useLocation();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   
-  // Check if user is logged in as employee
+  // Check if user is logged in as employee or vendor
   const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
+  const isVendor = typeof window !== 'undefined' && localStorage.getItem('vendorId') !== null;
   const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
   const isUserEmployee = isEmployee && employeeRole === 'user';
   const isReportingPersonValue = typeof window !== 'undefined' ? localStorage.getItem('isReportingPerson') : null;
@@ -257,6 +292,10 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   
   // Memoize menuGroups to prevent infinite loop
   const menuGroups = useMemo(() => {
+    if (isVendor) {
+      return vendorMenuGroups;
+    }
+    
     let groups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
     
     // Filter out Approvals group if not a reporting person
@@ -265,7 +304,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     }
     
     return groups;
-  }, [isUserEmployee, isReportingPerson]);
+  }, [isVendor, isUserEmployee, isReportingPerson]);
   
   // Initialize expanded groups based on menu groups
   useEffect(() => {
@@ -274,12 +313,17 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       initialExpandedGroups[group.group] = true;
     });
     setExpandedGroups(initialExpandedGroups);
-  }, [isUserEmployee, isReportingPerson]);
+  }, [isVendor, isUserEmployee, isReportingPerson]);
 
   // Auto-expand/collapse groups based on current route
   useEffect(() => {
     const getGroupForRoute = (route: string): string | null => {
-      if (isUserEmployee) {
+      if (isVendor) {
+        // For vendor users
+        if (route.startsWith('/reports')) return 'Reports';
+        if (route.startsWith('/vendor/dashboard')) return 'Account';
+        return 'Reports';
+      } else if (isUserEmployee) {
         // For user employees
         if (route.startsWith('/settings')) return 'Settings';
         if (route.startsWith('/admin/allowance-approvals') || route.startsWith('/admin/approval-history')) return 'Approvals';
@@ -310,7 +354,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       });
       return newExpandedGroups;
     });
-  }, [location, menuGroups]);
+  }, [location, menuGroups, isVendor]);
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev => ({
@@ -335,7 +379,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-2 px-2">
           {/* Employee Dashboard Link - Only for Logged In Employees */}
-          {isEmployee && (
+          {isEmployee && !isVendor && (
             <div className="mb-4 pb-4 border-b border-sidebar-border">
               <Link href="/employee/dashboard">
                 <div
@@ -349,6 +393,26 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   My Dashboard
+                </div>
+              </Link>
+            </div>
+          )}
+
+          {/* Vendor Dashboard Link - Only for Vendor Users */}
+          {isVendor && (
+            <div className="mb-4 pb-4 border-b border-sidebar-border">
+              <Link href="/vendor/dashboard">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-blue-500 hover:text-white cursor-pointer',
+                    (location === '/vendor/dashboard' || location === '/')
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-blue-400 text-white shadow-sm'
+                  )}
+                  data-testid="link-vendor-dashboard"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
                 </div>
               </Link>
             </div>
