@@ -69,6 +69,7 @@ export default function VendorDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("info");
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [expandedSite, setExpandedSite] = useState<string | null>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -494,64 +495,86 @@ export default function VendorDashboard() {
         </TabsContent>
 
         <TabsContent value="site" className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Vendor Site
-                </CardTitle>
-                <CardDescription>Your assigned sites ({sites.length})</CardDescription>
-              </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Your assigned sites ({sites.length})</h3>
               <Button onClick={downloadSitesExcel} className="gap-2" data-testid="button-download-sites">
                 <Download className="h-4 w-4" />
                 Download
               </Button>
-            </CardHeader>
-            <CardContent>
-              {sites.length > 0 ? (
-                <div className="w-full">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium">Site ID</th>
-                        <th className="px-4 py-3 text-left font-medium">Plan ID</th>
-                        <th className="px-4 py-3 text-left font-medium">Circle</th>
-                        <th className="px-4 py-3 text-left font-medium">Site A</th>
-                        <th className="px-4 py-3 text-left font-medium">Site B</th>
-                        <th className="px-4 py-3 text-left font-medium">HOP Type</th>
-                        <th className="px-4 py-3 text-center font-medium">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {sites.map((site) => (
-                        <tr key={site.id} className="hover:bg-gray-50" data-testid={`row-site-${site.id}`}>
-                          <td className="px-4 py-3 font-medium">{site.siteId}</td>
-                          <td className="px-4 py-3">{site.planId}</td>
-                          <td className="px-4 py-3">{site.circle || "N/A"}</td>
-                          <td className="px-4 py-3">{site.siteAName || "N/A"}</td>
-                          <td className="px-4 py-3">{site.siteBName || "N/A"}</td>
-                          <td className="px-4 py-3">{site.hopType || "N/A"}</td>
-                          <td className="px-4 py-3 text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedSite(site)}
-                              data-testid={`button-view-site-${site.id}`}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No sites found</p>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+            {sites.length > 0 ? (
+              <div className="space-y-3">
+                {sites.map((site) => (
+                  <Card key={site.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => setExpandedSite(expandedSite === site.id ? null : site.id)} data-testid={`card-site-${site.id}`}>
+                    <CardHeader className="py-4">
+                      <div className="space-y-3">
+                        <div>
+                          <CardTitle className="text-base font-mono">{site.planId || site.siteId}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{site.circle || "—"} • {site.hopType || "—"}</p>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Site ID</label>
+                            <p className="text-sm font-semibold mt-0.5">{site.siteId}</p>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
+                            <p className="text-sm font-semibold mt-0.5">{site.siteAName || "—"}</p>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Site B Name</label>
+                            <p className="text-sm font-semibold mt-0.5">{site.siteBName || "—"}</p>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Max Ant Size</label>
+                            <p className="text-sm font-semibold mt-0.5">{site.maxAntSize || "—"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    {expandedSite === site.id && (
+                      <CardContent className="border-t pt-6 pb-6 space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-3 gap-4">
+                          {Object.entries(site).map(([key, value]) => {
+                            if (fieldsToExclude.has(key) || ['siteId', 'planId', 'siteAName', 'siteBName', 'maxAntSize', 'circle', 'hopType'].includes(key)) return null;
+                            const displayKey = columnHeaderMap[key] || key.replace(/([A-Z])/g, ' $1').trim();
+                            return (
+                              <div key={key} className="bg-muted/50 p-3 rounded-md">
+                                <label className="text-xs font-medium text-muted-foreground">{displayKey}</label>
+                                <p className="text-sm font-semibold mt-1">{value !== null && value !== undefined ? String(value) : "—"}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-2 pt-4 border-t">
+                          <Button
+                            onClick={() => {
+                              const formattedData = getFormattedExcelData([site]);
+                              const sheet = XLSX.utils.json_to_sheet(formattedData);
+                              const workbook = XLSX.utils.book_new();
+                              XLSX.utils.book_append_sheet(workbook, sheet, "Site");
+                              XLSX.writeFile(workbook, `site-${site.siteId}.xlsx`);
+                              toast({ title: "Success", description: "Site data downloaded" });
+                            }}
+                            className="gap-2"
+                            size="sm"
+                            data-testid={`button-download-site-${site.id}`}
+                          >
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No sites found</p>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
