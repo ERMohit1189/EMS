@@ -200,63 +200,65 @@ export default function VendorProfile() {
               <CardTitle>Address Details</CardTitle>
               <CardDescription>Update your billing and communication address.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6 sm:grid-cols-1 md:grid-cols-3">
+            <CardContent className="space-y-6">
               <FormField control={form.control} name="address" render={({ field }) => (
-                <FormItem className="sm:col-span-1 col-span-3">
+                <FormItem>
                   <FormLabel>Street Address <span className="text-red-500">*</span></FormLabel>
                   <FormControl><Input placeholder="123 Main St, Block A" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="state" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>State <span className="text-red-500">*</span></FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-[200px]">
-                      <div className="p-2"><Input ref={stateInputRef} autoFocus placeholder="Search..." value={stateSearch} onChange={(e) => setStateSearch(e.target.value)} className="mb-2" /></div>
-                      <div className="max-h-[150px] overflow-y-auto">
-                        {filteredStates.map((state) => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                        ))}
-                      </div>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                <FormField control={form.control} name="state" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>State <span className="text-red-500">*</span></FormLabel>
+                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-[200px]">
+                        <div className="p-2"><Input ref={stateInputRef} autoFocus placeholder="Search..." value={stateSearch} onChange={(e) => setStateSearch(e.target.value)} className="mb-2" /></div>
+                        <div className="max-h-[150px] overflow-y-auto">
+                          {filteredStates.map((state) => (
+                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                          ))}
+                        </div>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
-              <FormField control={form.control} name="city" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City <span className="text-red-500">*</span></FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select City" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-[200px]">
-                      <div className="p-2"><Input ref={cityInputRef} autoFocus placeholder="Search..." value={citySearch} onChange={(e) => setCitySearch(e.target.value)} className="mb-2" /></div>
-                      <div className="max-h-[150px] overflow-y-auto">
-                        {filteredCities.map((city) => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
-                        ))}
-                      </div>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
+                <FormField control={form.control} name="city" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City <span className="text-red-500">*</span></FormLabel>
+                    <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Select City" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-[200px]">
+                        <div className="p-2"><Input ref={cityInputRef} autoFocus placeholder="Search..." value={citySearch} onChange={(e) => setCitySearch(e.target.value)} className="mb-2" /></div>
+                        <div className="max-h-[150px] overflow-y-auto">
+                          {filteredCities.map((city) => (
+                            <SelectItem key={city} value={city}>{city}</SelectItem>
+                          ))}
+                        </div>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
-              <FormField control={form.control} name="pincode" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pincode</FormLabel>
-                  <FormControl><Input placeholder="110001" {...field} /></FormControl>
-                  <FormDescription>Optional</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )} />
+                <FormField control={form.control} name="pincode" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pincode</FormLabel>
+                    <FormControl><Input placeholder="110001" {...field} /></FormControl>
+                    <FormDescription>Optional</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
 
               <FormField control={form.control} name="country" render={({ field }) => (
                 <FormItem>
