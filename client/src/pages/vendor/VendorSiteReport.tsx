@@ -160,9 +160,10 @@ export default function VendorSiteReport() {
     createdAt: 'Created At',
     updatedAt: 'Updated At',
     vendorCode: 'Partner Code',
+    vendorAmount: 'Vendor Amount',
   };
 
-  const fieldsToExclude = new Set(['id', 'zoneId', 'vendorId', 'siteAmount', 'vendorAmount']);
+  const fieldsToExclude = new Set(['id', 'zoneId', 'vendorId', 'siteAmount']);
 
   const getFormattedExcelData = (data: Site[]) => {
     return data.map(item => {
