@@ -93,13 +93,18 @@ export default function VendorProfile() {
   };
 
   const watchedState = form.watch('state');
+  const watchedCity = form.watch('city');
   useEffect(() => {
     if (watchedState) {
-      setCities(getCitiesByState(watchedState));
-      form.setValue('city', '', { shouldValidate: false });
+      const citiesList = getCitiesByState(watchedState);
+      setCities(citiesList);
+      // Only clear city if it's not in the new state's cities list
+      if (watchedCity && !citiesList.includes(watchedCity)) {
+        form.setValue('city', '', { shouldValidate: false });
+      }
       setCitySearch('');
     }
-  }, [watchedState, form]);
+  }, [watchedState, form, watchedCity]);
 
   const filteredStates = IndianStates.filter(s => s.toLowerCase().includes(stateSearch.toLowerCase()));
   const filteredCities = cities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
