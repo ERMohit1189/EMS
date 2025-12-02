@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
-import { MapPin, Calendar, Radio, Globe, Hash, Search, RefreshCw, Eye, X, AlertCircle } from "lucide-react";
+import { MapPin, Calendar, Radio, Globe, Hash, Search, RefreshCw, Eye, X, AlertCircle, Download } from "lucide-react";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
 
 interface Site {
   id: string;
@@ -47,9 +48,19 @@ interface Zone {
   code: string;
 }
 
+interface Vendor {
+  id: string;
+  vendorCode: string;
+  companyName: string;
+  email: string;
+  contactPerson: string;
+  [key: string]: any;
+}
+
 export default function VendorSiteReport() {
   const [sites, setSites] = useState<Site[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -62,12 +73,146 @@ export default function VendorSiteReport() {
 
   const vendorId = localStorage.getItem("vendorId");
 
+  const columnHeaderMap: Record<string, string> = {
+    siteId: 'Site ID',
+    planId: 'Plan ID',
+    circle: 'Circle',
+    district: 'District',
+    project: 'Project',
+    siteAAntDia: 'Site A Ant Dia',
+    siteBAntDia: 'Site B Ant Dia',
+    maxAntSize: 'Max Ant Size',
+    siteAName: 'Site A Name',
+    tocoVendorA: 'TOCO Vendor A',
+    tocoIdA: 'TOCO ID A',
+    siteBName: 'Site B Name',
+    tocoVendorB: 'TOCO Vendor B',
+    tocoIdB: 'TOCO ID B',
+    hopType: 'HOP Type',
+    hopAB: 'HOP AB',
+    hopBA: 'HOP BA',
+    nominalAop: 'Nominal AOP',
+    mediaAvailabilityStatus: 'Media Availability Status',
+    srNoSiteA: 'SR No Site A',
+    srDateSiteA: 'SR Date Site A',
+    srNoSiteB: 'SR No Site B',
+    srDateSiteB: 'SR Date Site B',
+    hopSrDate: 'HOP SR Date',
+    spDateSiteA: 'SP Date Site A',
+    spDateSiteB: 'SP Date Site B',
+    hopSpDate: 'HOP SP Date',
+    soReleasedDateSiteA: 'SO Released Date Site A',
+    soReleasedDateSiteB: 'SO Released Date Site B',
+    hopSoDate: 'HOP SO Date',
+    rfaiOfferedDateSiteA: 'RFAI Offered Date Site A',
+    rfaiOfferedDateSiteB: 'RFAI Offered Date Site B',
+    actualHopRfaiOfferedDate: 'Actual HOP RFAI Offered Date',
+    partnerName: 'Partner Name',
+    rfaiSurveyCompletionDate: 'RFAI Survey Completion Date',
+    moNumberSiteA: 'MO Number Site A',
+    materialTypeSiteA: 'Material Type Site A',
+    moDateSiteA: 'MO Date Site A',
+    moNumberSiteB: 'MO Number Site B',
+    materialTypeSiteB: 'Material Type Site B',
+    moDateSiteB: 'MO Date Site B',
+    srnRmoNumber: 'SRN RMO Number',
+    srnRmoDate: 'SRN RMO Date',
+    hopMoDate: 'HOP MO Date',
+    hopMaterialDispatchDate: 'HOP Material Dispatch Date',
+    hopMaterialDeliveryDate: 'HOP Material Delivery Date',
+    materialDeliveryStatus: 'Material Delivery Status',
+    siteAInstallationDate: 'Site A Installation Date',
+    ptwNumberSiteA: 'PTW Number Site A',
+    ptwStatusA: 'PTW Status A',
+    siteBInstallationDate: 'Site B Installation Date',
+    ptwNumberSiteB: 'PTW Number Site B',
+    ptwStatusB: 'PTW Status B',
+    hopIcDate: 'HOP IC Date',
+    alignmentDate: 'Alignment Date',
+    hopInstallationRemarks: 'HOP Installation Remarks',
+    visibleInNms: 'Visible In NMS',
+    nmsVisibleDate: 'NMS Visible Date',
+    softAtOfferDate: 'Soft AT Offer Date',
+    softAtAcceptanceDate: 'Soft AT Acceptance Date',
+    softAtStatus: 'Soft AT Status',
+    phyAtOfferDate: 'Phy AT Offer Date',
+    phyAtAcceptanceDate: 'Phy AT Acceptance Date',
+    phyAtStatus: 'Phy AT Status',
+    bothAtStatus: 'Both AT Status',
+    priIssueCategory: 'PRI Issue Category',
+    priSiteId: 'PRI Site ID',
+    priOpenDate: 'PRI Open Date',
+    priCloseDate: 'PRI Close Date',
+    priHistory: 'PRI History',
+    rfiSurveyAllocationDate: 'RFI Survey Allocation Date',
+    descope: 'Descope',
+    reasonOfExtraVisit: 'Reason Of Extra Visit',
+    wccReceived80Percent: 'WCC Received 80 Percent',
+    wccReceivedDate80Percent: 'WCC Received Date 80 Percent',
+    wccReceived20Percent: 'WCC Received 20 Percent',
+    wccReceivedDate20Percent: 'WCC Received Date 20 Percent',
+    wccReceivedDate100Percent: 'WCC Received Date 100 Percent',
+    survey: 'Survey',
+    finalPartnerSurvey: 'Final Partner Survey',
+    surveyDate: 'Survey Date',
+    status: 'Status',
+    sno: 'S.No',
+    createdAt: 'Created At',
+    updatedAt: 'Updated At',
+    vendorCode: 'Partner Code',
+  };
+
+  const fieldsToExclude = new Set(['id', 'zoneId', 'vendorId', 'siteAmount', 'vendorAmount']);
+
+  const getFormattedExcelData = (data: Site[]) => {
+    return data.map(item => {
+      const formattedItem: Record<string, any> = {};
+      // Add Partner Code from vendor
+      formattedItem['Partner Code'] = vendor?.vendorCode || 'N/A';
+      Object.entries(item).forEach(([key, value]) => {
+        if (!fieldsToExclude.has(key)) {
+          const headerName = columnHeaderMap[key] || key;
+          formattedItem[headerName] = value;
+        }
+      });
+      return formattedItem;
+    });
+  };
+
+  const downloadExcel = () => {
+    if (filteredSites.length === 0) {
+      toast({ title: "No data", description: "No sites to download", variant: "destructive" });
+      return;
+    }
+    
+    const formattedData = getFormattedExcelData(filteredSites);
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sites");
+    XLSX.writeFile(workbook, `vendor-sites-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({ title: "Success", description: "Sites report downloaded successfully" });
+  };
+
   useEffect(() => {
     if (vendorId) {
       fetchZones();
       fetchSites();
+      fetchVendor();
     }
   }, [vendorId]);
+
+  const fetchVendor = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setVendor(data);
+      }
+    } catch (error) {
+      console.error("Error fetching vendor:", error);
+    }
+  };
 
   if (!vendorId) {
     return (
@@ -321,8 +466,17 @@ export default function VendorSiteReport() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Sites ({filteredSites.length})</CardTitle>
+          <Button 
+            onClick={downloadExcel} 
+            className="gap-2"
+            data-testid="button-download-excel"
+            disabled={filteredSites.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Download Excel
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
