@@ -164,69 +164,7 @@ export default function VendorDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-          <Building2 className="h-7 w-7 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendor Dashboard</h1>
-          <p className="text-gray-500">Welcome, {vendor?.name || "Vendor"}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Package className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="text-2xl font-bold text-blue-900">{purchaseOrders.length}</p>
-                <p className="text-sm text-blue-700">Purchase Orders</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Receipt className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="text-2xl font-bold text-green-900">{invoices.length}</p>
-                <p className="text-sm text-green-700">Invoices</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <MapPin className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="text-2xl font-bold text-purple-900">{sites.length}</p>
-                <p className="text-sm text-purple-700">Sites</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <DollarSign className="h-8 w-8 text-orange-600" />
-              <div>
-                <p className="text-2xl font-bold text-orange-900">
-                  ₹{purchaseOrders.reduce((sum, po) => sum + parseFloat(po.totalAmount || "0"), 0).toLocaleString()}
-                </p>
-                <p className="text-sm text-orange-700">Total PO Value</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+    <div className="p-6 w-full">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
           <TabsTrigger value="info" data-testid="tab-profile">
