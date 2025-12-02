@@ -110,12 +110,12 @@ function App() {
       
       if (lastLocation && lastLocation !== '/' && !lastLocation.startsWith('/login')) {
         setLocation(lastLocation);
+      } else if (employeeEmail) {
+        // Employee dashboard for employees (check employee first)
+        setLocation('/employee/dashboard');
       } else if (vendorId) {
         // Vendor dashboard for vendors
         setLocation('/vendor/dashboard');
-      } else if (employeeEmail) {
-        // Employee dashboard for employees
-        setLocation('/employee/dashboard');
       }
     }
     

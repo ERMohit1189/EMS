@@ -110,6 +110,12 @@ export default function EmployeeLogin() {
 
       console.log('Employee data:', data.employee);
       console.log('[EmployeeLogin] isReportingPerson from API:', data.employee.isReportingPerson);
+      
+      // Clear any vendor-related data from previous sessions
+      localStorage.removeItem("vendorId");
+      localStorage.removeItem("vendorName");
+      localStorage.removeItem("vendorCode");
+      
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("employeeId", data.employee.id);
       localStorage.setItem("employeeEmail", data.employee.email);
