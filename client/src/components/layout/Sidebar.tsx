@@ -55,68 +55,66 @@ const adminMenuGroups = [
       },
     ],
   },
-  [
-    {
-      group: "Employee Management",
-      items: [
-        {
-          title: "Attendance",
-          icon: Calendar,
-          href: "/employee/attendance",
-        },
-        {
-          title: "All Employees",
-          icon: HardHat,
-          href: "/employee/list",
-        },
-        {
-          title: "Register Employee",
-          icon: Users,
-          href: "/employee/register",
-        },
-        {
-          title: "Employee Credentials",
-          icon: Key,
-          href: "/employee/credentials",
-        },
-        {
-          title: "Salary Structure",
-          icon: BarChart3,
-          href: "/employee/salary",
-        },
-        {
-          title: "Salary Report",
-          icon: BarChart3,
-          href: "/employee/salary-report",
-        },
-        {
-          title: "Department Master",
-          icon: Building2,
-          href: "/employee/department-master",
-        },
-        {
-          title: "Designation Master",
-          icon: FileText,
-          href: "/employee/designation-master",
-        },
-        {
-          title: "Teams",
-          icon: UsersRound,
-          href: "/admin/teams",
-        },
-        {
-          title: "Allowance Approvals",
-          icon: ClipboardCheck,
-          href: "/admin/allowance-approvals",
-        },
-        {
-          title: "Approval History",
-          icon: BarChart3,
-          href: "/admin/approval-history",
-        },
-      ],
-    },
-  ],
+  {
+    group: "Employee Management",
+    items: [
+      {
+        title: "Attendance",
+        icon: Calendar,
+        href: "/employee/attendance",
+      },
+      {
+        title: "All Employees",
+        icon: HardHat,
+        href: "/employee/list",
+      },
+      {
+        title: "Register Employee",
+        icon: Users,
+        href: "/employee/register",
+      },
+      {
+        title: "Employee Credentials",
+        icon: Key,
+        href: "/employee/credentials",
+      },
+      {
+        title: "Salary Structure",
+        icon: BarChart3,
+        href: "/employee/salary",
+      },
+      {
+        title: "Salary Report",
+        icon: BarChart3,
+        href: "/employee/salary-report",
+      },
+      {
+        title: "Department Master",
+        icon: Building2,
+        href: "/employee/department-master",
+      },
+      {
+        title: "Designation Master",
+        icon: FileText,
+        href: "/employee/designation-master",
+      },
+      {
+        title: "Teams",
+        icon: UsersRound,
+        href: "/admin/teams",
+      },
+      {
+        title: "Allowance Approvals",
+        icon: ClipboardCheck,
+        href: "/admin/allowance-approvals",
+      },
+      {
+        title: "Approval History",
+        icon: BarChart3,
+        href: "/admin/approval-history",
+      },
+    ],
+  },
   {
     group: "Site Operations",
     items: [
