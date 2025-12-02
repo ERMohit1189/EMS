@@ -487,35 +487,36 @@ export default function VendorSiteReport() {
           ) : filteredSites.length > 0 ? (
             <div className="space-y-3">
               {filteredSites.map((site) => (
-                <Card key={site.id} className="overflow-hidden hover:shadow-md transition-shadow" data-testid={`card-site-${site.id}`}>
-                  <CardHeader className="py-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-base font-mono">{site.planId || site.siteId}</CardTitle>
+                <Card key={site.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" data-testid={`card-site-${site.id}`}>
+                  <CardHeader className="py-4 pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base font-mono truncate">{site.planId || site.siteId}</CardTitle>
                         <p className="text-sm text-muted-foreground">{site.circle || "—"} • {site.hopType || "—"}</p>
                       </div>
                       <Button
-                        size="sm"
-                        variant="ghost"
+                        size="icon"
+                        variant="outline"
                         onClick={() => setSelectedSite(site)}
                         data-testid={`button-view-${site.id}`}
-                        className="ml-2"
+                        className="flex-shrink-0 h-9 w-9"
+                        title="View Details"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-5 w-5" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Site ID</label>
-                        <p className="text-sm font-semibold mt-0.5">{site.siteId}</p>
+                        <p className="text-sm font-semibold mt-0.5 truncate">{site.siteId}</p>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
-                        <p className="text-sm font-semibold mt-0.5">{site.siteAName || "—"}</p>
+                        <p className="text-sm font-semibold mt-0.5 truncate">{site.siteAName || "—"}</p>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Site B Name</label>
-                        <p className="text-sm font-semibold mt-0.5">{site.siteBName || "—"}</p>
+                        <p className="text-sm font-semibold mt-0.5 truncate">{site.siteBName || "—"}</p>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Phy AT</label>
