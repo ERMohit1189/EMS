@@ -26,11 +26,19 @@ interface Invoice {
 interface PurchaseOrder {
   id: string;
   poNumber: string;
+  siteId?: string;
+}
+
+interface Site {
+  id: string;
+  siteAmount?: string;
+  vendorAmount?: string;
 }
 
 export default function VendorInvoiceReport() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -44,8 +52,21 @@ export default function VendorInvoiceReport() {
     if (vendorId) {
       fetchPurchaseOrders();
       fetchInvoices();
+      fetchSites();
     }
   }, [vendorId]);
+
+  const fetchSites = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/sites`);
+      if (response.ok) {
+        const data = await response.json();
+        setSites(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching sites:", error);
+    }
+  };
 
   if (!vendorId) {
     return (
@@ -146,6 +167,18 @@ export default function VendorInvoiceReport() {
     .filter((inv) => inv.status?.toLowerCase() === "paid")
     .reduce((sum, inv) => sum + parseFloat(inv.totalAmount || "0"), 0);
 
+  const totalSiteAmount = filteredInvoices.reduce((sum, inv) => {
+    const po = purchaseOrders.find(p => p.id === inv.poId);
+    const site = sites.find(s => s.id === po?.siteId);
+    return sum + parseFloat(site?.siteAmount || "0");
+  }, 0);
+
+  const totalVendorAmount = filteredInvoices.reduce((sum, inv) => {
+    const po = purchaseOrders.find(p => p.id === inv.poId);
+    const site = sites.find(s => s.id === po?.siteId);
+    return sum + parseFloat(site?.vendorAmount || "0");
+  }, 0);
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -231,7 +264,7 @@ export default function VendorInvoiceReport() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-blue-900">{filteredInvoices.length}</p>
@@ -248,6 +281,18 @@ export default function VendorInvoiceReport() {
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-purple-900">₹{paidAmount.toLocaleString()}</p>
             <p className="text-sm text-purple-700">Paid Amount</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100">
+          <CardContent className="pt-6">
+            <p className="text-3xl font-bold text-amber-900">₹{totalSiteAmount.toLocaleString()}</p>
+            <p className="text-sm text-amber-700">Total Site Amount</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
+          <CardContent className="pt-6">
+            <p className="text-3xl font-bold text-orange-900">₹{totalVendorAmount.toLocaleString()}</p>
+            <p className="text-sm text-orange-700">Total Vendor Amount</p>
           </CardContent>
         </Card>
       </div>
