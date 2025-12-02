@@ -274,7 +274,7 @@ function App() {
                   {/* Dashboard Routes */}
                   <Route path="/employee/dashboard" component={EmployeeDashboard} />
                   <Route path="/">
-                    {isEmployee ? <EmployeeDashboard /> : <Dashboard />}
+                    {localStorage.getItem('employeeRole') === 'superadmin' || localStorage.getItem('employeeRole') === 'Superadmin' ? <Dashboard /> : isEmployee ? <EmployeeDashboard /> : <Dashboard />}
                   </Route>
                   
                   {/* Vendor Routes */}
