@@ -1858,5 +1858,72 @@ export async function registerRoutes(
     }
   });
 
+  // Admin/Superadmin login route - validates against database
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password required" });
+      }
+      
+      const employee = await storage.loginEmployee(email, password);
+      if (!employee) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      
+      // Check if user has admin/superadmin role
+      const role = employee.role || 'user';
+      if (role !== 'admin' && role !== 'superadmin' && role !== 'Admin' && role !== 'Superadmin') {
+        return res.status(403).json({ error: "Only superadmin can access this portal" });
+      }
+      
+      if (req.session) {
+        req.session.employeeId = employee.id;
+        req.session.employeeEmail = employee.email;
+      }
+      
+      res.json({ 
+        success: true, 
+        employee: { 
+          id: employee.id, 
+          name: employee.name, 
+          email: employee.email,
+          role: role
+        } 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Initialize superadmin - creates default superadmin if not exists
+  app.post("/api/admin/init-superadmin", async (req, res) => {
+    try {
+      const superadminEmail = 'admin@ems.com';
+      const existingAdmin = await storage.getEmployeeByEmail(superadminEmail);
+      
+      if (existingAdmin) {
+        return res.json({ success: true, message: "Superadmin already exists", email: superadminEmail });
+      }
+      
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash('password', 10);
+      
+      const newAdmin = await storage.createEmployee({
+        name: 'Superadmin',
+        email: superadminEmail,
+        password: hashedPassword,
+        fatherName: 'System',
+        mobile: '9999999999',
+        role: 'superadmin',
+        status: 'Active'
+      });
+      
+      res.json({ success: true, message: "Superadmin created successfully", email: superadminEmail });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

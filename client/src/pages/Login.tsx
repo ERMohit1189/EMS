@@ -62,28 +62,34 @@ export default function Login() {
         return;
       }
 
-      // Superadmin validation - only allow superadmin role
-      const superadminEmail = 'admin@ems.com';
-      const superadminPassword = 'password';
+      // Clear any lingering session data on login attempt
+      localStorage.removeItem('vendorId');
+      localStorage.removeItem('vendorEmail');
+      localStorage.removeItem('vendorName');
+      localStorage.removeItem('vendorCode');
+      localStorage.removeItem('employeeId');
+      localStorage.removeItem('employeeEmail');
+      localStorage.removeItem('employeeName');
+      localStorage.removeItem('employeeRole');
+      localStorage.removeItem('employeeDepartment');
+      localStorage.removeItem('employeeDesignation');
+      localStorage.removeItem('user');
+      localStorage.removeItem('isLoggedIn');
       
-      if (email !== superadminEmail || password !== superadminPassword) {
-        // Clear any lingering session data on failed login
-        localStorage.removeItem('vendorId');
-        localStorage.removeItem('vendorEmail');
-        localStorage.removeItem('vendorName');
-        localStorage.removeItem('vendorCode');
-        localStorage.removeItem('employeeId');
-        localStorage.removeItem('employeeEmail');
-        localStorage.removeItem('employeeName');
-        localStorage.removeItem('employeeRole');
-        localStorage.removeItem('employeeDepartment');
-        localStorage.removeItem('employeeDesignation');
-        localStorage.removeItem('user');
-        localStorage.removeItem('isLoggedIn');
-        
+      // Call backend admin login API - validates credentials against database
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
         toast({
           title: 'Error',
-          description: 'Invalid credentials. Only superadmin can access this portal.',
+          description: data.error || 'Login failed',
           variant: 'destructive',
         });
         setLoading(false);
@@ -91,17 +97,20 @@ export default function Login() {
       }
 
       // Store login info in localStorage
-      const userData = { email, name: 'Superadmin', role: 'superadmin' };
+      const userData = { email: data.employee.email, name: data.employee.name, role: data.employee.role };
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('employeeRole', 'superadmin');
+      localStorage.setItem('employeeRole', data.employee.role);
+      localStorage.setItem('employeeId', data.employee.id);
+      localStorage.setItem('employeeEmail', data.employee.email);
+      localStorage.setItem('employeeName', data.employee.name);
       
       // Clear any saved last location to prevent redirecting to old vendor/employee dashboards
       sessionStorage.removeItem('lastValidLocation');
 
       toast({
         title: 'Success',
-        description: 'Logged in as Superadmin',
+        description: `Logged in as ${data.employee.name}`,
       });
 
       // Dispatch login event to App component
