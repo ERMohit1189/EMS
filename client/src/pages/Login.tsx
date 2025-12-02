@@ -41,14 +41,29 @@ export default function Login() {
         return;
       }
 
+      // Superadmin validation - only allow superadmin role
+      const superadminEmail = 'admin@ems.com';
+      const superadminPassword = 'password';
+      
+      if (email !== superadminEmail || password !== superadminPassword) {
+        toast({
+          title: 'Error',
+          description: 'Invalid credentials. Only superadmin can access this portal.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       // Store login info in localStorage
-      const userData = { email, name: email.split('@')[0] };
+      const userData = { email, name: 'Superadmin', role: 'superadmin' };
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('employeeRole', 'superadmin');
 
       toast({
         title: 'Success',
-        description: 'Logged in successfully',
+        description: 'Logged in as Superadmin',
       });
 
       // Dispatch login event to App component
@@ -83,36 +98,6 @@ export default function Login() {
         </CardHeader>
 
         <CardContent>
-          {/* Portal Selection */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <Button
-              type="button"
-              onClick={() => setLocation('/employee-login')}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium"
-              data-testid="button-employee-login"
-            >
-              Employee Login
-            </Button>
-            <Button
-              type="button"
-              onClick={() => setLocation('/vendor-login')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
-              data-testid="button-vendor-login"
-            >
-              Vendor Login
-            </Button>
-          </div>
-
-          {/* Divider */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Admin Access</span>
-            </div>
-          </div>
-
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Email Field */}
             <div className="space-y-2">
@@ -155,15 +140,6 @@ export default function Login() {
               {loading ? 'Logging in...' : 'Login'}
             </Button>
 
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-xs font-semibold text-amber-900 mb-2">Demo Credentials:</p>
-              <div className="space-y-1 text-xs text-amber-800">
-                <p>Email: <span className="font-mono bg-white px-2 py-1 rounded">admin@ems.com</span></p>
-                <p>Password: <span className="font-mono bg-white px-2 py-1 rounded">password</span></p>
-              </div>
-              <p className="text-xs text-amber-700 mt-2">Use any email and password to login</p>
-            </div>
           </form>
         </CardContent>
       </Card>
