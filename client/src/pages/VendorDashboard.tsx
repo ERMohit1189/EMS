@@ -410,7 +410,7 @@ export default function VendorDashboard() {
             </CardHeader>
             <CardContent>
               {purchaseOrders.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="w-full">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50">
                       <tr>
@@ -456,7 +456,7 @@ export default function VendorDashboard() {
             </CardHeader>
             <CardContent>
               {invoices.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="w-full">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50">
                       <tr>
@@ -510,7 +510,7 @@ export default function VendorDashboard() {
             </CardHeader>
             <CardContent>
               {sites.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="w-full">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50">
                       <tr>
