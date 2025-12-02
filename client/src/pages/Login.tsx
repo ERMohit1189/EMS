@@ -1,15 +1,22 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { Lock, Mail } from 'lucide-react';
-import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { getApiBaseUrl } from "@/lib/api";
+import { Lock, Mail } from "lucide-react";
+import logo from "@assets/generated_images/abstract_geometric_logo_for_ems_portal.png";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -17,22 +24,22 @@ export default function Login() {
   // Clear all non-superadmin session data when login page loads
   useEffect(() => {
     // Clear vendor session data
-    localStorage.removeItem('vendorId');
-    localStorage.removeItem('vendorEmail');
-    localStorage.removeItem('vendorName');
-    localStorage.removeItem('vendorCode');
-    
+    localStorage.removeItem("vendorId");
+    localStorage.removeItem("vendorEmail");
+    localStorage.removeItem("vendorName");
+    localStorage.removeItem("vendorCode");
+
     // Clear employee session data
-    localStorage.removeItem('employeeId');
-    localStorage.removeItem('employeeEmail');
-    localStorage.removeItem('employeeName');
-    localStorage.removeItem('employeeRole');
-    localStorage.removeItem('employeeDepartment');
-    localStorage.removeItem('employeeDesignation');
-    
+    localStorage.removeItem("employeeId");
+    localStorage.removeItem("employeeEmail");
+    localStorage.removeItem("employeeName");
+    localStorage.removeItem("employeeRole");
+    localStorage.removeItem("employeeDepartment");
+    localStorage.removeItem("employeeDesignation");
+
     // Clear user data
-    localStorage.removeItem('user');
-    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem("user");
+    localStorage.removeItem("isLoggedIn");
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -43,9 +50,9 @@ export default function Login() {
       // Validation
       if (!email || !password) {
         toast({
-          title: 'Error',
-          description: 'Please enter email and password',
-          variant: 'destructive',
+          title: "Error",
+          description: "Please enter email and password",
+          variant: "destructive",
         });
         setLoading(false);
         return;
@@ -54,103 +61,107 @@ export default function Login() {
       // Email format validation
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         toast({
-          title: 'Error',
-          description: 'Please enter a valid email',
-          variant: 'destructive',
+          title: "Error",
+          description: "Please enter a valid email",
+          variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
       // Clear any lingering session data on login attempt
-      localStorage.removeItem('vendorId');
-      localStorage.removeItem('vendorEmail');
-      localStorage.removeItem('vendorName');
-      localStorage.removeItem('vendorCode');
-      localStorage.removeItem('employeeId');
-      localStorage.removeItem('employeeEmail');
-      localStorage.removeItem('employeeName');
-      localStorage.removeItem('employeeRole');
-      localStorage.removeItem('employeeDepartment');
-      localStorage.removeItem('employeeDesignation');
-      localStorage.removeItem('user');
-      localStorage.removeItem('isLoggedIn');
-      
+      localStorage.removeItem("vendorId");
+      localStorage.removeItem("vendorEmail");
+      localStorage.removeItem("vendorName");
+      localStorage.removeItem("vendorCode");
+      localStorage.removeItem("employeeId");
+      localStorage.removeItem("employeeEmail");
+      localStorage.removeItem("employeeName");
+      localStorage.removeItem("employeeRole");
+      localStorage.removeItem("employeeDepartment");
+      localStorage.removeItem("employeeDesignation");
+      localStorage.removeItem("user");
+      localStorage.removeItem("isLoggedIn");
+
       // Call backend admin login API - validates credentials against database
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${getApiBaseUrl()}/api/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
+        credentials: "include",
       });
 
       const data = await response.json();
-      console.log('[Login] API Response:', data);
+      console.log("[Login] API Response:", data);
 
       if (!response.ok) {
-        console.log('[Login] Login failed - response not ok');
+        console.log("[Login] Login failed - response not ok");
         toast({
-          title: 'Error',
-          description: data.error || 'Login failed',
-          variant: 'destructive',
+          title: "Error",
+          description: data.error || "Login failed",
+          variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      console.log('[Login] Before storing - response data:', data);
-      
+      console.log("[Login] Before storing - response data:", data);
+
       // Store login info in localStorage
       try {
-        const userData = { email: data.employee.email, name: data.employee.name, role: data.employee.role };
-        console.log('[Login] Storing userData:', userData);
-        
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('employeeRole', data.employee.role);
-        localStorage.setItem('employeeId', data.employee.id);
-        localStorage.setItem('employeeEmail', data.employee.email);
-        localStorage.setItem('employeeName', data.employee.name);
-        
-        console.log('[Login] ✅ All stored successfully');
-        console.log('[Login] Verification - what we stored:', { 
-          employeeName: localStorage.getItem('employeeName'),
-          employeeRole: localStorage.getItem('employeeRole'),
-          employeeId: localStorage.getItem('employeeId'),
-          isLoggedIn: localStorage.getItem('isLoggedIn')
+        const userData = {
+          email: data.employee.email,
+          name: data.employee.name,
+          role: data.employee.role,
+        };
+        console.log("[Login] Storing userData:", userData);
+
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("employeeRole", data.employee.role);
+        localStorage.setItem("employeeId", data.employee.id);
+        localStorage.setItem("employeeEmail", data.employee.email);
+        localStorage.setItem("employeeName", data.employee.name);
+
+        console.log("[Login] ✅ All stored successfully");
+        console.log("[Login] Verification - what we stored:", {
+          employeeName: localStorage.getItem("employeeName"),
+          employeeRole: localStorage.getItem("employeeRole"),
+          employeeId: localStorage.getItem("employeeId"),
+          isLoggedIn: localStorage.getItem("isLoggedIn"),
         });
       } catch (storageError) {
-        console.error('[Login] ❌ Storage error:', storageError);
+        console.error("[Login] ❌ Storage error:", storageError);
         toast({
-          title: 'Error',
-          description: 'Failed to store login data',
-          variant: 'destructive',
+          title: "Error",
+          description: "Failed to store login data",
+          variant: "destructive",
         });
         return;
       }
-      
+
       // Clear any saved last location to prevent redirecting to old vendor/employee dashboards
-      sessionStorage.removeItem('lastValidLocation');
+      sessionStorage.removeItem("lastValidLocation");
 
       toast({
-        title: 'Success',
+        title: "Success",
         description: `Logged in as ${data.employee.name}`,
       });
 
       // Dispatch login event to App component - trigger header update
-      console.log('[Login] Dispatching login event...');
-      window.dispatchEvent(new Event('login'));
-      
+      console.log("[Login] Dispatching login event...");
+      window.dispatchEvent(new Event("login"));
+
       // Give event listeners time to process the login event
       setTimeout(() => {
-        console.log('[Login] Redirecting to dashboard...');
-        setLocation('/');
+        console.log("[Login] Redirecting to dashboard...");
+        setLocation("/");
       }, 500);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Login failed',
-        variant: 'destructive',
+        title: "Error",
+        description: "Login failed",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -162,11 +173,19 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-4 text-center pb-4">
           <div className="flex justify-center">
-            <img src={logo} alt="EMS Logo" className="h-16 w-16 rounded-lg shadow-md" />
+            <img
+              src={logo}
+              alt="EMS Logo"
+              className="h-16 w-16 rounded-lg shadow-md"
+            />
           </div>
           <div>
-            <CardTitle className="text-3xl font-bold text-gray-900">EMS Portal</CardTitle>
-            <CardDescription className="text-base mt-2">Enterprise Management System</CardDescription>
+            <CardTitle className="text-3xl font-bold text-gray-900">
+              EMS Portal
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              Enterprise Management System
+            </CardDescription>
           </div>
         </CardHeader>
 
@@ -210,9 +229,8 @@ export default function Login() {
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors"
               disabled={loading}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? "Logging in..." : "Login"}
             </Button>
-
           </form>
         </CardContent>
       </Card>
