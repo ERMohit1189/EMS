@@ -227,26 +227,7 @@ export default function VendorDashboard() {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
-          <TabsTrigger value="info" data-testid="tab-info">
-            <User className="h-4 w-4 mr-2" />
-            Info
-          </TabsTrigger>
-          <TabsTrigger value="po" data-testid="tab-po">
-            <FileText className="h-4 w-4 mr-2" />
-            PO
-          </TabsTrigger>
-          <TabsTrigger value="invoice" data-testid="tab-invoice">
-            <Receipt className="h-4 w-4 mr-2" />
-            Invoice
-          </TabsTrigger>
-          <TabsTrigger value="site" data-testid="tab-site">
-            <MapPin className="h-4 w-4 mr-2" />
-            Site
-          </TabsTrigger>
-        </TabsList>
-
+      <Tabs value="info" className="w-full">
         <TabsContent value="info" className="mt-6">
           <Card>
             <CardHeader>
