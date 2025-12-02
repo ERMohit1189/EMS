@@ -85,8 +85,10 @@ export default function Login() {
       });
 
       const data = await response.json();
+      console.log('[Login] API Response:', data);
 
       if (!response.ok) {
+        console.log('[Login] Login failed - response not ok');
         toast({
           title: 'Error',
           description: data.error || 'Login failed',
@@ -96,23 +98,36 @@ export default function Login() {
         return;
       }
 
-      // Store login info in localStorage
-      const userData = { email: data.employee.email, name: data.employee.name, role: data.employee.role };
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('employeeRole', data.employee.role);
-      localStorage.setItem('employeeId', data.employee.id);
-      localStorage.setItem('employeeEmail', data.employee.email);
-      localStorage.setItem('employeeName', data.employee.name);
+      console.log('[Login] Before storing - response data:', data);
       
-      console.log('[Login] Stored employee data:', { 
-        name: data.employee.name, 
-        role: data.employee.role,
-        id: data.employee.id,
-        email: data.employee.email,
-        stored_employeeName: localStorage.getItem('employeeName'),
-        stored_employeeRole: localStorage.getItem('employeeRole')
-      });
+      // Store login info in localStorage
+      try {
+        const userData = { email: data.employee.email, name: data.employee.name, role: data.employee.role };
+        console.log('[Login] Storing userData:', userData);
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('employeeRole', data.employee.role);
+        localStorage.setItem('employeeId', data.employee.id);
+        localStorage.setItem('employeeEmail', data.employee.email);
+        localStorage.setItem('employeeName', data.employee.name);
+        
+        console.log('[Login] ✅ All stored successfully');
+        console.log('[Login] Verification - what we stored:', { 
+          employeeName: localStorage.getItem('employeeName'),
+          employeeRole: localStorage.getItem('employeeRole'),
+          employeeId: localStorage.getItem('employeeId'),
+          isLoggedIn: localStorage.getItem('isLoggedIn')
+        });
+      } catch (storageError) {
+        console.error('[Login] ❌ Storage error:', storageError);
+        toast({
+          title: 'Error',
+          description: 'Failed to store login data',
+          variant: 'destructive',
+        });
+        return;
+      }
       
       // Clear any saved last location to prevent redirecting to old vendor/employee dashboards
       sessionStorage.removeItem('lastValidLocation');
