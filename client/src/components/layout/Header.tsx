@@ -83,12 +83,12 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 md:h-10 md:w-10" data-testid="button-user-menu">
               <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs">
-                {employeeName.charAt(0).toUpperCase()}
+                {employeeName.slice(0, 2).toUpperCase()}
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel data-testid="text-account-label" className="text-sm">{employeeName}</DropdownMenuLabel>
+            <DropdownMenuLabel data-testid="text-account-label" className="text-sm">{employeeName.split(' ')[0]}{employeeName.includes(' ') ? employeeName.charAt(employeeName.lastIndexOf(' ') + 1) : ''}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {showSettings && (
               <>
