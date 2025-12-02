@@ -107,9 +107,13 @@ function App() {
     if (loggedIn && location === '/') {
       const lastLocation = sessionStorage.getItem('lastValidLocation');
       const vendorId = localStorage.getItem('vendorId');
+      const employeeRole = localStorage.getItem('employeeRole');
       
       if (lastLocation && lastLocation !== '/' && !lastLocation.startsWith('/login')) {
         setLocation(lastLocation);
+      } else if (employeeRole === 'superadmin' || employeeRole === 'Superadmin') {
+        // Superadmin stays on admin dashboard (root /)
+        // No redirect needed
       } else if (employeeEmail) {
         // Employee dashboard for employees (check employee first)
         setLocation('/employee/dashboard');
