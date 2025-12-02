@@ -168,6 +168,8 @@ export default function VendorDashboard() {
   const getFormattedExcelData = (data: any[]) => {
     return data.map(item => {
       const formattedItem: Record<string, any> = {};
+      // Add Partner Code from vendor
+      formattedItem['Partner Code'] = vendor?.vendorCode || 'N/A';
       Object.entries(item).forEach(([key, value]) => {
         if (!fieldsToExclude.has(key)) {
           const headerName = columnHeaderMap[key] || key;
@@ -565,9 +567,14 @@ export default function VendorDashboard() {
           {selectedSite && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Partner Code from vendor */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Partner Code</p>
+                  <p className="font-medium text-sm mt-1">{vendor?.vendorCode || "N/A"}</p>
+                </div>
                 {Object.entries(selectedSite).map(([key, value]) => {
                   if (fieldsToExclude.has(key)) return null;
-                  const displayKey = key === 'vendorCode' ? 'Partner Code' : (columnHeaderMap[key] || key.replace(/([A-Z])/g, ' $1').trim());
+                  const displayKey = columnHeaderMap[key] || key.replace(/([A-Z])/g, ' $1').trim();
                   return (
                     <div key={key} className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-xs text-gray-500 uppercase font-semibold">{displayKey}</p>
