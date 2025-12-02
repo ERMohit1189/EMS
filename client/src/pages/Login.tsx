@@ -83,8 +83,11 @@ export default function Login() {
       localStorage.removeItem("user");
       localStorage.removeItem("isLoggedIn");
 
+      const apiUrl = `${getApiBaseUrl()}/api/admin/login`;
+      console.log("[superadmin] Login attempt to:", apiUrl);
+      console.log("[superadmin] Email:", email);
       // Call backend admin login API - validates credentials against database
-      const response = await fetch(`${getApiBaseUrl()}/api/admin/login`, {
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

@@ -25,7 +25,7 @@ import { eq, and, or, inArray } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
-  app: Express
+  app: Express,
 ): Promise<Server> {
   // Middleware to protect API routes from being intercepted by Vite catch-all
   app.use("/api/", (req, res, next) => {
@@ -52,8 +52,10 @@ export async function registerRoutes(
       const header = await storage.updateExportHeader(validated);
       res.json(header);
     } catch (error: any) {
-      console.error('Export header save error:', error);
-      res.status(400).json({ error: error.message || 'Failed to save export headers' });
+      console.error("Export header save error:", error);
+      res
+        .status(400)
+        .json({ error: error.message || "Failed to save export headers" });
     }
   });
 
@@ -61,7 +63,7 @@ export async function registerRoutes(
   app.post("/api/vendors", async (req, res) => {
     try {
       const data = insertVendorSchema.parse(req.body);
-      const bcrypt = require('bcrypt');
+      const bcrypt = require("bcrypt");
       const tempPassword = Math.random().toString(36).slice(-10);
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
       const vendorData = { ...data, password: hashedPassword };
@@ -84,7 +86,10 @@ export async function registerRoutes(
       }
       req.session.vendorId = vendor.id;
       req.session.vendorEmail = vendor.email;
-      res.json({ success: true, vendor: { id: vendor.id, name: vendor.name, email: vendor.email } });
+      res.json({
+        success: true,
+        vendor: { id: vendor.id, name: vendor.name, email: vendor.email },
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -114,14 +119,24 @@ export async function registerRoutes(
   app.post("/api/vendors/signup", async (req, res) => {
     try {
       const { name, email, mobile, address, state, city, password } = req.body;
-      
+
       // Basic validation
-      if (!name || !email || !mobile || !address || !state || !city || !password) {
+      if (
+        !name ||
+        !email ||
+        !mobile ||
+        !address ||
+        !state ||
+        !city ||
+        !password
+      ) {
         return res.status(400).json({ error: "All fields are required" });
       }
 
       if (password.length < 6) {
-        return res.status(400).json({ error: "Password must be at least 6 characters" });
+        return res
+          .status(400)
+          .json({ error: "Password must be at least 6 characters" });
       }
 
       // Email format validation
@@ -137,7 +152,7 @@ export async function registerRoutes(
       }
 
       // Hash password
-      const bcrypt = require('bcrypt');
+      const bcrypt = require("bcrypt");
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Validate and create vendor using schema
@@ -156,11 +171,20 @@ export async function registerRoutes(
       });
 
       const vendor = await storage.createVendor(vendorData);
-      res.json({ success: true, vendor: { id: vendor.id, name: vendor.name, email: vendor.email } });
+      res.json({
+        success: true,
+        vendor: { id: vendor.id, name: vendor.name, email: vendor.email },
+      });
     } catch (error: any) {
       console.error("[Vendor Signup Error]:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ error: "Validation error: " + error.errors?.map((e: any) => e.message).join(", ") });
+      if (error.name === "ZodError") {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Validation error: " +
+              error.errors?.map((e: any) => e.message).join(", "),
+          });
       }
       res.status(500).json({ error: error.message });
     }
@@ -171,23 +195,28 @@ export async function registerRoutes(
     try {
       const { currentPassword, newPassword } = req.body;
       if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: "Current password and new password are required" });
+        return res
+          .status(400)
+          .json({ error: "Current password and new password are required" });
       }
-      
+
       const vendor = await storage.getVendor(req.params.id);
       if (!vendor) {
         return res.status(404).json({ error: "Vendor not found" });
       }
 
-      const bcrypt = require('bcrypt');
-      const passwordMatch = await bcrypt.compare(currentPassword, vendor.password);
+      const bcrypt = require("bcrypt");
+      const passwordMatch = await bcrypt.compare(
+        currentPassword,
+        vendor.password,
+      );
       if (!passwordMatch) {
         return res.status(401).json({ error: "Current password is incorrect" });
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await storage.updateVendor(req.params.id, { password: hashedPassword });
-      
+
       res.json({ success: true, message: "Password changed successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -199,18 +228,22 @@ export async function registerRoutes(
     try {
       const { email, newPassword } = req.body;
       if (!email || !newPassword) {
-        return res.status(400).json({ error: "Email and new password are required" });
+        return res
+          .status(400)
+          .json({ error: "Email and new password are required" });
       }
 
       const vendor = await storage.getVendorByEmail(email);
       if (!vendor) {
-        return res.status(404).json({ error: "Vendor with this email not found" });
+        return res
+          .status(404)
+          .json({ error: "Vendor with this email not found" });
       }
 
-      const bcrypt = require('bcrypt');
+      const bcrypt = require("bcrypt");
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await storage.updateVendor(vendor.id, { password: hashedPassword });
-      
+
       res.json({ success: true, message: "Password reset successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -225,23 +258,28 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Email and password required" });
       }
       console.log(`[Employee Login] Attempting login for email: ${email}`);
-      
+
       const employee = await storage.loginEmployee(email, password);
-      console.log(`[Employee Login] Query result:`, employee ? `Found employee ${employee.name}` : "No employee found");
-      
+      console.log(
+        `[Employee Login] Query result:`,
+        employee ? `Found employee ${employee.name}` : "No employee found",
+      );
+
       if (!employee) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
-      
+
       // Store in session (for server-side session tracking)
       if (req.session) {
         req.session.employeeId = employee.id;
         req.session.employeeEmail = employee.email;
       }
-      
+
       // Check if employee is a reporting person (RP1, RP2, or RP3)
-      const isReportingPerson = await storage.isEmployeeReportingPerson(employee.id);
-      
+      const isReportingPerson = await storage.isEmployeeReportingPerson(
+        employee.id,
+      );
+
       console.log(`[Employee Login] Employee object:`, {
         id: employee.id,
         name: employee.name,
@@ -250,22 +288,22 @@ export async function registerRoutes(
         designationId: (employee as any).designationId,
         designationName: (employee as any).designationName,
         departmentId: (employee as any).departmentId,
-        departmentName: (employee as any).departmentName
+        departmentName: (employee as any).departmentName,
       });
-      
-      const responseData = { 
-        success: true, 
-        employee: { 
-          id: employee.id, 
-          name: employee.name, 
+
+      const responseData = {
+        success: true,
+        employee: {
+          id: employee.id,
+          name: employee.name,
           email: employee.email,
-          role: employee.role || 'user',
+          role: employee.role || "user",
           department: (employee as any).departmentName || "Not Assigned",
           designation: (employee as any).designationName || "Not Specified",
-          isReportingPerson
-        } 
+          isReportingPerson,
+        },
       };
-      
+
       console.log(`[Employee Login] Sending response:`, responseData);
       res.json(responseData);
     } catch (error: any) {
@@ -294,13 +332,17 @@ export async function registerRoutes(
 
   // Change Password endpoint - MUST be defined before generic :id routes
   app.post("/api/employees/:id/change-password", async (req, res) => {
-    console.log("[API] Change Password Route - POST /api/employees/:id/change-password");
+    console.log(
+      "[API] Change Password Route - POST /api/employees/:id/change-password",
+    );
     try {
-      const bcrypt = require('bcrypt');
+      const bcrypt = require("bcrypt");
       const { currentPassword, newPassword } = req.body;
 
       if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: "Current password and new password are required" });
+        return res
+          .status(400)
+          .json({ error: "Current password and new password are required" });
       }
 
       // Get employee
@@ -315,7 +357,10 @@ export async function registerRoutes(
       }
 
       // Verify current password
-      const passwordMatch = await bcrypt.compare(currentPassword, employee.password);
+      const passwordMatch = await bcrypt.compare(
+        currentPassword,
+        employee.password,
+      );
       if (!passwordMatch) {
         return res.status(401).json({ error: "Current password is incorrect" });
       }
@@ -334,7 +379,9 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("[API] Change password error:", error);
-      res.status(500).json({ error: error.message || "Failed to change password" });
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to change password" });
     }
   });
 
@@ -342,18 +389,26 @@ export async function registerRoutes(
   app.post("/api/employees/sync-credentials", async (req, res) => {
     try {
       const { employeeId, password } = req.body;
-      console.log(`[Sync Credentials] Request received for employee: ${employeeId}`);
-      
+      console.log(
+        `[Sync Credentials] Request received for employee: ${employeeId}`,
+      );
+
       if (!employeeId || !password) {
         console.log(`[Sync Credentials] Missing required fields`);
-        return res.status(400).json({ error: "Employee ID and password required" });
+        return res
+          .status(400)
+          .json({ error: "Employee ID and password required" });
       }
 
-      const bcrypt = require('bcrypt');
+      const bcrypt = require("bcrypt");
       const hashedPassword = await bcrypt.hash(password, 10);
-      console.log(`[Sync Credentials] Password hashed, updating employee ${employeeId}`);
-      
-      const updated = await storage.updateEmployee(employeeId, { password: hashedPassword });
+      console.log(
+        `[Sync Credentials] Password hashed, updating employee ${employeeId}`,
+      );
+
+      const updated = await storage.updateEmployee(employeeId, {
+        password: hashedPassword,
+      });
       console.log(`[Sync Credentials] Employee updated successfully`);
       res.json({ success: true, employee: updated });
     } catch (error: any) {
@@ -447,17 +502,17 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Vendor not found" });
       }
 
-      const bcrypt = require('bcrypt');
+      const bcrypt = require("bcrypt");
       const tempPassword = Math.random().toString(36).slice(-10);
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
-      
+
       await storage.updateVendor(req.params.id, { password: hashedPassword });
-      
+
       res.json({
         success: true,
         vendor: { id: vendor.id, name: vendor.name, email: vendor.email },
         tempPassword,
-        message: `Password generated successfully for ${vendor.email}`
+        message: `Password generated successfully for ${vendor.email}`,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -512,12 +567,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Vendor name is required" });
       }
       if (!vendorCode) {
-        return res.status(400).json({ error: `Partner or ${name} must have PARTNER CODE` });
+        return res
+          .status(400)
+          .json({ error: `Partner or ${name} must have PARTNER CODE` });
       }
       const vendor = await storage.getOrCreateVendorByCode(vendorCode, name);
       res.json(vendor);
     } catch (error: any) {
-      console.error('[Routes] find-or-create error:', {
+      console.error("[Routes] find-or-create error:", {
         vendorCode: req.body.vendorCode,
         name: req.body.name,
         errorMessage: error.message,
@@ -531,10 +588,14 @@ export async function registerRoutes(
       const vendorId = req.params.id;
       const [sites, pos, vendorInvoices] = await Promise.all([
         storage.getSitesByVendor(vendorId),
-        db.select().from(purchaseOrders).where(eq(purchaseOrders.vendorId, vendorId)),
+        db
+          .select()
+          .from(purchaseOrders)
+          .where(eq(purchaseOrders.vendorId, vendorId)),
         db.select().from(invoices).where(eq(invoices.vendorId, vendorId)),
       ]);
-      const isUsed = sites.length > 0 || pos.length > 0 || vendorInvoices.length > 0;
+      const isUsed =
+        sites.length > 0 || pos.length > 0 || vendorInvoices.length > 0;
       res.json({ isUsed });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -579,11 +640,15 @@ export async function registerRoutes(
 
       const data = await storage.getSites(pageSize, offset);
       const totalCount = await storage.getSiteCount();
-      
-      const formattedData = data.map(site => ({
+
+      const formattedData = data.map((site) => ({
         ...site,
-        vendorAmount: site.vendorAmount ? parseFloat(site.vendorAmount.toString()) : null,
-        siteAmount: site.siteAmount ? parseFloat(site.siteAmount.toString()) : null,
+        vendorAmount: site.vendorAmount
+          ? parseFloat(site.vendorAmount.toString())
+          : null,
+        siteAmount: site.siteAmount
+          ? parseFloat(site.siteAmount.toString())
+          : null,
       }));
 
       res.json({
@@ -600,10 +665,14 @@ export async function registerRoutes(
   app.get("/api/vendors/:vendorId/sites", async (req, res) => {
     try {
       const sites = await storage.getSitesByVendor(req.params.vendorId);
-      const formattedData = sites.map(site => ({
+      const formattedData = sites.map((site) => ({
         ...site,
-        vendorAmount: site.vendorAmount ? parseFloat(site.vendorAmount.toString()) : null,
-        siteAmount: site.siteAmount ? parseFloat(site.siteAmount.toString()) : null,
+        vendorAmount: site.vendorAmount
+          ? parseFloat(site.vendorAmount.toString())
+          : null,
+        siteAmount: site.siteAmount
+          ? parseFloat(site.siteAmount.toString())
+          : null,
       }));
       res.json(formattedData);
     } catch (error: any) {
@@ -614,10 +683,14 @@ export async function registerRoutes(
   app.get("/api/sites/for-po-generation", async (req, res) => {
     try {
       const data = await storage.getSitesForPOGeneration();
-      const formattedData = data.map(site => ({
+      const formattedData = data.map((site) => ({
         ...site,
-        vendorAmount: site.vendorAmount ? parseFloat(site.vendorAmount.toString()) : null,
-        siteAmount: site.siteAmount ? parseFloat(site.siteAmount.toString()) : null,
+        vendorAmount: site.vendorAmount
+          ? parseFloat(site.vendorAmount.toString())
+          : null,
+        siteAmount: site.siteAmount
+          ? parseFloat(site.siteAmount.toString())
+          : null,
       }));
       res.json({ data: formattedData });
     } catch (error: any) {
@@ -629,11 +702,13 @@ export async function registerRoutes(
     try {
       const startDate = req.query.startDate as string;
       const endDate = req.query.endDate as string;
-      
+
       if (!startDate || !endDate) {
-        return res.status(400).json({ error: "startDate and endDate are required" });
+        return res
+          .status(400)
+          .json({ error: "startDate and endDate are required" });
       }
-      
+
       const sites = await storage.getSitesByDateRange(startDate, endDate);
       res.json({ data: sites });
     } catch (error: any) {
@@ -658,11 +733,12 @@ export async function registerRoutes(
       // Check if a PO has been generated for this site
       const existingPO = await storage.getPOBySiteId(req.params.id);
       if (existingPO) {
-        return res.status(400).json({ 
-          error: "Cannot update site: A Purchase Order has already been generated for this site. Once a PO is created, the site is locked from all updates." 
+        return res.status(400).json({
+          error:
+            "Cannot update site: A Purchase Order has already been generated for this site. Once a PO is created, the site is locked from all updates.",
         });
       }
-      
+
       const data = insertSiteSchema.partial().parse(req.body);
       const site = await storage.updateSite(req.params.id, data);
       res.json(site);
@@ -674,15 +750,16 @@ export async function registerRoutes(
   app.patch("/api/sites/:id/status", async (req, res) => {
     try {
       const { status, remark } = req.body;
-      
+
       // Check if a PO has been generated for this site
       const existingPO = await storage.getPOBySiteId(req.params.id);
       if (existingPO) {
-        return res.status(400).json({ 
-          error: "Cannot update site status: A Purchase Order has already been generated for this site. Once a PO is created, the site status is locked." 
+        return res.status(400).json({
+          error:
+            "Cannot update site status: A Purchase Order has already been generated for this site. Once a PO is created, the site status is locked.",
         });
       }
-      
+
       const site = await storage.updateSite(req.params.id, { status });
       res.json(site);
     } catch (error: any) {
@@ -711,7 +788,10 @@ export async function registerRoutes(
   app.post("/api/sites/recalculate-status", async (req, res) => {
     try {
       const result = await storage.recalculateSiteStatuses();
-      res.json({ success: true, message: `Updated ${result.updated} sites to Approved status` });
+      res.json({
+        success: true,
+        message: `Updated ${result.updated} sites to Approved status`,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -719,24 +799,34 @@ export async function registerRoutes(
 
   app.post("/api/sites/bulk-update-remarks", async (req, res) => {
     try {
-      console.log('[API] bulk-update-remarks called with:', req.body);
+      console.log("[API] bulk-update-remarks called with:", req.body);
       const { siteIds, phyAtRemark, softAtRemark } = req.body;
-      
+
       if (!siteIds || siteIds.length === 0) {
-        console.log('[API] No siteIds provided');
+        console.log("[API] No siteIds provided");
         return res.status(400).json({ error: "No sites selected" });
       }
       if (!phyAtRemark && !softAtRemark) {
-        console.log('[API] No remarks provided');
-        return res.status(400).json({ error: "Please select at least one remark to update" });
+        console.log("[API] No remarks provided");
+        return res
+          .status(400)
+          .json({ error: "Please select at least one remark to update" });
       }
-      
-      console.log('[API] Calling bulkUpdateRemarks with:', { siteIds, phyAtRemark, softAtRemark });
-      const result = await storage.bulkUpdateRemarks(siteIds, phyAtRemark, softAtRemark);
-      console.log('[API] bulkUpdateRemarks result:', result);
+
+      console.log("[API] Calling bulkUpdateRemarks with:", {
+        siteIds,
+        phyAtRemark,
+        softAtRemark,
+      });
+      const result = await storage.bulkUpdateRemarks(
+        siteIds,
+        phyAtRemark,
+        softAtRemark,
+      );
+      console.log("[API] bulkUpdateRemarks result:", result);
       res.json({ success: true, ...result });
     } catch (error: any) {
-      console.error('[API] bulkUpdateRemarks error:', error);
+      console.error("[API] bulkUpdateRemarks error:", error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -744,72 +834,103 @@ export async function registerRoutes(
   app.post("/api/sites/bulk-update-status", async (req, res) => {
     try {
       const { siteIds, phyAtStatus, softAtStatus } = req.body;
-      
+
       if (!siteIds || siteIds.length === 0) {
         return res.status(400).json({ error: "No sites selected" });
       }
       if (!phyAtStatus && !softAtStatus) {
-        return res.status(400).json({ error: "Please select at least one status to update" });
+        return res
+          .status(400)
+          .json({ error: "Please select at least one status to update" });
       }
-      
-      const result = await storage.bulkUpdateStatus(siteIds, phyAtStatus, softAtStatus);
+
+      const result = await storage.bulkUpdateStatus(
+        siteIds,
+        phyAtStatus,
+        softAtStatus,
+      );
       res.json({ success: true, ...result });
     } catch (error: any) {
-      console.error('[API] bulkUpdateStatus error:', error);
+      console.error("[API] bulkUpdateStatus error:", error);
       res.status(400).json({ error: error.message });
     }
   });
 
   app.post("/api/sites/bulk-update-status-by-plan", async (req, res) => {
     try {
-      const { planIds, phyAtStatus, softAtStatus, shouldApproveStatus } = req.body;
-      
+      const { planIds, phyAtStatus, softAtStatus, shouldApproveStatus } =
+        req.body;
+
       if (!planIds || planIds.length === 0) {
         res.setHeader("Content-Type", "application/json");
         return res.status(400).json({ error: "No sites selected" });
       }
       if (!phyAtStatus && !softAtStatus) {
         res.setHeader("Content-Type", "application/json");
-        return res.status(400).json({ error: "Please select at least one status to update" });
+        return res
+          .status(400)
+          .json({ error: "Please select at least one status to update" });
       }
-      
-      console.log('[API] Bulk update by plan - planIds:', planIds, 'phyAtStatus:', phyAtStatus, 'softAtStatus:', softAtStatus);
-      
+
+      console.log(
+        "[API] Bulk update by plan - planIds:",
+        planIds,
+        "phyAtStatus:",
+        phyAtStatus,
+        "softAtStatus:",
+        softAtStatus,
+      );
+
       // Call the bulk update which handles AT status updates
-      const result = await storage.bulkUpdateStatusByPlanId(planIds, phyAtStatus, softAtStatus);
-      
+      const result = await storage.bulkUpdateStatusByPlanId(
+        planIds,
+        phyAtStatus,
+        softAtStatus,
+      );
+
       // Fetch existing sites to get current AT status values
-      const existingSites = await db.select().from(sites).where(inArray(sites.planId, planIds));
-      
+      const existingSites = await db
+        .select()
+        .from(sites)
+        .where(inArray(sites.planId, planIds));
+
       // Auto-update site status for each site based on BOTH AT statuses (new + existing)
-      console.log('[API] Auto-updating site status based on AT statuses');
+      console.log("[API] Auto-updating site status based on AT statuses");
       const updatePromises = existingSites.map(async (site) => {
         // Use new values if provided, otherwise use existing values
         const finalPhyAtStatus = phyAtStatus || site.phyAtStatus;
         const finalSoftAtStatus = softAtStatus || site.softAtStatus;
-        
-        console.log(`[API] Site ${site.planId}: phyAtStatus=${finalPhyAtStatus}, softAtStatus=${finalSoftAtStatus}`);
-        
+
+        console.log(
+          `[API] Site ${site.planId}: phyAtStatus=${finalPhyAtStatus}, softAtStatus=${finalSoftAtStatus}`,
+        );
+
         // Site is Approved only if BOTH AT statuses are Approved
-        let newStatus = 'Pending';
-        if (finalPhyAtStatus === 'Approved' && finalSoftAtStatus === 'Approved') {
-          newStatus = 'Approved';
+        let newStatus = "Pending";
+        if (
+          finalPhyAtStatus === "Approved" &&
+          finalSoftAtStatus === "Approved"
+        ) {
+          newStatus = "Approved";
         }
-        
-        console.log(`[API] Setting site ${site.planId} status to: ${newStatus}`);
-        
-        return db.update(sites)
+
+        console.log(
+          `[API] Setting site ${site.planId} status to: ${newStatus}`,
+        );
+
+        return db
+          .update(sites)
           .set({ status: newStatus })
           .where(eq(sites.planId, site.planId));
       });
-      
+
       await Promise.all(updatePromises);
-      console.log('[API] Site status update complete');
-      
+      console.log("[API] Site status update complete");
+
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({ success: true, updated: result.updated });
     } catch (error: any) {
-      console.error('[API] bulkUpdateStatusByPlan error:', error);
+      console.error("[API] bulkUpdateStatusByPlan error:", error);
       res.setHeader("Content-Type", "application/json");
       res.status(400).json({ error: error.message });
     }
@@ -843,7 +964,9 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("[API] GET /api/employees error:", error);
-      res.status(500).json({ error: error.message || "Failed to load employees" });
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to load employees" });
     }
   });
 
@@ -862,7 +985,10 @@ export async function registerRoutes(
   app.put("/api/employees/:id", async (req, res) => {
     try {
       const data = insertEmployeeSchema.partial().parse(req.body);
-      console.log(`[API] PUT /api/employees/${req.params.id} - DOB value:`, data.dob);
+      console.log(
+        `[API] PUT /api/employees/${req.params.id} - DOB value:`,
+        data.dob,
+      );
       const employee = await storage.updateEmployee(req.params.id, data);
       console.log(`[API] Employee updated - New DOB in DB:`, employee.dob);
       res.json(employee);
@@ -885,8 +1011,21 @@ export async function registerRoutes(
     try {
       // Convert all numeric fields to strings for decimal handling
       const body = { ...req.body };
-      const fields = ['basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
-                     'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'];
+      const fields = [
+        "basicSalary",
+        "hra",
+        "da",
+        "lta",
+        "conveyance",
+        "medical",
+        "bonuses",
+        "otherBenefits",
+        "pf",
+        "professionalTax",
+        "incomeTax",
+        "epf",
+        "esic",
+      ];
       for (const field of fields) {
         if (body[field] !== undefined && body[field] !== null) {
           body[field] = String(body[field]);
@@ -896,8 +1035,10 @@ export async function registerRoutes(
       const salary = await storage.createSalary(body);
       res.json(salary);
     } catch (error: any) {
-      console.error('[Salary Create Error]:', error.message);
-      res.status(400).json({ error: error.message || 'Failed to save salary structure' });
+      console.error("[Salary Create Error]:", error.message);
+      res
+        .status(400)
+        .json({ error: error.message || "Failed to save salary structure" });
     }
   });
 
@@ -930,8 +1071,21 @@ export async function registerRoutes(
     try {
       // Convert all numeric fields to strings for decimal handling
       const body = req.body;
-      const fields = ['basicSalary', 'hra', 'da', 'lta', 'conveyance', 'medical', 
-                     'bonuses', 'otherBenefits', 'pf', 'professionalTax', 'incomeTax', 'epf', 'esic'];
+      const fields = [
+        "basicSalary",
+        "hra",
+        "da",
+        "lta",
+        "conveyance",
+        "medical",
+        "bonuses",
+        "otherBenefits",
+        "pf",
+        "professionalTax",
+        "incomeTax",
+        "epf",
+        "esic",
+      ];
       for (const field of fields) {
         if (body[field] !== undefined && body[field] !== null) {
           body[field] = String(body[field]);
@@ -941,8 +1095,10 @@ export async function registerRoutes(
       const salary = await storage.updateSalary(req.params.id, body);
       res.json(salary);
     } catch (error: any) {
-      console.error('[Salary Update Error]:', error);
-      res.status(400).json({ error: error.message || 'Failed to update salary structure' });
+      console.error("[Salary Update Error]:", error);
+      res
+        .status(400)
+        .json({ error: error.message || "Failed to update salary structure" });
     }
   });
 
@@ -1090,12 +1246,18 @@ export async function registerRoutes(
 
   app.delete("/api/invoices/:id", async (req, res) => {
     try {
-      console.log(`[DELETE Invoice] Attempting to delete invoice ID: ${req.params.id}`);
+      console.log(
+        `[DELETE Invoice] Attempting to delete invoice ID: ${req.params.id}`,
+      );
       await storage.deleteInvoice(req.params.id);
-      console.log(`[DELETE Invoice] Successfully deleted invoice ID: ${req.params.id}`);
+      console.log(
+        `[DELETE Invoice] Successfully deleted invoice ID: ${req.params.id}`,
+      );
       res.json({ success: true, message: "Invoice deleted successfully" });
     } catch (error: any) {
-      console.error(`[DELETE Invoice] Error deleting invoice: ${error.message}`);
+      console.error(
+        `[DELETE Invoice] Error deleting invoice: ${error.message}`,
+      );
       res.status(500).json({ error: error.message });
     }
   });
@@ -1113,21 +1275,21 @@ export async function registerRoutes(
   app.post("/api/payment-masters", async (req, res) => {
     try {
       const data = insertPaymentMasterSchema.parse(req.body);
-      
+
       // Check if composite key already exists
       const existing = await storage.getPaymentMasterByCompositeKey(
         data.siteId,
         data.planId,
         data.vendorId,
-        data.antennaSize
+        data.antennaSize,
       );
-      
+
       if (existing) {
-        return res.status(409).json({ 
-          message: `This configuration already exists. A payment setting has already been created for the selected Site, Plan ID, Vendor, and Antenna Size combination.` 
+        return res.status(409).json({
+          message: `This configuration already exists. A payment setting has already been created for the selected Site, Plan ID, Vendor, and Antenna Size combination.`,
         });
       }
-      
+
       const pm = await storage.createPaymentMaster(data);
       res.json(pm);
     } catch (error: any) {
@@ -1159,23 +1321,23 @@ export async function registerRoutes(
   app.put("/api/payment-masters/:id", async (req, res) => {
     try {
       const data = insertPaymentMasterSchema.partial().parse(req.body);
-      
+
       // Check if composite key already exists (excluding current record)
       if (data.siteId && data.planId && data.vendorId && data.antennaSize) {
         const existing = await storage.getPaymentMasterByCompositeKey(
           data.siteId,
           data.planId,
           data.vendorId,
-          data.antennaSize
+          data.antennaSize,
         );
-        
+
         if (existing && existing.id !== req.params.id) {
-          return res.status(409).json({ 
-            message: `This configuration already exists. A payment setting has already been created for the selected Site, Plan ID, Vendor, and Antenna Size combination.` 
+          return res.status(409).json({
+            message: `This configuration already exists. A payment setting has already been created for the selected Site, Plan ID, Vendor, and Antenna Size combination.`,
           });
         }
       }
-      
+
       const pm = await storage.updatePaymentMaster(req.params.id, data);
       res.json(pm);
     } catch (error: any) {
@@ -1187,7 +1349,12 @@ export async function registerRoutes(
     try {
       const isUsed = await storage.isPaymentMasterUsedInPO(req.params.id);
       if (isUsed) {
-        return res.status(409).json({ error: "Cannot delete this payment master. It is already used in PO generation. Please remove associated POs first." });
+        return res
+          .status(409)
+          .json({
+            error:
+              "Cannot delete this payment master. It is already used in PO generation. Please remove associated POs first.",
+          });
       }
       await storage.deletePaymentMaster(req.params.id);
       res.json({ success: true });
@@ -1200,20 +1367,26 @@ export async function registerRoutes(
   app.post("/api/zones", async (req, res) => {
     try {
       const data = insertZoneSchema.parse(req.body);
-      
+
       // Check for duplicate Zone Name
       const existingByName = await storage.getZoneByName(data.name);
       if (existingByName) {
-        return res.status(409).json({ error: `Zone name "${data.name}" already exists` });
+        return res
+          .status(409)
+          .json({ error: `Zone name "${data.name}" already exists` });
       }
-      
+
       // Check for duplicate Short Name
       const allZones = await storage.getZones(10000, 0);
-      const existingByShortName = allZones.find(z => z.shortName === data.shortName);
+      const existingByShortName = allZones.find(
+        (z) => z.shortName === data.shortName,
+      );
       if (existingByShortName) {
-        return res.status(409).json({ error: `Short name "${data.shortName}" already exists` });
+        return res
+          .status(409)
+          .json({ error: `Short name "${data.shortName}" already exists` });
       }
-      
+
       const zone = await storage.createZone(data);
       res.json(zone);
     } catch (error: any) {
@@ -1257,28 +1430,34 @@ export async function registerRoutes(
     try {
       const data = insertZoneSchema.partial().parse(req.body);
       const currentZone = await storage.getZone(req.params.id);
-      
+
       if (!currentZone) {
         return res.status(404).json({ error: "Zone not found" });
       }
-      
+
       // Check for duplicate Zone Name (if name is being changed)
       if (data.name && data.name !== currentZone.name) {
         const existingByName = await storage.getZoneByName(data.name);
         if (existingByName) {
-          return res.status(409).json({ error: `Zone name "${data.name}" already exists` });
+          return res
+            .status(409)
+            .json({ error: `Zone name "${data.name}" already exists` });
         }
       }
-      
+
       // Check for duplicate Short Name (if short name is being changed)
       if (data.shortName && data.shortName !== currentZone.shortName) {
         const allZones = await storage.getZones(10000, 0);
-        const existingByShortName = allZones.find(z => z.shortName === data.shortName && z.id !== req.params.id);
+        const existingByShortName = allZones.find(
+          (z) => z.shortName === data.shortName && z.id !== req.params.id,
+        );
         if (existingByShortName) {
-          return res.status(409).json({ error: `Short name "${data.shortName}" already exists` });
+          return res
+            .status(409)
+            .json({ error: `Short name "${data.shortName}" already exists` });
         }
       }
-      
+
       const zone = await storage.updateZone(req.params.id, data);
       res.json(zone);
     } catch (error: any) {
@@ -1339,14 +1518,14 @@ export async function registerRoutes(
           Number(row.salaryStructures.medical || 0) +
           Number(row.salaryStructures.bonuses || 0) +
           Number(row.salaryStructures.otherBenefits || 0);
-        
+
         const deductions =
           Number(row.salaryStructures.pf || 0) +
           Number(row.salaryStructures.professionalTax || 0) +
           Number(row.salaryStructures.incomeTax || 0) +
           Number(row.salaryStructures.epf || 0) +
           Number(row.salaryStructures.esic || 0);
-        
+
         const net = gross - deductions;
 
         return {
@@ -1375,7 +1554,11 @@ export async function registerRoutes(
         };
       });
 
-      console.log("[Salary Report] Returning", data.length, "transformed records");
+      console.log(
+        "[Salary Report] Returning",
+        data.length,
+        "transformed records",
+      );
       res.json(data);
     } catch (error: any) {
       console.error("[Salary Report] Error:", error.message, error.stack);
@@ -1387,11 +1570,16 @@ export async function registerRoutes(
   app.post("/api/attendance", async (req, res) => {
     try {
       const { employeeId, month, year, attendanceData } = req.body;
-      
+
       if (!employeeId || !month || !year || !attendanceData) {
-        return res.status(400).json({ error: "Missing required fields: employeeId, month, year, attendanceData" });
+        return res
+          .status(400)
+          .json({
+            error:
+              "Missing required fields: employeeId, month, year, attendanceData",
+          });
       }
-      
+
       // Get employee to check role and validate date access
       const employee = await storage.getEmployee(employeeId);
       if (!employee) {
@@ -1404,12 +1592,18 @@ export async function registerRoutes(
       const currentYear = today.getFullYear();
 
       // If user role, only allow updating current day (today only)
-      if (employee.role === 'user') {
+      if (employee.role === "user") {
         // Check if trying to mark dates outside current month
         const isCurrentMonth = month === currentMonth && year === currentYear;
         if (!isCurrentMonth) {
-          console.error(`[Attendance] User ${employeeId} tried to update month ${month}/${year}, current is ${currentMonth}/${currentYear}`);
-          return res.status(403).json({ error: `Can only update current month (${currentMonth}/${currentYear})` });
+          console.error(
+            `[Attendance] User ${employeeId} tried to update month ${month}/${year}, current is ${currentMonth}/${currentYear}`,
+          );
+          return res
+            .status(403)
+            .json({
+              error: `Can only update current month (${currentMonth}/${currentYear})`,
+            });
         }
 
         // Check if trying to mark anything other than today
@@ -1417,16 +1611,26 @@ export async function registerRoutes(
           const dayNum = parseInt(day);
           // Only allow marking today (currentDay), all other dates must be null
           if (dayNum !== currentDay && value !== null) {
-            console.error(`[Attendance] User ${employeeId} tried to mark day ${dayNum} (today is ${currentDay}), value: ${value}`);
-            return res.status(403).json({ error: `Can only mark current date. Today is ${currentDay}` });
+            console.error(
+              `[Attendance] User ${employeeId} tried to mark day ${dayNum} (today is ${currentDay}), value: ${value}`,
+            );
+            return res
+              .status(403)
+              .json({
+                error: `Can only mark current date. Today is ${currentDay}`,
+              });
           }
         }
       }
       // Admin role can mark any day
-      
+
       // Check if attendance exists for this month
-      const existing = await storage.getEmployeeMonthlyAttendance(employeeId, month, year);
-      
+      const existing = await storage.getEmployeeMonthlyAttendance(
+        employeeId,
+        month,
+        year,
+      );
+
       let attendance;
       if (existing) {
         // Update existing
@@ -1442,12 +1646,16 @@ export async function registerRoutes(
           attendanceData: JSON.stringify(attendanceData),
         });
       }
-      
-      console.log(`[Attendance] Successfully saved for employee ${employeeId}, month ${month}/${year}`);
+
+      console.log(
+        `[Attendance] Successfully saved for employee ${employeeId}, month ${month}/${year}`,
+      );
       res.json({ success: true, attendance });
     } catch (error: any) {
       console.error(`[Attendance Error]`, error.message);
-      res.status(500).json({ error: error.message || "Failed to save attendance" });
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to save attendance" });
     }
   });
 
@@ -1457,7 +1665,7 @@ export async function registerRoutes(
       const attendance = await storage.getEmployeeMonthlyAttendance(
         employeeId,
         parseInt(month),
-        parseInt(year)
+        parseInt(year),
       );
       res.json(attendance || null);
     } catch (error: any) {
@@ -1469,19 +1677,25 @@ export async function registerRoutes(
   app.post("/api/allowances", async (req, res) => {
     try {
       const { employeeId, teamId, date, allowanceData } = req.body;
-      
+
       console.log(`[Allowances] POST request received`);
       console.log(`[Allowances] Full body:`, req.body);
-      console.log(`[Allowances] Extracted - employeeId: ${employeeId}, teamId: ${teamId}, date: ${date}, hasData: ${!!allowanceData}`);
-      
+      console.log(
+        `[Allowances] Extracted - employeeId: ${employeeId}, teamId: ${teamId}, date: ${date}, hasData: ${!!allowanceData}`,
+      );
+
       if (!employeeId || !date || !allowanceData) {
-        return res.status(400).json({ error: "Missing required fields: employeeId, date, allowanceData" });
+        return res
+          .status(400)
+          .json({
+            error: "Missing required fields: employeeId, date, allowanceData",
+          });
       }
-      
+
       if (!teamId) {
         return res.status(400).json({ error: "Team selection is required" });
       }
-      
+
       // Check if allowance exists for this date
       console.log(`[Allowances] Checking for existing allowance...`);
       let existing;
@@ -1491,7 +1705,7 @@ export async function registerRoutes(
         console.error(`[Allowances] Error checking existing:`, e.message);
         throw e;
       }
-      
+
       let allowance;
       if (existing) {
         // Update existing
@@ -1502,7 +1716,12 @@ export async function registerRoutes(
         });
       } else {
         // Create new
-        console.log(`[Allowances] Creating new allowance with payload:`, { employeeId, teamId, date, allowanceDataLength: allowanceData.length });
+        console.log(`[Allowances] Creating new allowance with payload:`, {
+          employeeId,
+          teamId,
+          date,
+          allowanceDataLength: allowanceData.length,
+        });
         allowance = await storage.createDailyAllowance({
           employeeId,
           teamId,
@@ -1511,13 +1730,17 @@ export async function registerRoutes(
         });
         console.log(`[Allowances] Created allowance result:`, allowance);
       }
-      
-      console.log(`[Allowances] Successfully saved for employee ${employeeId}, date ${date}, teamId ${teamId}`);
+
+      console.log(
+        `[Allowances] Successfully saved for employee ${employeeId}, date ${date}, teamId ${teamId}`,
+      );
       res.json({ success: true, data: allowance });
     } catch (error: any) {
       console.error(`[Allowances Error] Full error:`, error);
       console.error(`[Allowances Error] Stack:`, error.stack);
-      res.status(500).json({ error: error.message || "Failed to save allowance" });
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to save allowance" });
     }
   });
 
@@ -1531,7 +1754,7 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error: any) {
       console.error(`[Allowances Delete Error]`, error.message);
-      if (error.message.includes('approved')) {
+      if (error.message.includes("approved")) {
         res.status(403).json({ error: error.message });
       } else {
         res.status(400).json({ error: error.message });
@@ -1558,10 +1781,12 @@ export async function registerRoutes(
       const employeeId = req.query.employeeId as string;
       console.log(`[ROUTE] GET /api/allowances/pending - ROUTE HIT!`);
       console.log(`[Allowances] GET pending - employeeId: ${employeeId}`);
-      
+
       let allowances;
       if (employeeId) {
-        console.log(`[Allowances] Getting team allowances for employee: ${employeeId}`);
+        console.log(
+          `[Allowances] Getting team allowances for employee: ${employeeId}`,
+        );
         // Get only team members' allowances for this employee's teams
         allowances = await storage.getPendingAllowancesForTeams(employeeId);
         console.log(`[Allowances] Team allowances result:`, allowances);
@@ -1571,7 +1796,7 @@ export async function registerRoutes(
         allowances = await storage.getPendingAllowances();
         console.log(`[Allowances] All pending allowances result:`, allowances);
       }
-      
+
       console.log(`[Allowances] Found ${allowances.length} pending allowances`);
       res.json({ data: allowances || [] });
     } catch (error: any) {
@@ -1586,15 +1811,19 @@ export async function registerRoutes(
     try {
       const employeeId = req.query.employeeId as string;
       console.log(`[ROUTE] GET /api/allowances/team/all - ROUTE HIT!`);
-      console.log(`[Allowances] GET team all allowances - employeeId: ${employeeId}`);
-      
+      console.log(
+        `[Allowances] GET team all allowances - employeeId: ${employeeId}`,
+      );
+
       if (!employeeId) {
         return res.status(400).json({ error: "employeeId is required" });
       }
-      
+
       // Get all team members' allowances (all statuses: pending, processing, approved, rejected)
       const allowances = await storage.getAllAllowancesForTeams(employeeId);
-      console.log(`[Allowances] Found ${allowances.length} total team allowances (all statuses)`);
+      console.log(
+        `[Allowances] Found ${allowances.length} total team allowances (all statuses)`,
+      );
       res.json({ data: allowances || [] });
     } catch (error: any) {
       console.error(`[ROUTE ERROR] /api/allowances/team/all - ERROR:`, error);
@@ -1607,15 +1836,58 @@ export async function registerRoutes(
     // Check if this is actually a month/year route
     const month = req.query.month;
     const year = req.query.year;
-    
+
     if (month && year) {
-      console.log(`[Allowances] GET month/year - employeeId: ${req.params.employeeId}, month: ${month}, year: ${year}`);
+      console.log(
+        `[Allowances] GET month/year - employeeId: ${req.params.employeeId}, month: ${month}, year: ${year}`,
+      );
       try {
-        let allowances = await storage.getEmployeeAllowancesByMonthYear(req.params.employeeId, parseInt(month as string), parseInt(year as string));
-        console.log(`[Allowances] Found ${allowances.length} allowances for month/year`);
-        
+        let allowances = await storage.getEmployeeAllowancesByMonthYear(
+          req.params.employeeId,
+          parseInt(month as string),
+          parseInt(year as string),
+        );
+        console.log(
+          `[Allowances] Found ${allowances.length} allowances for month/year`,
+        );
+
         // Ensure team names are enriched
-        allowances = await Promise.all(allowances.map(async (allowance) => {
+        allowances = await Promise.all(
+          allowances.map(async (allowance) => {
+            if (allowance.teamId && !allowance.teamName) {
+              const team = await storage.getTeam(allowance.teamId);
+              return {
+                ...allowance,
+                teamName: team?.name || null,
+              };
+            }
+            return allowance;
+          }),
+        );
+
+        console.log(
+          `[Allowances] After enrichment, first allowance:`,
+          allowances[0],
+        );
+        return res.json({ data: allowances });
+      } catch (error: any) {
+        console.error(`[Allowances Fetch Error]`, error.message);
+        return res.status(400).json({ error: error.message });
+      }
+    }
+
+    // Regular employee get
+    try {
+      console.log(
+        `[Allowances] GET all - employeeId: ${req.params.employeeId}`,
+      );
+      const { employeeId } = req.params;
+      let allowances = await storage.getEmployeeAllowances(employeeId);
+      console.log(`[Allowances] Found ${allowances.length} allowances`);
+
+      // Ensure team names are enriched
+      allowances = await Promise.all(
+        allowances.map(async (allowance) => {
           if (allowance.teamId && !allowance.teamName) {
             const team = await storage.getTeam(allowance.teamId);
             return {
@@ -1624,35 +1896,9 @@ export async function registerRoutes(
             };
           }
           return allowance;
-        }));
-        
-        console.log(`[Allowances] After enrichment, first allowance:`, allowances[0]);
-        return res.json({ data: allowances });
-      } catch (error: any) {
-        console.error(`[Allowances Fetch Error]`, error.message);
-        return res.status(400).json({ error: error.message });
-      }
-    }
-    
-    // Regular employee get
-    try {
-      console.log(`[Allowances] GET all - employeeId: ${req.params.employeeId}`);
-      const { employeeId } = req.params;
-      let allowances = await storage.getEmployeeAllowances(employeeId);
-      console.log(`[Allowances] Found ${allowances.length} allowances`);
-      
-      // Ensure team names are enriched
-      allowances = await Promise.all(allowances.map(async (allowance) => {
-        if (allowance.teamId && !allowance.teamName) {
-          const team = await storage.getTeam(allowance.teamId);
-          return {
-            ...allowance,
-            teamName: team?.name || null,
-          };
-        }
-        return allowance;
-      }));
-      
+        }),
+      );
+
       res.json({ data: allowances });
     } catch (error: any) {
       console.error(`[Allowances Fetch Error]`, error.message);
@@ -1663,7 +1909,10 @@ export async function registerRoutes(
   app.get("/api/allowances/:employeeId/:date", async (req, res) => {
     try {
       const { employeeId, date } = req.params;
-      const allowance = await storage.getEmployeeAllowancesByDate(employeeId, date);
+      const allowance = await storage.getEmployeeAllowancesByDate(
+        employeeId,
+        date,
+      );
       res.json(allowance || null);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -1674,7 +1923,7 @@ export async function registerRoutes(
   app.put("/api/allowances/:id/approve", async (req, res) => {
     try {
       const { id } = req.params;
-      const approvedBy = req.session?.employeeId || 'admin';
+      const approvedBy = req.session?.employeeId || "admin";
       console.log(`[Allowances] Approving ${id}`);
       const allowance = await storage.approveDailyAllowance(id, approvedBy);
       res.json({ success: true, data: allowance });
@@ -1690,8 +1939,14 @@ export async function registerRoutes(
       const { id } = req.params;
       const { rejectionReason } = req.body;
       const isHigherAuthority = req.session?.isHigherAuthority || false;
-      console.log(`[Allowances] Rejecting ${id} with reason: ${rejectionReason}`);
-      const allowance = await storage.rejectDailyAllowance(id, rejectionReason, isHigherAuthority);
+      console.log(
+        `[Allowances] Rejecting ${id} with reason: ${rejectionReason}`,
+      );
+      const allowance = await storage.rejectDailyAllowance(
+        id,
+        rejectionReason,
+        isHigherAuthority,
+      );
       res.json({ success: true, data: allowance });
     } catch (error: any) {
       console.error(`[Allowances Reject Error]`, error.message);
@@ -1757,25 +2012,43 @@ export async function registerRoutes(
 
   app.post("/api/teams/:id/members", async (req, res) => {
     try {
-      const { employeeId, reportingPerson1, reportingPerson2, reportingPerson3 } = req.body;
-      console.log('[Teams API] Adding member - teamId:', req.params.id, 'employeeId:', employeeId, 'reporting persons:', { reportingPerson1, reportingPerson2, reportingPerson3 });
-      const member = await storage.addTeamMember(req.params.id, employeeId, reportingPerson1, reportingPerson2, reportingPerson3);
-      console.log('[Teams API] Member added:', member);
+      const {
+        employeeId,
+        reportingPerson1,
+        reportingPerson2,
+        reportingPerson3,
+      } = req.body;
+      console.log(
+        "[Teams API] Adding member - teamId:",
+        req.params.id,
+        "employeeId:",
+        employeeId,
+        "reporting persons:",
+        { reportingPerson1, reportingPerson2, reportingPerson3 },
+      );
+      const member = await storage.addTeamMember(
+        req.params.id,
+        employeeId,
+        reportingPerson1,
+        reportingPerson2,
+        reportingPerson3,
+      );
+      console.log("[Teams API] Member added:", member);
       res.json(member);
     } catch (error: any) {
-      console.error('[Teams API] Error adding member:', error);
+      console.error("[Teams API] Error adding member:", error);
       res.status(400).json({ error: error.message });
     }
   });
 
   app.get("/api/teams/:id/members", async (req, res) => {
     try {
-      console.log('[Teams API] Fetching members for teamId:', req.params.id);
+      console.log("[Teams API] Fetching members for teamId:", req.params.id);
       const members = await storage.getTeamMembers(req.params.id);
-      console.log('[Teams API] Members fetched:', members);
+      console.log("[Teams API] Members fetched:", members);
       res.json(members);
     } catch (error: any) {
-      console.error('[Teams API] Error fetching members:', error);
+      console.error("[Teams API] Error fetching members:", error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -1786,7 +2059,7 @@ export async function registerRoutes(
       const members = await storage.getTeamMembers(req.params.teamId);
       const member = members.find((m) => m.id === req.params.memberId);
       if (!member) {
-        return res.status(404).json({ error: 'Member not found' });
+        return res.status(404).json({ error: "Member not found" });
       }
       await storage.removeTeamMember(req.params.teamId, member.employeeId);
       res.json({ success: true });
@@ -1802,7 +2075,7 @@ export async function registerRoutes(
         req.params.memberId,
         reportingPerson1,
         reportingPerson2,
-        reportingPerson3
+        reportingPerson3,
       );
       res.json(member);
     } catch (error: any) {
@@ -1814,22 +2087,33 @@ export async function registerRoutes(
     try {
       const { teamId, level } = req.params;
       const levelNum = parseInt(level) as 1 | 2 | 3;
-      console.log('[Teams API] Clearing RP', levelNum, 'for all members in team:', teamId);
-      
+      console.log(
+        "[Teams API] Clearing RP",
+        levelNum,
+        "for all members in team:",
+        teamId,
+      );
+
       const members = await storage.getTeamMembers(teamId);
-      
+
       for (const member of members) {
         const updates: any = {};
         const fieldName = `reportingPerson${levelNum}`;
         updates[fieldName] = null;
-        
-        await db.update(teamMembers).set(updates).where(eq(teamMembers.id, member.id));
+
+        await db
+          .update(teamMembers)
+          .set(updates)
+          .where(eq(teamMembers.id, member.id));
       }
-      
-      console.log('[Teams API] Cleared RP', levelNum, 'for all members');
-      res.json({ success: true, message: `Reporting Person ${levelNum} cleared for all team members` });
+
+      console.log("[Teams API] Cleared RP", levelNum, "for all members");
+      res.json({
+        success: true,
+        message: `Reporting Person ${levelNum} cleared for all team members`,
+      });
     } catch (error: any) {
-      console.error('[Teams API] Error clearing RP:', error);
+      console.error("[Teams API] Error clearing RP:", error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -1837,24 +2121,26 @@ export async function registerRoutes(
   // App Settings routes
   app.get("/api/app-settings", async (req, res) => {
     try {
-      console.log('[AppSettings API] Fetching app settings');
+      console.log("[AppSettings API] Fetching app settings");
       const settings = await storage.getAppSettings();
       res.json(settings || { approvalsRequiredForAllowance: 1 });
     } catch (error: any) {
-      console.error('[AppSettings API] Error fetching settings:', error);
+      console.error("[AppSettings API] Error fetching settings:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
   app.put("/api/app-settings", async (req, res) => {
     try {
-      console.log('[AppSettings API] Updating app settings:', req.body);
+      console.log("[AppSettings API] Updating app settings:", req.body);
       const validated = insertAppSettingsSchema.parse(req.body);
       const settings = await storage.updateAppSettings(validated);
       res.json(settings);
     } catch (error: any) {
-      console.error('[AppSettings API] Error updating settings:', error);
-      res.status(400).json({ error: error.message || 'Failed to save app settings' });
+      console.error("[AppSettings API] Error updating settings:", error);
+      res
+        .status(400)
+        .json({ error: error.message || "Failed to save app settings" });
     }
   });
 
@@ -1865,31 +2151,33 @@ export async function registerRoutes(
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password required" });
       }
-      
+
       const employee = await storage.loginEmployee(email, password);
       if (!employee) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
-      
+
       // Check if user has superadmin role only
-      const role = employee.role || 'user';
-      if (role !== 'superadmin' && role !== 'Superadmin') {
-        return res.status(403).json({ error: "Only superadmin can access this portal" });
+      const role = employee.role || "user";
+      if (role !== "superadmin" && role !== "Superadmin") {
+        return res
+          .status(403)
+          .json({ error: "Only superadmin can access this portal" });
       }
-      
+
       if (req.session) {
         req.session.employeeId = employee.id;
         req.session.employeeEmail = employee.email;
       }
-      
-      res.json({ 
-        success: true, 
-        employee: { 
-          id: employee.id, 
-          name: employee.name, 
+
+      res.json({
+        success: true,
+        employee: {
+          id: employee.id,
+          name: employee.name,
           email: employee.email,
-          role: role
-        } 
+          role: role,
+        },
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1899,34 +2187,42 @@ export async function registerRoutes(
   // Initialize superadmin - creates default superadmin if not exists
   app.post("/api/admin/init-superadmin", async (req, res) => {
     try {
-      const superadminEmail = 'superadmin@ems.local';
+      const superadminEmail = "superadmin@ems.local";
       const existingAdmin = await storage.getEmployeeByEmail(superadminEmail);
-      
+
       if (existingAdmin) {
-        return res.json({ success: true, message: "Superadmin already exists", email: superadminEmail });
+        return res.json({
+          success: true,
+          message: "Superadmin already exists",
+          email: superadminEmail,
+        });
       }
-      
-      const bcrypt = require('bcrypt');
-      const hashedPassword = await bcrypt.hash('SuperAdmin@123', 10);
-      
+
+      const bcrypt = require("bcrypt");
+      const hashedPassword = await bcrypt.hash("SuperAdmin@123", 10);
+
       const newAdmin = await storage.createEmployee({
-        name: 'System Administrator',
+        name: "System Administrator",
         email: superadminEmail,
         password: hashedPassword,
-        fatherName: 'System',
-        mobile: '9999999999',
-        doj: new Date().toISOString().split('T')[0],
-        bloodGroup: 'O+',
-        maritalStatus: 'Single',
-        nominee: 'System Administrator',
-        address: 'System Address',
-        city: 'System',
-        state: 'System',
-        role: 'superadmin',
-        status: 'Active'
+        fatherName: "System",
+        mobile: "9999999999",
+        doj: new Date().toISOString().split("T")[0],
+        bloodGroup: "O+",
+        maritalStatus: "Single",
+        nominee: "System Administrator",
+        address: "System Address",
+        city: "System",
+        state: "System",
+        role: "superadmin",
+        status: "Active",
       } as any);
-      
-      res.json({ success: true, message: "Superadmin created successfully", email: superadminEmail });
+
+      res.json({
+        success: true,
+        message: "Superadmin created successfully",
+        email: superadminEmail,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
