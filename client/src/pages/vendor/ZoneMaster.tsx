@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from "@/lib/api";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,7 @@ export default function ZoneMaster() {
 
   const fetchZones = async () => {
     try {
-      const response = await fetch(`/api/zones?pageSize=10000`);
+      const response = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setZones(result.data || []);
@@ -52,7 +53,7 @@ export default function ZoneMaster() {
 
     try {
       const baseUrl = getApiBaseUrl();
-      const url = editing ? `${baseUrl}/api/zones/${editing.id}` : `${baseUrl}/api/zones`;
+      const url = editing ? `${baseUrl}${getApiBaseUrl()}/api/zones/${editing.id}` : `${baseUrl}${getApiBaseUrl()}/api/zones`;
       const method = editing ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -94,7 +95,7 @@ export default function ZoneMaster() {
     if (!confirm("Are you sure you want to delete this zone?")) return;
 
     try {
-      const response = await fetch(`/api/zones/${id}`, { method: "DELETE" });
+      const response = await fetch(`${getApiBaseUrl()}/api/zones/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete");
 
       toast({ title: "Success", description: "Zone deleted successfully" });

@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from "@/lib/api";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -57,10 +58,10 @@ export default function POGeneration() {
 
         const baseUrl = getApiBaseUrl();
         const [sitesRes, vendorsRes, posRes, exportHeaderRes] = await Promise.all([
-          fetch(`${baseUrl}/api/sites/for-po-generation`),
-          fetch(`${baseUrl}/api/vendors?pageSize=10000`),
-          fetch(`${baseUrl}/api/purchase-orders?pageSize=10000`),
-          fetch(`${baseUrl}/api/export-headers`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/sites/for-po-generation`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/vendors?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/export-headers`),
         ]);
 
         if (!sitesRes.ok || !vendorsRes.ok || !posRes.ok) {
@@ -121,7 +122,7 @@ export default function POGeneration() {
         const invoicesMap: { [key: string]: any[] } = {};
         for (const po of pos) {
           try {
-            const invRes = await fetch(`${baseUrl}/api/purchase-orders/${po.id}/invoices`);
+            const invRes = await fetch(`${baseUrl}${getApiBaseUrl()}/api/purchase-orders/${po.id}/invoices`);
             if (invRes.ok) {
               const invData = await invRes.json();
               invoicesMap[po.id] = invData.data || [];
@@ -233,7 +234,7 @@ export default function POGeneration() {
           }
         }
         
-        const response = await fetch("/api/purchase-orders", {
+        const response = await fetch("${getApiBaseUrl()}/api/purchase-orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -299,7 +300,7 @@ export default function POGeneration() {
     }
 
     try {
-      const response = await fetch(`/api/purchase-orders/${poId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/purchase-orders/${poId}`, {
         method: "DELETE",
       });
 
@@ -325,17 +326,17 @@ export default function POGeneration() {
   const exportPOToPDF = async (poId: string, poNumber: string) => {
     try {
       const baseUrl = getApiBaseUrl();
-      const poRes = await fetch(`${baseUrl}/api/purchase-orders/${poId}`);
+      const poRes = await fetch(`${baseUrl}${getApiBaseUrl()}/api/purchase-orders/${poId}`);
       if (!poRes.ok) throw new Error("Failed to fetch PO");
       const po = await poRes.json();
       
-      const siteRes = await fetch(`${baseUrl}/api/sites/${po.siteId}`);
+      const siteRes = await fetch(`${baseUrl}${getApiBaseUrl()}/api/sites/${po.siteId}`);
       const site = siteRes.ok ? await siteRes.json() : null;
 
-      const vendorRes = await fetch(`${baseUrl}/api/vendors/${po.vendorId}`);
+      const vendorRes = await fetch(`${baseUrl}${getApiBaseUrl()}/api/vendors/${po.vendorId}`);
       const vendor = vendorRes.ok ? await vendorRes.json() : null;
 
-      const headerRes = await fetch(`${baseUrl}/api/export-headers`);
+      const headerRes = await fetch(`${baseUrl}${getApiBaseUrl()}/api/export-headers`);
       const exportHeaderSettings = headerRes.ok ? await headerRes.json() : {};
 
       const pdf = new jsPDF('p', 'mm', 'a4');

@@ -1,10 +1,11 @@
+import { getApiBaseUrl } from "@/lib/api";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useParams } from 'wouter';
 import { useState, useEffect } from 'react';
-import { getApiBaseUrl } from '@/lib/api';
+import { getApiBaseUrl } from '@/lib${getApiBaseUrl()}/api';
 import {
   Form,
   FormControl,
@@ -146,8 +147,8 @@ export default function SiteEdit() {
         // Fetch zones and vendors first
         const baseUrl = getApiBaseUrl();
         const [zonesRes, vendorsRes] = await Promise.all([
-          fetch(`${baseUrl}/api/zones?pageSize=10000`),
-          fetch(`${baseUrl}/api/vendors?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/zones?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/vendors?pageSize=10000`),
         ]);
         
         let loadedZones: any[] = [];
@@ -177,7 +178,7 @@ export default function SiteEdit() {
 
   const fetchSite = async (loadedZones: any[] = []) => {
     try {
-      const response = await fetch(`/api/sites/${id}`);
+      const response = await fetch(`${getApiBaseUrl()}/api/sites/${id}`);
       if (!response.ok) throw new Error('Site not found');
       const site = await response.json();
       
@@ -204,7 +205,7 @@ export default function SiteEdit() {
 
   const onSubmit = async (values: z.infer<typeof siteSchema>) => {
     try {
-      const response = await fetch(`/api/sites/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/sites/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),

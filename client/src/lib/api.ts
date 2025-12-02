@@ -1,18 +1,21 @@
-// API base URL configuration - uses relative URLs
-// All API calls use /api/... which automatically points to the same server
-// This works in development, production, Plesk, and any deployment
+// API base URL configuration from environment or relative URLs
+import { API_CONFIG } from '../config/api.config';
 
-export const getApiBaseUrl = () => '';
-export const getAPI_BASE_URL = () => '';
+const _getApiBaseUrl = () => {
+  return API_CONFIG.API_URL;
+};
+
+export const getApiBaseUrl = () => _getApiBaseUrl();
+export const getAPI_BASE_URL = () => _getApiBaseUrl();
 
 export const apiCall = async (endpoint: string, options?: RequestInit) => {
-  // Always use relative URLs - they automatically work everywhere
-  const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const baseUrl = _getApiBaseUrl();
+  const url = baseUrl ? `${baseUrl}${endpoint}` : (endpoint.startsWith('/') ? endpoint : `/${endpoint}`);
   return fetch(url, options);
 };
 
 export const setApiBaseUrl = (url: string) => {
-  console.warn('[API] API base URL is now always relative (/api/...). No manual configuration needed.');
+  console.warn('[API] API base URL configured via VITE_API_BASE_URL environment variable');
 };
 
-export const getStoredApiUrl = () => '';
+export const getStoredApiUrl = () => _getApiBaseUrl();

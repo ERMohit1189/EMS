@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +134,7 @@ export default function ExportHeaders() {
 
   const loadHeader = async () => {
     try {
-      const response = await fetch(`/api/export-headers`);
+      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
       if (response.ok) {
         const data = await response.json();
         setHeader(data || { id: '', companyName: '', reportTitle: '', footerText: '', contactPhone: '', contactEmail: '', website: '', gstin: '', address: '', state: '', city: '', showGeneratedDate: true });
@@ -148,7 +149,7 @@ export default function ExportHeaders() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch(`/api/export-headers`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

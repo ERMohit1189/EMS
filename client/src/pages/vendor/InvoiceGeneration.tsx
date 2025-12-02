@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from "@/lib/api";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,10 +48,10 @@ export default function InvoiceGeneration() {
       try {
         const baseUrl = getApiBaseUrl();
         const [posRes, vendorsRes, sitesRes, invoicesRes] = await Promise.all([
-          fetch(`${baseUrl}/api/purchase-orders?pageSize=10000`),
-          fetch(`${baseUrl}/api/vendors?pageSize=10000`),
-          fetch(`${baseUrl}/api/sites?pageSize=10000`),
-          fetch(`${baseUrl}/api/invoices?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/vendors?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/sites?pageSize=10000`),
+          fetch(`${baseUrl}${getApiBaseUrl()}/api/invoices?pageSize=10000`),
         ]);
 
         if (!posRes.ok || !vendorsRes.ok || !sitesRes.ok || !invoicesRes.ok) {
@@ -134,7 +135,7 @@ export default function InvoiceGeneration() {
     }
 
     try {
-      const apiUrl = `/api/invoices/${invoiceId}`;
+      const apiUrl = `${getApiBaseUrl()}/api/invoices/${invoiceId}`;
       console.log(`[Frontend] Deleting invoice from: ${apiUrl}`);
       const response = await fetch(apiUrl, {
         method: "DELETE",
@@ -170,7 +171,7 @@ export default function InvoiceGeneration() {
     }
 
     try {
-      const response = await fetch(`/api/invoices`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
         method: "DELETE",
       });
 
@@ -429,7 +430,7 @@ export default function InvoiceGeneration() {
         const record = records[i];
         const po = posData[i];
 
-        const response = await fetch("/api/invoices", {
+        const response = await fetch("${getApiBaseUrl()}/api/invoices", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

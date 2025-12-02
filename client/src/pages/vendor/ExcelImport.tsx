@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from "@/lib/api";
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
-import { getApiBaseUrl } from '@/lib/api';
+import { getApiBaseUrl } from '@/lib${getApiBaseUrl()}/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchWithLoader } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
@@ -77,7 +78,7 @@ export default function ExcelImport() {
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
     try {
-      const zonesRes = await fetch(`/api/zones?pageSize=10000`);
+      const zonesRes = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
       if (zonesRes.ok) {
         const zonesData = await zonesRes.json();
         zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
@@ -146,7 +147,7 @@ export default function ExcelImport() {
 
           let vendorId: string;
           try {
-            const response = await fetch(`/api/vendors/find-or-create`, {
+            const response = await fetch(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ vendorCode: partnerCode, name: partnerName }),
@@ -360,7 +361,7 @@ export default function ExcelImport() {
     const uploadPromises = validData.map(async (item) => {
       try {
         if (item.type === 'site') {
-          const response = await fetch(`/api/sites/upsert`, {
+          const response = await fetch(`${getApiBaseUrl()}/api/sites/upsert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item.data),
@@ -372,7 +373,7 @@ export default function ExcelImport() {
           console.log(`[ExcelImport] Row ${item.rowNum}: Site uploaded successfully`);
           return { success: true };
         } else if (item.type === 'vendor') {
-          const response = await fetch(`/api/vendors`, {
+          const response = await fetch(`${getApiBaseUrl()}/api/vendors`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item.data),
@@ -384,7 +385,7 @@ export default function ExcelImport() {
           console.log(`[ExcelImport] Row ${item.rowNum}: Vendor uploaded successfully`);
           return { success: true };
         } else if (item.type === 'employee') {
-          const response = await fetch(`/api/employees`, {
+          const response = await fetch(`${getApiBaseUrl()}/api/employees`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item.data),
@@ -560,7 +561,7 @@ export default function ExcelImport() {
     }
 
     try {
-      const response = await fetchWithLoader(`/api/sites`, {
+      const response = await fetchWithLoader(`${getApiBaseUrl()}/api/sites`, {
         method: 'DELETE',
       });
 
@@ -588,13 +589,13 @@ export default function ExcelImport() {
       let endpoint = '';
 
       if (importType === 'site') {
-        endpoint = `/api/sites?pageSize=10000`;
+        endpoint = `${getApiBaseUrl()}/api/sites?pageSize=10000`;
         fileName = `sites_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (importType === 'vendor') {
-        endpoint = `/api/vendors?pageSize=10000`;
+        endpoint = `${getApiBaseUrl()}/api/vendors?pageSize=10000`;
         fileName = `vendors_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (importType === 'employee') {
-        endpoint = `/api/employees?pageSize=10000`;
+        endpoint = `${getApiBaseUrl()}/api/employees?pageSize=10000`;
         fileName = `employees_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       }
 
