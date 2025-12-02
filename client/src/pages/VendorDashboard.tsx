@@ -74,14 +74,119 @@ export default function VendorDashboard() {
 
   const vendorId = localStorage.getItem("vendorId");
 
+  const columnHeaderMap: Record<string, string> = {
+    siteId: 'Site ID',
+    planId: 'Plan ID',
+    circle: 'Circle',
+    district: 'District',
+    project: 'Project',
+    siteAAntDia: 'Site A Ant Dia',
+    siteBAntDia: 'Site B Ant Dia',
+    maxAntSize: 'Max Ant Size',
+    siteAName: 'Site A Name',
+    tocoVendorA: 'TOCO Vendor A',
+    tocoIdA: 'TOCO ID A',
+    siteBName: 'Site B Name',
+    tocoVendorB: 'TOCO Vendor B',
+    tocoIdB: 'TOCO ID B',
+    hopType: 'HOP Type',
+    hopAB: 'HOP AB',
+    hopBA: 'HOP BA',
+    nominalAop: 'Nominal AOP',
+    mediaAvailabilityStatus: 'Media Availability Status',
+    srNoSiteA: 'SR No Site A',
+    srDateSiteA: 'SR Date Site A',
+    srNoSiteB: 'SR No Site B',
+    srDateSiteB: 'SR Date Site B',
+    hopSrDate: 'HOP SR Date',
+    spDateSiteA: 'SP Date Site A',
+    spDateSiteB: 'SP Date Site B',
+    hopSpDate: 'HOP SP Date',
+    soReleasedDateSiteA: 'SO Released Date Site A',
+    soReleasedDateSiteB: 'SO Released Date Site B',
+    hopSoDate: 'HOP SO Date',
+    rfaiOfferedDateSiteA: 'RFAI Offered Date Site A',
+    rfaiOfferedDateSiteB: 'RFAI Offered Date Site B',
+    actualHopRfaiOfferedDate: 'Actual HOP RFAI Offered Date',
+    partnerName: 'Partner Name',
+    rfaiSurveyCompletionDate: 'RFAI Survey Completion Date',
+    moNumberSiteA: 'MO Number Site A',
+    materialTypeSiteA: 'Material Type Site A',
+    moDateSiteA: 'MO Date Site A',
+    moNumberSiteB: 'MO Number Site B',
+    materialTypeSiteB: 'Material Type Site B',
+    moDateSiteB: 'MO Date Site B',
+    srnRmoNumber: 'SRN RMO Number',
+    srnRmoDate: 'SRN RMO Date',
+    hopMoDate: 'HOP MO Date',
+    hopMaterialDispatchDate: 'HOP Material Dispatch Date',
+    hopMaterialDeliveryDate: 'HOP Material Delivery Date',
+    materialDeliveryStatus: 'Material Delivery Status',
+    siteAInstallationDate: 'Site A Installation Date',
+    ptwNumberSiteA: 'PTW Number Site A',
+    ptwStatusA: 'PTW Status A',
+    siteBInstallationDate: 'Site B Installation Date',
+    ptwNumberSiteB: 'PTW Number Site B',
+    ptwStatusB: 'PTW Status B',
+    hopIcDate: 'HOP IC Date',
+    alignmentDate: 'Alignment Date',
+    hopInstallationRemarks: 'HOP Installation Remarks',
+    visibleInNms: 'Visible In NMS',
+    nmsVisibleDate: 'NMS Visible Date',
+    softAtOfferDate: 'Soft AT Offer Date',
+    softAtAcceptanceDate: 'Soft AT Acceptance Date',
+    softAtStatus: 'Soft AT Status',
+    phyAtOfferDate: 'Phy AT Offer Date',
+    phyAtAcceptanceDate: 'Phy AT Acceptance Date',
+    phyAtStatus: 'Phy AT Status',
+    bothAtStatus: 'Both AT Status',
+    priIssueCategory: 'PRI Issue Category',
+    priSiteId: 'PRI Site ID',
+    priOpenDate: 'PRI Open Date',
+    priCloseDate: 'PRI Close Date',
+    priHistory: 'PRI History',
+    rfiSurveyAllocationDate: 'RFI Survey Allocation Date',
+    descope: 'Descope',
+    reasonOfExtraVisit: 'Reason Of Extra Visit',
+    wccReceived80Percent: 'WCC Received 80 Percent',
+    wccReceivedDate80Percent: 'WCC Received Date 80 Percent',
+    wccReceived20Percent: 'WCC Received 20 Percent',
+    wccReceivedDate20Percent: 'WCC Received Date 20 Percent',
+    wccReceivedDate100Percent: 'WCC Received Date 100 Percent',
+    survey: 'Survey',
+    finalPartnerSurvey: 'Final Partner Survey',
+    surveyDate: 'Survey Date',
+    status: 'Status',
+    sno: 'S.No',
+    siteAmount: 'Site Amount',
+    vendorAmount: 'Vendor Amount',
+    zoneId: 'Zone ID',
+    id: 'ID',
+    vendorId: 'Vendor ID',
+    createdAt: 'Created At',
+    updatedAt: 'Updated At',
+  };
+
+  const getFormattedExcelData = (data: any[]) => {
+    return data.map(item => {
+      const formattedItem: Record<string, any> = {};
+      Object.entries(item).forEach(([key, value]) => {
+        const headerName = columnHeaderMap[key] || key;
+        formattedItem[headerName] = value;
+      });
+      return formattedItem;
+    });
+  };
+
   const downloadSitesExcel = () => {
     if (sites.length === 0) {
       toast({ title: "No data", description: "No sites to download", variant: "destructive" });
       return;
     }
     
+    const formattedData = getFormattedExcelData(sites);
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(sites);
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sites");
     XLSX.writeFile(workbook, `vendor-sites-${new Date().toISOString().split('T')[0]}.xlsx`);
     
@@ -473,9 +578,10 @@ export default function VendorDashboard() {
               <div className="flex gap-2 pt-4 border-t">
                 <Button
                   onClick={() => {
-                    const csv = XLSX.utils.json_to_sheet([selectedSite]);
+                    const formattedData = getFormattedExcelData([selectedSite]);
+                    const sheet = XLSX.utils.json_to_sheet(formattedData);
                     const workbook = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(workbook, csv, "Site");
+                    XLSX.utils.book_append_sheet(workbook, sheet, "Site");
                     XLSX.writeFile(workbook, `site-${selectedSite.siteId}.xlsx`);
                     toast({ title: "Success", description: "Site data downloaded" });
                   }}
