@@ -105,6 +105,15 @@ export default function Login() {
       localStorage.setItem('employeeEmail', data.employee.email);
       localStorage.setItem('employeeName', data.employee.name);
       
+      console.log('[Login] Stored employee data:', { 
+        name: data.employee.name, 
+        role: data.employee.role,
+        id: data.employee.id,
+        email: data.employee.email,
+        stored_employeeName: localStorage.getItem('employeeName'),
+        stored_employeeRole: localStorage.getItem('employeeRole')
+      });
+      
       // Clear any saved last location to prevent redirecting to old vendor/employee dashboards
       sessionStorage.removeItem('lastValidLocation');
 
@@ -113,8 +122,12 @@ export default function Login() {
         description: `Logged in as ${data.employee.name}`,
       });
 
-      // Dispatch login event to App component
+      // Dispatch login event to App component - trigger header update
       window.dispatchEvent(new Event('login'));
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'employeeName',
+        newValue: data.employee.name
+      }));
 
       // Redirect to dashboard
       setTimeout(() => {

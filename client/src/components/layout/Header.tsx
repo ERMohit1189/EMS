@@ -27,10 +27,14 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
   useEffect(() => {
     // Update user info from localStorage
     const updateUserInfo = () => {
-      const name = localStorage.getItem('employeeName') || localStorage.getItem('vendorName') || 'User';
+      const storedName = localStorage.getItem('employeeName');
+      const storedVendor = localStorage.getItem('vendorName');
+      const name = storedName || storedVendor || 'User';
       const empId = localStorage.getItem('employeeId') !== null;
       const vendId = localStorage.getItem('vendorId') !== null;
       const role = localStorage.getItem('employeeRole');
+      
+      console.log('[Header] Updated user info:', { name, empId, vendId, role, storedName, storedVendor });
       
       setEmployeeName(name);
       setIsEmployee(empId);
@@ -38,15 +42,20 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
       setEmployeeRole(role);
     };
     
+    // Initial update
     updateUserInfo();
     
-    // Listen for storage changes
+    // Listen for storage changes and login event
     window.addEventListener('storage', updateUserInfo);
     window.addEventListener('login', updateUserInfo);
+    
+    // Also check periodically in case event missed
+    const interval = setInterval(updateUserInfo, 500);
     
     return () => {
       window.removeEventListener('storage', updateUserInfo);
       window.removeEventListener('login', updateUserInfo);
+      clearInterval(interval);
     };
   }, []);
 
