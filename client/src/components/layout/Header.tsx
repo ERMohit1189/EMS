@@ -27,14 +27,32 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
   useEffect(() => {
     // Update user info from localStorage
     const updateUserInfo = () => {
-      const storedName = localStorage.getItem('employeeName');
-      const storedVendor = localStorage.getItem('vendorName');
-      const name = storedName || storedVendor || 'User';
+      // Try to get user info from stored userData object first (contains name and role)
+      const userDataStr = localStorage.getItem('user');
+      let name = 'User';
+      let role = null;
+      
+      if (userDataStr) {
+        try {
+          const userData = JSON.parse(userDataStr);
+          name = userData.name || 'User';
+          role = userData.role || null;
+          console.log('[Header] Got user info from userData:', { name, role });
+        } catch (e) {
+          console.log('[Header] Could not parse userData, using fallback');
+          name = localStorage.getItem('employeeName') || localStorage.getItem('vendorName') || 'User';
+          role = localStorage.getItem('employeeRole');
+        }
+      } else {
+        // Fallback to individual fields if userData not available
+        name = localStorage.getItem('employeeName') || localStorage.getItem('vendorName') || 'User';
+        role = localStorage.getItem('employeeRole');
+      }
+      
       const empId = localStorage.getItem('employeeId') !== null;
       const vendId = localStorage.getItem('vendorId') !== null;
-      const role = localStorage.getItem('employeeRole');
       
-      console.log('[Header] Updated user info:', { name, empId, vendId, role, storedName, storedVendor });
+      console.log('[Header] Updated user info:', { name, empId, vendId, role });
       
       setEmployeeName(name);
       setIsEmployee(empId);
