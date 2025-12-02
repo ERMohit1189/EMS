@@ -29,7 +29,6 @@ interface Site {
   siteId: string;
   planId: string;
   siteAName: string;
-  siteAmount?: string;
   vendorAmount?: string;
 }
 
@@ -145,11 +144,6 @@ export default function VendorPOReport() {
     0
   );
 
-  const totalSiteAmount = filteredPOs.reduce((sum, po) => {
-    const site = sites.find(s => s.id === po.siteId);
-    return sum + parseFloat(site?.siteAmount || "0");
-  }, 0);
-
   const totalVendorAmount = filteredPOs.reduce((sum, po) => {
     const site = sites.find(s => s.id === po.siteId);
     return sum + parseFloat(site?.vendorAmount || "0");
@@ -240,7 +234,7 @@ export default function VendorPOReport() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-blue-900">{filteredPOs.length}</p>
@@ -250,7 +244,7 @@ export default function VendorPOReport() {
         <Card className="bg-gradient-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-green-900">₹{totalAmount.toLocaleString()}</p>
-            <p className="text-sm text-green-700">Total Value</p>
+            <p className="text-sm text-green-700">Total PO Amount</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
@@ -259,12 +253,6 @@ export default function VendorPOReport() {
               {filteredPOs.filter((po) => po.status?.toLowerCase() === "approved").length}
             </p>
             <p className="text-sm text-purple-700">Approved POs</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100">
-          <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-amber-900">₹{totalSiteAmount.toLocaleString()}</p>
-            <p className="text-sm text-amber-700">Total Site Amount</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100">

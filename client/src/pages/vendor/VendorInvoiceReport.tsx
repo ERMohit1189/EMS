@@ -31,7 +31,6 @@ interface PurchaseOrder {
 
 interface Site {
   id: string;
-  siteAmount?: string;
   vendorAmount?: string;
 }
 
@@ -167,12 +166,6 @@ export default function VendorInvoiceReport() {
     .filter((inv) => inv.status?.toLowerCase() === "paid")
     .reduce((sum, inv) => sum + parseFloat(inv.totalAmount || "0"), 0);
 
-  const totalSiteAmount = filteredInvoices.reduce((sum, inv) => {
-    const po = purchaseOrders.find(p => p.id === inv.poId);
-    const site = sites.find(s => s.id === po?.siteId);
-    return sum + parseFloat(site?.siteAmount || "0");
-  }, 0);
-
   const totalVendorAmount = filteredInvoices.reduce((sum, inv) => {
     const po = purchaseOrders.find(p => p.id === inv.poId);
     const site = sites.find(s => s.id === po?.siteId);
@@ -264,7 +257,7 @@ export default function VendorInvoiceReport() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-blue-900">{filteredInvoices.length}</p>
@@ -274,19 +267,13 @@ export default function VendorInvoiceReport() {
         <Card className="bg-gradient-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-green-900">₹{totalAmount.toLocaleString()}</p>
-            <p className="text-sm text-green-700">Total Value</p>
+            <p className="text-sm text-green-700">Total Invoice Amount (With GST)</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-purple-900">₹{paidAmount.toLocaleString()}</p>
             <p className="text-sm text-purple-700">Paid Amount</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100">
-          <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-amber-900">₹{totalSiteAmount.toLocaleString()}</p>
-            <p className="text-sm text-amber-700">Total Site Amount</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100">

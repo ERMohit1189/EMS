@@ -441,7 +441,7 @@ export default function VendorSiteReport() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-purple-900">{filteredSites.length}</p>
@@ -462,12 +462,6 @@ export default function VendorSiteReport() {
               {filteredSites.filter((s) => s.softAtStatus?.toLowerCase() === "completed").length}
             </p>
             <p className="text-sm text-blue-700">Soft AT Completed</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100">
-          <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-amber-900">₹{filteredSites.reduce((sum, s) => sum + parseFloat(s.siteAmount || "0"), 0).toLocaleString()}</p>
-            <p className="text-sm text-amber-700">Total Site Amount</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
