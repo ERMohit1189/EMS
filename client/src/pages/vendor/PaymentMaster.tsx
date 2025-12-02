@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
-import { getApiBaseUrl } from "@/lib/api";
+
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 
@@ -27,7 +27,7 @@ export default function PaymentMaster() {
 
   const fetchMasters = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/payment-masters`);
+      const response = await fetch(`/api/payment-masters`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setMasters(result.data || []);
@@ -38,7 +38,7 @@ export default function PaymentMaster() {
 
   const fetchSites = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
+      const response = await fetch(`/api/sites?pageSize=10000`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setSites(result.data || []);
@@ -49,7 +49,7 @@ export default function PaymentMaster() {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`);
+      const response = await fetch(`/api/vendors?pageSize=10000`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setVendors(result.data || []);
@@ -61,8 +61,8 @@ export default function PaymentMaster() {
   const fetchUsedPaymentMasters = async () => {
     try {
       const [posRes, sitesRes] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`),
-        fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`)
+        fetch(`/api/purchase-orders?pageSize=10000`),
+        fetch(`/api/sites?pageSize=10000`)
       ]);
 
       if (!posRes.ok || !sitesRes.ok) return;
@@ -191,7 +191,7 @@ export default function PaymentMaster() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this payment master?")) return;
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/payment-masters/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/payment-masters/${id}`, { method: "DELETE" });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to delete");

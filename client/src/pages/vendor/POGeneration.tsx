@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Trash2, FileText } from "lucide-react";
-import { getApiBaseUrl } from "@/lib/api";
+
 import { fetchWithLoader } from "@/lib/fetchWithLoader";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import { truncateId } from "@/lib/utils";
@@ -299,7 +299,7 @@ export default function POGeneration() {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/purchase-orders/${poId}`, {
+      const response = await fetch(`/api/purchase-orders/${poId}`, {
         method: "DELETE",
       });
 

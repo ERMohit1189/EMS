@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Trash2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
-import { getApiBaseUrl } from "@/lib/api";
+
 import { fetchWithLoader } from "@/lib/fetchWithLoader";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { PurchaseOrder, Vendor } from "@shared/schema";
@@ -134,7 +134,7 @@ export default function InvoiceGeneration() {
     }
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/invoices/${invoiceId}`;
+      const apiUrl = `/api/invoices/${invoiceId}`;
       console.log(`[Frontend] Deleting invoice from: ${apiUrl}`);
       const response = await fetch(apiUrl, {
         method: "DELETE",
@@ -170,7 +170,7 @@ export default function InvoiceGeneration() {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
+      const response = await fetch(`/api/invoices`, {
         method: "DELETE",
       });
 

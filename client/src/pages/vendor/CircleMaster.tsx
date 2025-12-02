@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { getApiBaseUrl } from "@/lib/api";
+
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { Zone } from "@shared/schema";
 
@@ -33,7 +33,7 @@ export default function CircleMaster() {
 
   const fetchZones = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
+      const response = await fetch(`/api/zones?pageSize=10000`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setZones(result.data || []);
@@ -94,7 +94,7 @@ export default function CircleMaster() {
     if (!confirm("Are you sure you want to delete this circle?")) return;
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/zones/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/zones/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete");
 
       toast({ title: "Success", description: "Circle deleted successfully" });

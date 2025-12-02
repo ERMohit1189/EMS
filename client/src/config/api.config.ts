@@ -1,11 +1,12 @@
 /**
  * API Configuration
  * 
- * EDIT THIS FILE TO CHANGE THE BACKEND API URL
- * Change the API_URL value below to your backend server URL
+ * Using relative URLs (/api/...) for all API calls
+ * This works in development, production, and any deployment (Plesk, etc.)
+ * No need to configure anything - just works everywhere!
  */
 
 export const API_CONFIG = {
-  // Backend API Base URL - CHANGE THIS TO YOUR BACKEND SERVER URL
-  API_URL: "https://vendor-registration-form--ermohit1189.replit.app",
+  // Use relative URLs - automatically points to the same server
+  API_URL: "",
 };
