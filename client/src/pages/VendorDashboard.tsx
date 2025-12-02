@@ -158,21 +158,21 @@ export default function VendorDashboard() {
     surveyDate: 'Survey Date',
     status: 'Status',
     sno: 'S.No',
-    siteAmount: 'Site Amount',
-    vendorAmount: 'Vendor Amount',
-    zoneId: 'Zone ID',
-    id: 'ID',
-    vendorId: 'Vendor ID',
     createdAt: 'Created At',
     updatedAt: 'Updated At',
+    vendorCode: 'Partner Code',
   };
+
+  const fieldsToExclude = new Set(['id', 'zoneId', 'vendorId', 'siteAmount', 'vendorAmount']);
 
   const getFormattedExcelData = (data: any[]) => {
     return data.map(item => {
       const formattedItem: Record<string, any> = {};
       Object.entries(item).forEach(([key, value]) => {
-        const headerName = columnHeaderMap[key] || key;
-        formattedItem[headerName] = value;
+        if (!fieldsToExclude.has(key)) {
+          const headerName = columnHeaderMap[key] || key;
+          formattedItem[headerName] = value;
+        }
       });
       return formattedItem;
     });
@@ -565,14 +565,18 @@ export default function VendorDashboard() {
           {selectedSite && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(selectedSite).map(([key, value]) => (
-                  <div key={key} className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 uppercase font-semibold">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                    <p className="font-medium text-sm mt-1">
-                      {value !== null && value !== undefined ? String(value) : "N/A"}
-                    </p>
-                  </div>
-                ))}
+                {Object.entries(selectedSite).map(([key, value]) => {
+                  if (fieldsToExclude.has(key)) return null;
+                  const displayKey = key === 'vendorCode' ? 'Partner Code' : (columnHeaderMap[key] || key.replace(/([A-Z])/g, ' $1').trim());
+                  return (
+                    <div key={key} className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 uppercase font-semibold">{displayKey}</p>
+                      <p className="font-medium text-sm mt-1">
+                        {value !== null && value !== undefined ? String(value) : "N/A"}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
               
               <div className="flex gap-2 pt-4 border-t">
