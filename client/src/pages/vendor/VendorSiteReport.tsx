@@ -540,96 +540,54 @@ export default function VendorSiteReport() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedSite} onOpenChange={() => setSelectedSite(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <Dialog open={!!selectedSite} onOpenChange={(open) => !open && setSelectedSite(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Site Details - {selectedSite?.planId}
+              Site Details - {selectedSite?.siteId}
             </DialogTitle>
           </DialogHeader>
+          
           {selectedSite && (
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="space-y-3">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Site ID</p>
-                  <p className="font-medium">{selectedSite.siteId}</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Partner Code from vendor */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Partner Code</p>
+                  <p className="font-medium text-sm mt-1">{vendor?.vendorCode || "N/A"}</p>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Plan ID</p>
-                  <p className="font-medium">{selectedSite.planId}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Circle</p>
-                  <p className="font-medium">{selectedSite.circle || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">District</p>
-                  <p className="font-medium">{selectedSite.district || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">HOP Type</p>
-                  <p className="font-medium">{selectedSite.hopType || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">HOP A-B</p>
-                  <p className="font-medium">{selectedSite.hopAB || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">HOP B-A</p>
-                  <p className="font-medium">{selectedSite.hopBA || "N/A"}</p>
-                </div>
+                {Object.entries(selectedSite).map(([key, value]) => {
+                  if (fieldsToExclude.has(key)) return null;
+                  const displayKey = columnHeaderMap[key] || key.replace(/([A-Z])/g, ' $1').trim();
+                  return (
+                    <div key={key} className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 uppercase font-semibold">{displayKey}</p>
+                      <p className="font-medium text-sm mt-1">
+                        {value !== null && value !== undefined ? String(value) : "N/A"}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="space-y-3">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Site A Name</p>
-                  <p className="font-medium">{selectedSite.siteAName || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Site B Name</p>
-                  <p className="font-medium">{selectedSite.siteBName || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Site A Antenna</p>
-                  <p className="font-medium">{selectedSite.siteAAntDia || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Site B Antenna</p>
-                  <p className="font-medium">{selectedSite.siteBAntDia || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Max Antenna Size</p>
-                  <p className="font-medium">{selectedSite.maxAntSize || "N/A"}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Physical AT Status</p>
-                  <Badge className={getStatusColor(selectedSite.phyAtStatus)}>
-                    {selectedSite.phyAtStatus || "N/A"}
-                  </Badge>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Soft AT Status</p>
-                  <Badge className={getStatusColor(selectedSite.softAtStatus)}>
-                    {selectedSite.softAtStatus || "N/A"}
-                  </Badge>
-                </div>
+              
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    const formattedData = getFormattedExcelData([selectedSite]);
+                    const sheet = XLSX.utils.json_to_sheet(formattedData);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, sheet, "Site");
+                    XLSX.writeFile(workbook, `site-${selectedSite.siteId}.xlsx`);
+                    toast({ title: "Success", description: "Site data downloaded" });
+                  }}
+                  className="gap-2"
+                  data-testid="button-download-site-detail"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Site
+                </Button>
               </div>
-              {(selectedSite.vendorAmount || selectedSite.siteAmount) && (
-                <div className="col-span-2 grid grid-cols-2 gap-4 border-t pt-4">
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <p className="text-xs text-green-600">Vendor Amount</p>
-                    <p className="font-bold text-green-800">
-                      ₹{parseFloat(selectedSite.vendorAmount || "0").toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <p className="text-xs text-blue-600">Site Amount</p>
-                    <p className="font-bold text-blue-800">
-                      ₹{parseFloat(selectedSite.siteAmount || "0").toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </DialogContent>
