@@ -138,16 +138,14 @@ export default function Login() {
       });
 
       // Dispatch login event to App component - trigger header update
+      console.log('[Login] Dispatching login event...');
       window.dispatchEvent(new Event('login'));
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'employeeName',
-        newValue: data.employee.name
-      }));
-
-      // Redirect to dashboard
+      
+      // Give event listeners time to process the login event
       setTimeout(() => {
+        console.log('[Login] Redirecting to dashboard...');
         setLocation('/');
-      }, 100);
+      }, 500);
     } catch (error) {
       toast({
         title: 'Error',

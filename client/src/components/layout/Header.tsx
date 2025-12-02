@@ -42,20 +42,21 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
       setEmployeeRole(role);
     };
     
-    // Initial update
+    // Initial update on mount
     updateUserInfo();
     
-    // Listen for storage changes and login event
-    window.addEventListener('storage', updateUserInfo);
-    window.addEventListener('login', updateUserInfo);
+    // Listen for login event - force update with slight delay to ensure data is available
+    const handleLogin = () => {
+      console.log('[Header] Login event received, updating in 100ms...');
+      setTimeout(updateUserInfo, 100);
+    };
     
-    // Also check periodically in case event missed
-    const interval = setInterval(updateUserInfo, 500);
+    window.addEventListener('storage', updateUserInfo);
+    window.addEventListener('login', handleLogin);
     
     return () => {
       window.removeEventListener('storage', updateUserInfo);
-      window.removeEventListener('login', updateUserInfo);
-      clearInterval(interval);
+      window.removeEventListener('login', handleLogin);
     };
   }, []);
 
