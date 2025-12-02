@@ -54,6 +54,9 @@ const VendorDashboard = lazy(() => import("@/pages/VendorDashboard"));
 const VendorPOReport = lazy(() => import("@/pages/vendor/VendorPOReport"));
 const VendorInvoiceReport = lazy(() => import("@/pages/vendor/VendorInvoiceReport"));
 const VendorSiteReport = lazy(() => import("@/pages/vendor/VendorSiteReport"));
+const VendorProfile = lazy(() => import("@/pages/vendor/VendorProfile"));
+const VendorChangePassword = lazy(() => import("@/pages/vendor/VendorChangePassword"));
+const VendorForgotPassword = lazy(() => import("@/pages/vendor/VendorForgotPassword"));
 const Teams = lazy(() => import("@/pages/admin/Teams"));
 const AllowanceApproval = lazy(() => import("@/pages/admin/AllowanceApproval"));
 const ApprovalHistory = lazy(() => import("@/pages/admin/ApprovalHistory"));
@@ -232,6 +235,7 @@ function App() {
           <Route path="/login" component={Login} />
           <Route path="/vendor-login" component={VendorLogin} />
           <Route path="/vendor-signup" component={VendorSignUp} />
+          <Route path="/vendor/forgot-password" component={VendorForgotPassword} />
           {isDev && <Route path="/employee-login" component={EmployeeLogin} />}
           
           {/* Privacy Policy Routes */}
@@ -254,6 +258,8 @@ function App() {
                   
                   {/* Vendor Routes */}
                   <Route path="/vendor/dashboard" component={VendorDashboard} />
+                  <Route path="/vendor/profile" component={VendorProfile} />
+                  <Route path="/vendor/change-password" component={VendorChangePassword} />
                   <Route path="/vendor/register" component={VendorRegistration} />
                   <Route path="/vendor/list" component={VendorList} />
                   <Route path="/vendor/edit/:id" component={VendorEdit} />
