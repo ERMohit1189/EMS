@@ -301,11 +301,11 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     return groups;
   }, [isVendor, isUserEmployee, isReportingPerson]);
   
-  // Initialize expanded groups based on menu groups
+  // Initialize expanded groups based on menu groups - collapsed by default
   useEffect(() => {
     const initialExpandedGroups: Record<string, boolean> = {};
     menuGroups.forEach(group => {
-      initialExpandedGroups[group.group] = true;
+      initialExpandedGroups[group.group] = false;
     });
     setExpandedGroups(initialExpandedGroups);
   }, [isVendor, isUserEmployee, isReportingPerson]);
@@ -344,8 +344,8 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     setExpandedGroups(prev => {
       const newExpandedGroups: Record<string, boolean> = {};
       menuGroups.forEach(group => {
-        // Keep all groups expanded - don't collapse them on route change
-        newExpandedGroups[group.group] = true;
+        // Keep groups collapsed by default, only expand active group
+        newExpandedGroups[group.group] = group.group === activeGroup;
       });
       return newExpandedGroups;
     });
