@@ -600,7 +600,12 @@ export async function registerRoutes(
   app.get("/api/vendors/:vendorId/sites", async (req, res) => {
     try {
       const sites = await storage.getSitesByVendor(req.params.vendorId);
-      res.json(sites);
+      const formattedData = sites.map(site => ({
+        ...site,
+        vendorAmount: site.vendorAmount ? parseFloat(site.vendorAmount.toString()) : null,
+        siteAmount: site.siteAmount ? parseFloat(site.siteAmount.toString()) : null,
+      }));
+      res.json(formattedData);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
