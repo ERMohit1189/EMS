@@ -127,42 +127,56 @@ function App() {
 
     // Listen for logout events
     const handleLogout = () => {
-      // Check if this was an employee logout BEFORE clearing data
-      // Use employeeEmail as the check since that's what determines if someone is an employee
-      const isEmployeeLogout = localStorage.getItem('employeeEmail') !== null;
-      const employeeName = localStorage.getItem('employeeName');
+      // Get user type BEFORE clearing data
+      const employeeRole = localStorage.getItem('employeeRole');
       const employeeEmail = localStorage.getItem('employeeEmail');
+      const vendorId = localStorage.getItem('vendorId');
+      const employeeName = localStorage.getItem('employeeName');
       
       console.log('[App] ========== LOGOUT PROCESS ==========');
-      console.log('[App] Logout triggered - isEmployeeLogout:', isEmployeeLogout);
-      console.log('[App] Employee:', employeeName, '<' + employeeEmail + '>');
+      console.log('[App] Logout triggered');
+      console.log('[App] Role:', employeeRole);
+      console.log('[App] Employee Email:', employeeEmail);
+      console.log('[App] Vendor ID:', vendorId);
       console.log('[App] Time:', new Date().toLocaleString());
       
-      // Clear session data from localStorage (but keep Remember Me credentials if user had them checked)
+      // Clear ALL session data from localStorage
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('employeeId');
       localStorage.removeItem('employeeEmail');
       localStorage.removeItem('employeeName');
+      localStorage.removeItem('employeeRole');
       localStorage.removeItem('employeeDepartment');
       localStorage.removeItem('employeeDesignation');
+      localStorage.removeItem('user');
+      localStorage.removeItem('vendorId');
+      localStorage.removeItem('vendorEmail');
+      localStorage.removeItem('vendorName');
+      localStorage.removeItem('vendorCode');
+      
       // Clear session storage to prevent URL preservation after logout
       sessionStorage.removeItem('lastValidLocation');
-      // NOTE: NOT clearing rememberMe_email and rememberMe_password - they stay saved
       
       setIsLoggedIn(false);
       setIsEmployee(false);
       console.log('[App] Session data cleared. Remember Me credentials: PRESERVED');
       
-      // Set redirect destination
-      if (isEmployeeLogout) {
-        console.log('[App] REDIRECTING TO: /employee-login');
-        console.log('[App] ====================================');
-        setRedirectTo('/employee-login');
-      } else {
-        console.log('[App] REDIRECTING TO: /login');
-        console.log('[App] ====================================');
-        setRedirectTo('/login');
+      // Set redirect destination based on role
+      let redirectPath = '/login'; // Default
+      
+      if (employeeRole === 'superadmin' || employeeRole === 'Superadmin') {
+        redirectPath = '/login';
+        console.log('[App] REDIRECTING TO: /login (Superadmin)');
+      } else if (employeeEmail) {
+        redirectPath = '/employee-login';
+        console.log('[App] REDIRECTING TO: /employee-login (Employee)');
+      } else if (vendorId) {
+        redirectPath = '/vendor-login';
+        console.log('[App] REDIRECTING TO: /vendor-login (Vendor)');
       }
+      
+      console.log('[App] ====================================');
+      setRedirectTo(redirectPath);
     };
 
     // Listen for login events
