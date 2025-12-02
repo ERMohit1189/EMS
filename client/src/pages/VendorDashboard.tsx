@@ -227,13 +227,32 @@ export default function VendorDashboard() {
         </Card>
       </div>
 
-      <Tabs value="info" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+          <TabsTrigger value="info" data-testid="tab-profile">
+            <User className="h-4 w-4 mr-2" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="po" data-testid="tab-po">
+            <FileText className="h-4 w-4 mr-2" />
+            PO
+          </TabsTrigger>
+          <TabsTrigger value="invoice" data-testid="tab-invoice">
+            <Receipt className="h-4 w-4 mr-2" />
+            Invoice
+          </TabsTrigger>
+          <TabsTrigger value="site" data-testid="tab-site">
+            <MapPin className="h-4 w-4 mr-2" />
+            Site
+          </TabsTrigger>
+        </TabsList>
+
         <TabsContent value="info" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Vendor Information
+                Vendor Profile
               </CardTitle>
               <CardDescription>Your registered details</CardDescription>
             </CardHeader>
@@ -321,7 +340,7 @@ export default function VendorDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Purchase Orders
+                Vendor PO
               </CardTitle>
               <CardDescription>Your purchase orders ({purchaseOrders.length})</CardDescription>
             </CardHeader>
@@ -367,7 +386,7 @@ export default function VendorDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
-                Invoices
+                Vendor Invoice
               </CardTitle>
               <CardDescription>Your invoices ({invoices.length})</CardDescription>
             </CardHeader>
@@ -415,7 +434,7 @@ export default function VendorDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                Sites
+                Vendor Site
               </CardTitle>
               <CardDescription>Your assigned sites ({sites.length})</CardDescription>
             </CardHeader>
