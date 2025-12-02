@@ -485,54 +485,50 @@ export default function VendorSiteReport() {
               <div className="h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : filteredSites.length > 0 ? (
-            <div className="w-full">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium">Site ID</th>
-                    <th className="px-4 py-3 text-left font-medium">Plan ID</th>
-                    <th className="px-4 py-3 text-left font-medium">Circle</th>
-                    <th className="px-4 py-3 text-left font-medium">Site A</th>
-                    <th className="px-4 py-3 text-left font-medium">Site B</th>
-                    <th className="px-4 py-3 text-left font-medium">HOP Type</th>
-                    <th className="px-4 py-3 text-center font-medium">Phy AT</th>
-                    <th className="px-4 py-3 text-center font-medium">Soft AT</th>
-                    <th className="px-4 py-3 text-center font-medium">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {filteredSites.map((site) => (
-                    <tr key={site.id} className="hover:bg-gray-50" data-testid={`row-site-${site.id}`}>
-                      <td className="px-4 py-3 font-medium">{site.siteId}</td>
-                      <td className="px-4 py-3">{site.planId}</td>
-                      <td className="px-4 py-3">{site.circle || "N/A"}</td>
-                      <td className="px-4 py-3">{site.siteAName || "N/A"}</td>
-                      <td className="px-4 py-3">{site.siteBName || "N/A"}</td>
-                      <td className="px-4 py-3">{site.hopType || "N/A"}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={getStatusColor(site.phyAtStatus)}>
-                          {site.phyAtStatus || "N/A"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={getStatusColor(site.softAtStatus)}>
-                          {site.softAtStatus || "N/A"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setSelectedSite(site)}
-                          data-testid={`button-view-${site.id}`}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {filteredSites.map((site) => (
+                <Card key={site.id} className="overflow-hidden hover:shadow-md transition-shadow" data-testid={`card-site-${site.id}`}>
+                  <CardHeader className="py-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-base font-mono">{site.planId || site.siteId}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{site.circle || "—"} • {site.hopType || "—"}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSelectedSite(site)}
+                        data-testid={`button-view-${site.id}`}
+                        className="ml-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Site ID</label>
+                        <p className="text-sm font-semibold mt-0.5">{site.siteId}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
+                        <p className="text-sm font-semibold mt-0.5">{site.siteAName || "—"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Site B Name</label>
+                        <p className="text-sm font-semibold mt-0.5">{site.siteBName || "—"}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Phy AT</label>
+                        <div className="mt-0.5">
+                          <Badge className={getStatusColor(site.phyAtStatus)}>
+                            {site.phyAtStatus || "N/A"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">No sites found</p>
@@ -550,25 +546,99 @@ export default function VendorSiteReport() {
           </DialogHeader>
           
           {selectedSite && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Partner Code from vendor */}
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Partner Code</p>
-                  <p className="font-medium text-sm mt-1">{vendor?.vendorCode || "N/A"}</p>
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="font-semibold text-sm mb-4 text-foreground">Basic Information</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Partner Code</label>
+                    <p className="text-sm font-semibold mt-1">{vendor?.vendorCode || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Site ID</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.siteId}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
+                    <p className="text-sm font-mono font-semibold mt-1">{selectedSite.planId}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Circle</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.circle || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">District</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.district || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">HOP Type</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.hopType || "—"}</p>
+                  </div>
                 </div>
-                {Object.entries(selectedSite).map(([key, value]) => {
-                  if (fieldsToExclude.has(key)) return null;
-                  const displayKey = columnHeaderMap[key] || key.replace(/([A-Z])/g, ' $1').trim();
-                  return (
-                    <div key={key} className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 uppercase font-semibold">{displayKey}</p>
-                      <p className="font-medium text-sm mt-1">
-                        {value !== null && value !== undefined ? String(value) : "N/A"}
-                      </p>
-                    </div>
-                  );
-                })}
+              </div>
+
+              {/* Site Details */}
+              <div>
+                <h3 className="font-semibold text-sm mb-4 text-foreground">Site Details</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.siteAName || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Site B Name</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.siteBName || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Max Antenna Size</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.maxAntSize || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Site A Antenna Dia</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.siteAAntDia || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Site B Antenna Dia</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.siteBAntDia || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Nominal AOP</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.nominalAop || "—"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Information */}
+              <div>
+                <h3 className="font-semibold text-sm mb-4 text-foreground">Status Information</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-900">
+                    <label className="text-xs font-medium text-blue-700 dark:text-blue-400">Physical AT Status</label>
+                    <p className="text-sm font-semibold mt-1 text-blue-900 dark:text-blue-300">{selectedSite.phyAtStatus || "—"}</p>
+                  </div>
+                  <div className="bg-green-50/50 dark:bg-green-950/20 p-3 rounded-md border border-green-200 dark:border-green-900">
+                    <label className="text-xs font-medium text-green-700 dark:text-green-400">Software AT Status</label>
+                    <p className="text-sm font-semibold mt-1 text-green-900 dark:text-green-300">{selectedSite.softAtStatus || "—"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Details */}
+              <div>
+                <h3 className="font-semibold text-sm mb-4 text-foreground">Additional Details</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(selectedSite).map(([key, value]) => {
+                    if (fieldsToExclude.has(key) || ['siteId', 'planId', 'circle', 'district', 'hopType', 'siteAName', 'siteBName', 'maxAntSize', 'siteAAntDia', 'siteBAntDia', 'nominalAop', 'phyAtStatus', 'softAtStatus'].includes(key)) return null;
+                    const displayKey = columnHeaderMap[key] || key.replace(/([A-Z])/g, ' $1').trim();
+                    return (
+                      <div key={key} className="bg-muted/50 p-3 rounded-md">
+                        <label className="text-xs font-medium text-muted-foreground">{displayKey}</label>
+                        <p className="text-sm font-semibold mt-1">{value !== null && value !== undefined ? String(value) : "—"}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
               
               <div className="flex gap-2 pt-4 border-t">
