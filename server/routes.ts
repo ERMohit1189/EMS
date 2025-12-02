@@ -166,6 +166,57 @@ export async function registerRoutes(
     }
   });
 
+  // Vendor change password endpoint
+  app.post("/api/vendors/:id/change-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+      
+      const vendor = await storage.getVendor(req.params.id);
+      if (!vendor) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+
+      const bcrypt = require('bcrypt');
+      const passwordMatch = await bcrypt.compare(currentPassword, vendor.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateVendor(req.params.id, { password: hashedPassword });
+      
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Vendor forgot password endpoint
+  app.post("/api/vendors/forgot-password", async (req, res) => {
+    try {
+      const { email, newPassword } = req.body;
+      if (!email || !newPassword) {
+        return res.status(400).json({ error: "Email and new password are required" });
+      }
+
+      const vendor = await storage.getVendorByEmail(email);
+      if (!vendor) {
+        return res.status(404).json({ error: "Vendor with this email not found" });
+      }
+
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateVendor(vendor.id, { password: hashedPassword });
+      
+      res.json({ success: true, message: "Password reset successfully" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Employee login route
   app.post("/api/employees/login", async (req, res) => {
     try {
