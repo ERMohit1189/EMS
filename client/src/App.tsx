@@ -92,7 +92,7 @@ function App() {
     
     // Preserve current URL on app restart - store it before page reload
     // Only for logged in users, and not on login pages
-    if (loggedIn && location && !location.startsWith('/login') && !location.startsWith('/employee-login')) {
+    if (loggedIn && location && !location.startsWith('/login') && !location.startsWith('/employee-login') && !location.startsWith('/vendor-login')) {
       // Store current location so we can restore it if page reloads
       sessionStorage.setItem('lastValidLocation', location);
     } else if (!loggedIn) {
@@ -100,12 +100,18 @@ function App() {
       sessionStorage.removeItem('lastValidLocation');
     }
     
-    // If on root path and logged in as employee, restore from session or go to dashboard
-    if (loggedIn && !!employeeEmail && location === '/') {
+    // If on root path and logged in, redirect to appropriate dashboard
+    if (loggedIn && location === '/') {
       const lastLocation = sessionStorage.getItem('lastValidLocation');
+      const vendorId = localStorage.getItem('vendorId');
+      
       if (lastLocation && lastLocation !== '/' && !lastLocation.startsWith('/login')) {
         setLocation(lastLocation);
-      } else {
+      } else if (vendorId) {
+        // Vendor dashboard for vendors
+        setLocation('/vendor/dashboard');
+      } else if (employeeEmail) {
+        // Employee dashboard for employees
         setLocation('/employee/dashboard');
       }
     }
