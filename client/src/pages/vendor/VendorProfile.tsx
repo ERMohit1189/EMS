@@ -157,7 +157,7 @@ export default function VendorProfile() {
               <CardTitle>Basic Information</CardTitle>
               <CardDescription>Update your personal or company details.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
+            <CardContent className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
               <FormField control={form.control} name="category" render={({ field }) => (
                 <FormItem className="col-span-2 space-y-3">
                   <FormLabel>Vendor Category <span className="text-red-500">*</span></FormLabel>
@@ -200,7 +200,7 @@ export default function VendorProfile() {
               <CardTitle>Address Details</CardTitle>
               <CardDescription>Update your billing and communication address.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-3">
+            <CardContent className="grid gap-6 sm:grid-cols-1 md:grid-cols-3">
               <FormField control={form.control} name="address" render={({ field }) => (
                 <FormItem className="col-span-3">
                   <FormLabel>Street Address <span className="text-red-500">*</span></FormLabel>
@@ -273,7 +273,7 @@ export default function VendorProfile() {
               <CardTitle>Documents & Compliance</CardTitle>
               <CardDescription>Update your legal documents information.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
+            <CardContent className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
               <FormField control={form.control} name="aadhar" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Aadhar Number</FormLabel>

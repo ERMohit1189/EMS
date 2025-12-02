@@ -5,7 +5,14 @@ Build an Enterprise Management System (EMS) Portal with React/Vite frontend and 
 
 ## Recent Changes (Latest First)
 
-### Vendor Account Management Features (In Progress)
+### UI/UX Improvements
+- **Settings Menu Hidden** - Removed Settings group from admin sidebar to hide Settings icon access
+- **Mobile Responsive Profile Edit** - Improved vendor profile mobile design:
+  - All grid sections (Basic Info, Address Details, Documents) now convert to single-column card layout on mobile
+  - Address Details section properly responsive for mobile devices
+  - Grid changes: `sm:grid-cols-1 md:grid-cols-2/3` for proper mobile/tablet/desktop adaptation
+
+### Vendor Account Management Features (Completed)
 - **Vendor Profile Editor** (`/vendor/profile`) - Created editable profile page where vendors can update:
   - Name, mobile, address, city, state, pincode
   - Category (Individual/Company)

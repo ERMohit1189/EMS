@@ -175,21 +175,6 @@ const adminMenuGroups = [
       },
     ],
   },
-  {
-    group: 'Settings',
-    items: [
-      {
-        title: 'App Settings',
-        icon: SettingsIcon,
-        href: '/settings',
-      },
-      {
-        title: 'Export Settings',
-        icon: SettingsIcon,
-        href: '/vendor/export-headers',
-      },
-    ],
-  },
 ];
 
 const userEmployeeMenuGroups = [
