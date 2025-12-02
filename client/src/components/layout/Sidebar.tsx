@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link, useLocation } from 'wouter';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useMemo } from "react";
+import { Link, useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 
 // Check if employee management is hidden in production
 const isDev = import.meta.env.DEV;
@@ -20,9 +20,9 @@ import {
   ChevronDown,
   Calendar,
   UsersRound,
-  Receipt
-} from 'lucide-react';
-import logo from '@assets/generated_images/abstract_geometric_logo_for_ems_portal.png';
+  Receipt,
+} from "lucide-react";
+import logo from "@assets/generated_images/abstract_geometric_logo_for_ems_portal.png";
 
 interface SidebarProps {
   isLoggedIn?: boolean;
@@ -31,147 +31,149 @@ interface SidebarProps {
 
 const adminMenuGroups = [
   {
-    group: 'Main',
+    group: "Main",
     items: [
       {
-        title: 'Dashboard',
+        title: "Dashboard",
         icon: LayoutDashboard,
-        href: '/',
+        href: "/",
       },
     ],
   },
   {
-    group: 'Vendor Management',
+    group: "Vendor Management",
     items: [
       {
-        title: 'All Vendors',
+        title: "All Vendors",
         icon: Users,
-        href: '/vendor/list',
+        href: "/vendor/list",
       },
       {
-        title: 'Vendor Credentials',
+        title: "Vendor Credentials",
         icon: Key,
-        href: '/vendor/credentials',
+        href: "/vendor/credentials",
       },
     ],
   },
-  ...(isDev ? [{
-    group: 'Employee Management',
-    items: [
-      {
-        title: 'Attendance',
-        icon: Calendar,
-        href: '/employee/attendance',
-      },
-      {
-        title: 'All Employees',
-        icon: HardHat,
-        href: '/employee/list',
-      },
-      {
-        title: 'Register Employee',
-        icon: Users,
-        href: '/employee/register',
-      },
-      {
-        title: 'Employee Credentials',
-        icon: Key,
-        href: '/employee/credentials',
-      },
-      {
-        title: 'Salary Structure',
-        icon: BarChart3,
-        href: '/employee/salary',
-      },
-      {
-        title: 'Salary Report',
-        icon: BarChart3,
-        href: '/employee/salary-report',
-      },
-      {
-        title: 'Department Master',
-        icon: Building2,
-        href: '/employee/department-master',
-      },
-      {
-        title: 'Designation Master',
-        icon: FileText,
-        href: '/employee/designation-master',
-      },
-      {
-        title: 'Teams',
-        icon: UsersRound,
-        href: '/admin/teams',
-      },
-      {
-        title: 'Allowance Approvals',
-        icon: ClipboardCheck,
-        href: '/admin/allowance-approvals',
-      },
-      {
-        title: 'Approval History',
-        icon: BarChart3,
-        href: '/admin/approval-history',
-      },
-    ],
-  }] : []),
+  [
+    {
+      group: "Employee Management",
+      items: [
+        {
+          title: "Attendance",
+          icon: Calendar,
+          href: "/employee/attendance",
+        },
+        {
+          title: "All Employees",
+          icon: HardHat,
+          href: "/employee/list",
+        },
+        {
+          title: "Register Employee",
+          icon: Users,
+          href: "/employee/register",
+        },
+        {
+          title: "Employee Credentials",
+          icon: Key,
+          href: "/employee/credentials",
+        },
+        {
+          title: "Salary Structure",
+          icon: BarChart3,
+          href: "/employee/salary",
+        },
+        {
+          title: "Salary Report",
+          icon: BarChart3,
+          href: "/employee/salary-report",
+        },
+        {
+          title: "Department Master",
+          icon: Building2,
+          href: "/employee/department-master",
+        },
+        {
+          title: "Designation Master",
+          icon: FileText,
+          href: "/employee/designation-master",
+        },
+        {
+          title: "Teams",
+          icon: UsersRound,
+          href: "/admin/teams",
+        },
+        {
+          title: "Allowance Approvals",
+          icon: ClipboardCheck,
+          href: "/admin/allowance-approvals",
+        },
+        {
+          title: "Approval History",
+          icon: BarChart3,
+          href: "/admin/approval-history",
+        },
+      ],
+    },
+  ],
   {
-    group: 'Site Operations',
+    group: "Site Operations",
     items: [
       {
-        title: 'Excel Upload',
+        title: "Excel Upload",
         icon: Upload,
-        href: '/vendor/excel-import',
+        href: "/vendor/excel-import",
       },
       {
-        title: 'Site Management',
+        title: "Site Management",
         icon: Building2,
-        href: '/vendor/sites',
+        href: "/vendor/sites",
       },
       {
-        title: 'Payment Master',
+        title: "Payment Master",
         icon: Wallet,
-        href: '/vendor/payment-master',
+        href: "/vendor/payment-master",
       },
       {
-        title: 'Site Status',
+        title: "Site Status",
         icon: ClipboardCheck,
-        href: '/vendor/sites/status',
+        href: "/vendor/sites/status",
       },
     ],
   },
   {
-    group: 'Finance',
+    group: "Finance",
     items: [
       {
-        title: 'PO Generation',
+        title: "PO Generation",
         icon: FileText,
-        href: '/vendor/po',
+        href: "/vendor/po",
       },
       {
-        title: 'Invoice Generation',
+        title: "Invoice Generation",
         icon: FileText,
-        href: '/vendor/invoices',
+        href: "/vendor/invoices",
       },
     ],
   },
   {
-    group: 'Reports',
+    group: "Reports",
     items: [
       {
-        title: 'Vendor PO',
+        title: "Vendor PO",
         icon: FileText,
-        href: '/reports/vendor-po',
+        href: "/reports/vendor-po",
       },
       {
-        title: 'Vendor Invoice',
+        title: "Vendor Invoice",
         icon: FileText,
-        href: '/reports/vendor-invoice',
+        href: "/reports/vendor-invoice",
       },
       {
-        title: 'Vendor Site',
+        title: "Vendor Site",
         icon: Building2,
-        href: '/reports/vendor-site',
+        href: "/reports/vendor-site",
       },
     ],
   },
@@ -179,52 +181,52 @@ const adminMenuGroups = [
 
 const userEmployeeMenuGroups = [
   {
-    group: 'Employee',
+    group: "Employee",
     items: [
       {
-        title: 'My Profile',
+        title: "My Profile",
         icon: Users,
-        href: '/employee/my-profile',
+        href: "/employee/my-profile",
       },
       {
-        title: 'Salary Structure',
+        title: "Salary Structure",
         icon: BarChart3,
-        href: '/employee/salary',
+        href: "/employee/salary",
       },
       {
-        title: 'Attendance',
+        title: "Attendance",
         icon: Calendar,
-        href: '/employee/attendance',
+        href: "/employee/attendance",
       },
       {
-        title: 'Allowances',
+        title: "Allowances",
         icon: Wallet,
-        href: '/employee/allowances',
+        href: "/employee/allowances",
       },
     ],
   },
   {
-    group: 'Approvals',
+    group: "Approvals",
     items: [
       {
-        title: 'Allowance Approvals',
+        title: "Allowance Approvals",
         icon: ClipboardCheck,
-        href: '/admin/allowance-approvals',
+        href: "/admin/allowance-approvals",
       },
       {
-        title: 'Approval History',
+        title: "Approval History",
         icon: BarChart3,
-        href: '/admin/approval-history',
+        href: "/admin/approval-history",
       },
     ],
   },
   {
-    group: 'Account',
+    group: "Account",
     items: [
       {
-        title: 'Change Password',
+        title: "Change Password",
         icon: Key,
-        href: '/employee/change-password',
+        href: "/employee/change-password",
       },
     ],
   },
@@ -232,42 +234,42 @@ const userEmployeeMenuGroups = [
 
 const vendorMenuGroups = [
   {
-    group: 'Reports',
+    group: "Reports",
     items: [
       {
-        title: 'Vendor PO',
+        title: "Vendor PO",
         icon: FileText,
-        href: '/reports/vendor-po',
+        href: "/reports/vendor-po",
       },
       {
-        title: 'Vendor Invoice',
+        title: "Vendor Invoice",
         icon: Receipt,
-        href: '/reports/vendor-invoice',
+        href: "/reports/vendor-invoice",
       },
       {
-        title: 'Vendor Site',
+        title: "Vendor Site",
         icon: Building2,
-        href: '/reports/vendor-site',
+        href: "/reports/vendor-site",
       },
     ],
   },
   {
-    group: 'Account',
+    group: "Account",
     items: [
       {
-        title: 'Dashboard',
+        title: "Dashboard",
         icon: LayoutDashboard,
-        href: '/vendor/dashboard',
+        href: "/vendor/dashboard",
       },
       {
-        title: 'Profile',
+        title: "Profile",
         icon: Users,
-        href: '/vendor/profile',
+        href: "/vendor/profile",
       },
       {
-        title: 'Change Password',
+        title: "Change Password",
         icon: Key,
-        href: '/vendor/change-password',
+        href: "/vendor/change-password",
       },
     ],
   },
@@ -275,36 +277,45 @@ const vendorMenuGroups = [
 
 export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const [location] = useLocation();
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    {},
+  );
+
   // Check if user is logged in as employee or vendor
-  const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
-  const isVendor = typeof window !== 'undefined' && localStorage.getItem('vendorId') !== null;
-  const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
-  const isUserEmployee = isEmployee && employeeRole === 'user';
-  const isReportingPersonValue = typeof window !== 'undefined' ? localStorage.getItem('isReportingPerson') : null;
-  const isReportingPerson = isReportingPersonValue === 'true';
-  
+  const isEmployee =
+    typeof window !== "undefined" &&
+    localStorage.getItem("employeeId") !== null;
+  const isVendor =
+    typeof window !== "undefined" && localStorage.getItem("vendorId") !== null;
+  const employeeRole =
+    typeof window !== "undefined" ? localStorage.getItem("employeeRole") : null;
+  const isUserEmployee = isEmployee && employeeRole === "user";
+  const isReportingPersonValue =
+    typeof window !== "undefined"
+      ? localStorage.getItem("isReportingPerson")
+      : null;
+  const isReportingPerson = isReportingPersonValue === "true";
+
   // Memoize menuGroups to prevent infinite loop
   const menuGroups = useMemo(() => {
     if (isVendor) {
       return vendorMenuGroups;
     }
-    
+
     let groups = isUserEmployee ? userEmployeeMenuGroups : adminMenuGroups;
-    
+
     // Filter out Approvals group if not a reporting person
     if (isUserEmployee && !isReportingPerson) {
-      groups = groups.filter(group => group.group !== 'Approvals');
+      groups = groups.filter((group) => group.group !== "Approvals");
     }
-    
+
     return groups;
   }, [isVendor, isUserEmployee, isReportingPerson]);
-  
+
   // Initialize expanded groups based on menu groups - collapsed by default
   useEffect(() => {
     const initialExpandedGroups: Record<string, boolean> = {};
-    menuGroups.forEach(group => {
+    menuGroups.forEach((group) => {
       initialExpandedGroups[group.group] = false;
     });
     setExpandedGroups(initialExpandedGroups);
@@ -315,35 +326,55 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     const getGroupForRoute = (route: string): string | null => {
       if (isVendor) {
         // For vendor users
-        if (route.startsWith('/reports')) return 'Reports';
-        if (route.startsWith('/vendor/dashboard')) return 'Account';
-        return 'Reports';
+        if (route.startsWith("/reports")) return "Reports";
+        if (route.startsWith("/vendor/dashboard")) return "Account";
+        return "Reports";
       } else if (isUserEmployee) {
         // For user employees
-        if (route.startsWith('/settings')) return 'Settings';
-        if (route.startsWith('/admin/allowance-approvals') || route.startsWith('/admin/approval-history')) return 'Approvals';
-        if (route.startsWith('/employee')) return 'Employee';
-        return 'Employee';
+        if (route.startsWith("/settings")) return "Settings";
+        if (
+          route.startsWith("/admin/allowance-approvals") ||
+          route.startsWith("/admin/approval-history")
+        )
+          return "Approvals";
+        if (route.startsWith("/employee")) return "Employee";
+        return "Employee";
       } else {
         // For admin
-        if (route === '/') return 'Main';
-        if (route.startsWith('/settings') || route.includes('export-headers')) return 'Settings';
-        if (route.startsWith('/vendor/po') || route.startsWith('/vendor/invoices')) return 'Finance';
-        if (route.startsWith('/employee') || route.startsWith('/admin/teams') || route.startsWith('/admin/allowance-approvals') || route.startsWith('/admin/approval-history')) return 'Employee Management';
-        if (route.startsWith('/vendor')) {
-          if (route.includes('credentials')) return 'Vendor Management';
-          if (route.includes('sites') || route.includes('payment-master') || route.includes('excel-import')) return 'Site Operations';
-          return 'Vendor Management';
+        if (route === "/") return "Main";
+        if (route.startsWith("/settings") || route.includes("export-headers"))
+          return "Settings";
+        if (
+          route.startsWith("/vendor/po") ||
+          route.startsWith("/vendor/invoices")
+        )
+          return "Finance";
+        if (
+          route.startsWith("/employee") ||
+          route.startsWith("/admin/teams") ||
+          route.startsWith("/admin/allowance-approvals") ||
+          route.startsWith("/admin/approval-history")
+        )
+          return "Employee Management";
+        if (route.startsWith("/vendor")) {
+          if (route.includes("credentials")) return "Vendor Management";
+          if (
+            route.includes("sites") ||
+            route.includes("payment-master") ||
+            route.includes("excel-import")
+          )
+            return "Site Operations";
+          return "Vendor Management";
         }
         return null;
       }
     };
 
     const activeGroup = getGroupForRoute(location);
-    
-    setExpandedGroups(prev => {
+
+    setExpandedGroups((prev) => {
       const newExpandedGroups: Record<string, boolean> = {};
-      menuGroups.forEach(group => {
+      menuGroups.forEach((group) => {
         // Keep groups collapsed by default, only expand active group
         newExpandedGroups[group.group] = group.group === activeGroup;
       });
@@ -352,16 +383,16 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   }, [location, menuGroups, isVendor]);
 
   const toggleGroup = (groupName: string) => {
-    setExpandedGroups(prev => ({
+    setExpandedGroups((prev) => ({
       ...prev,
-      [groupName]: !prev[groupName]
+      [groupName]: !prev[groupName],
     }));
   };
 
   const handleLogout = () => {
-    console.log('[Sidebar] Logout clicked');
+    console.log("[Sidebar] Logout clicked");
     // Dispatch logout event to App component
-    window.dispatchEvent(new Event('logout'));
+    window.dispatchEvent(new Event("logout"));
   };
 
   return (
@@ -370,7 +401,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
         <img src={logo} alt="EMS Logo" className="h-8 w-8 rounded-sm" />
         <span className="text-lg font-bold tracking-tight">EMS Portal</span>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-2 px-2">
           {/* Employee Dashboard Link - Only for Logged In Employees */}
@@ -379,10 +410,10 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
               <Link href="/employee/dashboard">
                 <div
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-green-500 hover:text-white cursor-pointer',
-                    (location === '/employee/dashboard' || location === '/')
-                      ? 'bg-green-600 text-white shadow-md'
-                      : 'bg-green-400 text-white shadow-sm'
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-green-500 hover:text-white cursor-pointer",
+                    location === "/employee/dashboard" || location === "/"
+                      ? "bg-green-600 text-white shadow-md"
+                      : "bg-green-400 text-white shadow-sm",
                   )}
                   data-testid="link-employee-dashboard"
                 >
@@ -399,10 +430,10 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
               <Link href="/vendor/dashboard">
                 <div
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-blue-500 hover:text-white cursor-pointer',
-                    (location === '/vendor/dashboard' || location === '/')
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-blue-400 text-white shadow-sm'
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-blue-500 hover:text-white cursor-pointer",
+                    location === "/vendor/dashboard" || location === "/"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-blue-400 text-white shadow-sm",
                   )}
                   data-testid="link-vendor-dashboard"
                 >
@@ -412,7 +443,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
               </Link>
             </div>
           )}
-          
+
           {menuGroups.map((group, groupIndex) => (
             <div key={groupIndex}>
               <button
@@ -422,8 +453,8 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
                 <span>{group.group}</span>
                 <ChevronDown
                   className={cn(
-                    'h-4 w-4 transition-transform duration-200',
-                    expandedGroups[group.group] ? 'rotate-0' : '-rotate-90'
+                    "h-4 w-4 transition-transform duration-200",
+                    expandedGroups[group.group] ? "rotate-0" : "-rotate-90",
                   )}
                 />
               </button>
@@ -433,12 +464,12 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
                     <Link key={itemIndex} href={item.href}>
                       <div
                         className={cn(
-                          'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer',
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer",
                           location === item.href
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                            : 'text-sidebar-foreground/70'
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                            : "text-sidebar-foreground/70",
                         )}
-                        data-testid={`nav-link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                        data-testid={`nav-link-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                       >
                         <item.icon className="h-4 w-4" />
                         {item.title}
@@ -452,8 +483,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="border-t border-sidebar-border p-4 space-y-2">
-      </div>
+      <div className="border-t border-sidebar-border p-4 space-y-2"></div>
     </div>
   );
 }
