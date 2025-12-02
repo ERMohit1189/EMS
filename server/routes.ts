@@ -1871,9 +1871,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid email or password" });
       }
       
-      // Check if user has admin/superadmin role
+      // Check if user has superadmin role only
       const role = employee.role || 'user';
-      if (role !== 'admin' && role !== 'superadmin' && role !== 'Admin' && role !== 'Superadmin') {
+      if (role !== 'superadmin' && role !== 'Superadmin') {
         return res.status(403).json({ error: "Only superadmin can access this portal" });
       }
       
