@@ -20,9 +20,10 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
   const [, setLocation] = useLocation();
   const employeeName = localStorage.getItem('employeeName') || localStorage.getItem('vendorName') || 'User';
   const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
+  const isVendor = typeof window !== 'undefined' && localStorage.getItem('vendorId') !== null;
   const employeeRole = typeof window !== 'undefined' ? localStorage.getItem('employeeRole') : null;
   const isUserEmployee = isEmployee && employeeRole === 'user';
-  const showSettings = !isUserEmployee;
+  const showSettings = !isUserEmployee && !isVendor;
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
