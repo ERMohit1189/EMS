@@ -20,7 +20,9 @@
       "Bash(bash -c 'kill -9 $(lsof -t -i:3001) 2>/dev/null; sleep 1; echo \"\"Port 3001 cleared\"\"')",
       "Bash(bash -c 'kill -9 $(netstat -ano | grep \"\":3001\"\" | awk \"\"{print \\$NF}\"\") 2>/dev/null; sleep 2; echo \"\"Port cleared\"\"')",
       "Bash(xargs kill -9)",
-      "Bash(start http://localhost:8888)"
+      "Bash(start http://localhost:8888)",
+      "Bash(psql:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

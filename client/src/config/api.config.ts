@@ -1,9 +1,12 @@
 /**
- * API Configuration - Uses Replit Custom Domain
+ * API Configuration - Local Development with Neon Cloud Database
  *
- * Base URL: https://vendor-registration-form--ermohit1189.replit.app
+ * Frontend: http://localhost:5173 (Vite Dev Server)
+ * Backend: http://localhost:8888 (Express Server)
+ * Database: Neon Cloud (PostgreSQL)
  */
 
 export const API_CONFIG = {
-  API_URL: "https://vendor-registration-form--ermohit1189.replit.app",
+  // Use your local backend server
+  API_URL: import.meta.env.VITE_API_URL || "http://localhost:8888",
 };

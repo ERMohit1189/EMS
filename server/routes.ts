@@ -75,6 +75,56 @@ export async function registerRoutes(
     }
   });
 
+  // Database Status endpoint - for monitoring database connection
+  app.get("/api/database-status", async (req, res) => {
+    try {
+      const tableNames = [
+        "app_settings",
+        "attendances",
+        "daily_allowances",
+        "departments",
+        "designations",
+        "employees",
+        "export_headers",
+        "invoices",
+        "payment_masters",
+        "purchase_orders",
+        "salary_structures",
+        "sites",
+        "team_members",
+        "teams",
+        "vendors",
+        "zones",
+      ];
+
+      const tables = [];
+      let totalRows = 0;
+
+      // Query row count for each table
+      for (const tableName of tableNames) {
+        const result = await db.execute(
+          `SELECT COUNT(*) as count FROM "${tableName}"`
+        );
+        const count = parseInt(result.rows[0]?.count || "0");
+        tables.push({ name: tableName, rowCount: count });
+        totalRows += count;
+      }
+
+      res.json({
+        tables,
+        totalRows,
+        connectionStatus: "Connected",
+        lastUpdated: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: error.message || "Failed to fetch database status",
+        connectionStatus: "Disconnected",
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+  });
+
   // Vendor routes
   app.post("/api/vendors", async (req, res) => {
     try {

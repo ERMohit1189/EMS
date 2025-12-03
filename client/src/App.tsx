@@ -61,6 +61,7 @@ const Teams = lazy(() => import("@/pages/admin/Teams"));
 const AllowanceApproval = lazy(() => import("@/pages/admin/AllowanceApproval"));
 const ApprovalHistory = lazy(() => import("@/pages/admin/ApprovalHistory"));
 const ReportsDashboard = lazy(() => import("@/pages/ReportsDashboard"));
+const DatabaseStatus = lazy(() => import("@/pages/DatabaseStatus"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = () => <div className="flex items-center justify-center h-screen"><Loader /></div>;
@@ -336,7 +337,10 @@ function App() {
                   
                   {/* Reports */}
                   <Route path="/reports" component={ReportsDashboard} />
-                  
+
+                  {/* Database Status */}
+                  <Route path="/database-status" component={DatabaseStatus} />
+
                   <Route component={NotFound} />
                 </Switch>
               </Suspense>
