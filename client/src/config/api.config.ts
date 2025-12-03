@@ -1,9 +1,9 @@
 /**
- * API Configuration - Uses Replit Dev Domain
- * 
- * Base URL: https://44b81feb-485f-47a8-be4d-19f877451fc0-00-2abjjqi4sqliy.kirk.replit.dev/
+ * API Configuration - Uses Replit Custom Domain
+ *
+ * Base URL: https://vendor-registration-form--ermohit1189.replit.app
  */
 
 export const API_CONFIG = {
-  API_URL: "https://44b81feb-485f-47a8-be4d-19f877451fc0-00-2abjjqi4sqliy.kirk.replit.dev",
+  API_URL: "https://vendor-registration-form--ermohit1189.replit.app",
 };
