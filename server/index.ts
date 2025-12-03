@@ -220,7 +220,7 @@ app.use((req, res, next) => {
       reusePort: process.env.REPLIT_DEV_DOMAIN ? true : false, // reusePort not supported on Windows
     },
     () => {
-      log(`serving on port ${port}`);
+      logger.info(`serving on port ${port}`, { source: "server" });
     },
   );
 })();
