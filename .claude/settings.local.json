@@ -22,7 +22,8 @@
       "Bash(xargs kill -9)",
       "Bash(start http://localhost:8888)",
       "Bash(psql:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(bash -c 'kill -9 $(netstat -ano | grep \"\":8888\"\" | awk \"\"{print \\$NF}\"\") 2>/dev/null; sleep 2; echo \"\"Port 8888 cleared\"\"')"
     ],
     "deny": [],
     "ask": []

@@ -323,6 +323,9 @@ export async function registerRoutes(
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password required" });
       }
+      if (typeof email !== "string" || typeof password !== "string") {
+        return res.status(400).json({ error: "Email and password must be strings" });
+      }
       console.log(`[Employee Login] Attempting login for email: ${email}`);
 
       const employee = await storage.loginEmployee(email, password);
