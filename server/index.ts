@@ -3,8 +3,10 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
-import memoryStore from "memorystore";
+import createPgSessionStore from "connect-pg-simple";
+import pkg from "pg";
 
+const { Pool } = pkg;
 const app = express();
 const httpServer = createServer(app);
 
@@ -24,10 +26,16 @@ declare module "http" {
   }
 }
 
-// Initialize session store
-const MemoryStoreCreator = memoryStore(session);
-const sessionStore = new MemoryStoreCreator({
-  checkPeriod: 86400000, // prune expired entries every 24h
+// Initialize PostgreSQL session store
+const pgSessionStore = createPgSessionStore(session);
+const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const sessionStore = new pgSessionStore({
+  pool: sessionPool,
+  tableName: "session",
+  createTableIfMissing: true,
 });
 
 app.use(
@@ -40,12 +48,20 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Validate required environment variables
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  throw new Error(
+    "SESSION_SECRET environment variable is required in production",
+  );
+}
+
 // Session middleware - MUST come before routes
 app.use(
   session({
     store: sessionStore,
     secret:
-      process.env.SESSION_SECRET || "your-secret-key-change-in-production",
+      process.env.SESSION_SECRET ||
+      "dev-only-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -57,12 +73,44 @@ app.use(
   }),
 );
 
-// CORS middleware - Allow requests from any origin for API access
-app.use((req, res, next) => {
-  const origin = req.headers.origin || "*";
+// CORS middleware - Secure origin-based CORS configuration
+const getAllowedOrigins = () => {
+  const allowedOrigins = [
+    "http://localhost:5000",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5000",
+    "http://127.0.0.1:3000",
+  ];
 
-  // Allow all origins for API access
-  res.header("Access-Control-Allow-Origin", origin);
+  // In production, allow REPLIT_DEV_DOMAIN if set
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    allowedOrigins.push(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+  }
+
+  // Allow additional origins from environment variable
+  if (process.env.ALLOWED_ORIGINS) {
+    allowedOrigins.push(
+      ...process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()),
+    );
+  }
+
+  return allowedOrigins;
+};
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = getAllowedOrigins();
+
+  // Check if the request origin is in the allowed list
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+  } else if (!origin && process.env.NODE_ENV === "development") {
+    // Allow no-origin requests in development
+    res.header("Access-Control-Allow-Origin", "*");
+  }
+
   res.header(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
@@ -71,7 +119,6 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, X-Requested-With",
   );
-  res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Max-Age", "3600");
 
   // Handle preflight requests

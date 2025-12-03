@@ -607,3 +607,120 @@ export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
 
 export type AppSettings = typeof appSettings.$inferSelect;
 export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
+
+// Additional Validation Schemas for Routes
+
+// Department Schema
+export const insertDepartmentSchema = z.object({
+  name: z.string().min(1, "Department name is required").max(100, "Department name must be 100 characters or less"),
+});
+
+// Designation Schema
+export const insertDesignationSchema = z.object({
+  name: z.string().min(1, "Designation name is required").max(100, "Designation name must be 100 characters or less"),
+});
+
+// Login Schema (Vendor & Employee)
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email format").min(1, "Email is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Password Change Schema
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+// Forgot Password Schema
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email format").min(1, "Email is required"),
+});
+
+// Reset Password Schema
+export const resetPasswordSchema = z.object({
+  newPassword: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+// Status Update Schema
+export const statusUpdateSchema = z.object({
+  status: z.enum(["Pending", "Approved", "Rejected", "Active", "Inactive"]),
+});
+
+// Site Status Update Schema
+export const siteStatusUpdateSchema = z.object({
+  status: z.enum(["Pending", "Active", "Inactive", "Suspended", "Completed"]),
+  remark: z.string().optional(),
+});
+
+// Allowance Schema (POST)
+export const createAllowanceSchema = z.object({
+  employeeId: z.string().min(1, "Employee ID is required"),
+  teamId: z.string().optional().nullable(),
+  allowanceData: z.record(z.any()),
+  date: z.union([z.string(), z.date()]),
+});
+
+// Bulk Allowance Schema
+export const bulkAllowanceSchema = z.object({
+  allowances: z.array(createAllowanceSchema).min(1, "At least one allowance is required"),
+});
+
+// Allowance Rejection Schema
+export const allowanceRejectionSchema = z.object({
+  rejectionReason: z.string()
+    .min(5, "Rejection reason must be at least 5 characters")
+    .max(500, "Rejection reason must be 500 characters or less"),
+});
+
+// Team Member Creation Schema
+export const createTeamMemberSchema = z.object({
+  employeeId: z.string().min(1, "Employee ID is required"),
+  reportingPerson1: z.string().optional().nullable(),
+  reportingPerson2: z.string().optional().nullable(),
+  reportingPerson3: z.string().optional().nullable(),
+});
+
+// Reporting Person Update Schema
+export const updateReportingSchema = z.object({
+  reportingPerson1: z.string().optional().nullable(),
+  reportingPerson2: z.string().optional().nullable(),
+  reportingPerson3: z.string().optional().nullable(),
+});
+
+// Attendance Record Schema
+export const attendanceRecordSchema = z.object({
+  month: z.number().min(1, "Month must be between 1-12").max(12, "Month must be between 1-12"),
+  year: z.number().min(2000, "Year must be 2000 or later").max(new Date().getFullYear() + 1),
+  attendanceData: z.record(z.any()),
+  employeeId: z.string().min(1, "Employee ID is required"),
+});
+
+// Sync Credentials Schema
+export const syncCredentialsSchema = z.object({
+  employeeId: z.string().min(1, "Employee ID is required"),
+  newPassword: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
+
+// Find or Create Vendor Schema
+export const findOrCreateVendorSchema = z.object({
+  vendorCode: z.string().min(1, "Vendor code is required").max(50),
+  name: z.string().min(1, "Vendor name is required").max(255),
+});

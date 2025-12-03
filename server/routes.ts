@@ -12,6 +12,21 @@ import {
   insertZoneSchema,
   insertTeamSchema,
   insertAppSettingsSchema,
+  insertDepartmentSchema,
+  insertDesignationSchema,
+  loginSchema,
+  changePasswordSchema,
+  forgotPasswordSchema,
+  statusUpdateSchema,
+  siteStatusUpdateSchema,
+  createAllowanceSchema,
+  bulkAllowanceSchema,
+  allowanceRejectionSchema,
+  createTeamMemberSchema,
+  updateReportingSchema,
+  attendanceRecordSchema,
+  syncCredentialsSchema,
+  findOrCreateVendorSchema,
   purchaseOrders,
   invoices,
   sites,
@@ -20,6 +35,7 @@ import {
   employees,
   salaryStructures,
   teamMembers,
+  insertSalarySchema,
 } from "@shared/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
 
@@ -429,8 +445,8 @@ export async function registerRoutes(
 
   app.post("/api/departments", async (req, res) => {
     try {
-      const { name } = req.body;
-      const data = await storage.createDepartment({ name });
+      const validated = insertDepartmentSchema.parse(req.body);
+      const data = await storage.createDepartment(validated);
       res.json(data);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -458,8 +474,8 @@ export async function registerRoutes(
 
   app.post("/api/designations", async (req, res) => {
     try {
-      const { name } = req.body;
-      const data = await storage.createDesignation({ name });
+      const validated = insertDesignationSchema.parse(req.body);
+      const data = await storage.createDesignation(validated);
       res.json(data);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -1009,8 +1025,11 @@ export async function registerRoutes(
   // Salary routes
   app.post("/api/salary-structures", async (req, res) => {
     try {
+      // Validate input using insertSalarySchema
+      const validated = insertSalarySchema.parse(req.body);
+
       // Convert all numeric fields to strings for decimal handling
-      const body = { ...req.body };
+      const body = { ...validated };
       const fields = [
         "basicSalary",
         "hra",
@@ -1027,11 +1046,11 @@ export async function registerRoutes(
         "esic",
       ];
       for (const field of fields) {
-        if (body[field] !== undefined && body[field] !== null) {
-          body[field] = String(body[field]);
+        if (body[field as keyof typeof body] !== undefined && body[field as keyof typeof body] !== null) {
+          (body as any)[field] = String((body as any)[field]);
         }
       }
-      // Direct pass to storage without Zod validation
+      // Create salary after validation
       const salary = await storage.createSalary(body);
       res.json(salary);
     } catch (error: any) {
@@ -1069,8 +1088,11 @@ export async function registerRoutes(
 
   app.put("/api/salary-structures/:id", async (req, res) => {
     try {
+      // Validate input using insertSalarySchema
+      const validated = insertSalarySchema.parse(req.body);
+
       // Convert all numeric fields to strings for decimal handling
-      const body = req.body;
+      const body = { ...validated };
       const fields = [
         "basicSalary",
         "hra",
@@ -1087,11 +1109,11 @@ export async function registerRoutes(
         "esic",
       ];
       for (const field of fields) {
-        if (body[field] !== undefined && body[field] !== null) {
-          body[field] = String(body[field]);
+        if (body[field as keyof typeof body] !== undefined && body[field as keyof typeof body] !== null) {
+          (body as any)[field] = String((body as any)[field]);
         }
       }
-      // For updates, just validate as plain object without schema restrictions
+      // Update salary after validation
       const salary = await storage.updateSalary(req.params.id, body);
       res.json(salary);
     } catch (error: any) {
