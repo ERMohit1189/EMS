@@ -5,6 +5,12 @@ import { createServer } from "http";
 import session from "express-session";
 import createPgSessionStore from "connect-pg-simple";
 import pkg from "pg";
+import { logger } from "./logger";
+import {
+  errorHandler,
+  notFoundHandler,
+  requestIdMiddleware,
+} from "./error-handler";
 
 const { Pool } = pkg;
 const app = express();
@@ -47,6 +53,9 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Request ID middleware - adds unique ID for request tracking
+app.use(requestIdMiddleware);
 
 // Validate required environment variables
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
@@ -135,16 +144,8 @@ app.use((req, res, next) => {
 //   next();
 // });
 
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
+// Re-export logger for backward compatibility
+export { logger } from "./logger";
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -160,12 +161,24 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+      const logMessage = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      const logLevel =
+        res.statusCode >= 400
+          ? "warn"
+          : res.statusCode >= 200 && res.statusCode < 300
+            ? "info"
+            : "debug";
 
-      log(logLine);
+      logger[logLevel as "info" | "warn" | "debug"](logMessage, {
+        source: "http",
+        endpoint: path,
+        requestId: (req.headers["x-request-id"] as string) || undefined,
+        metadata: {
+          method: req.method,
+          statusCode: res.statusCode,
+          duration,
+        },
+      });
     }
   });
 
@@ -175,21 +188,11 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+  // 404 handler for unmatched routes
+  app.use(notFoundHandler);
 
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // CRITICAL: Protect ALL unmatched API routes - return JSON 404 instead of HTML
-  app.use("/api/", (req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res
-      .status(404)
-      .json({ error: `API endpoint not found: ${req.method} ${req.path}` });
-  });
+  // Global error handler - MUST be last middleware
+  app.use(errorHandler);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
