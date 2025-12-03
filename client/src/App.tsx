@@ -60,6 +60,7 @@ const VendorForgotPassword = lazy(() => import("@/pages/vendor/VendorForgotPassw
 const Teams = lazy(() => import("@/pages/admin/Teams"));
 const AllowanceApproval = lazy(() => import("@/pages/admin/AllowanceApproval"));
 const ApprovalHistory = lazy(() => import("@/pages/admin/ApprovalHistory"));
+const ReportsDashboard = lazy(() => import("@/pages/ReportsDashboard"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = () => <div className="flex items-center justify-center h-screen"><Loader /></div>;
@@ -334,7 +335,7 @@ function App() {
                   <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
                   
                   {/* Reports */}
-                  <Route path="/reports" component={() => <Placeholder title="Reports" />} />
+                  <Route path="/reports" component={ReportsDashboard} />
                   
                   <Route component={NotFound} />
                 </Switch>
