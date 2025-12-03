@@ -38,6 +38,7 @@ function formatZodError(error: ZodError): Record<string, string[]> {
 /**
  * Global error handler middleware
  * Should be used as the last middleware in Express app
+ * Only handles errors for API routes, passes through others
  */
 export function errorHandler(
   error: any,
@@ -45,6 +46,11 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ): void {
+  // Skip error handling for non-API routes - let them fall through
+  if (!req.path.startsWith("/api")) {
+    next(error);
+    return;
+  }
   const requestId = req.headers["x-request-id"] as string || `req-${Date.now()}`;
 
   // Log the error

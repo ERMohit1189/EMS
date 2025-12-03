@@ -188,12 +188,6 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  // 404 handler for unmatched routes
-  app.use(notFoundHandler);
-
-  // Global error handler - MUST be last middleware
-  app.use(errorHandler);
-
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -203,6 +197,22 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
+
+  // 404 handler for unmatched API routes (only for API)
+  app.use("/api/", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.status(404).json({
+      success: false,
+      error: {
+        code: "NOT_FOUND",
+        message: `API endpoint not found: ${req.method} ${req.path}`,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  });
+
+  // Global error handler - MUST be last middleware
+  app.use(errorHandler);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.

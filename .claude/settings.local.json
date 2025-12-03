@@ -4,7 +4,20 @@
       "Bash(wc:*)",
       "Bash(npm run check:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(start http://localhost:5000)",
+      "Bash(pkill:*)",
+      "Bash(npm run build:*)",
+      "Bash(NODE_ENV=production timeout 30 npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(kill:*)",
+      "Bash(wmic process:*)",
+      "Bash(bash -c 'kill -9 9684 2>/dev/null; sleep 1; echo \"\"Process killed\"\"')",
+      "Bash(npm run dev:*)",
+      "Bash(start http://localhost:3001)",
+      "Bash(bash -c 'kill -9 $(lsof -t -i:3001) 2>/dev/null; sleep 1; echo \"\"Port 3001 cleared\"\"')"
     ],
     "deny": [],
     "ask": []
