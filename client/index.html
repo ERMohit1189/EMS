@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    
+    <!-- Cache Control for Development -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#059669" />
@@ -39,12 +44,34 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
+        window.addEventListener('load', async () => {
+          try {
+            // Clear old service workers to ensure fresh registration
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const reg of registrations) {
+              // Unregister and re-register with cache-bust parameter
+              await reg.unregister();
+            }
+
+            // Register with cache bust parameter
+            const timestamp = new Date().getTime();
+            const registration = await navigator.serviceWorker.register(`/sw.js?v=${timestamp}`, {
+              scope: '/',
+              updateViaCache: 'none'
+            });
             console.log('Service Worker registered successfully:', registration);
-          }).catch(error => {
-            console.log('Service Worker registration failed:', error);
-          });
+
+            // Check for updates periodically
+            setInterval(() => {
+              registration.update().then(updatedReg => {
+                if (updatedReg) {
+                  console.log('Service Worker updated');
+                }
+              });
+            }, 60000); // Check every minute
+          } catch (error) {
+            console.error('Service Worker registration failed:', error);
+          }
         });
       }
     </script>
