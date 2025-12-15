@@ -35,8 +35,10 @@ export function SmartSearchTextbox({
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(-1);
   const [internalValue, setInternalValue] = useState(value);
+  const [inputWidth, setInputWidth] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync internal value only when external value is explicitly set (e.g., when selection is made or cleared)
   // This prevents the component from resetting the user's typed input
@@ -69,6 +71,24 @@ export function SmartSearchTextbox({
       el.scrollIntoView({ block: 'nearest' });
     }
   }, [idx]);
+
+  // Measure input width for dropdown sizing
+  useEffect(() => {
+    if (inputRef.current) {
+      setInputWidth(inputRef.current.offsetWidth);
+    }
+  }, []);
+
+  // Update dropdown width when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      if (inputRef.current) {
+        setInputWidth(inputRef.current.offsetWidth);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // close on outside click
   useEffect(() => {
@@ -115,6 +135,7 @@ export function SmartSearchTextbox({
     <div className={`relative ${className}`} ref={containerRef}>
       <div className="flex items-center gap-2">
         <input
+          ref={inputRef}
           {...rest}
           value={internalValue}
           placeholder={placeholder}
@@ -135,7 +156,12 @@ export function SmartSearchTextbox({
       </div>
 
       {open && filtered.length > 0 && (
-        <ul ref={listRef} role="listbox" className="absolute z-50 left-0 mt-1 min-w-max max-h-48 overflow-auto border bg-white rounded shadow-lg">
+        <ul
+          ref={listRef}
+          role="listbox"
+          className="absolute z-50 left-0 mt-1 max-h-48 overflow-auto border bg-white rounded shadow-lg"
+          style={{ minWidth: inputWidth ? `${inputWidth}px` : 'auto' }}
+        >
           {filtered.map((s, i) => (
             <li
               key={s.id || s.label}
