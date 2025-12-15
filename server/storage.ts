@@ -1298,7 +1298,19 @@ export class DrizzleStorage implements IStorage {
   async getAvailablePOsWithAllDetails(limit: number, offset: number): Promise<any[]> {
     // ULTRA-OPTIMIZED: Single query returns POs with vendor and site details
     // Used for invoice generation - returns ONLY POs that don't have invoices yet
-    // Joins with invoices table and filters where invoice is NULL (no invoice created)
+    // Uses subquery to find PO IDs without invoices, then joins details
+    const poIdsWithoutInvoices = await db
+      .selectDistinct({ id: purchaseOrders.id })
+      .from(purchaseOrders)
+      .leftJoin(invoices, eq(purchaseOrders.id, invoices.poId))
+      .where(isNull(invoices.id));
+
+    if (poIdsWithoutInvoices.length === 0) {
+      return [];
+    }
+
+    const poIds = poIdsWithoutInvoices.map(po => po.id);
+
     const posData = await db
       .select({
         // PO fields
@@ -1333,8 +1345,7 @@ export class DrizzleStorage implements IStorage {
       .from(purchaseOrders)
       .leftJoin(sites, eq(purchaseOrders.siteId, sites.id))
       .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
-      .leftJoin(invoices, eq(purchaseOrders.id, invoices.poId))
-      .where(isNull(invoices.id))
+      .where(inArray(purchaseOrders.id, poIds))
       .orderBy(desc(purchaseOrders.createdAt))
       .limit(limit)
       .offset(offset);
