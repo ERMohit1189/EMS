@@ -96,11 +96,13 @@ app.use(
       process.env.SESSION_SECRET ||
       "dev-only-secret-key-change-in-production",
     resave: false,
-    saveUninitialized: false,
+    // IMPORTANT: saveUninitialized must be true for in-memory store to persist sessions
+    saveUninitialized: true,
     cookie: {
       secure: false, // Set to false for development even in production mode for testing
       httpOnly: true,
-      // Session expires when browser is closed (no maxAge means session cookie)
+      // Set maxAge to 24 hours for in-memory store reliability
+      maxAge: 24 * 60 * 60 * 1000,
       sameSite: "lax",
     },
     proxy: true, // Trust proxy headers
