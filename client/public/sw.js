@@ -53,7 +53,9 @@ self.addEventListener('fetch', event => {
           // Optionally cache API responses for offline, but prefer fresh data
           if (response && response.ok) {
             const respClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, respClone));
+            caches.open(CACHE_NAME).then(cache => cache.put(request, respClone)).catch(err => {
+              console.log('[Service Worker] Cache.put() error for API:', err);
+            });
           }
           return response;
         })
@@ -99,7 +101,9 @@ self.addEventListener('fetch', event => {
           // Update the cache with the latest index.html for offline support
           if (response && response.ok) {
             const respClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put('/index.html', respClone));
+            caches.open(CACHE_NAME).then(cache => cache.put('/index.html', respClone)).catch(err => {
+              console.log('[Service Worker] Cache.put() error for navigation:', err);
+            });
           }
           return response;
         })
@@ -131,7 +135,9 @@ self.addEventListener('fetch', event => {
         if (!response || response.status !== 200) return response;
         // Cache the response for offline use
         const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, responseToCache));
+        caches.open(CACHE_NAME).then(cache => cache.put(request, responseToCache)).catch(err => {
+          console.log('[Service Worker] Cache.put() error for static assets:', err);
+        });
         return response;
       })
       .catch(() => {

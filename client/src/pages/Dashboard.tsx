@@ -18,6 +18,11 @@ export default function Dashboard() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Store total counts from API (not just the fetched data)
+  const [totalVendorsCount, setTotalVendorsCount] = useState(0);
+  const [totalSitesCount, setTotalSitesCount] = useState(0);
+  const [totalEmployeesCount, setTotalEmployeesCount] = useState(0);
+
   useEffect(() => {
     // Load user profile from localStorage
     const employeeId = localStorage.getItem('employeeId');
@@ -43,7 +48,7 @@ export default function Dashboard() {
       if (vendor) {
         setUserProfile({
           type: 'vendor',
-          name: vendor.name,
+          name: `${vendor.name} (${vendor.vendorCode || 'N/A'})`,
           email: vendor.email,
           status: vendor.status,
           role: 'Vendor',
@@ -56,23 +61,23 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         // Fetch all data in parallel
-        const [posRes, invRes, sitesRes, vendorsRes, empRes] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000`),
-          fetch(`${getApiBaseUrl()}/api/invoices?pageSize=10000`),
-          fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`),
-          fetch(`${getApiBaseUrl()}/api/vendors?pageSize=10000`),
-          fetch(`${getApiBaseUrl()}/api/employees?pageSize=10000`),
+        const [posRes, invoicesRes, sitesRes, vendorsRes, employeesRes] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=500`, { credentials: 'include' }),
+          fetch(`${getApiBaseUrl()}/api/invoices?pageSize=500`, { credentials: 'include' }),
+          fetch(`${getApiBaseUrl()}/api/sites?pageSize=500`, { credentials: 'include' }),
+          fetch(`${getApiBaseUrl()}/api/vendors?pageSize=500`, { credentials: 'include' }),
+          fetch(`${getApiBaseUrl()}/api/employees?pageSize=500`, { credentials: 'include' }),
         ]);
 
-        if (!posRes.ok || !invRes.ok || !sitesRes.ok || !vendorsRes.ok || !empRes.ok) {
+        if (!posRes.ok || !invoicesRes.ok || !sitesRes.ok || !vendorsRes.ok || !employeesRes.ok) {
           throw new Error("Failed to fetch dashboard data");
         }
 
         const posData = await posRes.json();
-        const invData = await invRes.json();
+        const invData = await invoicesRes.json();
         const sitesData = await sitesRes.json();
         const vendorsData = await vendorsRes.json();
-        const empData = await empRes.json();
+        const empData = await employeesRes.json();
 
         const pos = posData.data || [];
         setPurchaseOrders(pos);
@@ -82,9 +87,24 @@ export default function Dashboard() {
         const invs = invData.data || [];
         setInvoices(invs);
 
+        // Use totalCount from API if available, otherwise use data.length as fallback
         setAllSites(sitesData.data || []);
         setAllVendors(vendorsData.data || []);
         setAllEmployees(empData.data || []);
+
+        // Set total counts from API
+        setTotalVendorsCount(vendorsData.totalCount || vendorsData.data?.length || 0);
+        setTotalSitesCount(sitesData.totalCount || sitesData.data?.length || 0);
+        setTotalEmployeesCount(empData.totalCount || empData.data?.length || 0);
+
+        // Log the counts for debugging
+        console.log('[Dashboard] Data counts:', {
+          totalVendors: vendorsData.totalCount || vendorsData.data?.length || 0,
+          totalSites: sitesData.totalCount || sitesData.data?.length || 0,
+          totalEmployees: empData.totalCount || empData.data?.length || 0,
+          totalPOs: posData.totalCount || posData.data?.length || 0,
+          totalInvoices: invData.totalCount || invData.data?.length || 0,
+        });
 
         // Generate monthly data from POs
         const monthlyMap: { [key: string]: { installations: number; revenue: number } } = {};
@@ -128,17 +148,16 @@ export default function Dashboard() {
   }, []);
 
   const activeSites = allSites.filter(s => s.status === 'Active').length;
-  const totalSites = allSites.length;
-  const operationalPercentage = totalSites > 0 ? Math.round((activeSites / totalSites) * 100) : 0;
+  const operationalPercentage = totalSitesCount > 0 ? Math.round((activeSites / totalSitesCount) * 100) : 0;
 
-  const totalEmployees = allEmployees.length;
   const activeEmployees = allEmployees.filter(e => e.status === 'Active').length;
+  const approvedVendors = allVendors.filter(v => v.status === 'Approved').length;
 
   const stats = [
     {
       title: 'Total Vendors',
-      value: allVendors.length,
-      description: `${allVendors.filter(v => v.status === 'Approved').length} approved`,
+      value: totalVendorsCount,
+      description: `${approvedVendors} approved`,
       icon: Users,
       color: 'text-blue-500',
       href: '/vendor/list',
@@ -153,7 +172,7 @@ export default function Dashboard() {
     },
     {
       title: 'Total Employees',
-      value: totalEmployees,
+      value: totalEmployeesCount,
       description: `${activeEmployees} active`,
       icon: HardHat,
       color: 'text-orange-500',
@@ -318,7 +337,7 @@ export default function Dashboard() {
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
               <Line yAxisId="left" type="monotone" dataKey="installations" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 5 }} activeDot={{ r: 7 }} name="Installations" />
-              <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 5 }} activeDot={{ r: 7 }} name="Revenue (₹K)" />
+              <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 5 }} activeDot={{ r: 7 }} name="Revenue (Rs K)" />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -513,7 +532,7 @@ export default function Dashboard() {
                         {vendor.name.substring(0,2).toUpperCase()}
                    </div>
                    <div className="min-w-0 flex-1">
-                        <p className="text-xs md:text-sm font-medium text-slate-900 truncate leading-tight">{vendor.name.substring(0, 20)}</p>
+                        <p className="text-xs md:text-sm font-medium text-slate-900 truncate leading-tight">{`${vendor.name} (${vendor.vendorCode || 'N/A'})`.substring(0, 30)}</p>
                         <p className="text-xs text-slate-600 leading-tight truncate">{(vendor.category || 'Individual').substring(0, 15)}</p>
                    </div>
                    <Link href="/vendor/list" className="text-xs text-primary hover:text-primary/80 flex items-center gap-0.5 flex-shrink-0 font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100">

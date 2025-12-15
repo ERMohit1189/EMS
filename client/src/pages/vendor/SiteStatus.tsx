@@ -132,6 +132,9 @@ const updateStatusOptions = ['Pending', 'Raised', 'Approved', 'Rejected'];
 export default function SiteStatus() {
   const { toast } = useToast();
   const [sites, setSites] = useState<SiteStatusData[]>([]);
+  const [allSitesForCounts, setAllSitesForCounts] = useState<SiteStatusData[]>([]);
+  const [atpCounts, setAtpCounts] = useState<{ phy: Record<string, number>; soft: Record<string, number>; totalCount: number }>({ phy: {}, soft: {}, totalCount: 0 });
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -139,28 +142,73 @@ export default function SiteStatus() {
   const [bulkPhyAtStatus, setBulkPhyAtStatus] = useState('');
   const [bulkSoftAtStatus, setBulkSoftAtStatus] = useState('');
   const [cardStatusFilter, setCardStatusFilter] = useState<string | null>(null);
+  const [cardFilterArea, setCardFilterArea] = useState<'phy' | 'soft' | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [selectedSingleSite, setSelectedSingleSite] = useState<SiteStatusData | null>(null);
-  const [singleSiteSearchText, setSingleSiteSearchText] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchSites();
+  }, [currentPage, pageSize, cardStatusFilter, cardFilterArea]);
+
+  useEffect(() => {
+    // Fetch aggregated ATP counts once on mount
+    fetchAtpCounts();
   }, []);
 
-  const fetchSites = async () => {
+  const fetchSites = async (options?: { forceRefresh?: boolean }) => {
     try {
-      setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/sites`);
+      // Show table-level loader for subsequent loads; use page-level loader for first load
+      const initialLoad = sites.length === 0;
+      if (initialLoad) setLoading(true);
+      setTableLoading(true);
+      const params = new URLSearchParams();
+      params.append('page', currentPage.toString());
+      params.append('pageSize', pageSize.toString());
+      // Apply ATP card filter to server query if set
+      if (cardFilterArea && cardStatusFilter) {
+        if (cardFilterArea === 'phy') params.append('phyAtStatus', cardStatusFilter);
+        if (cardFilterArea === 'soft') params.append('softAtStatus', cardStatusFilter);
+      }
+      // Optionally force server to bypass caches / Vite dev middleware caches
+      if (options?.forceRefresh) {
+        params.append('t', String(Date.now()));
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/api/sites?${params.toString()}`);
       if (response.ok) {
-        const { data } = await response.json();
+        const { data, totalCount } = await response.json();
         setSites(data || []);
+        setTotalCount(totalCount || 0);
+        setTotalPages(Math.ceil((totalCount || 0) / pageSize));
+        // Refresh counts to keep UI in sync
+        fetchAtpCounts();
       }
     } catch (error) {
       console.error('Failed to fetch sites:', error);
     } finally {
+      setTableLoading(false);
       setLoading(false);
+    }
+  };
+
+  const fetchAtpCounts = async () => {
+    try {
+      const resp = await fetch(`${getApiBaseUrl()}/api/sites/atp-counts`);
+      if (resp.ok) {
+        const json = await resp.json();
+        setAtpCounts({ phy: json.phy || {}, soft: json.soft || {}, totalCount: json.totalCount || 0 });
+      }
+    } catch (error) {
+      console.error('[SiteStatus] Failed to fetch ATP counts:', error);
     }
   };
 
@@ -172,20 +220,19 @@ export default function SiteStatus() {
     
     // If card filter is set, use it; otherwise use status filter
     const matchesStatus = cardStatusFilter ? site.status === cardStatusFilter : (selectedStatus === 'All' || site.status === selectedStatus);
-    
-    // Exclude approved sites from the grid (cannot be manually updated) unless cardStatusFilter is Approved
-    const isNotApproved = cardStatusFilter === 'Approved' || site.status !== 'Approved';
-    
-    return matchesSearch && matchesStatus && isNotApproved;
+
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active':
+      case 'Approved':
         return 'bg-green-100 text-green-800';
+      case 'Raised':
+        return 'bg-blue-100 text-blue-800';
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Inactive':
+      case 'Rejected':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -208,23 +255,31 @@ export default function SiteStatus() {
     }
   };
 
-  const statusOptions = ['All', ...Array.from(new Set(sites.filter(s => s.status !== 'Approved').map(s => s.status)))];
+  const statusOptions = ['All', ...Array.from(new Set(sites.map(s => s.status)))].filter((s): s is string => s !== null);
 
   const calculatePhyAtStatusCounts = () => {
+    const normalizeStatus = (status: string | null) => (status || '').toLowerCase().trim();
     return {
-      pending: sites.filter(s => s.phyAtStatus === 'Pending').length,
-      approved: sites.filter(s => s.phyAtStatus === 'Approved').length,
-      rejected: sites.filter(s => s.phyAtStatus === 'Rejected').length,
-      raised: sites.filter(s => s.phyAtStatus === 'Raised').length,
+      pending: sites.filter(s => normalizeStatus(s.phyAtStatus) === 'pending').length,
+      approved: sites.filter(s => {
+        const status = normalizeStatus(s.phyAtStatus);
+        return status === 'approved' || status === 'accepted';
+      }).length,
+      rejected: sites.filter(s => normalizeStatus(s.phyAtStatus) === 'rejected').length,
+      raised: sites.filter(s => normalizeStatus(s.phyAtStatus) === 'raised').length,
     };
   };
 
   const calculateSoftAtStatusCounts = () => {
+    const normalizeStatus = (status: string | null) => (status || '').toLowerCase().trim();
     return {
-      pending: sites.filter(s => s.softAtStatus === 'Pending').length,
-      approved: sites.filter(s => s.softAtStatus === 'Approved').length,
-      rejected: sites.filter(s => s.softAtStatus === 'Rejected').length,
-      raised: sites.filter(s => s.softAtStatus === 'Raised').length,
+      pending: sites.filter(s => normalizeStatus(s.softAtStatus) === 'pending').length,
+      approved: sites.filter(s => {
+        const status = normalizeStatus(s.softAtStatus);
+        return status === 'approved' || status === 'accepted';
+      }).length,
+      rejected: sites.filter(s => normalizeStatus(s.softAtStatus) === 'rejected').length,
+      raised: sites.filter(s => normalizeStatus(s.softAtStatus) === 'raised').length,
     };
   };
 
@@ -267,104 +322,121 @@ export default function SiteStatus() {
       return;
     }
 
+    setIsExporting(true);
     try {
+      // Check if user is super admin (only superadmin, not regular admin)
+      const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+      const isSuperAdmin = employeeRole === 'superadmin';
+
       // Fetch export header settings
       const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
       const headerSettings = headerResponse.ok ? await headerResponse.json() : {};
 
-      const excelData = filteredSites.map(site => ({
-      'ID': site.id || '-',
-      'Site ID': site.siteId || '-',
-      'Vendor ID': site.vendorId || '-',
-      'Zone ID': site.zoneId || '-',
-      'Plan ID': site.planId || '-',
-      'Site Amount': site.siteAmount || '-',
-      'Vendor Amount': site.vendorAmount || '-',
-      'S.No': site.sno || '-',
-      'Circle': site.circle || '-',
-      'Nominal AOP': site.nominalAop || '-',
-      'HOP Type': site.hopType || '-',
-      'HOP A-B': site.hopAB || '-',
-      'HOP B-A': site.hopBA || '-',
-      'District': site.district || '-',
-      'Project': site.project || '-',
-      'Site A Ant Dia': site.siteAAntDia || '-',
-      'Site B Ant Dia': site.siteBAntDia || '-',
-      'Max Ant Size': site.maxAntSize || '-',
-      'Site A Name': site.siteAName || '-',
-      'TOCO Vendor A': site.tocoVendorA || '-',
-      'TOCO ID A': site.tocoIdA || '-',
-      'Site B Name': site.siteBName || '-',
-      'TOCO Vendor B': site.tocoVendorB || '-',
-      'TOCO ID B': site.tocoIdB || '-',
-      'Media Availability Status': site.mediaAvailabilityStatus || '-',
-      'SR No Site A': site.srNoSiteA || '-',
-      'SR Date Site A': site.srDateSiteA || '-',
-      'SR No Site B': site.srNoSiteB || '-',
-      'SR Date Site B': site.srDateSiteB || '-',
-      'HOP SR Date': site.hopSrDate || '-',
-      'SP Date Site A': site.spDateSiteA || '-',
-      'SP Date Site B': site.spDateSiteB || '-',
-      'HOP SP Date': site.hopSpDate || '-',
-      'SO Released Date Site A': site.soReleasedDateSiteA || '-',
-      'SO Released Date Site B': site.soReleasedDateSiteB || '-',
-      'HOP SO Date': site.hopSoDate || '-',
-      'RFAI Offered Date Site A': site.rfaiOfferedDateSiteA || '-',
-      'RFAI Offered Date Site B': site.rfaiOfferedDateSiteB || '-',
-      'Actual HOP RFAI Offered Date': site.actualHopRfaiOfferedDate || '-',
-      'Partner Code': site.vendorCode || '-',
-      'Partner Name': site.partnerName || '-',
-      'RFAI Survey Completion Date': site.rfaiSurveyCompletionDate || '-',
-      'MO Number Site A': site.moNumberSiteA || '-',
-      'Material Type Site A': site.materialTypeSiteA || '-',
-      'MO Date Site A': site.moDateSiteA || '-',
-      'MO Number Site B': site.moNumberSiteB || '-',
-      'Material Type Site B': site.materialTypeSiteB || '-',
-      'MO Date Site B': site.moDateSiteB || '-',
-      'SRN RMO Number': site.srnRmoNumber || '-',
-      'SRN RMO Date': site.srnRmoDate || '-',
-      'HOP MO Date': site.hopMoDate || '-',
-      'HOP Material Dispatch Date': site.hopMaterialDispatchDate || '-',
-      'HOP Material Delivery Date': site.hopMaterialDeliveryDate || '-',
-      'Material Delivery Status': site.materialDeliveryStatus || '-',
-      'Site A Installation Date': site.siteAInstallationDate || '-',
-      'PTW Number Site A': site.ptwNumberSiteA || '-',
-      'PTW Status A': site.ptwStatusA || '-',
-      'Site B Installation Date': site.siteBInstallationDate || '-',
-      'PTW Number Site B': site.ptwNumberSiteB || '-',
-      'PTW Status B': site.ptwStatusB || '-',
-      'HOP IC Date': site.hopIcDate || '-',
-      'Alignment Date': site.alignmentDate || '-',
-      'HOP Installation Remarks': site.hopInstallationRemarks || '-',
-      'Visible in NMS': site.visibleInNms || '-',
-      'NMS Visible Date': site.nmsVisibleDate || '-',
-      'Soft AT Offer Date': site.softAtOfferDate || '-',
-      'Soft AT Acceptance Date': site.softAtAcceptanceDate || '-',
-      'Soft AT Status': site.softAtStatus || '-',
-      'Phy AT Offer Date': site.phyAtOfferDate || '-',
-      'Phy AT Acceptance Date': site.phyAtAcceptanceDate || '-',
-      'Phy AT Status': site.phyAtStatus || '-',
-      'Both AT Status': site.bothAtStatus || '-',
-      'PRI Issue Category': site.priIssueCategory || '-',
-      'PRI Site ID': site.priSiteId || '-',
-      'PRI Open Date': site.priOpenDate || '-',
-      'PRI Close Date': site.priCloseDate || '-',
-      'PRI History': site.priHistory || '-',
-      'RFI Survey Allocation Date': site.rfiSurveyAllocationDate || '-',
-      'Descope': site.descope || '-',
-      'Reason of Extra Visit': site.reasonOfExtraVisit || '-',
-      'WCC Received 80%': site.wccReceived80Percent || '-',
-      'WCC Received Date 80%': site.wccReceivedDate80Percent || '-',
-      'WCC Received 20%': site.wccReceived20Percent || '-',
-      'WCC Received Date 20%': site.wccReceivedDate20Percent || '-',
-      'WCC Received Date 100%': site.wccReceivedDate100Percent || '-',
-      'Survey': site.survey || '-',
-      'Final Partner Survey': site.finalPartnerSurvey || '-',
-      'Survey Date': site.surveyDate || '-',
-      'Status': site.status,
-      'Created At': site.createdAt || '-',
-      'Updated At': site.updatedAt || '-',
-    }));
+      const excelData = filteredSites.map(site => {
+        const data: Record<string, any> = {
+          'ID': site.id || '-',
+          'Site ID': site.siteId || '-',
+          'Vendor ID': site.vendorId || '-',
+          'Zone ID': site.zoneId || '-',
+          'Plan ID': site.planId || '-',
+          'Vendor': site.vendorName || site.partnerName || '-',
+        };
+
+        // Only include Site Amount for super admin
+        if (isSuperAdmin) {
+          data['Site Amount'] = site.siteAmount || '-';
+        }
+
+        // Continue with other fields
+        data['Vendor Amount'] = site.vendorAmount || '-';
+        data['S.No'] = site.sno || '-';
+        data['Circle'] = site.circle || '-';
+        data['Nominal AOP'] = site.nominalAop || '-';
+        data['HOP Type'] = site.hopType || '-';
+        data['HOP A-B'] = site.hopAB || '-';
+        data['HOP B-A'] = site.hopBA || '-';
+        data['District'] = site.district || '-';
+        data['Project'] = site.project || '-';
+        data['Site A Ant Dia'] = site.siteAAntDia || '-';
+        data['Site B Ant Dia'] = site.siteBAntDia || '-';
+        data['Max Ant Size'] = site.maxAntSize || '-';
+        data['Site A Name'] = site.siteAName || '-';
+        data['TOCO Vendor A'] = site.tocoVendorA || '-';
+        data['TOCO ID A'] = site.tocoIdA || '-';
+        data['Site B Name'] = site.siteBName || '-';
+        data['TOCO Vendor B'] = site.tocoVendorB || '-';
+        data['TOCO ID B'] = site.tocoIdB || '-';
+        data['Media Availability Status'] = site.mediaAvailabilityStatus || '-';
+        data['SR No Site A'] = site.srNoSiteA || '-';
+        data['SR Date Site A'] = site.srDateSiteA || '-';
+        data['SR No Site B'] = site.srNoSiteB || '-';
+        data['SR Date Site B'] = site.srDateSiteB || '-';
+        data['HOP SR Date'] = site.hopSrDate || '-';
+        data['SP Date Site A'] = site.spDateSiteA || '-';
+        data['SP Date Site B'] = site.spDateSiteB || '-';
+        data['HOP SP Date'] = site.hopSpDate || '-';
+        data['SO Released Date Site A'] = site.soReleasedDateSiteA || '-';
+        data['SO Released Date Site B'] = site.soReleasedDateSiteB || '-';
+        data['HOP SO Date'] = site.hopSoDate || '-';
+        data['RFAI Offered Date Site A'] = site.rfaiOfferedDateSiteA || '-';
+        data['RFAI Offered Date Site B'] = site.rfaiOfferedDateSiteB || '-';
+        data['Actual HOP RFAI Offered Date'] = site.actualHopRfaiOfferedDate || '-';
+        data['Partner Code'] = site.vendorCode || site.partnerCode || '-';
+        data['Partner Name'] = site.partnerName || '-';
+        data['RFAI Survey Completion Date'] = site.rfaiSurveyCompletionDate || '-';
+        data['MO Number Site A'] = site.moNumberSiteA || '-';
+        data['Material Type Site A'] = site.materialTypeSiteA || '-';
+        data['MO Date Site A'] = site.moDateSiteA || '-';
+        data['MO Date Site A'] = site.moDateSiteA || '-';
+        data['MO Number Site B'] = site.moNumberSiteB || '-';
+        data['Material Type Site B'] = site.materialTypeSiteB || '-';
+        data['MO Date Site B'] = site.moDateSiteB || '-';
+        data['SRN RMO Number'] = site.srnRmoNumber || '-';
+        data['SRN RMO Date'] = site.srnRmoDate || '-';
+        data['HOP MO Date'] = site.hopMoDate || '-';
+        data['HOP Material Dispatch Date'] = site.hopMaterialDispatchDate || '-';
+        data['HOP Material Delivery Date'] = site.hopMaterialDeliveryDate || '-';
+        data['Material Delivery Status'] = site.materialDeliveryStatus || '-';
+        data['Site A Installation Date'] = site.siteAInstallationDate || '-';
+        data['PTW Number Site A'] = site.ptwNumberSiteA || '-';
+        data['PTW Status A'] = site.ptwStatusA || '-';
+        data['Site B Installation Date'] = site.siteBInstallationDate || '-';
+        data['PTW Number Site B'] = site.ptwNumberSiteB || '-';
+        data['PTW Status B'] = site.ptwStatusB || '-';
+        data['HOP IC Date'] = site.hopIcDate || '-';
+        data['Alignment Date'] = site.alignmentDate || '-';
+        data['HOP Installation Remarks'] = site.hopInstallationRemarks || '-';
+        data['Visible in NMS'] = site.visibleInNms || '-';
+        data['NMS Visible Date'] = site.nmsVisibleDate || '-';
+        data['Soft AT Offer Date'] = site.softAtOfferDate || '-';
+        data['Soft AT Acceptance Date'] = site.softAtAcceptanceDate || '-';
+        data['Soft AT Status'] = site.softAtStatus || '-';
+        data['Phy AT Offer Date'] = site.phyAtOfferDate || '-';
+        data['Phy AT Acceptance Date'] = site.phyAtAcceptanceDate || '-';
+        data['Phy AT Status'] = site.phyAtStatus || '-';
+        data['Both AT Status'] = site.bothAtStatus || '-';
+        data['PRI Issue Category'] = site.priIssueCategory || '-';
+        data['PRI Site ID'] = site.priSiteId || '-';
+        data['PRI Open Date'] = site.priOpenDate || '-';
+        data['PRI Close Date'] = site.priCloseDate || '-';
+        data['PRI History'] = site.priHistory || '-';
+        data['RFI Survey Allocation Date'] = site.rfiSurveyAllocationDate || '-';
+        data['Descope'] = site.descope || '-';
+        data['Reason of Extra Visit'] = site.reasonOfExtraVisit || '-';
+        data['WCC Received 80%'] = site.wccReceived80Percent || '-';
+        data['WCC Received Date 80%'] = site.wccReceivedDate80Percent || '-';
+        data['WCC Received 20%'] = site.wccReceived20Percent || '-';
+        data['WCC Received Date 20%'] = site.wccReceivedDate20Percent || '-';
+        data['WCC Received Date 100%'] = site.wccReceivedDate100Percent || '-';
+        data['Survey'] = site.survey || '-';
+        data['Final Partner Survey'] = site.finalPartnerSurvey || '-';
+        data['Survey Date'] = site.surveyDate || '-';
+        data['Status'] = site.status;
+        data['Created At'] = site.createdAt || '-';
+        data['Updated At'] = site.updatedAt || '-';
+
+        return data;
+      });
 
       // Convert to array-of-arrays format for colorful export
       const headers = Object.keys(excelData[0] || {});
@@ -376,197 +448,12 @@ export default function SiteStatus() {
     } catch (error) {
       console.error('Excel export error:', error);
       toast({ title: 'Error', description: 'Failed to export Excel', variant: 'destructive' });
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const exportSingleSitePDF = async (site: SiteStatusData) => {
-    if (!site) {
-      toast({ title: 'Error', description: 'No site selected', variant: 'destructive' });
-      return;
-    }
 
-    try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const contentWidth = pageWidth - (2 * margin);
-
-      // Fetch export header settings
-      const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
-      const headerSettings = headerResponse.ok ? await headerResponse.json() : {};
-
-      let yPosition = margin;
-
-      // Add header section if settings exist
-      if (headerSettings.companyName || headerSettings.reportTitle) {
-        pdf.setFillColor(41, 128, 185);
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(12);
-        pdf.rect(margin, yPosition, contentWidth, 8, 'F');
-        const headerText = [headerSettings.companyName, headerSettings.reportTitle].filter(Boolean).join(' | ');
-        pdf.text(headerText, margin + 5, yPosition + 5);
-        yPosition += 10;
-      }
-
-      // All 81 fields in label-value pairs
-      const fields = [
-        { label: 'Site ID', value: site.siteId },
-        { label: 'Plan ID', value: site.planId },
-        { label: 'Vendor ID', value: site.vendorId },
-        { label: 'Zone ID', value: site.zoneId },
-        { label: 'Site Amount', value: site.siteAmount },
-        { label: 'Vendor Amount', value: site.vendorAmount },
-        { label: 'S.No', value: site.sno },
-        { label: 'Circle', value: site.circle },
-        { label: 'Nominal AOP', value: site.nominalAop },
-        { label: 'HOP Type', value: site.hopType },
-        { label: 'HOP A-B', value: site.hopAB },
-        { label: 'HOP B-A', value: site.hopBA },
-        { label: 'District', value: site.district },
-        { label: 'Project', value: site.project },
-        { label: 'Site A Ant Dia', value: site.siteAAntDia },
-        { label: 'Site B Ant Dia', value: site.siteBAntDia },
-        { label: 'Max Ant Size', value: site.maxAntSize },
-        { label: 'Site A Name', value: site.siteAName },
-        { label: 'TOCO Vendor A', value: site.tocoVendorA },
-        { label: 'TOCO ID A', value: site.tocoIdA },
-        { label: 'Site B Name', value: site.siteBName },
-        { label: 'TOCO Vendor B', value: site.tocoVendorB },
-        { label: 'TOCO ID B', value: site.tocoIdB },
-        { label: 'Media Availability', value: site.mediaAvailabilityStatus },
-        { label: 'SR No Site A', value: site.srNoSiteA },
-        { label: 'SR Date Site A', value: site.srDateSiteA },
-        { label: 'SR No Site B', value: site.srNoSiteB },
-        { label: 'SR Date Site B', value: site.srDateSiteB },
-        { label: 'HOP SR Date', value: site.hopSrDate },
-        { label: 'SP Date Site A', value: site.spDateSiteA },
-        { label: 'SP Date Site B', value: site.spDateSiteB },
-        { label: 'HOP SP Date', value: site.hopSpDate },
-        { label: 'SO Released Date A', value: site.soReleasedDateSiteA },
-        { label: 'SO Released Date B', value: site.soReleasedDateSiteB },
-        { label: 'HOP SO Date', value: site.hopSoDate },
-        { label: 'RFAI Offered Date A', value: site.rfaiOfferedDateSiteA },
-        { label: 'RFAI Offered Date B', value: site.rfaiOfferedDateSiteB },
-        { label: 'HOP RFAI Date', value: site.actualHopRfaiOfferedDate },
-        { label: 'Partner Name', value: site.partnerName },
-        { label: 'RFAI Survey Completion', value: site.rfaiSurveyCompletionDate },
-        { label: 'MO Number Site A', value: site.moNumberSiteA },
-        { label: 'Material Type Site A', value: site.materialTypeSiteA },
-        { label: 'MO Date Site A', value: site.moDateSiteA },
-        { label: 'MO Number Site B', value: site.moNumberSiteB },
-        { label: 'Material Type Site B', value: site.materialTypeSiteB },
-        { label: 'MO Date Site B', value: site.moDateSiteB },
-        { label: 'SRN/RMO Number', value: site.srnRmoNumber },
-        { label: 'SRN/RMO Date', value: site.srnRmoDate },
-        { label: 'HOP MO Date', value: site.hopMoDate },
-        { label: 'Material Dispatch Date', value: site.hopMaterialDispatchDate },
-        { label: 'Material Delivery Date', value: site.hopMaterialDeliveryDate },
-        { label: 'Material Delivery Status', value: site.materialDeliveryStatus },
-        { label: 'Site A Installation Date', value: site.siteAInstallationDate },
-        { label: 'PTW Number Site A', value: site.ptwNumberSiteA },
-        { label: 'PTW Status A', value: site.ptwStatusA },
-        { label: 'Site B Installation Date', value: site.siteBInstallationDate },
-        { label: 'PTW Number Site B', value: site.ptwNumberSiteB },
-        { label: 'PTW Status B', value: site.ptwStatusB },
-        { label: 'HOP I&C Date', value: site.hopIcDate },
-        { label: 'Alignment Date', value: site.alignmentDate },
-        { label: 'Installation Remarks', value: site.hopInstallationRemarks },
-        { label: 'Visible in NMS', value: site.visibleInNms },
-        { label: 'NMS Visible Date', value: site.nmsVisibleDate },
-        { label: 'SOFT-AT Offer Date', value: site.softAtOfferDate },
-        { label: 'SOFT-AT Acceptance Date', value: site.softAtAcceptanceDate },
-        { label: 'SOFT-AT Status', value: site.softAtStatus },
-        { label: 'PHY-AT Offer Date', value: site.phyAtOfferDate },
-        { label: 'PHY-AT Acceptance Date', value: site.phyAtAcceptanceDate },
-        { label: 'PHY-AT Status', value: site.phyAtStatus },
-        { label: 'Both AT Status', value: site.bothAtStatus },
-        { label: 'PRI Issue Category', value: site.priIssueCategory },
-        { label: 'PRI Site ID', value: site.priSiteId },
-        { label: 'PRI Open Date', value: site.priOpenDate },
-        { label: 'PRI Close Date', value: site.priCloseDate },
-        { label: 'PRI History', value: site.priHistory },
-        { label: 'RFI Survey Allocation', value: site.rfiSurveyAllocationDate },
-        { label: 'Descope', value: site.descope },
-        { label: 'Reason of Extra Visit', value: site.reasonOfExtraVisit },
-        { label: 'WCC 80% Received', value: site.wccReceived80Percent },
-        { label: 'WCC Date 80%', value: site.wccReceivedDate80Percent },
-        { label: 'WCC 20% Received', value: site.wccReceived20Percent },
-        { label: 'WCC Date 20%', value: site.wccReceivedDate20Percent },
-        { label: 'WCC Date 100%', value: site.wccReceivedDate100Percent },
-        { label: 'Survey', value: site.survey },
-        { label: 'Final Partner Survey', value: site.finalPartnerSurvey },
-        { label: 'Survey Date', value: site.surveyDate },
-        { label: 'Status', value: site.status },
-      ];
-
-      // Site header
-      pdf.setFillColor(100, 149, 237);
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(11);
-      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
-      pdf.text(`SITE REPORT - ${site.siteId} | Plan: ${site.planId}`, margin + 5, yPosition + 5);
-      yPosition += 8;
-      
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(8);
-      pdf.text(`Generated: ${new Date().toLocaleString()}`, margin + 2, yPosition + 2);
-      yPosition += 5;
-      const lineHeight = 6;
-      const labelWidth = contentWidth * 0.35;
-      const valueWidth = contentWidth * 0.65;
-      const fieldsPerPage = 28; // Approximate fields that fit per page
-      let fieldCount = 0;
-
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(9);
-
-      for (let i = 0; i < fields.length; i++) {
-        const field = fields[i];
-        const displayValue = field.value ? String(field.value) : '-';
-
-        // Add page break if needed
-        if (yPosition + lineHeight > pageHeight - margin - 5) {
-          pdf.addPage();
-          yPosition = margin;
-          // Add header on new page
-          pdf.setFillColor(41, 128, 185);
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFontSize(10);
-          pdf.rect(margin, yPosition, contentWidth, 8, 'F');
-          pdf.text(`SITE REPORT (Continued) - ${site.siteId}`, margin + 5, yPosition + 5);
-          yPosition += 10;
-          pdf.setTextColor(0, 0, 0);
-        }
-
-        // Alternate row colors
-        if (i % 2 === 0) {
-          pdf.setFillColor(240, 240, 240);
-          pdf.rect(margin, yPosition, contentWidth, lineHeight, 'F');
-        }
-
-        // Draw field label
-        pdf.setFontSize(8);
-        pdf.setFont('Helvetica', 'bold');
-        pdf.text(field.label + ':', margin + 2, yPosition + 4);
-
-        // Draw field value
-        pdf.setFont('Helvetica', 'normal');
-        const wrappedText = pdf.splitTextToSize(displayValue, valueWidth - 2);
-        pdf.text(wrappedText, margin + labelWidth + 2, yPosition + 4);
-
-        yPosition += lineHeight;
-      }
-
-      pdf.save(`site-${site.siteId}-${site.planId}-${new Date().getTime()}.pdf`);
-      toast({ title: 'Success', description: `PDF exported for ${site.siteId}` });
-      setSelectedSingleSite(null);
-      setSingleSiteSearchText('');
-    } catch (error) {
-      console.error('PDF export error:', error);
-      toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
-    }
-  };
 
   const exportToPDF = async () => {
     if (filteredSites.length === 0) {
@@ -574,7 +461,12 @@ export default function SiteStatus() {
       return;
     }
 
+    setIsExporting(true);
     try {
+      // Check if user is super admin (only superadmin, not regular admin)
+      const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+      const isSuperAdmin = employeeRole === 'superadmin';
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -589,65 +481,74 @@ export default function SiteStatus() {
       const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
       const exportHeaderSettings = headerResponse.ok ? await headerResponse.json() : {};
 
-      // Field definitions for all 81 fields
-      const getFieldsForSite = (site: SiteStatusData) => [
-        { label: 'Site ID', value: site.siteId },
-        { label: 'Plan ID', value: site.planId },
-        { label: 'Vendor ID', value: site.vendorId },
-        { label: 'Zone ID', value: site.zoneId },
-        { label: 'Site Amount', value: site.siteAmount },
-        { label: 'Vendor Amount', value: site.vendorAmount },
-        { label: 'S.No', value: site.sno },
-        { label: 'Circle', value: site.circle },
-        { label: 'Nominal AOP', value: site.nominalAop },
-        { label: 'HOP Type', value: site.hopType },
-        { label: 'HOP A-B', value: site.hopAB },
-        { label: 'HOP B-A', value: site.hopBA },
-        { label: 'District', value: site.district },
-        { label: 'Project', value: site.project },
-        { label: 'Site A Ant Dia', value: site.siteAAntDia },
-        { label: 'Site B Ant Dia', value: site.siteBAntDia },
-        { label: 'Max Ant Size', value: site.maxAntSize },
-        { label: 'Site A Name', value: site.siteAName },
-        { label: 'TOCO Vendor A', value: site.tocoVendorA },
-        { label: 'TOCO ID A', value: site.tocoIdA },
-        { label: 'Site B Name', value: site.siteBName },
-        { label: 'TOCO Vendor B', value: site.tocoVendorB },
-        { label: 'TOCO ID B', value: site.tocoIdB },
-        { label: 'Media Availability', value: site.mediaAvailabilityStatus },
-        { label: 'SR No Site A', value: site.srNoSiteA },
-        { label: 'SR Date Site A', value: site.srDateSiteA },
-        { label: 'SR No Site B', value: site.srNoSiteB },
-        { label: 'SR Date Site B', value: site.srDateSiteB },
-        { label: 'HOP SR Date', value: site.hopSrDate },
-        { label: 'SP Date Site A', value: site.spDateSiteA },
-        { label: 'SP Date Site B', value: site.spDateSiteB },
-        { label: 'HOP SP Date', value: site.hopSpDate },
-        { label: 'SO Released Date A', value: site.soReleasedDateSiteA },
-        { label: 'SO Released Date B', value: site.soReleasedDateSiteB },
-        { label: 'HOP SO Date', value: site.hopSoDate },
-        { label: 'RFAI Offered Date A', value: site.rfaiOfferedDateSiteA },
-        { label: 'RFAI Offered Date B', value: site.rfaiOfferedDateSiteB },
-        { label: 'HOP RFAI Date', value: site.actualHopRfaiOfferedDate },
-        { label: 'Partner Name', value: site.partnerName },
-        { label: 'RFAI Survey Completion', value: site.rfaiSurveyCompletionDate },
-        { label: 'MO Number Site A', value: site.moNumberSiteA },
-        { label: 'Material Type Site A', value: site.materialTypeSiteA },
-        { label: 'MO Date Site A', value: site.moDateSiteA },
-        { label: 'MO Number Site B', value: site.moNumberSiteB },
-        { label: 'Material Type Site B', value: site.materialTypeSiteB },
-        { label: 'MO Date Site B', value: site.moDateSiteB },
-        { label: 'SRN/RMO Number', value: site.srnRmoNumber },
-        { label: 'SRN/RMO Date', value: site.srnRmoDate },
-        { label: 'HOP MO Date', value: site.hopMoDate },
-        { label: 'Material Dispatch Date', value: site.hopMaterialDispatchDate },
-        { label: 'Material Delivery Date', value: site.hopMaterialDeliveryDate },
-        { label: 'Material Delivery Status', value: site.materialDeliveryStatus },
-        { label: 'Site A Installation Date', value: site.siteAInstallationDate },
-        { label: 'PTW Number Site A', value: site.ptwNumberSiteA },
-        { label: 'PTW Status A', value: site.ptwStatusA },
-        { label: 'Site B Installation Date', value: site.siteBInstallationDate },
-        { label: 'PTW Number Site B', value: site.ptwNumberSiteB },
+      // Field definitions - conditionally include Site Amount
+      const getFieldsForSite = (site: SiteStatusData) => {
+        const fields = [
+          { label: 'Site ID', value: site.siteId },
+          { label: 'Plan ID', value: site.planId },
+          { label: 'Vendor ID', value: site.vendorId },
+          { label: 'Zone ID', value: site.zoneId },
+        ];
+
+        // Only include Site Amount for super admin
+        if (isSuperAdmin) {
+          fields.push({ label: 'Site Amount', value: site.siteAmount });
+        }
+
+        // Continue with other fields
+        fields.push(
+          { label: 'Vendor Amount', value: site.vendorAmount },
+          { label: 'S.No', value: site.sno },
+          { label: 'Circle', value: site.circle },
+          { label: 'Nominal AOP', value: site.nominalAop },
+          { label: 'HOP Type', value: site.hopType },
+          { label: 'HOP A-B', value: site.hopAB },
+          { label: 'HOP B-A', value: site.hopBA },
+          { label: 'District', value: site.district },
+          { label: 'Project', value: site.project },
+          { label: 'Site A Ant Dia', value: site.siteAAntDia },
+          { label: 'Site B Ant Dia', value: site.siteBAntDia },
+          { label: 'Max Ant Size', value: site.maxAntSize },
+          { label: 'Site A Name', value: site.siteAName },
+          { label: 'TOCO Vendor A', value: site.tocoVendorA },
+          { label: 'TOCO ID A', value: site.tocoIdA },
+          { label: 'Site B Name', value: site.siteBName },
+          { label: 'TOCO Vendor B', value: site.tocoVendorB },
+          { label: 'TOCO ID B', value: site.tocoIdB },
+          { label: 'Media Availability', value: site.mediaAvailabilityStatus },
+          { label: 'SR No Site A', value: site.srNoSiteA },
+          { label: 'SR Date Site A', value: site.srDateSiteA },
+          { label: 'SR No Site B', value: site.srNoSiteB },
+          { label: 'SR Date Site B', value: site.srDateSiteB },
+          { label: 'HOP SR Date', value: site.hopSrDate },
+          { label: 'SP Date Site A', value: site.spDateSiteA },
+          { label: 'SP Date Site B', value: site.spDateSiteB },
+          { label: 'HOP SP Date', value: site.hopSpDate },
+          { label: 'SO Released Date A', value: site.soReleasedDateSiteA },
+          { label: 'SO Released Date B', value: site.soReleasedDateSiteB },
+          { label: 'HOP SO Date', value: site.hopSoDate },
+          { label: 'RFAI Offered Date A', value: site.rfaiOfferedDateSiteA },
+          { label: 'RFAI Offered Date B', value: site.rfaiOfferedDateSiteB },
+          { label: 'HOP RFAI Date', value: site.actualHopRfaiOfferedDate },
+          { label: 'Partner Name', value: site.partnerName },
+          { label: 'RFAI Survey Completion', value: site.rfaiSurveyCompletionDate },
+          { label: 'MO Number Site A', value: site.moNumberSiteA },
+          { label: 'Material Type Site A', value: site.materialTypeSiteA },
+          { label: 'MO Date Site A', value: site.moDateSiteA },
+          { label: 'MO Number Site B', value: site.moNumberSiteB },
+          { label: 'Material Type Site B', value: site.materialTypeSiteB },
+          { label: 'MO Date Site B', value: site.moDateSiteB },
+          { label: 'SRN/RMO Number', value: site.srnRmoNumber },
+          { label: 'SRN/RMO Date', value: site.srnRmoDate },
+          { label: 'HOP MO Date', value: site.hopMoDate },
+          { label: 'Material Dispatch Date', value: site.hopMaterialDispatchDate },
+          { label: 'Material Delivery Date', value: site.hopMaterialDeliveryDate },
+          { label: 'Material Delivery Status', value: site.materialDeliveryStatus },
+          { label: 'Site A Installation Date', value: site.siteAInstallationDate },
+          { label: 'PTW Number Site A', value: site.ptwNumberSiteA },
+          { label: 'PTW Status A', value: site.ptwStatusA },
+          { label: 'Site B Installation Date', value: site.siteBInstallationDate },
+          { label: 'PTW Number Site B', value: site.ptwNumberSiteB },
         { label: 'PTW Status B', value: site.ptwStatusB },
         { label: 'HOP I&C Date', value: site.hopIcDate },
         { label: 'Alignment Date', value: site.alignmentDate },
@@ -677,30 +578,33 @@ export default function SiteStatus() {
         { label: 'Survey', value: site.survey },
         { label: 'Final Partner Survey', value: site.finalPartnerSurvey },
         { label: 'Survey Date', value: site.surveyDate },
-        { label: 'Status', value: site.status },
-      ];
+        { label: 'Status', value: site.status }
+      );
 
-      let yPosition = margin;
-      let isFirstSite = true;
+      return fields;
+    };
 
-      // Add header section if settings exist
-      if (exportHeaderSettings.companyName || exportHeaderSettings.reportTitle) {
-        pdf.setFillColor(41, 128, 185);
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(12);
-        pdf.rect(margin, yPosition, contentWidth, 8, 'F');
-        const headerText = [exportHeaderSettings.companyName, exportHeaderSettings.reportTitle].filter(Boolean).join(' | ');
-        pdf.text(headerText, margin + 5, yPosition + 5);
-        yPosition += 10;
-      }
+    let yPosition = margin;
+    let isFirstSite = true;
 
-      for (const site of filteredSites) {
-        const fields = getFieldsForSite(site);
+    // Add header section if settings exist
+    if (exportHeaderSettings.companyName || exportHeaderSettings.reportTitle) {
+      pdf.setFillColor(41, 128, 185);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(12);
+      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+      const headerText = [exportHeaderSettings.companyName, exportHeaderSettings.reportTitle].filter(Boolean).join(' | ');
+      pdf.text(headerText, margin + 5, yPosition + 5);
+      yPosition += 10;
+    }
 
-        // Start each new site on a new page
-        if (!isFirstSite) {
-          pdf.addPage();
-          yPosition = margin;
+    for (const site of filteredSites) {
+      const fields = getFieldsForSite(site);
+
+      // Start each new site on a new page
+      if (!isFirstSite) {
+        pdf.addPage();
+        yPosition = margin;
 
           // Add header on new pages if settings exist
           if (exportHeaderSettings.companyName || exportHeaderSettings.reportTitle) {
@@ -760,6 +664,8 @@ export default function SiteStatus() {
     } catch (error) {
       console.error('PDF export error:', error);
       toast({ title: 'Error', description: 'Failed to export PDF', variant: 'destructive' });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -774,6 +680,8 @@ export default function SiteStatus() {
     }
 
     try {
+      setIsUpdating(true);
+      setTableLoading(true);
       // Get plan IDs of selected sites
       const planIds = Array.from(selectedSites)
         .map(siteId => filteredSites.find(s => s.id === siteId)?.planId)
@@ -797,6 +705,7 @@ export default function SiteStatus() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatePayload),
       });
 
@@ -833,12 +742,20 @@ export default function SiteStatus() {
       setSelectedSites(new Set());
       setBulkPhyAtStatus('');
       setBulkSoftAtStatus('');
-      
-      // Fetch fresh data in background (non-blocking)
-      fetchSites();
+      try {
+        // Force a fresh fetch so Pending/Approved lists reflect server state immediately
+        await fetchSites({ forceRefresh: true });
+        await fetchAtpCounts();
+      } finally {
+        setTableLoading(false);
+      }
     } catch (error: any) {
       console.error('[SiteStatus] Bulk update error:', error);
-      toast({ title: 'Error', description: error.message || 'Failed to update sites', variant: 'destructive' });
+      const message = error.message || (error instanceof TypeError ? 'Network error: failed to reach server' : 'Failed to update sites');
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setIsUpdating(false);
+      setTableLoading(false);
     }
   };
 
@@ -873,16 +790,25 @@ export default function SiteStatus() {
         <div>
           <h3 className="text-sm font-semibold mb-2 text-gray-700">Phy AT Status</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {/* showing per-status counts only */}
+
             {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
-              const counts = calculatePhyAtStatusCounts();
-              const statusKey = status.toLowerCase() as keyof typeof counts;
-              const count = counts[statusKey];
-              
+              const count = (() => {
+                // case-insensitive lookup
+                const keys = Object.keys(atpCounts.phy || {});
+                const found = keys.find(k => k.toLowerCase() === status.toLowerCase());
+                return found ? atpCounts.phy[found] : 0;
+              })();
+
               return (
                 <Card 
                   key={`phy-${status}`} 
                   className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow p-3`}
-                  onClick={() => setCardStatusFilter(status)}
+                  onClick={() => {
+                    setCardStatusFilter(status);
+                    setCardFilterArea('phy');
+                    setCurrentPage(1);
+                  }}
                 >
                   <div className="text-center">
                     <p className="text-xs font-medium opacity-75 mb-1">{status}</p>
@@ -899,16 +825,24 @@ export default function SiteStatus() {
         <div>
           <h3 className="text-sm font-semibold mb-2 text-gray-700">Soft AT Status</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {/* showing per-status counts only */}
+
             {['Pending', 'Approved', 'Rejected', 'Raised'].map(status => {
-              const counts = calculateSoftAtStatusCounts();
-              const statusKey = status.toLowerCase() as keyof typeof counts;
-              const count = counts[statusKey];
-              
+              const count = (() => {
+                const keys = Object.keys(atpCounts.soft || {});
+                const found = keys.find(k => k.toLowerCase() === status.toLowerCase());
+                return found ? atpCounts.soft[found] : 0;
+              })();
+
               return (
                 <Card 
                   key={`soft-${status}`} 
                   className={`shadow-md border-2 ${getStatusCountColor(status)} cursor-pointer hover:shadow-lg transition-shadow p-3`}
-                  onClick={() => setCardStatusFilter(status)}
+                  onClick={() => {
+                    setCardStatusFilter(status);
+                    setCardFilterArea('soft');
+                    setCurrentPage(1);
+                  }}
                 >
                   <div className="text-center">
                     <p className="text-xs font-medium opacity-75 mb-1">{status}</p>
@@ -938,6 +872,7 @@ export default function SiteStatus() {
                 size="sm" 
                 onClick={() => {
                   setCardStatusFilter(null);
++                  setCardFilterArea(null);
                   setStartDate('');
                   setEndDate('');
                 }}
@@ -1039,7 +974,7 @@ export default function SiteStatus() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            Showing {filteredSites.length} of {sites.filter(s => s.status !== 'Approved').length} updatable sites {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
+            Showing {sites.length} sites — page {currentPage} of {totalPages} {selectedSites.size > 0 && `(${selectedSites.size} selected)`}
           </div>
           {filteredSites.length > 0 && (
             <div className="flex gap-2">
@@ -1047,100 +982,29 @@ export default function SiteStatus() {
                 size="sm"
                 variant="outline"
                 onClick={exportToExcel}
+                disabled={isExporting}
                 data-testid="button-download-excel"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Excel
+                {isExporting ? 'Exporting...' : 'Excel'}
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={exportToPDF}
+                disabled={isExporting}
                 data-testid="button-download-pdf"
               >
                 <Download className="h-4 w-4 mr-2" />
-                PDF
+                {isExporting ? 'Exporting...' : 'PDF'}
               </Button>
             </div>
           )}
         </div>
-        {sites.some(s => s.status === 'Approved') && (
-          <div className="text-sm bg-blue-50 border border-blue-200 rounded p-3 text-blue-800">
-            ℹ️ {sites.filter(s => s.status === 'Approved').length} approved site(s) are not shown - Approved sites cannot be manually updated
-          </div>
-        )}
       </div>
 
-      {/* Single Site PDF Export */}
-      <Card className="bg-green-50 border-green-300">
-        <CardHeader>
-          <CardTitle className="text-lg">Export Single Site (One Page PDF)</CardTitle>
-          <CardDescription>Search and export one site with all 81 fields on a single page</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 min-w-xs">
-              <label className="text-sm font-medium mb-2 block">Search by Plan ID or Site ID</label>
-              <Input
-                placeholder="Enter Plan ID or Site ID..."
-                value={singleSiteSearchText}
-                onChange={(e) => setSingleSiteSearchText(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const found = sites.find(s => 
-                      s.planId.toLowerCase().includes(singleSiteSearchText.toLowerCase()) ||
-                      s.siteId.toLowerCase().includes(singleSiteSearchText.toLowerCase())
-                    );
-                    if (found) {
-                      setSelectedSingleSite(found);
-                    } else {
-                      toast({ title: 'Not Found', description: 'No site found with that ID', variant: 'destructive' });
-                    }
-                  }
-                }}
-                data-testid="input-single-site-search"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                const found = sites.find(s => 
-                  s.planId.toLowerCase().includes(singleSiteSearchText.toLowerCase()) ||
-                  s.siteId.toLowerCase().includes(singleSiteSearchText.toLowerCase())
-                );
-                if (found) {
-                  setSelectedSingleSite(found);
-                } else {
-                  toast({ title: 'Not Found', description: 'No site found with that ID', variant: 'destructive' });
-                }
-              }}
-              size="sm"
-              data-testid="button-search-single"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
-            {selectedSingleSite && (
-              <Button
-                onClick={() => exportSingleSitePDF(selectedSingleSite)}
-                size="sm"
-                className="bg-green-600 hover:bg-green-700"
-                data-testid="button-export-single-pdf"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-            )}
-          </div>
-          {selectedSingleSite && (
-            <div className="mt-3 text-sm text-green-700 bg-white border border-green-300 p-2 rounded">
-              Selected: <span className="font-semibold">{selectedSingleSite.siteId}</span> | Plan: <span className="font-semibold">{selectedSingleSite.planId}</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Bulk Update Section */}
-      {filteredSites.length > 0 && cardStatusFilter !== 'Approved' && (
+      {filteredSites.length > 0 && (
         <Card className="shadow-md border-blue-200 bg-blue-50">
           <CardHeader>
             <CardTitle className="text-lg">Bulk Update AT Status</CardTitle>
@@ -1176,12 +1040,20 @@ export default function SiteStatus() {
               </div>
             </div>
             <Button 
+              type="button"
               onClick={handleBulkUpdate} 
-              disabled={selectedSites.size === 0}
+              disabled={selectedSites.size === 0 || isUpdating}
               className="w-full bg-blue-600 hover:bg-blue-700"
               data-testid="button-bulk-update"
             >
-              Update {selectedSites.size > 0 ? `${selectedSites.size} Sites` : 'Sites'}
+              {isUpdating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                `Update ${selectedSites.size > 0 ? `${selectedSites.size} Sites` : 'Sites'}`
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -1200,9 +1072,10 @@ export default function SiteStatus() {
               <p className="text-gray-600">No sites found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-white">
                   <TableRow className="bg-gray-50">
                     {cardStatusFilter !== 'Approved' && (
                       <TableHead className="font-semibold w-12">
@@ -1226,106 +1099,119 @@ export default function SiteStatus() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSites.map((site) => (
-                    <TableRow key={site.id} className={`hover:bg-gray-50 transition-colors ${selectedSites.has(site.id) ? 'bg-blue-100' : ''}`}>
-                      {cardStatusFilter !== 'Approved' && (
+                  {tableLoading ? (
+                    // Show skeleton rows matching the page size (capped)
+                    Array.from({ length: Math.min(pageSize || 10, 10) }).map((_, i) => (
+                      <TableRow key={`skeleton-${i}`} className="animate-pulse">
+                        {cardStatusFilter !== 'Approved' && (
+                          <TableCell>
+                            <div className="h-4 w-4 bg-gray-200 rounded"></div>
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium text-blue-600 font-mono"><div className="h-4 bg-gray-200 rounded w-24" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-20" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-20" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-16" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-24" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-24" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-12" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-12" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-32" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-24" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    filteredSites.map((site) => (
+                      <TableRow key={site.id} className={`hover:bg-gray-50 transition-colors ${selectedSites.has(site.id) ? 'bg-blue-100' : ''}`}>
+                        {cardStatusFilter !== 'Approved' && (
+                          <TableCell>
+                            <Checkbox 
+                              checked={selectedSites.has(site.id)}
+                              onCheckedChange={() => toggleSiteSelection(site.id)}
+                              data-testid={`checkbox-site-${site.id}`}
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium text-blue-600 font-mono">{truncateId(site.planId)}</TableCell>
+                        <TableCell>{site.circle || '-'}</TableCell>
+                        <TableCell>{site.district || '-'}</TableCell>
                         <TableCell>
-                          <Checkbox 
-                            checked={selectedSites.has(site.id)}
-                            onCheckedChange={() => toggleSiteSelection(site.id)}
-                            data-testid={`checkbox-site-${site.id}`}
-                          />
+                          <Badge className={getStatusColor(site.status)}>
+                            {site.status}
+                          </Badge>
                         </TableCell>
-                      )}
-                      <TableCell className="font-medium text-blue-600 font-mono">{truncateId(site.planId)}</TableCell>
-                      <TableCell>{site.circle || '-'}</TableCell>
-                      <TableCell>{site.district || '-'}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(site.status)}>
-                          {site.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(site.phyAtStatus || 'pending')}>
-                          {site.phyAtStatus || '-'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(site.softAtStatus || 'pending')}>
-                          {site.softAtStatus || '-'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getAtpStatusColor(site.visibleInNms)}>
-                          {site.visibleInNms || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getAtpStatusColor(site.bothAtStatus)}>
-                          {site.bothAtStatus || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                        {site.atpRemark ? (
-                          <div className={`px-2 py-1 rounded text-xs ${getAtpStatusColor(site.atpRemark)}`}>
-                            {site.atpRemark}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                        {site.atpRemark ? (
-                          <div className={`px-2 py-1 rounded text-xs ${getAtpStatusColor(site.atpRemark)}`}>
-                            {site.atpRemark}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {site.descope ? (
-                          <Badge variant="destructive">{site.descope}</Badge>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell>
+                          <Badge className={getStatusColor(site.phyAtStatus || 'pending')}>
+                            {site.phyAtStatus || '-'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(site.softAtStatus || 'pending')}>
+                            {site.softAtStatus || '-'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getAtpStatusColor(site.visibleInNms)}>
+                            {site.visibleInNms || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getAtpStatusColor(site.bothAtStatus)}>
+                            {site.bothAtStatus || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          {site.atpRemark ? (
+                            <div className={`px-2 py-1 rounded text-xs ${getAtpStatusColor(site.atpRemark)}`}>
+                              {site.atpRemark}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          {site.atpRemark ? (
+                            <div className={`px-2 py-1 rounded text-xs ${getAtpStatusColor(site.atpRemark)}`}>
+                              {site.atpRemark}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {site.descope ? (
+                            <Badge variant="destructive">{site.descope}</Badge>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={(e) => { e.preventDefault(); setCurrentPage(1); }} disabled={currentPage === 1}>First</Button>
+                <Button type="button" size="sm" variant="outline" onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)); }} disabled={currentPage === 1}>Prev</Button>
+                <div className="px-3">Page</div>
+                <Input value={String(currentPage)} onChange={(e) => { const v = Number(e.target.value || 1); if (!isNaN(v)) setCurrentPage(Math.min(Math.max(1, v), totalPages)); }} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="w-16 text-center" />
+                <div className="px-3">of {totalPages}</div>
+                <Button type="button" size="sm" variant="outline" onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)); }} disabled={currentPage === totalPages}>Next</Button>
+                <Button type="button" size="sm" variant="outline" onClick={(e) => { e.preventDefault(); setCurrentPage(totalPages); }} disabled={currentPage === totalPages}>Last</Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-gray-600">Page size</div>
+                <select className="form-select text-sm" value={String(pageSize)} onChange={(e) => { const v = Number(e.target.value || 50); setPageSize(v); setCurrentPage(1); }}>
+                  {[10, 25, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
+                </select>
+              </div>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>
-
-      {/* Summary Stats */}
-      {filteredSites.length > 0 && (
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="text-lg">Status Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {['Active', 'Pending', 'Inactive'].map(status => {
-                const count = filteredSites.filter(s => s.status === status).length;
-                return (
-                  <div key={status} className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">{status}</p>
-                    <p className="text-2xl font-bold text-gray-900">{count}</p>
-                  </div>
-                );
-              })}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">With ATP Remarks</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {filteredSites.filter(s => s.atpRemark).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
