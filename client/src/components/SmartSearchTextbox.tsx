@@ -38,9 +38,16 @@ export function SmartSearchTextbox({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  // Sync internal value when external value changes (e.g., when selection is cleared)
+  // Sync internal value only when external value is explicitly set (e.g., when selection is made or cleared)
+  // This prevents the component from resetting the user's typed input
   useEffect(() => {
-    setInternalValue(value);
+    if (value && value !== internalValue) {
+      // External value was set (e.g., from onSelect)
+      setInternalValue(value);
+    } else if (!value && internalValue) {
+      // External value was cleared explicitly
+      setInternalValue('');
+    }
   }, [value]);
 
   // Filter suggestions by internalValue (simple substring match)
