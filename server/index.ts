@@ -101,8 +101,7 @@ app.use(
     cookie: {
       secure: false, // Set to false for development even in production mode for testing
       httpOnly: true,
-      // Set maxAge to 24 hours for in-memory store reliability
-      maxAge: 24 * 60 * 60 * 1000,
+      // No maxAge: Session expires when browser closes (session cookie behavior)
       sameSite: "lax",
     },
     proxy: true, // Trust proxy headers
