@@ -34,17 +34,23 @@ export function SmartSearchTextbox({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(-1);
+  const [internalValue, setInternalValue] = useState(value);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  // Filter suggestions by value (simple substring match)
+  // Sync internal value when external value changes (e.g., when selection is cleared)
+  useEffect(() => {
+    setInternalValue(value);
+  }, [value]);
+
+  // Filter suggestions by internalValue (simple substring match)
   const filtered = React.useMemo(() => {
-    const q = (value || "").trim().toLowerCase();
+    const q = (internalValue || "").trim().toLowerCase();
     if (!q) return suggestions.slice(0, maxSuggestions);
     return suggestions
       .filter(s => (s.label || "").toLowerCase().includes(q) || (s.code || "").toLowerCase().includes(q))
       .slice(0, maxSuggestions);
-  }, [suggestions, value, maxSuggestions]);
+  }, [suggestions, internalValue, maxSuggestions]);
 
   // auto-scroll the highlighted item into view
   useEffect(() => {
@@ -92,6 +98,7 @@ export function SmartSearchTextbox({
   };
 
   const handleInputChange = (v: string) => {
+    setInternalValue(v);
     onChange(v);
     setOpen(true);
     setIdx(-1);
@@ -102,7 +109,7 @@ export function SmartSearchTextbox({
       <div className="flex items-center gap-2">
         <input
           {...rest}
-          value={value}
+          value={internalValue}
           placeholder={placeholder}
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={() => setOpen(true)}
