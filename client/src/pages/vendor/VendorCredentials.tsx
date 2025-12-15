@@ -154,8 +154,8 @@ export default function VendorCredentials() {
       {vendors.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">No vendors found</div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto max-h-[60vh] overflow-auto rounded-md border bg-card">
+        <div className="border rounded-lg">
+          <div className="overflow-x-auto max-h-[60vh] overflow-y-auto rounded-md border bg-card">
             <table className="w-full text-sm min-w-[900px]">
               <thead>
                 <tr>
