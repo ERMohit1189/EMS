@@ -207,6 +207,11 @@ export interface IStorage {
 }
 
 export class DrizzleStorage implements IStorage {
+  // PERFORMANCE: Cache app settings in memory since they rarely change
+  private appSettingsCache: AppSettings | undefined;
+  private appSettingsCacheTime: number = 0;
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   async getOrCreateVendorByName(name: string): Promise<Vendor> {
     try {
       if (!name || !name.trim()) {
@@ -2522,18 +2527,33 @@ async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>)
 
   // App Settings operations
   async getAppSettings(): Promise<AppSettings | undefined> {
-    console.log('[Storage] getAppSettings');
+    // PERFORMANCE: Check cache first (5 minute TTL)
+    const now = Date.now();
+    if (this.appSettingsCache && (now - this.appSettingsCacheTime) < this.CACHE_TTL) {
+      console.log('[Storage] getAppSettings (from cache)');
+      return this.appSettingsCache;
+    }
+
+    console.log('[Storage] getAppSettings (from database)');
     const result = await db.select().from(appSettings).limit(1);
     console.log('[Storage] getAppSettings result:', result);
-    return result[0];
+
+    // Cache the result
+    const settings = result[0];
+    if (settings) {
+      this.appSettingsCache = settings;
+      this.appSettingsCacheTime = now;
+    }
+
+    return settings;
   }
 
   async updateAppSettings(settings: InsertAppSettings): Promise<AppSettings> {
     console.log('[Storage] updateAppSettings:', settings);
-    
-    // Get existing settings
+
+    // Get existing settings (use cache if available)
     const existing = await this.getAppSettings();
-    
+
     if (existing) {
       // Update existing
       const [result] = await db.update(appSettings)
@@ -2541,11 +2561,17 @@ async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>)
         .where(eq(appSettings.id, existing.id))
         .returning();
       console.log('[Storage] Updated app settings:', result);
+      // Invalidate cache after update
+      this.appSettingsCache = result;
+      this.appSettingsCacheTime = Date.now();
       return result;
     } else {
       // Create new
       const [result] = await db.insert(appSettings).values(settings).returning();
       console.log('[Storage] Created app settings:', result);
+      // Cache the newly created settings
+      this.appSettingsCache = result;
+      this.appSettingsCacheTime = Date.now();
       return result;
     }
   }
