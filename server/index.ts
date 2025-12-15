@@ -1,17 +1,20 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
 import createPgSessionStore from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import pkg from "pg";
+import path from "path";
 import { logger } from "./logger";
 import {
   errorHandler,
   notFoundHandler,
   requestIdMiddleware,
 } from "./error-handler";
-
+import aiRoute from "./ai-route.ts";
 const { Pool } = pkg;
 const app = express();
 const httpServer = createServer(app);
@@ -20,6 +23,7 @@ declare module "express-session" {
   interface SessionData {
     employeeId?: string;
     employeeEmail?: string;
+    employeeRole?: string;
     vendorId?: string;
     vendorEmail?: string;
     isHigherAuthority?: boolean;
@@ -32,27 +36,45 @@ declare module "http" {
   }
 }
 
-// Initialize PostgreSQL session store
-const pgSessionStore = createPgSessionStore(session);
-const sessionPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+// PERFORMANCE: Use in-memory session store for development (much faster)
+// Use PostgreSQL session store for production (persistent across restarts)
+let sessionStore: any;
 
-const sessionStore = new pgSessionStore({
-  pool: sessionPool,
-  tableName: "session",
-  createTableIfMissing: true,
-});
+if (process.env.NODE_ENV === "development") {
+  // Development: Use fast in-memory store (no database queries)
+  const MemStore = MemoryStore(session);
+  sessionStore = new MemStore({ checkPeriod: 86400000 }); // 24 hour cleanup
+  console.log("[Sessions] Using in-memory session store (FAST - development mode)");
+} else {
+  // Production: Use PostgreSQL store (persistent, but slower)
+  const pgSessionStore = createPgSessionStore(session);
+  const sessionPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
+
+  sessionStore = new pgSessionStore({
+    pool: sessionPool,
+    tableName: "session",
+    createTableIfMissing: true,
+    errorLog: console.error.bind(console),
+  });
+  console.log("[Sessions] Using PostgreSQL session store (persistent)");
+}
 
 app.use(
   express.json({
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
+    // Increase body size limit for larger batch requests from client (e.g., many site records)
+    limit: process.env.EXPRESS_JSON_LIMIT || '50mb',
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: process.env.EXPRESS_JSON_LIMIT || '500mb' }));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Request ID middleware - adds unique ID for request tracking
 app.use(requestIdMiddleware);
@@ -60,7 +82,9 @@ app.use(requestIdMiddleware);
 // Validate required environment variables
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
   throw new Error(
-    "SESSION_SECRET environment variable is required in production",
+    "SESSION_SECRET environment variable is required in production. " +
+      "Set it in your environment (e.g. `SESSION_SECRET=...`) or via your hosting provider. " +
+      "For local testing you can set `NODE_ENV=development` or add a `SESSION_SECRET` to your local `.env` file.",
   );
 }
 
@@ -74,11 +98,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+      secure: false, // Set to false for development even in production mode for testing
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      // Session expires when browser is closed (no maxAge means session cookie)
       sameSite: "lax",
     },
+    proxy: true, // Trust proxy headers
   }),
 );
 
@@ -136,6 +161,29 @@ app.use((req, res, next) => {
   } else {
     next();
   }
+});
+
+// Payload-too-large error handling (body parser errors)
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  // Express body-parser (and underlying busboy) set the type for large payloads
+  if (err && (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError')) {
+    console.warn('[Server] Payload too large:', {
+      path: req.path,
+      method: req.method,
+      contentLength: req.headers['content-length'],
+      requestId: req.headers['x-request-id'],
+    });
+    return res.status(413).json({
+      success: false,
+      error: {
+        code: 'REQUEST_ENTITY_TOO_LARGE',
+        message: 'Request payload too large. Try smaller batch size or increase server limit.',
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string,
+      },
+    });
+  }
+  next(err);
 });
 
 // Add session debugging middleware - DISABLED for performance
@@ -219,9 +267,9 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
-  // Use localhost for local development (works on Windows/Mac/Linux)
+  // Use 127.0.0.1 for local development (explicit IPv4 binding)
   // Use 0.0.0.0 only when deployed on Replit
-  const host = process.env.REPLIT_DEV_DOMAIN ? "0.0.0.0" : "localhost";
+  const host = process.env.REPLIT_DEV_DOMAIN ? "0.0.0.0" : "127.0.0.1";
 
   httpServer.listen(
     {
