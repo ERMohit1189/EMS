@@ -1,0 +1,9 @@
+{
+  "vendorCode": "TESTVENDOR123",
+  "name": "Test Vendor",
+  "email": "test@vendor.com",
+  "mobile": "9999999999",
+  "address": "123 Test Lane",
+  "city": "TestCity",
+  "state": "TestState"
+}

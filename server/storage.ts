@@ -8,15 +8,19 @@ import {
   designations,
   salaryStructures,
   purchaseOrders,
+  purchaseOrderLines,
   invoices,
   paymentMasters,
+  vendorRates,
   zones,
   exportHeaders,
   attendances,
   dailyAllowances,
+  leaveRequests,
   teams,
   teamMembers,
   appSettings,
+  vendorPasswordOtps,
   type InsertVendor,
   type InsertSite,
   type InsertEmployee,
@@ -24,6 +28,7 @@ import {
   type InsertPO,
   type InsertInvoice,
   type InsertPaymentMaster,
+  type InsertVendorRate,
   type InsertZone,
   type InsertExportHeader,
   type InsertAttendance,
@@ -38,6 +43,7 @@ import {
   type PurchaseOrder,
   type Invoice,
   type PaymentMaster,
+  type VendorRate,
   type Zone,
   type ExportHeader,
   type Attendance,
@@ -45,6 +51,8 @@ import {
   type Team,
   type TeamMember,
   type AppSettings,
+  type LeaveRequest,
+  type InsertLeaveRequest,
 } from "@shared/schema";
 import { eq, count, and, gte, lte, inArray, getTableColumns, ne, sql, or, desc, isNull } from "drizzle-orm";
 import { type InferSelectModel } from "drizzle-orm";
@@ -57,6 +65,11 @@ export interface IStorage {
   getVendorByEmail(email: string): Promise<Vendor | undefined>;
   getOrCreateVendorByName(name: string): Promise<Vendor>;
   getVendors(limit: number, offset: number): Promise<Vendor[]>;
+
+  // OTP helpers for vendor password reset
+  createVendorPasswordOTP(vendorId: string | null, email: string, otpHash: string, expiresAt: Date): Promise<any>;
+  findValidOTPByEmail(email: string): Promise<any | null>;
+  markOtpUsed(id: string): Promise<any>; 
   getAllVendors(minimal?: boolean): Promise<any[]>;
   updateVendor(id: string, vendor: Partial<InsertVendor>): Promise<Vendor>;
   deleteVendor(id: string): Promise<void>;
@@ -112,6 +125,7 @@ export interface IStorage {
   getPOs(limit: number, offset: number): Promise<PurchaseOrder[]>;
   getPOsWithDetails(limit: number, offset: number): Promise<any[]>;
   getPOsByVendor(vendorId: string): Promise<PurchaseOrder[]>;
+  getSavedPOsByVendorWithLines(vendorId: string): Promise<any[]>;
   getPOBySiteId(siteId: string): Promise<PurchaseOrder | undefined>;
   updatePO(id: string, po: Partial<InsertPO>): Promise<PurchaseOrder>;
   deletePO(id: string): Promise<void>;
@@ -172,6 +186,13 @@ export interface IStorage {
 
   // Daily Allowances operations
   createDailyAllowance(allowance: InsertDailyAllowance): Promise<DailyAllowance>;
+
+  // Leave Requests operations
+  createLeaveRequest(request: InsertLeaveRequest): Promise<LeaveRequest>;
+  getLeaveRequestsByEmployee(employeeId: string): Promise<LeaveRequest[]>;
+  getLeaveRequestById(id: string): Promise<LeaveRequest | undefined>;
+  getPendingLeaveRequestsForApprover(approverId: string): Promise<LeaveRequest[]>;
+  updateLeaveRequest(id: string, data: Partial<InsertLeaveRequest & { status?: string, approvedBy?: string, approvedAt?: Date, approvalHistory?: string, rejectionReason?: string }>): Promise<LeaveRequest>;
   getDailyAllowance(id: string): Promise<DailyAllowance | undefined>;
   getEmployeeAllowancesByDate(employeeId: string, date: string): Promise<DailyAllowance | undefined>;
   getEmployeeAllowances(employeeId: string, limit?: number): Promise<DailyAllowance[]>;
@@ -260,6 +281,10 @@ export class DrizzleStorage implements IStorage {
   async createVendor(vendor: InsertVendor): Promise<Vendor> {
     try {
       let vendorCode = vendor.vendorCode;
+
+      // Note: OTP helper methods were previously defined here inside createVendor.
+      // They are now implemented as standalone Storage methods so they're available
+      // regardless of whether createVendor() has been called.
       
       // Auto-generate vendor code if not provided
       if (!vendorCode) {
@@ -285,8 +310,15 @@ export class DrizzleStorage implements IStorage {
         console.log(`[Storage] Auto-generated vendor code: ${vendorCode}`);
       }
       
-      const vendorToInsert = { ...vendor, vendorCode };
+      const uniqueSuffix = Math.random().toString(36).slice(-8).toUpperCase();
+      const vendorToInsert = { 
+        ...vendor, 
+        vendorCode,
+        aadhar: vendor.aadhar || `TEMP${Date.now()}${uniqueSuffix}`,
+        pan: vendor.pan || `TEMP${uniqueSuffix}`,
+      };
       console.log(`[Storage] Creating vendor with code: ${vendorCode}`);
+      console.log('[Storage] vendorToInsert aadhar/pan:', { aadhar: vendorToInsert.aadhar, pan: vendorToInsert.pan });
       const [insertedVendor] = await db.insert(vendors).values(vendorToInsert).returning();
       console.log(`[Storage] Vendor created with code: ${insertedVendor.vendorCode}`);
       return insertedVendor;
@@ -450,7 +482,37 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmployee(id: string): Promise<Employee | undefined> {
-    const [result] = await db.select().from(employees).where(eq(employees.id, id));
+    const [result] = await db
+      .select({
+        id: employees.id,
+        name: employees.name,
+        email: employees.email,
+        dob: employees.dob,
+        fatherName: employees.fatherName,
+        mobile: employees.mobile,
+        alternateNo: employees.alternateNo,
+        address: employees.address,
+        city: employees.city,
+        state: employees.state,
+        country: employees.country,
+        departmentId: employees.departmentId,
+        designationId: employees.designationId,
+        role: employees.role,
+        doj: employees.doj,
+        aadhar: employees.aadhar,
+        pan: employees.pan,
+        bloodGroup: employees.bloodGroup,
+        maritalStatus: employees.maritalStatus,
+        nominee: employees.nominee,
+        ppeKit: employees.ppeKit,
+        kitNo: employees.kitNo,
+        status: employees.status,
+        empCode: employees.emp_code,
+        createdAt: employees.createdAt,
+        updatedAt: employees.updatedAt,
+      })
+      .from(employees)
+      .where(eq(employees.id, id));
     return result;
   }
 
@@ -486,6 +548,7 @@ export class DrizzleStorage implements IStorage {
         ppeKit: employees.ppeKit,
         kitNo: employees.kitNo,
         status: employees.status,
+        emp_code: employees.emp_code,
         createdAt: employees.createdAt,
         updatedAt: employees.updatedAt,
         designation: designations.name,
@@ -630,8 +693,25 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getSite(id: string): Promise<Site | undefined> {
-    const [result] = await db.select().from(sites).where(eq(sites.id, id));
-    return result;
+    const [result] = await db
+      .select({
+        ...getTableColumns(sites),
+        // Align with getSites: alias payment master vendorAmount to `vendorAmount` so single-site payload matches list view
+        vendorAmount: paymentMasters.vendorAmount,
+        paymentSiteAmount: paymentMasters.siteAmount,
+      })
+      .from(sites)
+      .leftJoin(
+        paymentMasters,
+        and(
+          eq(sites.id, paymentMasters.siteId),
+          eq(sites.planId, paymentMasters.planId),
+          eq(sites.vendorId, paymentMasters.vendorId),
+          eq(sites.maxAntSize, paymentMasters.antennaSize)
+        )
+      )
+      .where(eq(sites.id, id));
+    return result as any;
   }
 
   async getSiteByPlanId(planId: string): Promise<Site | undefined> {
@@ -856,8 +936,8 @@ export class DrizzleStorage implements IStorage {
         throw new Error(`can not update ${site.planId} due to both soft at and phy at is approved`);
       }
 
-      // Update existing site - keep existing siteId and exclude planId from update
-      const { planId, siteId, ...updateData } = site;
+      // Update existing site - exclude planId from update
+      const { planId, ...updateData } = site;
       // If vendorId is being updated and it's not an existing vendor id, try resolving by vendorCode
       if (updateData.vendorId) {
         try {
@@ -880,57 +960,33 @@ export class DrizzleStorage implements IStorage {
         .returning();
       return result;
     } else {
-      // Insert new site - generate unique siteId if not provided or conflicts exist
+      // Insert new site
       let finalSite = this.autoUpdateSiteStatus(site);
-      
-      // Check if siteId already exists - but ONLY if planId is NOT found
-      // This means we're inserting a truly new site, not updating an existing one
-      // Use retry logic to handle concurrent inserts with same siteId
-      if (finalSite.siteId) {
-        let retryCount = 0;
-        let originalSiteId = finalSite.siteId;
-        let needsRetry = true;
 
-        while (needsRetry && retryCount < 5) {
-          try {
-            const existingBySiteId = await db.select().from(sites).where(eq(sites.siteId, finalSite.siteId));
-            if (existingBySiteId.length > 0) {
-              // siteId already exists, generate a new unique one
-              finalSite.siteId = `${originalSiteId}-${Date.now()}-${Math.random().toString(36).slice(-8)}`;
-              // REDUCED LOGGING: Skip verbose conflict log
-              retryCount++;
-            } else {
-              // No conflict, ready to insert
-              needsRetry = false;
-            }
-          } catch (err) {
-            // Only log errors
-            console.error(`[Storage] Error checking siteId conflict, retrying... Attempt ${retryCount + 1}:`, err);
-            retryCount++;
-            if (retryCount >= 5) {
-              throw new Error(`Failed to generate unique siteId after ${retryCount} attempts`);
-            }
-            // Small delay before retry
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-        }
-      }
 
       try {
         // Ensure vendor exists before inserting site. If vendorId seems to be a vendorCode, try resolving it.
-        let vendorExists = await db.select().from(vendors).where(eq(vendors.id, finalSite.vendorId));
+        // Guard against undefined vendorId to satisfy Drizzle's type-safe 'eq' helper.
+        let vendorExists: any[] = [];
+        if (finalSite.vendorId) {
+          vendorExists = await db.select().from(vendors).where(eq(vendors.id, finalSite.vendorId));
+        } else {
+          vendorExists = [];
+        }
         if (!vendorExists || vendorExists.length === 0) {
-          // Try resolving by vendorCode
-          try {
-            const byCode = await this.getVendorByCode(String(finalSite.vendorId));
-            if (byCode) {
-              // REDUCED LOGGING: Skip verbose vendor resolution log
-              finalSite.vendorId = byCode.id;
-              vendorExists = [byCode];
+          // Try resolving by vendorCode when vendorId is present (it might be a vendorCode)
+          if (finalSite.vendorId) {
+            try {
+              const byCode = await this.getVendorByCode(String(finalSite.vendorId));
+              if (byCode) {
+                // REDUCED LOGGING: Skip verbose vendor resolution log
+                finalSite.vendorId = byCode.id;
+                vendorExists = [byCode];
+              }
+            } catch (err) {
+              // Only log errors
+              console.error('[Storage] Error while resolving vendorCode during insert:', err);
             }
-          } catch (err) {
-            // Only log errors
-            console.error('[Storage] Error while resolving vendorCode during insert:', err);
           }
         }
 
@@ -952,21 +1008,8 @@ export class DrizzleStorage implements IStorage {
             insertSuccess = true;
             // REDUCED LOGGING: Skip verbose success log
           } catch (insertError: any) {
-            // Check if it's a unique constraint violation on siteId
-            if (insertError.message?.includes('sites_site_id_unique') || insertError.code === '23505') {
-              insertRetryCount++;
-              if (insertRetryCount >= 5) {
-                console.error(`[Storage] Failed to insert after ${insertRetryCount} retry attempts due to siteId conflict`);
-                throw insertError;
-              }
-              // Generate a new unique siteId and retry
-              const originalSiteId = finalSite.siteId.split('-')[0]; // Get base siteId
-              finalSite.siteId = `${originalSiteId}-${Date.now()}-${Math.random().toString(36).slice(-8)}`;
-              // REDUCED LOGGING: Skip verbose retry log
-            } else {
-              // Different error, don't retry
-              throw insertError;
-            }
+            // On error, don't attempt siteId-specific retries (site_id column removed)
+            throw insertError;
           }
         }
 
@@ -978,7 +1021,6 @@ export class DrizzleStorage implements IStorage {
       } catch (error: any) {
         console.error('[Storage] upsertSiteByPlanId insert error:', {
           planId: site.planId,
-          siteId: finalSite.siteId,
           vendorId: finalSite.vendorId,
           errorMessage: error.message,
           errorCode: error.code,
@@ -1078,6 +1120,49 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  // Create a PO header and multiple PO lines in a single transaction
+  async createPOWithLines(poHeader: Partial<InsertPO> & { vendorId: string; poNumber: string; poDate: string; dueDate: string; totalAmount: string; }, lines: Array<{ siteId: string; description: string; quantity: number; unitPrice: string; totalAmount: string; }>): Promise<any> {
+    return await db.transaction(async (tx) => {
+      // Do not store siteId on the PO header. Site associations live on purchase_order_lines.
+      // Keep inserting null into siteId (if column exists) so older DBs don't fail; later migration will remove the column.
+            const [po] = await tx.insert(purchaseOrders).values({
+              vendorId: poHeader.vendorId,
+              poNumber: poHeader.poNumber,
+              siteId: null,
+              description: poHeader.description || '',
+              quantity: poHeader.quantity || 0,
+              unitPrice: poHeader.unitPrice || 0,
+              totalAmount: poHeader.totalAmount,
+              gstType: poHeader.gstType || 'cgstsgst',
+              gstApply: typeof poHeader.gstApply === 'boolean' ? poHeader.gstApply : true,
+              igstPercentage: poHeader.igstPercentage || 0,
+              igstAmount: poHeader.igstAmount || 0,
+              cgstPercentage: poHeader.cgstPercentage || 0,
+              cgstAmount: poHeader.cgstAmount || 0,
+              sgstPercentage: poHeader.sgstPercentage || 0,
+              sgstAmount: poHeader.sgstAmount || 0,
+              poDate: poHeader.poDate,
+              dueDate: poHeader.dueDate,
+              status: poHeader.status || 'Draft',
+            } as any).returning();
+
+      const createdLines: any[] = [];
+      for (const ln of lines) {
+        const [line] = await tx.insert(purchaseOrderLines).values({
+          poId: po.id,
+          siteId: ln.siteId,
+          description: ln.description,
+          quantity: ln.quantity,
+          unitPrice: ln.unitPrice,
+          totalAmount: ln.totalAmount,
+        }).returning();
+        createdLines.push(line);
+      }
+
+      return { po, lines: createdLines };
+    });
+  }
+
   async getPO(id: string): Promise<PurchaseOrder | undefined> {
     const [result] = await db
       .select()
@@ -1085,6 +1170,124 @@ export class DrizzleStorage implements IStorage {
       .where(eq(purchaseOrders.id, id));
     return result;
   }
+
+  // Returns PO header and associated lines (with site info)
+  async getPOByIdWithLines(id: string): Promise<{ po: PurchaseOrder; lines: any[] } | undefined> {
+    const [po] = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.id, id));
+    if (!po) return undefined;
+
+    // Use raw SQL to avoid ambiguous column reference when joining tables with same column names
+    const lines = await db.execute(sql`
+      SELECT
+        pol.id,
+        pol.po_id as "poId",
+        pol.site_id as "siteId",
+        pol.description,
+        pol.quantity,
+        pol.unit_price as "unitPrice",
+        pol.total_amount as "totalAmount",
+        s.hop_a_b as "siteHopAB",
+        s.plan_id as "sitePlanId"
+      FROM purchase_order_lines pol
+      LEFT JOIN sites s ON pol.site_id = s.id
+      WHERE pol.po_id = ${id}
+    `) as any;
+
+    return { po, lines };
+  }
+
+  // Returns paginated POs with an array of lines for each PO
+async getPOsWithLines(limit: number, offset: number): Promise<any[]> {
+  try {
+    console.log('[Storage][getPOsWithLines] about to select pos', { limit, offset });
+
+    // 1️⃣ Fetch POs only
+    const pos = await db
+      .select({
+        id: purchaseOrders.id,
+        vendorId: purchaseOrders.vendorId,
+        vendorName: vendors.name,
+        vendorCode: vendors.vendorCode,
+        poNumber: purchaseOrders.poNumber,
+        poDate: purchaseOrders.poDate,
+        description: purchaseOrders.description,
+        totalAmount: purchaseOrders.totalAmount,
+        gstType: purchaseOrders.gstType,
+        gstApply: purchaseOrders.gstApply,
+        status: purchaseOrders.status,
+        dueDate: purchaseOrders.dueDate,
+        createdAt: purchaseOrders.createdAt,
+      })
+      .from(purchaseOrders)
+      .leftJoin(vendors,eq(purchaseOrders.vendorId,vendors.id))
+      .orderBy(
+        desc(purchaseOrders.createdAt),
+        desc(purchaseOrders.id) // ✅ stable pagination
+      )
+      .limit(limit)
+      .offset(offset);
+
+    console.log('[Storage][getPOsWithLines] pos selected', { posCount: pos.length });
+
+    const poIds = pos.map(p => p.id);
+    if (poIds.length === 0) {
+      return pos.map(p => ({ ...p, lines: [] }));
+    }
+
+    // 2️⃣ Fetch lines
+    const lines = await db
+      .select({
+        id: purchaseOrderLines.id,
+        poId: purchaseOrderLines.poId,
+        siteId: purchaseOrderLines.siteId,
+        description: purchaseOrderLines.description,
+        quantity: purchaseOrderLines.quantity,
+        unitPrice: purchaseOrderLines.unitPrice,
+        totalAmount: purchaseOrderLines.totalAmount,
+        siteHopAB: sites.hopAB,
+        sitePlanId: sites.planId,
+      })
+      .from(purchaseOrderLines)
+      .leftJoin(sites, eq(purchaseOrderLines.siteId, sites.id))
+      .where(inArray(purchaseOrderLines.poId, poIds))
+      .orderBy(
+        desc(purchaseOrderLines.createdAt),
+        desc(purchaseOrderLines.id) // ✅ no ambiguity
+      );
+
+    // 3️⃣ Group lines by PO
+    const linesByPo: Record<number, any[]> = {};
+    for (const ln of lines) {
+      (linesByPo[ln.poId] ||= []).push(ln);
+    }
+
+    // 4️⃣ Attach lines + derive site info
+    return pos.map(p => {
+      const poLines = linesByPo[p.id] || [];
+      const firstLine = poLines[0];
+
+      return {
+        ...p,
+        siteId: firstLine?.siteId ?? null,
+        siteName: firstLine?.siteHopAB ?? null,
+        lines: poLines,
+      };
+    });
+
+  } catch (error: any) {
+    console.error('[Storage][getPOsWithLines] failed', {
+      limit,
+      offset,
+      message: error?.message,
+      stack: error?.stack,
+    });
+    throw error;
+  }
+}
+
 
   async getPOs(limit: number, offset: number): Promise<PurchaseOrder[]> {
     return await db
@@ -1096,13 +1299,14 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getPOsWithDetails(limit: number, offset: number): Promise<any[]> {
-    // OPTIMIZED: Uses idx_purchase_orders_vendor_created index for fast sorting
-    // Joins sites and vendors ONLY for selected records to reduce memory usage
-    // Performance: Much faster than joining all records then limiting
-    const pos = await db
-      .select({
+    try {
+      // OPTIMIZED: Uses idx_purchase_orders_vendor_created index for fast sorting
+      // Joins sites and vendors ONLY for selected records to reduce memory usage
+      // Performance: Much faster than joining all records then limiting
+      // Use correlated subqueries to fetch a representative site for the PO header (first line's site)
+      const pos = await db
+        .select({
         id: purchaseOrders.id,
-        siteId: purchaseOrders.siteId,
         vendorId: purchaseOrders.vendorId,
         poNumber: purchaseOrders.poNumber,
         poDate: purchaseOrders.poDate,
@@ -1118,19 +1322,19 @@ export class DrizzleStorage implements IStorage {
         status: purchaseOrders.status,
         dueDate: purchaseOrders.dueDate,
         createdAt: purchaseOrders.createdAt,
-        // Site details
-        siteName: sites.hopAB,
-        siteId2: sites.siteId,
-        planId: sites.planId,
-        siteAAntDia: sites.siteAAntDia,
-        siteBAntDia: sites.siteBAntDia,
-        partnerName: sites.partnerName, // Vendor name from sites table
+        // Representative Site details via correlated subqueries (first line)
+        siteId: sql`(SELECT pol.site_id FROM purchase_order_lines pol WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteName: sql`(SELECT s.hop_a_b FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+
+        planId: sql`(SELECT s.plan_id FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteAAntDia: sql`(SELECT s.site_a_ant_dia FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteBAntDia: sql`(SELECT s.site_b_ant_dia FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        partnerName: sql`(SELECT s.partner_name FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
         // Vendor details from vendors table
         vendorName: vendors.name,
         vendorCode: vendors.vendorCode,
       })
       .from(purchaseOrders)
-      .leftJoin(sites, eq(purchaseOrders.siteId, sites.id))
       .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
       // ORDER FIRST to use index efficiently
       .orderBy(desc(purchaseOrders.createdAt))
@@ -1144,10 +1348,14 @@ export class DrizzleStorage implements IStorage {
       // Fallback to partnerName if vendorName is null
       vendorName: po.vendorName || po.partnerName || 'Unknown Vendor',
       maxAntennaSize: Math.max(
-        parseFloat(po.siteAAntDia || '0') || 0,
-        parseFloat(po.siteBAntDia || '0') || 0
+        parseFloat(String(po.siteAAntDia ?? '0')) || 0,
+        parseFloat(String(po.siteBAntDia ?? '0')) || 0
       )
     }));
+    } catch (error: any) {
+      console.error('[Storage][getPOsWithDetails] failed', { limit, offset, message: error?.message || error, stack: error?.stack });
+      throw error;
+    }
   }
 
   async getPOsByVendor(vendorId: string): Promise<any[]> {
@@ -1157,7 +1365,6 @@ export class DrizzleStorage implements IStorage {
         poNumber: purchaseOrders.poNumber,
         poDate: purchaseOrders.poDate,
         vendorId: purchaseOrders.vendorId,
-        siteId: purchaseOrders.siteId,
         description: purchaseOrders.description,
         quantity: purchaseOrders.quantity,
         unitPrice: purchaseOrders.unitPrice,
@@ -1170,39 +1377,171 @@ export class DrizzleStorage implements IStorage {
         status: purchaseOrders.status,
         dueDate: purchaseOrders.dueDate,
         createdAt: purchaseOrders.createdAt,
-        // Site details with joins
-        siteName: sites.hopAB,
-        planId: sites.planId,
-        siteAAntDia: sites.siteAAntDia,
-        siteBAntDia: sites.siteBAntDia,
-        partnerName: sites.partnerName, // Vendor name from sites table
+        // Representative Site details via correlated subqueries (first line)
+        siteId: sql`(SELECT pol.site_id FROM purchase_order_lines pol WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteName: sql`(SELECT s.hop_a_b FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        planId: sql`(SELECT s.plan_id FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteAAntDia: sql`(SELECT s.site_a_ant_dia FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteBAntDia: sql`(SELECT s.site_b_ant_dia FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        partnerName: sql`(SELECT s.partner_name FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
         // Vendor details with joins
         vendorName: vendors.name,
         vendorCode: vendors.vendorCode,
       })
       .from(purchaseOrders)
-      .leftJoin(sites, eq(purchaseOrders.siteId, sites.id))
       .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
       .where(eq(purchaseOrders.vendorId, vendorId));
 
-    // Calculate maxAntennaSize for each PO and fallback vendor name
+    const poIds = pos.map(p => p.id).filter(Boolean);
+    if (poIds.length === 0) return pos.map(p => ({ ...p, lines: [] }));
+
+    // Fetch lines via query builder (safer parameterization and avoids array literal issues)
+    const lines = await db
+      .select({
+        id: purchaseOrderLines.id,
+        poId: purchaseOrderLines.poId,
+        siteId: purchaseOrderLines.siteId,
+        description: purchaseOrderLines.description,
+        quantity: purchaseOrderLines.quantity,
+        unitPrice: purchaseOrderLines.unitPrice,
+        totalAmount: purchaseOrderLines.totalAmount,
+        siteHopAB: sites.hopAB,
+        sitePlanId: sites.planId,
+      })
+      .from(purchaseOrderLines)
+      .leftJoin(sites, eq(purchaseOrderLines.siteId, sites.id))
+      .where(inArray(purchaseOrderLines.poId, poIds))
+      .orderBy(desc(purchaseOrderLines.createdAt));
+
+    const grouped: Record<string, any[]> = {};
+    for (const ln of lines) {
+      grouped[ln.poId] = grouped[ln.poId] || [];
+      grouped[ln.poId].push(ln);
+    }
+
     return pos.map(po => ({
       ...po,
       // Fallback to partnerName if vendorName is null
       vendorName: po.vendorName || po.partnerName || 'Unknown Vendor',
       maxAntennaSize: Math.max(
-        parseFloat(po.siteAAntDia || '0') || 0,
-        parseFloat(po.siteBAntDia || '0') || 0
-      )
+        parseFloat(String(po.siteAAntDia ?? '0')) || 0,
+        parseFloat(String(po.siteBAntDia ?? '0')) || 0
+      ),
+      lines: grouped[po.id] || []
     }));
   }
 
-  async getPOBySiteId(siteId: string): Promise<PurchaseOrder | undefined> {
-    const [result] = await db
-      .select()
+async getSavedPOsByVendorWithLines(vendorId: string): Promise<any[]> {
+  try {
+    // 1. Fetch POs (vendor-wise only)
+    const posRaw = await db
+      .select({
+        id: purchaseOrders.id,
+        poNumber: purchaseOrders.poNumber,
+        poDate: purchaseOrders.poDate,
+        vendorId: purchaseOrders.vendorId,
+        description: purchaseOrders.description,
+        quantity: purchaseOrders.quantity,
+        unitPrice: purchaseOrders.unitPrice,
+        totalAmount: purchaseOrders.totalAmount,
+        cgstAmount: purchaseOrders.cgstAmount,
+        sgstAmount: purchaseOrders.sgstAmount,
+        igstAmount: purchaseOrders.igstAmount,
+        gstType: purchaseOrders.gstType,
+        gstApply: purchaseOrders.gstApply,
+        status: purchaseOrders.status,
+        dueDate: purchaseOrders.dueDate,
+        createdAt: purchaseOrders.createdAt,
+        updatedAt: purchaseOrders.updatedAt,
+        vendorName: vendors.name,
+        vendorCode: vendors.vendorCode,
+      })
       .from(purchaseOrders)
-      .where(eq(purchaseOrders.siteId, siteId));
-    return result;
+      .innerJoin(vendors, eq(purchaseOrders.vendorId, vendors.id)) // 🔒 vendor-only
+      .where(eq(purchaseOrders.vendorId, vendorId))
+      .orderBy(desc(purchaseOrders.createdAt));
+
+    // 2. HARD FILTER (prevents null crash)
+    const pos = posRaw.filter(p => p && p.id);
+      
+    if (pos.length === 0) {
+      return [];
+    }
+
+    // 3. Extract PO IDs
+    const poIds = pos.map(p => p.id);
+
+    // 4. Fetch PO lines
+    const linesRaw = await db
+      .select({
+        id: purchaseOrderLines.id,
+        poId: purchaseOrderLines.poId,
+        siteId: purchaseOrderLines.siteId,
+        description: purchaseOrderLines.description,
+        quantity: purchaseOrderLines.quantity,
+        unitPrice: purchaseOrderLines.unitPrice,
+        totalAmount: purchaseOrderLines.totalAmount,
+        siteHopAB: sites.hopAB,
+        sitePlanId: sites.planId,
+        siteAAntDia: sites.siteAAntDia,
+        siteBAntDia: sites.siteBAntDia,
+      })
+      .from(purchaseOrderLines)
+      .leftJoin(sites, eq(purchaseOrderLines.siteId, sites.id))
+      .where(inArray(purchaseOrderLines.poId, poIds));
+
+    // 5. Group lines by PO ID
+    const linesByPo: Record<string, any[]> = {};
+
+    for (const line of linesRaw) {
+      if (!line || !line.poId) continue;
+      if (!linesByPo[line.poId]) linesByPo[line.poId] = [];
+      linesByPo[line.poId].push(line);
+    }
+
+    // 6. Final response
+    return pos.map(po => {
+      const poLines = linesByPo[po.id] ?? [];
+
+      const maxAntennaSize =
+        poLines.length === 0
+          ? 0
+          : Math.max(
+              0,
+              ...poLines.map(l =>
+                Math.max(
+                  Number(l.siteAAntDia) || 0,
+                  Number(l.siteBAntDia) || 0
+                )
+              )
+            );
+
+      return {
+        ...po,
+        maxAntennaSize,
+        lines: poLines,
+      };
+    });
+  } catch (error) {
+    console.error(
+      "[Storage][getSavedPOsByVendorWithLines] Error",
+      error
+    );
+    throw error;
+  }
+}
+
+
+  async getPOBySiteId(siteId: string): Promise<PurchaseOrder | undefined> {
+    // A PO is identified by a line that references the site
+    const [result] = await db
+      .select({ po: purchaseOrders })
+      .from(purchaseOrders)
+      .innerJoin(purchaseOrderLines, eq(purchaseOrderLines.poId, purchaseOrders.id))
+      .where(eq(purchaseOrderLines.siteId, siteId))
+      .limit(1);
+
+    return result?.po as PurchaseOrder | undefined;
   }
 
   async updatePO(id: string, po: Partial<InsertPO>): Promise<PurchaseOrder> {
@@ -1214,7 +1553,24 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async isPOInvoiced(poId: string): Promise<boolean> {
+    // Check if this PO ID exists in any invoice's po_ids array
+    const result = await db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(sql`${invoices.poIds} @> ARRAY[${poId}]::text[]`)
+      .limit(1);
+
+    return result.length > 0;
+  }
+
   async deletePO(id: string): Promise<void> {
+    // Check if PO is invoiced before allowing deletion
+    const isInvoiced = await this.isPOInvoiced(id);
+    if (isInvoiced) {
+      throw new Error('Cannot delete PO that has been invoiced. Remove the invoice(s) first.');
+    }
+
     await db.delete(purchaseOrders).where(eq(purchaseOrders.id, id));
   }
 
@@ -1243,15 +1599,13 @@ export class DrizzleStorage implements IStorage {
     return await db.select().from(invoices).limit(limit).offset(offset);
   }
 
-  async getInvoicesWithDetails(limit: number, offset: number): Promise<any[]> {
-    // OPTIMIZED: Joins POs, sites and vendors in single query to reduce round-trips
-    // Returns invoices with all related data needed for display
+  async getInvoiceWithDetailsById(invoiceId: string): Promise<any> {
+    // Fetch a single invoice by ID with all details
     const invoicesData = await db
       .select({
-        // Invoice fields
         id: invoices.id,
         invoiceNumber: invoices.invoiceNumber,
-        poId: invoices.poId,
+        poIds: invoices.poIds,
         vendorId: invoices.vendorId,
         amount: invoices.amount,
         gst: invoices.gst,
@@ -1260,67 +1614,228 @@ export class DrizzleStorage implements IStorage {
         dueDate: invoices.dueDate,
         status: invoices.status,
         createdAt: invoices.createdAt,
-        // PO details
-        poNumber: purchaseOrders.poNumber,
-        poDate: purchaseOrders.poDate,
-        poDueDate: purchaseOrders.dueDate,
-        description: purchaseOrders.description,
-        quantity: purchaseOrders.quantity,
-        unitPrice: purchaseOrders.unitPrice,
-        cgstAmount: purchaseOrders.cgstAmount,
-        sgstAmount: purchaseOrders.sgstAmount,
-        igstAmount: purchaseOrders.igstAmount,
-        // Site details
-        siteId: purchaseOrders.siteId,
-        siteName: sites.hopAB,
-        siteId2: sites.siteId,
-        planId: sites.planId,
-        siteAAntDia: sites.siteAAntDia,
-        siteBAntDia: sites.siteBAntDia,
+        siteId: sql`''`,
+        siteName: sql`''`,
+        siteId2: sql`''`,
+        planId: sql`''`,
+        siteAAntDia: sql`''`,
+        siteBAntDia: sql`''`,
+        vendorName: vendors.name,
+        vendorCode: vendors.vendorCode,
+        vendorEmail: vendors.email,
+      })
+      .from(invoices)
+      .leftJoin(vendors, eq(invoices.vendorId, vendors.id))
+      .where(eq(invoices.id, invoiceId));
+
+    if (invoicesData.length === 0) {
+      return null;
+    }
+
+    const inv = invoicesData[0];
+    let allSites: any[] = [];
+    const poIds = Array.isArray(inv.poIds) && inv.poIds.length > 0 ? inv.poIds : [];
+
+    console.log(`Fetching details for invoice ${inv.id}: poIds=${JSON.stringify(poIds)}`);
+
+    let poDetailsArray: any[] = [];
+    if (poIds.length > 0) {
+      allSites = await db
+        .selectDistinct({
+          poId: purchaseOrderLines.poId,
+          siteId: purchaseOrderLines.siteId,
+          siteName: sites.hopAB,
+          planId: sites.planId,
+          maxAntennaSize: sites.maxAntSize,
+          vendorAmount: sites.vendorAmount,
+          siteAInstallationDate: sites.siteAInstallationDate,
+          poNumber: purchaseOrders.poNumber,
+          poDate: purchaseOrders.poDate,
+        })
+        .from(purchaseOrderLines)
+        .leftJoin(sites, eq(purchaseOrderLines.siteId, sites.id))
+        .leftJoin(purchaseOrders, eq(purchaseOrderLines.poId, purchaseOrders.id))
+        .where(inArray(purchaseOrderLines.poId, poIds));
+
+      const posWithDetails = await db
+        .select({
+          poId: purchaseOrders.id,
+          poNumber: purchaseOrders.poNumber,
+          vendorId: purchaseOrders.vendorId,
+          vendorName: vendors.name,
+          amount: purchaseOrders.totalAmount,
+          poDate: purchaseOrders.poDate,
+          gstApply: purchaseOrders.gstApply,
+          gstType: purchaseOrders.gstType,
+          totalSites: sql`COUNT(DISTINCT ${purchaseOrderLines.siteId})`,
+        })
+        .from(purchaseOrders)
+        .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
+        .leftJoin(purchaseOrderLines, eq(purchaseOrders.id, purchaseOrderLines.poId))
+        .where(inArray(purchaseOrders.id, poIds))
+        .groupBy(purchaseOrders.id, vendors.name, vendors.id);
+
+      poDetailsArray = posWithDetails;
+    }
+
+    console.log(`Invoice ${inv.id}: sites=${allSites.length}, poDetails=${poDetailsArray.length}`);
+
+    return {
+      ...inv,
+      invoiceSites: allSites,
+      allSiteNames: allSites.map(s => s.siteName).filter(Boolean),
+      poDetails: poDetailsArray,
+      maxAntennaSize: Math.max(
+        parseFloat(String(inv.siteAAntDia ?? '0')) || 0,
+        parseFloat(String(inv.siteBAntDia ?? '0')) || 0
+      ).toString(),
+    };
+  }
+
+  async getInvoicesWithDetails(limit: number, offset: number): Promise<any[]> {
+    // OPTIMIZED: Joins POs, sites and vendors in single query to reduce round-trips
+    // Returns invoices with all related data needed for display
+    const invoicesData = await db
+      .select({
+        // Invoice fields
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        poIds: invoices.poIds,
+        vendorId: invoices.vendorId,
+        amount: invoices.amount,
+        gst: invoices.gst,
+        totalAmount: invoices.totalAmount,
+        invoiceDate: invoices.invoiceDate,
+        dueDate: invoices.dueDate,
+        status: invoices.status,
+        createdAt: invoices.createdAt,
+        // Representative Site details (will be overridden by full details fetched below)
+        siteId: sql`''`,
+        siteName: sql`''`,
+        siteId2: sql`''`,
+
+        planId: sql`''`,
+        siteAAntDia: sql`''`,
+        siteBAntDia: sql`''`,
         // Vendor details
         vendorName: vendors.name,
         vendorCode: vendors.vendorCode,
         vendorEmail: vendors.email,
       })
       .from(invoices)
-      .leftJoin(purchaseOrders, eq(invoices.poId, purchaseOrders.id))
-      .leftJoin(sites, eq(purchaseOrders.siteId, sites.id))
+      // Get representative site info from purchase_order_lines (first line) via correlated subqueries
       .leftJoin(vendors, eq(invoices.vendorId, vendors.id))
       .orderBy(desc(invoices.createdAt))
       .limit(limit)
       .offset(offset);
 
-    // Calculate maxAntennaSize for each invoice - ALL DATA ALREADY IN SINGLE QUERY
-    return invoicesData.map(inv => ({
-      ...inv,
-      maxAntennaSize: Math.max(
-        parseFloat(inv.siteAAntDia || '0') || 0,
-        parseFloat(inv.siteBAntDia || '0') || 0
-      ).toString(),
-    }));
+    // For each invoice, fetch all sites from purchase_order_lines using poIds
+    const invoicesWithSites = await Promise.all(
+      invoicesData.map(async (inv) => {
+        let allSites: any[] = [];
+
+        // Get poIds from the invoice (now required to be non-empty)
+        const poIds = Array.isArray(inv.poIds) && inv.poIds.length > 0 ? inv.poIds : [];
+
+        // Debug: Log poIds info
+        console.log(`Invoice ${inv.id}: poIds type=${typeof inv.poIds}, value=${JSON.stringify(inv.poIds)}, isArray=${Array.isArray(inv.poIds)}, length=${poIds.length}`);
+
+        // Get the first PO ID for representative data (if no poIds from the representative queries)
+        const firstPoId = poIds.length > 0 ? poIds[0] : null;
+
+        let poDetailsArray: any[] = [];
+        if (poIds.length > 0) {
+          // Fetch all sites for all POs in this invoice from purchase_order_lines with PO details
+          allSites = await db
+            .selectDistinct({
+              poId: purchaseOrderLines.poId,
+              siteId: purchaseOrderLines.siteId,
+              siteName: sites.hopAB,
+              planId: sites.planId,
+              maxAntennaSize: sites.maxAntSize,
+              vendorAmount: sites.vendorAmount,
+              siteAInstallationDate: sites.siteAInstallationDate,
+              poNumber: purchaseOrders.poNumber,
+              poDate: purchaseOrders.poDate,
+            })
+            .from(purchaseOrderLines)
+            .leftJoin(sites, eq(purchaseOrderLines.siteId, sites.id))
+            .leftJoin(purchaseOrders, eq(purchaseOrderLines.poId, purchaseOrders.id))
+            .where(inArray(purchaseOrderLines.poId, poIds));
+
+          // Fetch all PO details for this invoice with vendor and site info
+          const posWithDetails = await db
+            .select({
+              poId: purchaseOrders.id,
+              poNumber: purchaseOrders.poNumber,
+              vendorId: purchaseOrders.vendorId,
+              vendorName: vendors.name,
+              amount: purchaseOrders.totalAmount,
+              poDate: purchaseOrders.poDate,
+              gstApply: purchaseOrders.gstApply,
+              gstType: purchaseOrders.gstType,
+              totalSites: sql`COUNT(DISTINCT ${purchaseOrderLines.siteId})`,
+            })
+            .from(purchaseOrders)
+            .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
+            .leftJoin(purchaseOrderLines, eq(purchaseOrders.id, purchaseOrderLines.poId))
+            .where(inArray(purchaseOrders.id, poIds))
+            .groupBy(purchaseOrders.id, vendors.name, vendors.id);
+
+          poDetailsArray = posWithDetails;
+        }
+
+        const result = {
+          ...inv,
+          invoiceSites: allSites,
+          allSiteNames: allSites.map(s => s.siteName).filter(Boolean),
+          poDetails: poDetailsArray,
+          maxAntennaSize: Math.max(
+            parseFloat(String(inv.siteAAntDia ?? '0')) || 0,
+            parseFloat(String(inv.siteBAntDia ?? '0')) || 0
+          ).toString(),
+        };
+
+        // Debug: Log final result
+        console.log(`Invoice ${inv.id}: final result - poDetails count=${result.poDetails.length}, allSiteNames=${JSON.stringify(result.allSiteNames)}`);
+
+        return result;
+      })
+    );
+
+    return invoicesWithSites;
   }
 
   async getAvailablePOsWithAllDetails(limit: number, offset: number): Promise<any[]> {
-    // ULTRA-OPTIMIZED: Single query returns POs with vendor and site details
-    // Used for invoice generation - returns ONLY POs that don't have invoices yet
-    // Uses subquery to find PO IDs without invoices, then joins details
-    const poIdsWithoutInvoices = await db
-      .selectDistinct({ id: purchaseOrders.id })
-      .from(purchaseOrders)
-      .leftJoin(invoices, eq(purchaseOrders.id, invoices.poId))
-      .where(isNull(invoices.id));
+    try {
+      // ULTRA-OPTIMIZED: Single query returns POs with vendor and site details
+      // Used for invoice generation - returns ONLY POs that don't have invoices yet
+      // Uses subquery to find PO IDs without invoices, then joins details
+      // Get all PO IDs that don't have invoices (check po_ids array)
+      const allPos = await db
+        .selectDistinct({ poId: purchaseOrders.id })
+        .from(purchaseOrders);
 
-    if (poIdsWithoutInvoices.length === 0) {
-      return [];
-    }
+      const invoicesData = await db.select({ poIds: invoices.poIds }).from(invoices);
+      const invoicedPoIds = new Set<string>();
+      invoicesData.forEach(inv => {
+        if (Array.isArray(inv.poIds)) {
+          inv.poIds.forEach(id => invoicedPoIds.add(id));
+        }
+      });
 
-    const poIds = poIdsWithoutInvoices.map(po => po.id);
+      const poIdsWithoutInvoices = allPos.filter(po => !invoicedPoIds.has(po.poId));
 
-    const posData = await db
-      .select({
+      if (poIdsWithoutInvoices.length === 0) {
+        return [];
+      }
+
+      const poIds = poIdsWithoutInvoices.map(po => po.poId);
+
+      const posData = await db
+        .select({
         // PO fields
         id: purchaseOrders.id,
-        siteId: purchaseOrders.siteId,
         vendorId: purchaseOrders.vendorId,
         poNumber: purchaseOrders.poNumber,
         poDate: purchaseOrders.poDate,
@@ -1336,19 +1851,19 @@ export class DrizzleStorage implements IStorage {
         status: purchaseOrders.status,
         dueDate: purchaseOrders.dueDate,
         createdAt: purchaseOrders.createdAt,
-        // Site details
-        siteName: sites.hopAB,
-        siteId2: sites.siteId,
-        planId: sites.planId,
-        siteAAntDia: sites.siteAAntDia,
-        siteBAntDia: sites.siteBAntDia,
+        // Representative Site details via correlated subqueries (first line)
+        siteId: sql`(SELECT pol.site_id FROM purchase_order_lines pol WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteName: sql`(SELECT s.hop_a_b FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteId2: sql`(SELECT s.id FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        planId: sql`(SELECT s.plan_id FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteAAntDia: sql`(SELECT s.site_a_ant_dia FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
+        siteBAntDia: sql`(SELECT s.site_b_ant_dia FROM purchase_order_lines pol JOIN sites s ON s.id = pol.site_id WHERE pol.po_id = ${purchaseOrders.id} LIMIT 1)`,
         // Vendor details
         vendorName: vendors.name,
         vendorCode: vendors.vendorCode,
         vendorEmail: vendors.email,
       })
       .from(purchaseOrders)
-      .leftJoin(sites, eq(purchaseOrders.siteId, sites.id))
       .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
       .where(inArray(purchaseOrders.id, poIds))
       .orderBy(desc(purchaseOrders.createdAt))
@@ -1356,13 +1871,18 @@ export class DrizzleStorage implements IStorage {
       .offset(offset);
 
     // Calculate maxAntennaSize - ALL DATA IN SINGLE QUERY, NO LOOPS NEEDED
-    return posData.map(po => ({
+    const res = posData.map(po => ({
       ...po,
       maxAntennaSize: Math.max(
-        parseFloat(po.siteAAntDia || '0') || 0,
-        parseFloat(po.siteBAntDia || '0') || 0
+        parseFloat(String(po.siteAAntDia ?? '0')) || 0,
+        parseFloat(String(po.siteBAntDia ?? '0')) || 0
       ).toString(),
     }));
+    return res;
+    } catch (error: any) {
+      console.error('[Storage][getAvailablePOsWithAllDetails] failed', { limit, offset, message: error?.message || error, stack: error?.stack });
+      throw error;
+    }
   }
 
   async getInvoicesByVendor(vendorId: string): Promise<Invoice[]> {
@@ -1373,7 +1893,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getInvoicesByPO(poId: string): Promise<Invoice[]> {
-    return await db.select().from(invoices).where(eq(invoices.poId, poId));
+    return await db.select().from(invoices).where(sql`${invoices.poIds} @> ARRAY[${poId}]::text[]`);
   }
 
   async updateInvoice(
@@ -1406,6 +1926,23 @@ export class DrizzleStorage implements IStorage {
   // Payment Master operations
   async createPaymentMaster(pm: InsertPaymentMaster): Promise<PaymentMaster> {
     const [result] = await db.insert(paymentMasters).values(pm).returning();
+
+    // After creating a payment master, update the site row's vendorAmount so UI list and detail are consistent
+    try {
+      await db
+        .update(sites)
+        .set({ vendorAmount: pm.vendorAmount })
+        .where(
+          and(
+            eq(sites.id, pm.siteId),
+            eq(sites.planId, pm.planId),
+            eq(sites.vendorId, pm.vendorId)
+          )
+        );
+    } catch (error: any) {
+      console.error('[Storage] createPaymentMaster: failed to update site vendorAmount', error?.message || error);
+    }
+
     return result;
   }
 
@@ -1444,12 +1981,35 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async getPaymentMastersBySite(siteId: string): Promise<PaymentMaster[]> {
+    return await db.select().from(paymentMasters).where(eq(paymentMasters.siteId, siteId));
+  }
+
   async updatePaymentMaster(id: string, pm: Partial<InsertPaymentMaster>): Promise<PaymentMaster> {
     const [result] = await db
       .update(paymentMasters)
       .set(pm)
       .where(eq(paymentMasters.id, id))
       .returning();
+
+    // After updating, make sure site row's vendorAmount reflects the updated payment master
+    try {
+      if (result && result.vendorAmount != null) {
+        await db
+          .update(sites)
+          .set({ vendorAmount: result.vendorAmount })
+          .where(
+            and(
+              eq(sites.id, result.siteId),
+              eq(sites.planId, result.planId),
+              eq(sites.vendorId, result.vendorId)
+            )
+          );
+      }
+    } catch (error: any) {
+      console.error('[Storage] updatePaymentMaster: failed to update site vendorAmount', error?.message || error);
+    }
+
     return result;
   }
 
@@ -1457,16 +2017,46 @@ export class DrizzleStorage implements IStorage {
     await db.delete(paymentMasters).where(eq(paymentMasters.id, id));
   }
 
+  // Vendor Rate operations
+  async createVendorRate(vr: InsertVendorRate): Promise<VendorRate> {
+    const [result] = await db.insert(vendorRates).values(vr).returning();
+    return result;
+  }
+
+  async getVendorRatesByVendor(vendorId: string): Promise<VendorRate[]> {
+    return await db.select().from(vendorRates).where(eq(vendorRates.vendorId, vendorId));
+  }
+
+  async upsertVendorRate(vendorId: string, antennaSize: string, vendorAmount: string): Promise<VendorRate> {
+    const [existing] = await db.select().from(vendorRates).where(and(eq(vendorRates.vendorId, vendorId), eq(vendorRates.antennaSize, antennaSize)));
+    if (existing) {
+      const [updated] = await db.update(vendorRates).set({ vendorAmount }).where(eq(vendorRates.id, existing.id)).returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(vendorRates).values({ vendorId, antennaSize, vendorAmount }).returning();
+    return inserted;
+  }
+
+  async deleteVendorRateByVendorAntenna(vendorId: string, antennaSize: string): Promise<void> {
+    await db.delete(vendorRates).where(and(eq(vendorRates.vendorId, vendorId), eq(vendorRates.antennaSize, antennaSize)));
+  }
+
   async isPaymentMasterUsedInPO(paymentMasterId: string): Promise<boolean> {
     const pm = await this.getPaymentMaster(paymentMasterId);
     if (!pm) return false;
 
-    const pos = await db.select().from(purchaseOrders).where(
-      and(
-        eq(purchaseOrders.vendorId, pm.vendorId),
-        eq(purchaseOrders.siteId, pm.siteId)
-      )
-    );
+    // Find any PO that belongs to the same vendor and references the site in its lines
+    const pos = await db
+      .selectDistinct({ poId: purchaseOrders.id })
+      .from(purchaseOrders)
+      .innerJoin(purchaseOrderLines, eq(purchaseOrderLines.poId, purchaseOrders.id))
+      .where(
+        and(
+          eq(purchaseOrders.vendorId, pm.vendorId),
+          eq(purchaseOrderLines.siteId, pm.siteId)
+        )
+      );
+
     return pos.length > 0;
   }
 
@@ -1528,6 +2118,28 @@ export class DrizzleStorage implements IStorage {
       const [result] = await db.insert(exportHeaders).values(header).returning();
       return result;
     }
+  }
+
+  // OTP helpers for vendor password reset
+  async createVendorPasswordOTP(vendorId: string | null, email: string, otpHash: string, expiresAt: Date) {
+    console.log('[Storage] createVendorPasswordOTP input', { vendorId: vendorId || null, email, hasOtpHash: !!otpHash, expiresAt });
+    try {
+      const [inserted] = await db.insert(vendorPasswordOtps).values({ vendorId: vendorId || null, email, otpHash, expiresAt, used: false }).returning();
+      console.log('[Storage] createVendorPasswordOTP inserted', { insertedId: inserted?.id });
+      return inserted;
+    } catch (err: any) {
+      console.error('[Storage] createVendorPasswordOTP error', err?.message || err, err?.stack || 'no-stack');
+      throw err;
+    }
+  }
+
+  async findValidOTPByEmail(email: string) {
+    const rows = await db.select().from(vendorPasswordOtps).where(sql`email = ${email} AND used = false AND expires_at > now()`).orderBy(sql`created_at DESC`).limit(1);
+    return rows[0] || null;
+  }
+
+  async markOtpUsed(id: string) {
+    return await db.update(vendorPasswordOtps).set({ used: true }).where(eq(vendorPasswordOtps.id, id));
   }
 
   // Attendance operations
@@ -1598,6 +2210,83 @@ async createDailyAllowance(allowance: InsertDailyAllowance): Promise<DailyAllowa
   console.log('[Storage] createDailyAllowance - will insert:', insertData);
   const [result] = await db.insert(dailyAllowances).values(insertData).returning();
   console.log('[Storage] createDailyAllowance - result:', result);
+  
+  // Return the inserted record
+  return result;
+  
+  // Leave Requests operations - added methods
+}
+
+// Leave Requests operations
+async createLeaveRequest(request: InsertLeaveRequest): Promise<LeaveRequest> {
+  // Ensure required DB columns are present (appliedBy/appliedAt) to satisfy Drizzle typings
+  const insertData: any = {
+    ...request,
+    appliedBy: (request as any).appliedBy ?? request.employeeId,
+    appliedAt: (request as any).appliedAt ?? new Date(),
+  };
+  const [result] = await db.insert(leaveRequests).values(insertData).returning();
+  return result;
+}
+
+async getLeaveRequestsByEmployee(employeeId: string): Promise<LeaveRequest[]> {
+  const rows = await db.select().from(leaveRequests).where(eq(leaveRequests.employeeId, employeeId)).orderBy(leaveRequests.appliedAt);
+  return rows;
+}
+
+async getLeaveRequestById(id: string): Promise<LeaveRequest | undefined> {
+  const [row] = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id));
+  return row;
+}
+
+async getPendingLeaveRequestsForApprover(approverId: string, teamId?: string, employeeId?: string): Promise<LeaveRequest[]> {
+  // Support two storage formats for reporting_person fields:
+  // 1) reporting_person_* stores employee IDs (legacy expected behavior)
+  // 2) reporting_person_* stores team_members.id (observed in some DBs)
+  // First, collect team_member IDs for the approver (if any)
+  const approverTeamRows = await db.select().from(teamMembers).where(eq(teamMembers.employeeId, approverId));
+  const approverTeamMemberIds = approverTeamRows.map((r: any) => r.id).filter(Boolean);
+
+  // Build candidate values to match against reporting_person columns
+  const candidateReportingValues: string[] = [approverId, ...approverTeamMemberIds];
+
+  // Find team members whose reporting_person_1/2/3 equals any candidate value
+  const filters = [] as any[];
+  // If candidateReportingValues has items, use inArray checks; otherwise fallback to direct eq to approverId
+  if (candidateReportingValues.length > 0) {
+    filters.push(inArray(teamMembers.reportingPerson1, candidateReportingValues));
+    filters.push(inArray(teamMembers.reportingPerson2, candidateReportingValues));
+    filters.push(inArray(teamMembers.reportingPerson3, candidateReportingValues));
+  } else {
+    filters.push(eq(teamMembers.reportingPerson1, approverId));
+    filters.push(eq(teamMembers.reportingPerson2, approverId));
+    filters.push(eq(teamMembers.reportingPerson3, approverId));
+  }
+
+  const teamRows = await db.select().from(teamMembers).where(or(...filters));
+  const employeeIds = teamRows.map((t: any) => t.employeeId).filter(Boolean);
+  if (employeeIds.length === 0) return [];
+
+  // Optionally filter by teamId or a specific employeeId
+  let filteredEmployeeIds = employeeIds;
+  if (teamId) {
+    const teamMemberRows = await db.select().from(teamMembers).where(eq(teamMembers.teamId, teamId));
+    const teamMemberEmployeeIds = teamMemberRows.map((t: any) => t.employeeId).filter(Boolean);
+    filteredEmployeeIds = filteredEmployeeIds.filter(id => teamMemberEmployeeIds.includes(id));
+  }
+  if (employeeId) {
+    // Only keep the requested employee if it's one the approver can approve
+    filteredEmployeeIds = filteredEmployeeIds.filter(id => id === employeeId);
+  }
+
+  if (filteredEmployeeIds.length === 0) return [];
+
+  const rows = await db.select().from(leaveRequests).where(and(inArray(leaveRequests.employeeId, filteredEmployeeIds), eq(leaveRequests.status, 'pending'))).orderBy(leaveRequests.appliedAt);
+  return rows;
+}
+
+async updateLeaveRequest(id: string, data: Partial<InsertLeaveRequest & { status?: string, approvedBy?: string, approvedAt?: Date, approvalHistory?: string, rejectionReason?: string, approverRemark?: string }>): Promise<LeaveRequest> {
+  const [result] = await db.update(leaveRequests).set(data as any).where(eq(leaveRequests.id, id)).returning();
   return result;
 }
 
@@ -2418,14 +3107,17 @@ async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>)
       const result = await db.select({
         id: teamMembers.id,
         employeeId: teamMembers.employeeId,
+        employeeCode: employees.emp_code,
         name: employees.name,
         email: employees.email,
-        designation: designations.name,
+        departmentName: departments.name,
+        designationName: designations.name,
         reportingPerson1: teamMembers.reportingPerson1,
         reportingPerson2: teamMembers.reportingPerson2,
         reportingPerson3: teamMembers.reportingPerson3,
       }).from(teamMembers)
         .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
+        .leftJoin(departments, eq(employees.departmentId, departments.id))
         .leftJoin(designations, eq(employees.designationId, designations.id))
         .where(eq(teamMembers.teamId, teamId));
       return result;
@@ -2440,14 +3132,17 @@ async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>)
       const query = db.select({
         id: teamMembers.id,
         employeeId: teamMembers.employeeId,
+        employeeCode: employees.emp_code,
         name: employees.name,
         email: employees.email,
-        designation: designations.name,
+        departmentName: departments.name,
+        designationName: designations.name,
         reportingPerson1: teamMembers.reportingPerson1,
         reportingPerson2: teamMembers.reportingPerson2,
         reportingPerson3: teamMembers.reportingPerson3,
       }).from(teamMembers)
         .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
+        .leftJoin(departments, eq(employees.departmentId, departments.id))
         .leftJoin(designations, eq(employees.designationId, designations.id))
         .where(eq(teamMembers.teamId, teamId));
 
@@ -2465,6 +3160,8 @@ async updateDailyAllowance(id: string, allowance: Partial<InsertDailyAllowance>)
         members = await query;
       }
 
+      // Map each member to include employeeCode fallback if needed
+      members = members.map((m: any) => ({ ...m, employeeCode: m.employeeCode || null }));
       return { members, total };
     } catch (error) {
       console.error('[Storage] getTeamMembersPaginated error:', error);

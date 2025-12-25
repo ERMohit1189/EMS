@@ -141,118 +141,118 @@ export default function VendorSignUp() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 p-4">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg mb-4">
-            <Building2 className="h-8 w-8 text-white" />
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 p-2">
+        <div className="w-full max-w-md">
+        <div className="text-center mb-4">
+          <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md mb-3">
+            <Building2 className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Vendor Registration</h1>
-          <p className="text-sm text-gray-600 mt-2">Create your vendor account</p>
+          <h1 className="text-2xl font-bold text-gray-900">Vendor Registration</h1>
+          <p className="text-xs text-gray-600 mt-1">Create your vendor account</p>
         </div>
 
-        <Card className="shadow-2xl border-0">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg border-b">
-            <CardTitle className="text-xl text-blue-900">Sign Up</CardTitle>
-            <CardDescription className="text-gray-600">Fill in your details to register</CardDescription>
+        <Card className="shadow-md border-0">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg border-b py-2 px-4">
+            <CardTitle className="text-lg text-blue-900">Sign Up</CardTitle>
+            <CardDescription className="text-xs text-gray-600">Fill in details below</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
-                  Name <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="name"
-                    name="name"
-                    placeholder="Enter your full name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    disabled={loading}
-                    data-testid="input-name"
-                    className="pl-10"
-                  />
+          <CardContent className="pt-4 px-3 max-h-[calc(100vh-6rem)] overflow-auto md:max-h-none md:overflow-visible">
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-xs font-semibold text-gray-700">
+                    Name <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-2 h-3 w-3 text-gray-400" />
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                      data-testid="input-name"
+                      className="pl-9 h-9 text-sm"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                  Email Address <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="vendor@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    onBlur={handleEmailBlur}
-                    required
-                    disabled={loading}
-                    data-testid="input-email"
-                    className={`pl-10 ${emailError ? "border-red-500 focus:border-red-500" : ""}`}
-                  />
-                  {checkingEmail && (
-                    <div className="absolute right-3 top-3">
-                      <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-xs font-semibold text-gray-700">
+                    Email Address <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-2 h-3 w-3 text-gray-400" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="vendor@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      onBlur={handleEmailBlur}
+                      required
+                      disabled={loading}
+                      data-testid="input-email"
+                      className={`pl-9 h-9 text-sm ${emailError ? "border-red-500 focus:border-red-500" : ""}`}
+                    />
+                    {checkingEmail && (
+                      <div className="absolute right-3 top-3">
+                        <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
+                  {emailError && (
+                    <p className="text-sm text-red-500" data-testid="text-email-error">{emailError}</p>
                   )}
                 </div>
-                {emailError && (
-                  <p className="text-sm text-red-500" data-testid="text-email-error">{emailError}</p>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="mobile" className="text-sm font-semibold text-gray-700">
-                  Mobile Number <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="mobile"
-                    name="mobile"
-                    placeholder="10-digit mobile number"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    required
-                    maxLength={10}
-                    pattern="[0-9]{10}"
-                    disabled={loading}
-                    data-testid="input-mobile"
-                    className="pl-10"
-                  />
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="mobile" className="text-xs font-semibold text-gray-700">
+                    Mobile Number <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-2 h-3 w-3 text-gray-400" />
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      placeholder="10-digit mobile number"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      required
+                      maxLength={10}
+                      pattern="[0-9]{10}"
+                      disabled={loading}
+                      data-testid="input-mobile"
+                      className="pl-9 h-9 text-sm"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
-                  Street Address <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="address"
-                    name="address"
-                    placeholder="Enter your street address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                    disabled={loading}
-                    data-testid="input-address"
-                    className="pl-10"
-                  />
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="address" className="text-xs font-semibold text-gray-700">
+                    Street Address <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-2 h-3 w-3 text-gray-400" />
+                    <Input
+                      id="address"
+                      name="address"
+                      placeholder="Enter your street address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                      data-testid="input-address"
+                      className="pl-9 h-9 text-sm"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="state" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="state" className="text-xs font-semibold text-gray-700">
                     State <span className="text-red-500">*</span>
                   </Label>
                   <select
@@ -263,7 +263,7 @@ export default function VendorSignUp() {
                     required
                     disabled={loading}
                     data-testid="select-state"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="">Select State</option>
                     {INDIAN_STATES.map(state => (
@@ -273,7 +273,7 @@ export default function VendorSignUp() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="city" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="city" className="text-xs font-semibold text-gray-700">
                     City <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -285,13 +285,12 @@ export default function VendorSignUp() {
                     required
                     disabled={loading}
                     data-testid="input-city"
+                    className="h-9 text-sm"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="password" className="text-xs font-semibold text-gray-700">
                     Password <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -305,11 +304,12 @@ export default function VendorSignUp() {
                     minLength={6}
                     disabled={loading}
                     data-testid="input-password"
+                    className="h-9 text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="confirmPassword" className="text-xs font-semibold text-gray-700">
                     Confirm Password <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -322,28 +322,31 @@ export default function VendorSignUp() {
                     required
                     disabled={loading}
                     data-testid="input-confirm-password"
+                    className="h-9 text-sm"
                   />
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all mt-6"
-                disabled={loading || !!emailError}
-                data-testid="button-signup"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Creating Account...
-                  </span>
-                ) : (
-                  "Create Account"
-                )}
-              </Button>
+              <div className="pt-3">
+                <Button
+                  type="submit"
+                  className="w-full h-9 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                  disabled={loading || !!emailError}
+                  data-testid="button-signup"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Creating Account...
+                    </span>
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
+              </div>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{" "}
                 <Link href="/vendor-login" className="text-blue-600 hover:text-blue-800 font-semibold" data-testid="link-login">
@@ -354,12 +357,7 @@ export default function VendorSignUp() {
           </CardContent>
         </Card>
 
-        <div className="text-center mt-6">
-          <Link href="/vendor-login" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors" data-testid="link-back">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Login
-          </Link>
-        </div>
+
       </div>
     </div>
   );

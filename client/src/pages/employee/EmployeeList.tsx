@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
 
 interface Employee {
   id: string;
@@ -24,13 +25,28 @@ interface Employee {
   mobile: string;
   city: string;
   status: string;
+  emp_code?: string;
   designationName?: string;
   departmentName?: string;
 }
 
 export default function EmployeeList() {
+  // Role-based access control
+  const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+  if (employeeRole !== 'admin' && employeeRole !== 'user' && employeeRole !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalEmployees, setTotalEmployees] = useState(0);
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -38,40 +54,42 @@ export default function EmployeeList() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const [empResponse, desigResponse] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, { cache: 'no-store' }),
-          fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' })
-        ]);
-        
-        if (empResponse.ok && desigResponse.ok) {
-          const empData = await empResponse.json();
-          const designations = await desigResponse.json();
-          
-          // Create a map of designationId -> name
-          const designationMap: { [key: string]: string } = {};
-          designations.forEach((d: any) => {
-            designationMap[d.id] = d.name;
-          });
-          
-          // Enrich employees with designation names
-          const enrichedEmployees = (empData.data || [])
-            .filter((e: Employee) => e.email !== 'superadmin@ems.local')
-            .map((e: any) => ({
-              ...e,
-              designationName: e.designationId ? designationMap[e.designationId] : 'Not Specified'
-            }));
-          
-          setEmployees(enrichedEmployees);
-        }
+        setLoading(true); // Always show loader instantly
+        setTableLoading(true);
+        const params = new URLSearchParams();
+        params.append('page', String(currentPage));
+        params.append('pageSize', String(pageSize));
+
+        const empResponse = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`, { cache: 'no-store' });
+        if (!empResponse.ok) throw new Error('Failed to fetch employees');
+        const { data, totalCount } = await empResponse.json();
+        const employees_data = data || [];
+
+        // Fetch designations once
+        const desigResponse = await fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' });
+        const designations = desigResponse.ok ? await desigResponse.json() : [];
+        const designationMap: { [key: string]: string } = {};
+        designations.forEach((d: any) => { designationMap[d.id] = d.name; });
+
+        const enrichedEmployees = employees_data
+          .filter((e: Employee) => e.email !== 'superadmin@eoms.local')
+          .map((e: any) => ({
+            ...e,
+            designationName: e.designationId ? designationMap[e.designationId] : 'Not Specified'
+          }));
+
+        setEmployees(enrichedEmployees);
+        setTotalEmployees(totalCount || 0);
       } catch (error) {
         console.error('Failed to fetch employees:', error);
         toast({ title: 'Error', description: 'Failed to load employees', variant: 'destructive' });
       } finally {
         setLoading(false);
+        setTableLoading(false);
       }
     };
     fetchEmployees();
-  }, [toast]);
+  }, [toast, currentPage, pageSize]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -119,20 +137,26 @@ export default function EmployeeList() {
        </div>
 
        {/* Desktop Table */}
-       <div className="hidden md:block rounded-md border bg-card">
-         <div className="grid gap-0" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
-           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Name / Designation</div>
-           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Email</div>
-           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Contact</div>
-           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Location</div>
-           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Status</div>
-           <div className="p-4 font-medium border-b bg-muted/50 text-muted-foreground text-sm">Actions</div>
+       <div className="hidden md:block rounded-md border bg-card overflow-x-auto max-h-[60vh] overflow-auto">
+         <div className="sticky top-0 z-20 grid grid-cols-[1fr_1.5fr_1.5fr_1.5fr_1fr_1fr_1fr] gap-0 p-4 font-medium border-b bg-primary text-primary-foreground text-sm">
+           <div className="">Employee Code</div>
+           <div className="">Name / Designation</div>
+           <div className="">Email</div>
+           <div className="">Contact</div>
+           <div className="">Location</div>
+           <div className="">Status</div>
+           <div className="">Actions</div>
          </div>
-         {employees.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No employees found. Add one to get started.</div>
+         {tableLoading ? (
+           <div className="p-8">
+             <SkeletonLoader type="table" count={Math.min(pageSize, 10)} />
+           </div>
+         ) : employees.length === 0 ? (
+           <div className="p-8 text-center text-muted-foreground">No employees found. Add one to get started.</div>
          ) : (
            employees.map(e => (
-             <div key={e.id} className="grid gap-0 border-b last:border-0 hover:bg-muted/50 transition-colors items-center" style={{gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
+             <div key={e.id} className="grid gap-0 border-b last:border-0 hover:bg-muted/50 transition-colors items-center" style={{gridTemplateColumns: '1fr 1.5fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
+               <div className="p-4 text-sm font-mono text-blue-600">{e.emp_code || 'N/A'}</div>
                <div className="p-4">
                  <div className="font-medium text-sm">{e.name}</div>
                  <div className="text-xs text-muted-foreground">{e.designationName || 'Not Specified'}</div>
@@ -141,7 +165,7 @@ export default function EmployeeList() {
                <div className="p-4 text-sm font-mono">{e.mobile}</div>
                <div className="p-4 text-sm">{e.city}</div>
                <div className="p-4">
-                 <Badge 
+                 <Badge
                    variant={e.status === 'Active' ? 'default' : 'secondary'}
                    data-testid={`badge-status-${e.id}`}
                  >
@@ -171,6 +195,25 @@ export default function EmployeeList() {
              </div>
            ))
          )}
+
+         {/* Table footer: sticky pagination inside scroll container */}
+         {totalEmployees > 0 && (
+           <div className="sticky bottom-0 bg-card/90 backdrop-blur border-t p-2 flex items-center justify-between">
+             <div className="text-sm text-muted-foreground">Showing {totalEmployees === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(totalEmployees, currentPage * pageSize)} of {totalEmployees.toLocaleString()} employees</div>
+             <div className="flex items-center gap-2">
+               <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>First</Button>
+               <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</Button>
+               <div className="px-2">Page</div>
+               <Input value={String(currentPage)} onChange={(e) => { const v = Number(e.target.value || 1); if (!isNaN(v)) setCurrentPage(Math.min(Math.max(1, v), Math.max(1, Math.ceil(totalEmployees / pageSize)))); }} className="w-16 text-center" onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+               <div className="px-2">of {Math.max(1, Math.ceil(totalEmployees / pageSize))}</div>
+               <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.min(Math.max(1, Math.ceil(totalEmployees / pageSize)), p + 1))} disabled={currentPage === Math.max(1, Math.ceil(totalEmployees / pageSize))}>Next</Button>
+               <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(Math.max(1, Math.ceil(totalEmployees / pageSize)))} disabled={currentPage === Math.max(1, Math.ceil(totalEmployees / pageSize))}>Last</Button>
+               <select className="form-select text-sm" value={String(pageSize)} onChange={(e) => { const v = Number(e.target.value || 50); setPageSize(v); setCurrentPage(1); }}>
+                 {[10,25,50,100].map(sz => <option key={sz} value={sz}>{sz}</option>) }
+               </select>
+             </div>
+           </div>
+         )}
        </div>
 
        {/* Mobile Card View */}
@@ -183,6 +226,7 @@ export default function EmployeeList() {
                <div className="space-y-2">
                  <div className="flex items-start justify-between gap-2">
                    <div className="flex-1 min-w-0">
+                     <p className="text-xs text-muted-foreground">Code: {e.emp_code || 'N/A'}</p>
                      <p className="font-medium text-sm truncate">{e.name}</p>
                      <p className="text-xs text-muted-foreground">{e.designationName || 'Not Specified'}</p>
                    </div>
@@ -236,6 +280,24 @@ export default function EmployeeList() {
            ))
          )}
        </div>
+
+      {/* Mobile pagination controls */}
+      {totalEmployees > 0 && (
+        <div className="md:hidden flex items-center justify-between mt-4">
+          <div className="text-sm text-muted-foreground">Showing {totalEmployees === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(totalEmployees, currentPage * pageSize)} of {totalEmployees.toLocaleString()}</div>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>First</Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</Button>
+            <div className="px-2">Page</div>
+            <Input value={String(currentPage)} onChange={(e) => { const v = Number(e.target.value || 1); if (!isNaN(v)) setCurrentPage(Math.min(Math.max(1, v), Math.max(1, Math.ceil(totalEmployees / pageSize)))); }} className="w-16 text-center" onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+            <div className="px-2">of {Math.max(1, Math.ceil(totalEmployees / pageSize))}</div>
+            <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.min(Math.max(1, Math.ceil(totalEmployees / pageSize)), p + 1))} disabled={currentPage === Math.max(1, Math.ceil(totalEmployees / pageSize))}>Next</Button>
+            <select className="form-select text-sm" value={String(pageSize)} onChange={(e) => { const v = Number(e.target.value || 50); setPageSize(v); setCurrentPage(1); }}>
+              {[10,25,50,100].map(sz => <option key={sz} value={sz}>{sz}</option>) }
+            </select>
+          </div>
+        </div>
+      )}
 
        <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
          <AlertDialogContent className="max-w-sm">

@@ -7,6 +7,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState, lazy, Suspense } from "react";
 import GlobalPerformanceIndicator from "@/components/GlobalPerformanceIndicator";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import JoyrideTour from "@/components/JoyrideTour";
 
 // Eager load login pages for instant display
 import Login from "@/pages/Login";
@@ -20,8 +21,8 @@ const VendorRegistration = lazy(() => import("@/pages/vendor/VendorRegistration"
 const VendorList = lazy(() => import("@/pages/vendor/VendorList"));
 const VendorEdit = lazy(() => import("@/pages/vendor/VendorEdit"));
 const VendorCredentials = lazy(() => import("@/pages/vendor/VendorCredentials"));
+
 const PaymentMaster = lazy(() => import("@/pages/vendor/PaymentMaster"));
-const PaymentMasterNew = lazy(() => import("@/pages/vendor/PaymentMasterNew"));
 const CircleMaster = lazy(() => import("@/pages/vendor/CircleMaster"));
 const POGeneration = lazy(() => import("@/pages/vendor/POGeneration"));
 const POPrint = lazy(() => import("@/pages/vendor/POPrint"));
@@ -52,9 +53,14 @@ const DepartmentMaster = lazy(() => import("@/pages/employee/DepartmentMaster"))
 const DesignationMaster = lazy(() => import("@/pages/employee/DesignationMaster"));
 const Attendance = lazy(() => import("@/pages/employee/Attendance"));
 const MonthlyAttendance = lazy(() => import("@/pages/employee/MonthlyAttendance"));
+const LeaveApply = lazy(() => import("@/pages/employee/LeaveApply"));
+const LeaveHistory = lazy(() => import("@/pages/employee/LeaveHistory"));
+const LeaveApprovals = lazy(() => import("@/pages/employee/LeaveApprovals"));
 const Allowances = lazy(() => import("@/pages/employee/Allowances"));
 const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const EmailSettings = lazy(() => import("@/pages/admin/EmailSettings"));
+const VendorRates = lazy(() => import("@/pages/vendor/VendorRates"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
 const VendorDashboard = lazy(() => import("@/pages/VendorDashboard"));
 const VendorPOReport = lazy(() => import("@/pages/vendor/VendorPOReport"));
@@ -72,6 +78,7 @@ const AttendanceReport = lazy(() => import("@/pages/admin/AttendanceReport"));
 const BulkAttendanceMarking = lazy(() => import("@/pages/admin/BulkAttendanceMarking"));
 const ReportsDashboard = lazy(() => import("@/pages/ReportsDashboard"));
 const DatabaseStatus = lazy(() => import("@/pages/DatabaseStatus"));
+const HelpCenter = lazy(() => import("@/pages/HelpCenter"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = () => <div className="flex items-center justify-center h-screen"><Loader /></div>;
@@ -109,21 +116,23 @@ function App() {
           sessionStorage.setItem('browserSessionId', newSessionId);
           console.log('[App] New browser session detected. SessionID:', newSessionId);
 
-          // Clear client-side session data but preserve Remember Me and lastLoginType
+          // Clear client-side session data but preserve Remember Me, lastLoginType, and Quick Guide flag
           const rememberEmail = localStorage.getItem('rememberMe_email');
           const rememberPassword = localStorage.getItem('rememberMe_password');
           const vendorRememberEmail = localStorage.getItem('vendorRememberMe_email');
           const vendorRememberPassword = localStorage.getItem('vendorRememberMe_password');
           const lastLoginType = localStorage.getItem('lastLoginType');
+          const seenQuickGuide = localStorage.getItem('seenQuickGuide');
 
           localStorage.clear();
 
-          // Restore Remember Me credentials and lastLoginType
+          // Restore Remember Me credentials, lastLoginType, and Quick Guide flag
           if (rememberEmail) localStorage.setItem('rememberMe_email', rememberEmail);
           if (rememberPassword) localStorage.setItem('rememberMe_password', rememberPassword);
           if (vendorRememberEmail) localStorage.setItem('vendorRememberMe_email', vendorRememberEmail);
           if (vendorRememberPassword) localStorage.setItem('vendorRememberMe_password', vendorRememberPassword);
           if (lastLoginType) localStorage.setItem('lastLoginType', lastLoginType);
+          if (seenQuickGuide) localStorage.setItem('seenQuickGuide', seenQuickGuide);
 
           // Force logout - clear server session
           try {
@@ -163,9 +172,12 @@ function App() {
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('employeeEmail', data.employeeEmail || '');
             localStorage.setItem('employeeId', data.employeeId || '');
+            localStorage.setItem('employeeCode', data.employeeCode || data.employeeId || '');
             localStorage.setItem('employeeRole', data.employeeRole || '');
             // Also set employeeName and user object so pages relying on `user` update immediately
             localStorage.setItem('employeeName', data.employeeName || '');
+            // Persist reporting person flag so UI and pages can check it synchronously
+            localStorage.setItem('isReportingPerson', data.isReportingPerson ? 'true' : 'false');
             try {
               const userObj = { email: data.employeeEmail || '', name: data.employeeName || '', role: data.employeeRole || '' };
               localStorage.setItem('user', JSON.stringify(userObj));
@@ -249,39 +261,36 @@ function App() {
       }
       // Check employee (including superadmin employees)
       else if (employeeEmail) {
-        // If superadmin, go to main login, otherwise employee login
-        if (normalizedEmployeeRole === 'superadmin') {
-          redirectPath = '/login';
-          console.log('[App] REDIRECTING TO: /login (Superadmin)');
-        } else {
-          redirectPath = '/employee-login';
-          console.log('[App] REDIRECTING TO: /employee-login (Employee)');
-        }
+        // All employees including superadmin go to employee login
+        redirectPath = '/employee-login';
+        console.log('[App] REDIRECTING TO: /employee-login (' + (normalizedEmployeeRole === 'superadmin' ? 'Superadmin' : 'Employee') + ')');
       }
       // Fallback: check if role exists (even if email is missing)
-      else if (employeeRole && normalizedEmployeeRole !== 'superadmin') {
+      else if (employeeRole) {
         redirectPath = '/employee-login';
         console.log('[App] REDIRECTING TO: /employee-login (Employee - fallback by role)');
       }
       
       console.log('[App] Final redirect path:', redirectPath);
 
-      // Preserve Remember Me credentials and lastLoginType before clearing
+      // Preserve Remember Me credentials, lastLoginType, and Quick Guide flag before clearing
       const rememberEmail = localStorage.getItem('rememberMe_email');
       const rememberPassword = localStorage.getItem('rememberMe_password');
       const vendorRememberEmail = localStorage.getItem('vendorRememberMe_email');
       const vendorRememberPassword = localStorage.getItem('vendorRememberMe_password');
       const lastLoginType = localStorage.getItem('lastLoginType');
+      const seenQuickGuide = localStorage.getItem('seenQuickGuide');
 
       // Clear ALL session data from localStorage
       localStorage.clear();
 
-      // Restore Remember Me credentials and lastLoginType if they existed
+      // Restore Remember Me credentials, lastLoginType, and Quick Guide flag if they existed
       if (rememberEmail) localStorage.setItem('rememberMe_email', rememberEmail);
       if (rememberPassword) localStorage.setItem('rememberMe_password', rememberPassword);
       if (vendorRememberEmail) localStorage.setItem('vendorRememberMe_email', vendorRememberEmail);
       if (vendorRememberPassword) localStorage.setItem('vendorRememberMe_password', vendorRememberPassword);
       if (lastLoginType) localStorage.setItem('lastLoginType', lastLoginType);
+      if (seenQuickGuide) localStorage.setItem('seenQuickGuide', seenQuickGuide);
 
       // Clear session storage to prevent URL preservation after logout
       sessionStorage.clear();
@@ -303,6 +312,19 @@ function App() {
       setIsEmployee(!!employeeEmail);
       setIsSuperadmin(normalizedRole === 'superadmin');
       console.log('[App] Login event - isEmployee:', !!employeeEmail, 'isSuperadmin:', normalizedRole === 'superadmin');
+
+      // Refresh reporting-person flag from server to ensure immediate UI availability
+      (async () => {
+        try {
+          const res = await fetch('/api/session', { credentials: 'include' });
+          if (res.ok) {
+            const json = await res.json();
+            localStorage.setItem('isReportingPerson', json.isReportingPerson ? 'true' : 'false');
+          }
+        } catch (e) {
+          console.warn('[App] Failed to refresh session reporting flag', e);
+        }
+      })();
     };
 
     // Listen for login events (storage changes)
@@ -323,6 +345,14 @@ function App() {
     };
   }, [setLocation]);
 
+  // Redirect /login to /employee-login
+  useEffect(() => {
+    if (location === '/login' || location === '/login/') {
+      console.log('[App] Redirecting /login to /employee-login');
+      setLocation('/employee-login');
+    }
+  }, [location, setLocation]);
+
   // Handle redirects after logout
   useEffect(() => {
     if (redirectTo && !isLoggedIn) {
@@ -331,6 +361,22 @@ function App() {
       setRedirectTo(null);
     }
   }, [redirectTo, isLoggedIn, setLocation]);
+
+  // If user isn't logged in and tries to access a protected route, redirect here.
+  useEffect(() => {
+    // Don't redirect while we're still checking the session
+    if (loading) return;
+
+    if (!isLoggedIn) {
+      const isLoginPage = ['/login', '/vendor-login', '/employee-login', '/vendor-signup', '/vendor/forgot-password', '/employee/privacy-policy', '/vendor/privacy-policy'].includes(location);
+      if (!isLoginPage && !redirectTo) {
+        const lastLoginType = localStorage.getItem('lastLoginType');
+        if (lastLoginType === 'employee') setRedirectTo('/employee-login');
+        else if (lastLoginType === 'vendor') setRedirectTo('/vendor-login');
+        else setRedirectTo('/login');
+      }
+    }
+  }, [isLoggedIn, location, loading]); // Removed redirectTo from dependencies to prevent loop
 
   // Show loading while checking auth
   if (loading) {
@@ -345,24 +391,8 @@ function App() {
     console.log('[App] User not logged in. Current location:', location);
     console.log('[App] Rendering login screens block');
 
-    // Check if user is trying to access a protected route
-    // If so, redirect to appropriate login page based on last login type
-    const isLoginPage = ['/login', '/vendor-login', '/employee-login', '/vendor-signup', '/vendor/forgot-password', '/employee/privacy-policy', '/vendor/privacy-policy'].includes(location);
-
-    if (!isLoginPage) {
-      // User is trying to access a protected route, redirect based on last login type
-      const lastLoginType = localStorage.getItem('lastLoginType');
-      console.log('[App] Redirecting to login page based on lastLoginType:', lastLoginType);
-
-      if (lastLoginType === 'employee') {
-        setLocation('/employee-login');
-      } else if (lastLoginType === 'vendor') {
-        setLocation('/vendor-login');
-      } else {
-        // Default to admin login page
-        setLocation('/login');
-      }
-    }
+    // Redirect logic is now handled in useEffect above to prevent infinite loops
+    // DO NOT call setRedirectTo here during render
 
     return (
       <>
@@ -374,6 +404,7 @@ function App() {
           <Route path="/employee-login" component={EmployeeLogin} />
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
+          <Route path="/admin/email-settings" component={EmailSettings} />
           <Route component={EmployeeLogin} />
         </Switch>
         <Toaster />
@@ -386,6 +417,7 @@ function App() {
       <ProgressBar isLoading={isLoading} />
       <Loader />
       <GlobalPerformanceIndicator />
+      <JoyrideTour />
       <Suspense fallback={<PageLoader />}>
         <Switch>
           {/* Login Routes */}
@@ -418,10 +450,11 @@ function App() {
                       const normalizedRole = role ? role.toLowerCase() : '';
 
                       // Admin roles should go to admin dashboard
-                      if (normalizedRole === 'admin' || normalizedRole === 'superadmin') {
+                      // Only superadmin goes to main dashboard
+                      if (normalizedRole === 'superadmin') {
                         return <Dashboard />;
                       }
-                      // Regular employees go to employee dashboard
+                      // Admin and regular employees go to employee dashboard
                       if (employeeEmail && !vendorId) {
                         return <EmployeeDashboard />;
                       }
@@ -442,8 +475,9 @@ function App() {
                   <Route path="/vendor/list" component={VendorList} />
                   <Route path="/vendor/edit/:id" component={VendorEdit} />
                   <Route path="/vendor/credentials" component={VendorCredentials} />
-                  <Route path="/vendor/payment-master" component={PaymentMasterNew} />
-                  <Route path="/vendor/payment-master-old" component={PaymentMaster} />
+                  <Route path="/vendor/payment-master" component={PaymentMaster} />
+
+                  <Route path="/vendor/rates" component={VendorRates} />
                   <Route path="/vendor/circle-master" component={CircleMaster} />
                   <Route path="/vendor/sites" component={SiteList} />
                   <Route path="/vendor/sites/status" component={SiteStatus} />
@@ -480,6 +514,9 @@ function App() {
                   <Route path="/employee/designation-master" component={DesignationMaster} />
                   <Route path="/employee/attendance" component={Attendance} />
                   <Route path="/employee/monthly-attendance" component={MonthlyAttendance} />
+                  <Route path="/employee/leave-apply" component={LeaveApply} />
+                  <Route path="/employee/leave-history" component={LeaveHistory} />
+                  <Route path="/employee/leave-approvals" component={LeaveApprovals} />
                   <Route path="/admin/bulk-attendance" component={BulkAttendanceMarking} />
                   <Route path="/employee/allowances" component={Allowances} />
                   <Route path="/employee/salary-structure" component={SalaryStructure} />
@@ -488,16 +525,23 @@ function App() {
                   {/* Admin Routes */}
                   <Route path="/admin/teams" component={Teams} />
                   <Route path="/admin/allowance-approvals" component={AllowanceApproval} />
+                  {/* Allow reporting-person users to access the same page under a /user path */}
+                  <Route path="/user/allowance-approvals" component={AllowanceApproval} />
                   <Route path="/admin/approval-history" component={ApprovalHistory} />
                   <Route path="/admin/holiday-master" component={HolidayMaster} />
                   <Route path="/admin/leave-allotment" component={LeaveAllotment} />
                   <Route path="/admin/attendance-report" component={AttendanceReport} />
+                  {/* Email Settings (Superadmin only) */}
+                  <Route path="/admin/email-settings" component={EmailSettings} />
                   
                   {/* Vendor Privacy Policy */}
                   <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
                   
                   {/* Reports */}
                   <Route path="/reports" component={ReportsDashboard} />
+
+                                  {/* Help Center route disabled until documentation is reworked */}
+                                  {/* <Route path="/help" component={HelpCenter} /> */}
 
                   {/* Database Status */}
                   <Route path="/database-status" component={DatabaseStatus} />

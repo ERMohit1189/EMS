@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ems-portal-v4';
+const CACHE_NAME = 'eoms-portal-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -45,46 +45,25 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Handle API requests with network-first (then cached fallback)
+  // Handle API requests - DO NOT CACHE, always fetch fresh
   if (request.url.includes('/api/')) {
     event.respondWith(
       fetch(request)
         .then(response => {
-          // Optionally cache API responses for offline, but prefer fresh data
-          if (response && response.ok) {
-            const respClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, respClone)).catch(err => {
-              console.log('[Service Worker] Cache.put() error for API:', err);
-            });
-          }
+          // IMPORTANT: Do NOT cache API responses - they should always be fresh
+          // This prevents stale data and improves performance by removing cache overhead
           return response;
         })
         .catch(error => {
-          // Try to return cached response if available
-          return caches.match(request).then(cachedResponse => {
-            if (cachedResponse) {
-              return cachedResponse;
+          // If network fails, return error (no offline support for APIs)
+          return new Response(
+            JSON.stringify({ error: 'Network error - offline' }),
+            {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'application/json' }
             }
-            // If no cache and fetch failed, return error response
-            return new Response(
-              JSON.stringify({ error: 'Network error - offline' }),
-              {
-                status: 503,
-                statusText: 'Service Unavailable',
-                headers: { 'Content-Type': 'application/json' }
-              }
-            );
-          }).catch(() => {
-            // Fallback for cache.match error
-            return new Response(
-              JSON.stringify({ error: 'Network error - offline' }),
-              {
-                status: 503,
-                statusText: 'Service Unavailable',
-                headers: { 'Content-Type': 'application/json' }
-              }
-            );
-          });
+          );
         })
     );
     return;

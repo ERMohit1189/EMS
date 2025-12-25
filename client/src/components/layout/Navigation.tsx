@@ -52,27 +52,35 @@ export function QuickAccessMenu() {
   
   // Determine role based on location and localStorage
   const isEmployee = localStorage.getItem('employeeEmail') !== null;
+  const employeeRole = (localStorage.getItem('employeeRole') || '').toLowerCase().trim();
+  const isSuperAdmin = isEmployee && employeeRole === 'superadmin';
   const isVendor = localStorage.getItem('vendorId') !== null;
   
   const employeeQuickLinks = [
     { label: '📋 Attendance', href: '/employee/attendance' },
+    { label: '📅 Monthly Attendance', href: '/employee/monthly-attendance' },
     { label: '💰 Salary', href: '/employee/salary-report' },
     { label: '🏠 Dashboard', href: '/employee/dashboard' },
   ];
   
   const vendorQuickLinks = [
-    { label: '🏢 Sites', href: '/vendor/list' },
-    { label: '📊 Status', href: '/vendor/sites/status' },
-    { label: '📄 PO', href: '/vendor/po' },
+    { label: '🏠 Dashboard', href: '/vendor/dashboard' },
+    { label: '📄 PO Generation', href: '/vendor/po' },
+    { label: '🧾 Invoice Generation', href: '/vendor/invoices' },
   ];
   
   const adminQuickLinks = [
     { label: '🏠 Dashboard', href: '/' },
     { label: '👥 Employees', href: '/employee/list' },
+    { label: '📅 Bulk Attendance', href: '/admin/bulk-attendance' },
     { label: '🏪 Vendors', href: '/vendor/list' },
   ];
   
-  const quickLinks = isEmployee ? employeeQuickLinks : isVendor ? vendorQuickLinks : adminQuickLinks;
+  const quickLinks = isEmployee
+    ? (isSuperAdmin ? employeeQuickLinks.filter(l => l.href !== '/employee/dashboard') : employeeQuickLinks)
+    : isVendor
+    ? vendorQuickLinks
+    : adminQuickLinks;
   
   return (
     <div className="hidden md:flex items-center gap-0.5 px-3 py-2 bg-white/50 rounded-lg border border-blue-100" data-testid="nav-quick-access">

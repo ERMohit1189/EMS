@@ -11,6 +11,20 @@ interface Designation {
 }
 
 export default function DesignationMaster() {
+    // Role-based access control
+    const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+    const isAllowed = employeeRole === 'admin' || employeeRole === 'user' || employeeRole === 'superadmin';
+    if (!isAllowed) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <div className="max-w-md w-full bg-white shadow rounded p-8">
+            <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
+            <p className="mb-4">You do not have permission to view this page.</p>
+            <Button variant="outline" onClick={() => window.location.href = '/'}>Go to Dashboard</Button>
+          </div>
+        </div>
+      );
+    }
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);

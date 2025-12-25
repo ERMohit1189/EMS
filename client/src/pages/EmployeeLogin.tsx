@@ -13,29 +13,18 @@ export default function EmployeeLogin() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [employeeName, setEmployeeName] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Load saved credentials and check login status on mount
+  // Load saved credentials on mount (Remember Me feature)
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const empName = localStorage.getItem("employeeName");
-    
-    if (loggedIn && empName) {
-      setIsLoggedIn(true);
-      setEmployeeName(empName);
-      console.log("[EmployeeLogin] Employee already logged in:", empName);
-    }
-    
     const savedEmail = localStorage.getItem("rememberMe_email");
     const savedPassword = localStorage.getItem("rememberMe_password");
-    
+
     console.log("[EmployeeLogin] Page loaded - checking for saved credentials...");
     console.log("[EmployeeLogin] Saved email found:", !!savedEmail, savedEmail ? `(${savedEmail})` : "");
     console.log("[EmployeeLogin] Saved password found:", !!savedPassword);
-    
+
     if (savedEmail && savedPassword) {
       console.log("[EmployeeLogin] ✅ Loading saved credentials from localStorage");
       setEmail(savedEmail);
@@ -47,40 +36,33 @@ export default function EmployeeLogin() {
     }
   }, []);
 
-  const handleLogout = () => {
-    console.log("[EmployeeLogin] ========== LOGOUT INITIATED ==========");
-    console.log("[EmployeeLogin] Logout button clicked by:", employeeName);
-    console.log("[EmployeeLogin] Current time:", new Date().toLocaleString());
-    console.log("[EmployeeLogin] Action: Session termination");
-    console.log("[EmployeeLogin] Redirect destination: /employee-login");
-    console.log("[EmployeeLogin] Remember Me credentials: PRESERVED");
-    console.log("[EmployeeLogin] ==========================================");
-    
-    toast({
-      title: "Logged Out Successfully ✓",
-      description: "Redirecting to Employee Login Page...",
-    });
-    
-    // Dispatch logout event to App component to handle everything
-    window.dispatchEvent(new Event('logout'));
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Start timing
+    const loginStartTime = performance.now();
+    console.log('='.repeat(60));
+    console.log(`[LOGIN TIMER] 🔐 Login button clicked at: ${new Date().toLocaleTimeString()}.${Date.now() % 1000}`);
+    console.log(`[LOGIN TIMER] Starting login process...`);
+    console.log('='.repeat(60));
 
     try {
       const apiUrl = `${getApiBaseUrl()}/api/employees/login`;
       console.log('[EmployeeLogin] Login attempt to:', apiUrl);
       console.log('[EmployeeLogin] Email:', email);
       
+      const fetchStartTime = performance.now();
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
+      const fetchEndTime = performance.now();
+      const fetchDuration = ((fetchEndTime - fetchStartTime) / 1000).toFixed(3);
 
+      console.log(`[LOGIN TIMER] ⏱️  API call completed in: ${fetchDuration} seconds`);
       console.log('[EmployeeLogin] Response status:', response.status);
       console.log('[EmployeeLogin] Response ok:', response.ok);
       
@@ -110,25 +92,66 @@ export default function EmployeeLogin() {
 
       console.log('Employee data:', data.employee);
       console.log('[EmployeeLogin] isReportingPerson from API:', data.employee.isReportingPerson);
-      
-      // Clear any vendor-related data from previous sessions
+
+      // Clear ANY and ALL vendor-related data from previous sessions to prevent conflicts
+      console.log('[EmployeeLogin] Clearing all vendor data from localStorage...');
       localStorage.removeItem("vendorId");
       localStorage.removeItem("vendorName");
       localStorage.removeItem("vendorCode");
-      
+      localStorage.removeItem("vendorEmail");
+      localStorage.removeItem("vendorPhone");
+      localStorage.removeItem("vendorGst");
+      localStorage.removeItem("vendorPan");
+      localStorage.removeItem("isVendor");
+      console.log('[EmployeeLogin] ✅ All vendor data cleared');
+
+      // Normalize role to lowercase to prevent case-sensitivity issues
+      const normalizedRole = (data.employee.role || "user").toLowerCase().trim();
+
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("employeeId", data.employee.id);
       localStorage.setItem("employeeEmail", data.employee.email);
       localStorage.setItem("employeeName", data.employee.name);
-      localStorage.setItem("employeeRole", data.employee.role || "user");
+      localStorage.setItem("employeeCode", data.employee.emp_code || data.employee.id);
+      localStorage.setItem("employeeRole", normalizedRole);
       localStorage.setItem("employeeDepartment", data.employee.department || "Not Assigned");
       localStorage.setItem("employeeDesignation", data.employee.designation || "Not Specified");
+      // Cache-bust the photo URL so the header reflects updated uploads immediately
+      const addCacheBuster = (url: string) => {
+        if (!url) return '';
+        try {
+          const u = new URL(url, window.location.origin);
+          u.searchParams.set('v', String(Date.now()));
+          return u.toString();
+        } catch (e) {
+          const sep = url.includes('?') ? '&' : '?';
+          return `${url}${sep}v=${Date.now()}`;
+        }
+      };
+      localStorage.setItem("employeePhoto", addCacheBuster(data.employee.photo || ""));
       const isRPValue = data.employee.isReportingPerson ? "true" : "false";
       localStorage.setItem("isReportingPerson", isRPValue);
-      console.log('[EmployeeLogin] Stored employeeRole:', data.employee.role || "user");
+      // Also store reporting team ids for client-side convenience
+      try {
+        localStorage.setItem('reportingTeamIds', JSON.stringify(data.employee.reportingTeamIds || []));
+      } catch (e) {
+        console.warn('Failed to store reportingTeamIds in localStorage', e);
+      }
+
+      // Store last login type for session expiry redirect
+      localStorage.setItem("lastLoginType", "employee");
+
+      // CRITICAL: Set browserSessionId to mark this as an active session
+      // This prevents App.tsx from treating page refresh as a new browser session
+      const browserSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('browserSessionId', browserSessionId);
+      console.log('[EmployeeLogin] Browser session ID set:', browserSessionId);
+
+      console.log('[EmployeeLogin] Raw role from API:', data.employee.role);
+      console.log('[EmployeeLogin] Normalized and stored employeeRole:', normalizedRole);
       console.log('[EmployeeLogin] Stored isReportingPerson:', isRPValue);
       console.log('[EmployeeLogin] localStorage.getItem("isReportingPerson"):', localStorage.getItem("isReportingPerson"));
-      
+
       console.log('localStorage after login:', {
         department: localStorage.getItem("employeeDepartment"),
         designation: localStorage.getItem("employeeDesignation")
@@ -159,8 +182,33 @@ export default function EmployeeLogin() {
       }
 
       window.dispatchEvent(new Event("login"));
-      setLocation("/employee/dashboard");
+
+      // Small delay to ensure session is fully established
+      setTimeout(() => {
+        const loginEndTime = performance.now();
+        const totalDuration = ((loginEndTime - loginStartTime) / 1000).toFixed(3);
+        console.log('='.repeat(60));
+        console.log(`[LOGIN TIMER] ✅ Total login time: ${totalDuration} seconds`);
+        console.log(`[LOGIN TIMER] Login completed at: ${new Date().toLocaleTimeString()}.${Date.now() % 1000}`);
+        console.log('='.repeat(60));
+
+        // SuperAdmin should go to main dashboard (/), but Admin and User go to employee dashboard
+        if (normalizedRole === 'superadmin') {
+          console.log(`[EmployeeLogin] SuperAdmin role detected - redirecting to /dashboard`);
+          setLocation("/");
+        } else {
+          console.log(`[EmployeeLogin] Admin or User role detected - redirecting to /employee/dashboard`);
+          setLocation("/employee/dashboard");
+        }
+      }, 100);
     } catch (error: any) {
+      const loginEndTime = performance.now();
+      const totalDuration = ((loginEndTime - loginStartTime) / 1000).toFixed(3);
+      console.log('='.repeat(60));
+      console.log(`[LOGIN TIMER] ❌ Login failed after: ${totalDuration} seconds`);
+      console.log(`[LOGIN TIMER] Error: ${error.message}`);
+      console.log('='.repeat(60));
+      
       toast({
         title: "Error",
         description: error.message || "Login failed",
@@ -172,149 +220,143 @@ export default function EmployeeLogin() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-100 p-4">
-      <div className="w-full max-w-md">
+    <div className="w-screen h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-green-50 via-emerald-50 to-teal-100 px-2 sm:px-4">
+      <div className="w-full max-w-md flex flex-col items-center justify-center">
         {/* Header Logo Area */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg mb-4">
-            <HardHat className="h-8 w-8 text-white" />
+        <div className="text-center mb-2 sm:mb-3 flex-shrink-0">
+          <div className="inline-flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg mb-2 sm:mb-3">
+            <HardHat className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Employee Portal</h1>
-          <p className="text-sm text-gray-600 mt-2">Enterprise Management System</p>
+          <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 leading-tight text-center">
+            <span className="block text-xs sm:text-sm md:text-base">Employee Portal</span>
+            <span className="block text-sm sm:text-base md:text-lg">Enterprise Operations Management System</span>
+          </h1>
+          {/* <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            Designed &amp; Developed by <a href="https://qaiinnovation.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Quantum AI Innovation</a>
+          </p> */}
         </div>
 
-        <Card className="shadow-2xl border-0">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg border-b">
-            {isLoggedIn ? (
-              <>
-                <CardTitle className="text-2xl text-green-900">Welcome, {employeeName}!</CardTitle>
-                <CardDescription className="text-gray-600">You are currently logged in</CardDescription>
-              </>
-            ) : (
-              <>
-                <CardTitle className="text-2xl text-green-900">Welcome Back</CardTitle>
-                <CardDescription className="text-gray-600">Sign in to access your dashboard</CardDescription>
-              </>
-            )}
+        <Card className="shadow-2xl border-0 flex-shrink-0">
+          <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-t-lg py-2 sm:py-3 shadow-md">
+            <CardTitle className="text-lg sm:text-2xl text-green-900">Welcome Back</CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-gray-600">Sign in to access your dashboard</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
-            {isLoggedIn ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-                  <p className="text-sm text-gray-700 mb-4">
-                    You are logged in as <strong>{employeeName}</strong>
-                  </p>
-                  <Button
-                    onClick={() => setLocation("/employee/dashboard")}
-                    className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all mb-3"
-                    data-testid="button-go-to-dashboard"
-                  >
-                    Go to Dashboard
-                  </Button>
-                  <Button
-                    onClick={handleLogout}
-                    className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
-                    data-testid="button-logout"
-                  >
-                    Logout
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleLogin} className="space-y-5">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="email"
-                    placeholder="employee@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    required
-                    data-testid="input-email"
-                    className="pl-10 h-11 border-gray-300 focus:border-green-500 focus:ring-green-500"
-                  />
-                </div>
-              </div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    data-testid="input-password"
-                    className="pl-10 h-11 border-gray-300 focus:border-green-500 focus:ring-green-500"
-                  />
+          <CardContent className="pt-3 sm:pt-4">
+            <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4 bg-white bg-opacity-70 p-3 sm:p-4 rounded-lg shadow-sm">
+                {/* Email Field */}
+                <div className="space-y-1">
+                  <label className="text-xs sm:text-sm font-semibold text-gray-700">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-2.5 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                    <Input
+                      type="email"
+                      placeholder="employee@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                      data-testid="input-email"
+                      className="pl-9 sm:pl-10 h-9 sm:h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500 shadow-sm"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Remember Me Checkbox */}
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <Checkbox
-                  id="remember-me"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => {
-                    setRememberMe(checked as boolean);
-                  }}
+                {/* Password Field */}
+                <div className="space-y-1">
+                  <label className="text-xs sm:text-sm font-semibold text-gray-700">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                    <Input
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      data-testid="input-password"
+                      className="pl-9 sm:pl-10 h-9 sm:h-11 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500 shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center gap-2 sm:gap-3 p-1 sm:p-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                  <Checkbox
+                    id="remember-me"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => {
+                      setRememberMe(checked as boolean);
+                    }}
+                    disabled={loading}
+                    data-testid="checkbox-remember-me"
+                    className="h-4 w-4 border-gray-300"
+                  />
+                  <label
+                    htmlFor="remember-me"
+                    className="text-xs sm:text-sm text-gray-700 cursor-pointer flex-1"
+                  >
+                    Remember me for 7 days
+                  </label>
+                </div>
+
+                {/* Divider */}
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                </div>
+
+                {/* Login Button */}
+                <Button
+                  type="submit"
+                  className="w-full h-9 sm:h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                   disabled={loading}
-                  data-testid="checkbox-remember-me"
-                  className="h-4 w-4 border-gray-300"
-                />
-                <label htmlFor="remember-me" className="text-sm text-gray-700 cursor-pointer flex-1">
-                  Remember me for 7 days
-                </label>
-              </div>
-
-              {/* Divider */}
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-              </div>
-
-              {/* Login Button */}
-              <Button
-                type="submit"
-                className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
-                disabled={loading}
-                data-testid="button-login"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Logging in...
-                  </span>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
+                  data-testid="button-login"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Logging in...
+                    </span>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
 
               {/* Footer Info */}
-              <p className="text-xs text-center text-gray-500 mt-4">
+              <p className="text-xs text-center text-gray-500 mt-0.5">
                 Protected by enterprise-grade security. Your data is encrypted and secure.
               </p>
+              <p className="text-xs text-center text-gray-500 mt-0">
+                Design and Developed by <a href="https://qaiinnovation.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Quantum AI Innovation</a>
+              </p>
             </form>
-            )}
           </CardContent>
         </Card>
 
-        {/* Privacy Policy Link */}
-        <div className="text-center mt-6">
-          <Link href="/employee/privacy-policy" className="text-xs text-gray-600 hover:text-gray-900 underline transition-colors" data-testid="link-privacy-policy">
+        {/* Bottom Links */}
+        <div className="mt-2 sm:mt-3 w-full flex justify-between items-center px-1 sm:px-2 flex-shrink-0 flex-nowrap">
+          {/* <p className="text-[10px] sm:text-xs text-gray-600 whitespace-nowrap">
+            Don't have account?{" "}
+            <Link href="/employee-signup" className="text-green-600 hover:text-green-800 font-semibold">
+              Sign Up
+            </Link>
+          </p> */}
+          <Link
+            href="/employee/privacy-policy"
+            className="text-[10px] sm:text-xs text-gray-600 hover:text-gray-900 underline transition-colors whitespace-nowrap ml-1"
+            data-testid="link-privacy-policy"
+          >
             Privacy Policy
           </Link>
         </div>
       </div>
     </div>
   );
+
 }

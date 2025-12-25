@@ -82,7 +82,7 @@ export default function SiteManagement() {
   useEffect(() => {
     const fetchSites = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=10000`);
+        const response = await fetch(`${getApiBaseUrl()}/api/sites?pageSize=500`);
         if (response.ok) {
           const { data } = await response.json();
           setSites(data || []);

@@ -14,21 +14,21 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="EMS Portal" />
+    <meta name="apple-mobile-web-app-title" content="EOMS" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <link rel="manifest" href="/manifest.json" />
 
     <!-- Open Graph Tags -->
-    <meta property="og:title" content="EMS Portal" />
-    <meta property="og:description" content="Enterprise Management System for Vendors and Employees" />
+    <meta property="og:title" content="Enterprise Operations Management System (EOMS)" />
+    <meta property="og:description" content="Enterprise Operations Management System for Vendors and Employees" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/attached_assets/logo.png" />
     
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@replit" />
-    <meta name="twitter:title" content="EMS Portal" />
-    <meta name="twitter:description" content="Enterprise Management System for Vendors and Employees" />
+    <meta name="twitter:title" content="Enterprise Operations Management System (EOMS)" />
+    <meta name="twitter:description" content="Enterprise Operations Management System for Vendors and Employees" />
     <meta name="twitter:image" content="/attached_assets/logo.png" />
 
     <!-- Favicon -->
@@ -42,8 +42,10 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
+    <script type="module">
+      // Only register service worker in production builds; in development this can cause
+      // spurious fetch failures and HMR overlay errors when the generated sw.js is not present.
+      if (import.meta.env && import.meta.env.PROD && 'serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
             // Clear old service workers to ensure fresh registration

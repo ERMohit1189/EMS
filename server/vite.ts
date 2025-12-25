@@ -34,6 +34,14 @@ export async function setupVite(server: Server, app: Express) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
+    // If request looks like an asset (has an extension) or is a direct /src/ request,
+    // let vite (middleware) or the client receive a 404 instead of returning index.html (HTML).
+    const ext = path.extname(req.path || '');
+    const isDevSource = req.path?.startsWith('/src/') || req.path?.startsWith('/@vite/') || req.path?.includes('/node_modules/');
+    if (ext || isDevSource) {
+      return res.status(404).end('Not found');
+    }
+
     try {
       const clientTemplate = path.resolve(
         import.meta.dirname,

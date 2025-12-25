@@ -30,10 +30,83 @@ export const fetchExportHeader = async (): Promise<ExportHeader> => {
 };
 
 /**
+ * Fetch columns from the example XLSX template stored on the server
+ */
+export const fetchTemplateColumns = async (): Promise<string[] | null> => {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/export/template-columns`);
+    if (!res.ok) return null;
+    const { columns } = await res.json();
+    if (!columns || !Array.isArray(columns)) return null;
+    return columns.map((c: any) => (typeof c === 'string' ? c.trim() : String(c)));
+  } catch (e) {
+    console.warn('Failed to fetch template columns', e);
+    return null;
+  }
+};
+
+/**
+ * Upload a template XLSX file to the server and return its header columns
+ */
+export const uploadTemplate = async (file: File): Promise<string[] | null> => {
+  try {
+    const fd = new FormData();
+    fd.append('template', file);
+    const res = await fetch(`${getApiBaseUrl()}/api/export/upload-template`, {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Upload failed');
+    }
+    const { columns } = await res.json();
+    return Array.isArray(columns) ? columns.map((c:any) => (typeof c === 'string' ? c.trim() : String(c))) : null;
+  } catch (e) {
+    console.error('Template upload failed', e);
+    return null;
+  }
+};
+
+/**
+ * Map a list of site objects to rows using the provided template columns.
+ * Uses a best-effort normalization to match header labels to object keys.
+ */
+export const mapDataToTemplateColumns = (data: any[], templateColumns: string[]): any[] => {
+  const normalize = (s: string) => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // Precompute mapping from normalized key -> actual key for the first row
+  const firstRow = data[0] || {};
+  const flatKeys = Object.keys(firstRow);
+  const keyMap: Record<string, string | undefined> = {};
+  // build a map from normalized header -> actual key
+  flatKeys.forEach((k) => { keyMap[normalize(k)] = k; });
+
+  return [
+    // header row
+    templateColumns,
+    // data rows
+    ...data.map((row) => {
+      const flat = { ...row } as any;
+      return templateColumns.map((h) => {
+        const nh = normalize(h);
+        const matchKey = keyMap[nh] || Object.keys(flat).find((k) => normalize(k) === nh);
+        const val = matchKey ? flat[matchKey] : '';
+        // Preserve numbers and dates, otherwise convert to string
+        if (val instanceof Date) return val.toISOString();
+        if (typeof val === 'bigint') return val.toString();
+        if (val && typeof val === 'object') return JSON.stringify(val);
+        return val == null ? '' : val;
+      });
+    }),
+  ];
+};
+
+/**
  * Get company name for export headers
  */
 export const getCompanyName = (header?: ExportHeader): string => {
-  return header?.companyName || 'Enterprise Management System';
+  return header?.companyName || 'Enterprise Operations Management System (EOMS)';
 };
 
 /**
@@ -168,7 +241,7 @@ const dataRowOddStyle = {
   }
 };
 
-const currencyFormat = '₹ #,##0.00';
+const currencyFormat = 'Rs #,##0.00';
 const numberFormat = '#,##0.00';
 
 /**
@@ -361,7 +434,7 @@ export const createProfessionalSalaryExcel = (
     color: { argb: 'FFFFFFFF' },
     size: 14
   };
-  row1.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+  row1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 2: Address
   worksheet.mergeCells(`A2:${lastColumnLetter}2`);
@@ -377,7 +450,7 @@ export const createProfessionalSalaryExcel = (
     color: { argb: 'FFFFFFFF' },
     size: 10
   };
-  row2.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+  row2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 4: Title
   worksheet.mergeCells(`A4:${lastColumnLetter}4`);
@@ -393,7 +466,7 @@ export const createProfessionalSalaryExcel = (
     color: { argb: 'FFFFFFFF' },
     size: 12
   };
-  row4.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+  row4.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 5: Date
   worksheet.mergeCells(`A5:${lastColumnLetter}5`);
@@ -408,7 +481,7 @@ export const createProfessionalSalaryExcel = (
     color: { argb: 'FF1F4E78' },
     size: 10
   };
-  row5.getCell(1).alignment = { horizontal: 'left', vertical: 'center' };
+  row5.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
 
   // Row 7: Column Headers
   const headerRowIndex = 7;
@@ -425,7 +498,7 @@ export const createProfessionalSalaryExcel = (
       color: { argb: 'FFFFFFFF' },
       size: 11
     };
-    cell.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = {
       left: { style: 'thin' },
       right: { style: 'thin' },
@@ -462,7 +535,7 @@ export const createProfessionalSalaryExcel = (
       };
       
       if (typeof cell.value === 'number' && colNumber >= 4) {
-        cell.numFmt = '₹ #,##0.00';
+        cell.numFmt = 'Rs #,##0.00';
       }
     });
   });
@@ -481,9 +554,9 @@ export const createProfessionalSalaryExcel = (
         color: { argb: 'FFFFFFFF' },
         size: 11
       };
-      cell.alignment = { horizontal: 'right', vertical: 'center' };
+      cell.alignment = { horizontal: 'right', vertical: 'middle' };
       if (typeof cell.value === 'number') {
-        cell.numFmt = '₹ #,##0.00';
+        cell.numFmt = 'Rs #,##0.00';
       }
     });
   }
@@ -587,7 +660,7 @@ export const createColorfulExcel = (
       color: { argb: 'FFFFFFFF' },
       size: 14
     };
-    companyRow.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+    companyRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
     dataRowStartIndex = 2;
   }
 
@@ -605,7 +678,7 @@ export const createColorfulExcel = (
       color: { argb: 'FFFFFFFF' },
       size: 10
     };
-    addressRow.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+    addressRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
     dataRowStartIndex++;
   }
 
@@ -627,7 +700,7 @@ export const createColorfulExcel = (
     color: { argb: 'FFFFFFFF' },
     size: 12
   };
-  titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'center' };
+  titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
   dataRowStartIndex++;
 
   // Add date row
@@ -643,7 +716,7 @@ export const createColorfulExcel = (
     color: { argb: 'FF1F4E78' },
     size: 10
   };
-  dateRow.getCell(1).alignment = { horizontal: 'left', vertical: 'center' };
+  dateRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
   dataRowStartIndex++;
 
   // Add empty row
@@ -651,8 +724,35 @@ export const createColorfulExcel = (
   dataRowStartIndex++;
 
   // Add data rows
+  const sanitizeCell = (v: any) => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'bigint') return v.toString();
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'object') {
+      try {
+        return JSON.stringify(v);
+      } catch (e) {
+        return String(v);
+      }
+    }
+    // convert to string for other types, but keep numbers & booleans
+    if (typeof v === 'number' || typeof v === 'boolean') return v;
+    let s = String(v);
+    // remove illegal control chars that break XLSX XML
+    s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+    return s;
+  };
+
   data.forEach((row, rowIndex) => {
-    worksheet.addRow(row);
+    // Row may be an array of values
+    if (Array.isArray(row)) {
+      worksheet.addRow(row.map(sanitizeCell));
+    } else if (typeof row === 'object') {
+      // If it's an object, convert to array of its values
+      worksheet.addRow(Object.values(row).map(sanitizeCell));
+    } else {
+      worksheet.addRow([sanitizeCell(row)]);
+    }
   });
 
   // Header row styling (now at dataRowStartIndex)
@@ -669,7 +769,7 @@ export const createColorfulExcel = (
       color: { argb: 'FFFFFFFF' },
       size: 12
     };
-    cell.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = {
       left: { style: 'thin' },
       right: { style: 'thin' },
@@ -698,7 +798,7 @@ export const createColorfulExcel = (
         };
       }
       
-      cell.alignment = { vertical: 'center' };
+      cell.alignment = { vertical: 'middle' };
       cell.border = {
         left: { style: 'thin' },
         right: { style: 'thin' },
@@ -708,19 +808,24 @@ export const createColorfulExcel = (
       
       // Apply currency formatting to numbers
       if (typeof cell.value === 'number') {
-        cell.numFmt = '₹ #,##0.00';
+        cell.numFmt = 'Rs #,##0.00';
       }
     });
   });
 
   // Save the file
-  workbook.xlsx.writeBuffer().then((buffer) => {
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  });
+  workbook.xlsx.writeBuffer()
+    .then((buffer) => {
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch((err) => {
+      console.error('Failed to write Excel buffer', err);
+      alert('Failed to generate Excel file. See console for details.');
+    });
 };

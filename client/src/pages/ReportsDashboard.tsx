@@ -42,17 +42,6 @@ const REPORTS: ReportCard[] = [
     roles: ["vendor", "superadmin"],
     category: "Operations",
   },
-
-  // Employee & Admin Reports
-  {
-    id: "salary-report",
-    title: "Salary Structures",
-    description: "View employee salary breakdowns with earnings and deductions",
-    icon: <BarChart3 className="w-8 h-8" />,
-    path: "/employee/salary-report",
-    roles: ["superadmin"],
-    category: "HR & Payroll",
-  },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {

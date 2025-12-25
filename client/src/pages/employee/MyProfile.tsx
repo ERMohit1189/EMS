@@ -17,6 +17,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { IndianStates, getCitiesByState } from "@/assets/india-data";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Full name is required"),
@@ -37,38 +41,84 @@ interface MyProfileData extends z.infer<typeof profileSchema> {
   email: string;
   department: string;
   designation: string;
+  role: string;
+  status: string;
   photo?: string;
 }
 
 export default function MyProfile() {
+  // Role-based access control
+  const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+  if (employeeRole !== 'admin' && employeeRole !== 'user' && employeeRole !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
   const { toast } = useToast();
+  const employeeId = localStorage.getItem('employeeId');
   const [employee, setEmployee] = useState<MyProfileData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [cities, setCities] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const employeeId = localStorage.getItem('employeeId');
 
   const fetchEmployeeDataParallel = async () => {
     if (!employeeId) return;
+    setLoading(true);
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`);
       if (response.ok) {
         const data = await response.json();
-        // Get department and designation from localStorage (saved during login)
-        const department = localStorage.getItem('employeeDepartment') || 'Not Assigned';
-        const designation = localStorage.getItem('employeeDesignation') || 'Not Specified';
+        // Get department and designation from localStorage (saved during login), fall back to API
+        const department = localStorage.getItem('employeeDepartment') || data.department || 'Not Assigned';
+        const designation = localStorage.getItem('employeeDesignation') || data.designation || 'Not Specified';
         
         const employeeWithNames = {
           ...data,
           department,
           designation,
+          role: data.role || localStorage.getItem('employeeRole') || 'user',
+          status: data.status || 'Active',
         };
         
+        // Log when role/status are missing so we can diagnose the backend
+        if (!data.role || !data.status) {
+          console.warn('MyProfile: missing role/status from API for', req.params?.id || employeeId, data.role, data.status);
+        }
+
         setEmployee(employeeWithNames);
         if (data.photo) {
-          setPhotoPreview(data.photo);
+          // Append cache-busting query param so browsers load the replaced file immediately
+          const addCacheBuster = (url: string) => {
+            if (!url) return '';
+            try {
+              const u = new URL(url, window.location.origin);
+              u.searchParams.set('v', String(Date.now()));
+              return u.toString();
+            } catch (e) {
+              const sep = url.includes('?') ? '&' : '?';
+              return `${url}${sep}v=${Date.now()}`;
+            }
+          };
+
+          const photoWithBuster = addCacheBuster(data.photo);
+          setPhotoPreview(photoWithBuster);
+
+          // If this is the logged-in employee, update localStorage so header/dashboard can show the image
+          if (localStorage.getItem('employeeId') === data.id) {
+            localStorage.setItem('employeePhoto', photoWithBuster);
+            // dispatch login + custom event so header picks up new photo immediately
+            window.dispatchEvent(new Event('login'));
+            window.dispatchEvent(new Event('user-updated'));
+          }
         }
+        // preload cities list based on current state
+        setCities(getCitiesByState(data.state || ""));
       }
     } catch (error) {
       toast({
@@ -76,6 +126,8 @@ export default function MyProfile() {
         description: "Failed to load profile data",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,6 +158,11 @@ export default function MyProfile() {
 
   useEffect(() => {
     if (employee) {
+      // preload cities for the employee's state first so Select has options
+      const initialCities = getCitiesByState(employee.state || "");
+      setCities(initialCities);
+
+      // Now reset the form values (state & city will match available options)
       form.reset({
         name: employee.name,
         fatherName: employee.fatherName,
@@ -119,8 +176,85 @@ export default function MyProfile() {
         aadhar: employee.aadhar || "",
         pan: employee.pan || "",
       });
+
+      // Force set state and city so controlled Selects bind reliably
+      console.log('MyProfile: setting state immediate ->', employee.state || '');
+      form.setValue("state", employee.state || "", { shouldValidate: false });
+      setTimeout(() => {
+        console.log('MyProfile: setting state microtask ->', employee.state || '');
+        form.setValue("state", employee.state || "", { shouldValidate: false });
+      }, 0);
+
+      // Try immediate set and also a microtask fallback to avoid timing issues with Select components
+      if (employee.city && initialCities.includes(employee.city)) {
+        console.log('MyProfile: setting city immediate ->', employee.city);
+        form.setValue("city", employee.city, { shouldValidate: false });
+        setTimeout(() => {
+          console.log('MyProfile: setting city microtask ->', employee.city);
+          form.setValue("city", employee.city, { shouldValidate: false });
+        }, 0);
+      } else {
+        console.log('MyProfile: clearing city immediate');
+        form.setValue("city", "", { shouldValidate: false });
+        setTimeout(() => {
+          console.log('MyProfile: clearing city microtask');
+          form.setValue("city", "", { shouldValidate: false });
+        }, 0);
+      }
+
+      // Debug: log employee state and form values after reset and after microtask to verify binding
+      try {
+        console.log('MyProfile: employee.state', employee.state);
+        console.log('MyProfile: initialCities includes city?', initialCities.includes(employee.city || ''));
+        console.log('MyProfile: form values after reset (immediate)', form.getValues());
+        setTimeout(() => {
+          console.log('MyProfile: form values after reset (microtask)', form.getValues());
+        }, 0);
+
+        // Force final set after a short delay to override any later clears
+        setTimeout(() => {
+          console.log('MyProfile: forcing final state/city set ->', employee.state, employee.city);
+          form.setValue("state", employee.state || "", { shouldValidate: false });
+          const finalCities = getCitiesByState(employee.state || "");
+          if (employee.city && finalCities.includes(employee.city)) {
+            form.setValue("city", employee.city, { shouldValidate: false });
+          } else {
+            form.setValue("city", "", { shouldValidate: false });
+          }
+          console.log('MyProfile: form values after forced set', form.getValues());
+        }, 50);
+      } catch (e) {
+        console.warn('MyProfile: failed to get form values after reset', e);
+      }
     }
   }, [employee, form]);
+
+  // Watch state changes and update city options
+  const watchedState = form.watch("state");
+  const initializingRef = useRef(true);
+
+  useEffect(() => {
+    console.log('MyProfile: watchedState changed ->', watchedState);
+    if (watchedState) {
+      setCities(getCitiesByState(watchedState));
+      // Only clear city when state is changed by the user (not during initial form population)
+      if (!initializingRef.current && watchedState !== employee?.state) {
+        form.setValue("city", "", { shouldValidate: false });
+      }
+    } else {
+      setCities([]);
+      if (!initializingRef.current) {
+        form.setValue("city", "", { shouldValidate: false });
+      }
+    }
+  }, [watchedState, form, employee?.state]);
+
+  // After initial population complete, clear the init flag
+  useEffect(() => {
+    // Run in microtask so this runs after initial setValue calls
+    const t = setTimeout(() => { initializingRef.current = false; }, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -147,7 +281,7 @@ export default function MyProfile() {
     if (!employeeId) return;
 
     try {
-      setLoading(true);
+      setSaving(true);
       const formData = new FormData();
       
       // Add all form fields
@@ -182,7 +316,7 @@ export default function MyProfile() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -242,6 +376,8 @@ export default function MyProfile() {
       <div>
         <h2 className="text-3xl font-bold">My Profile</h2>
         <p className="text-muted-foreground mt-1">View and edit your profile information</p>
+
+
       </div>
 
       <Card>
@@ -285,43 +421,43 @@ export default function MyProfile() {
           <CardTitle>Personal Information</CardTitle>
         </CardHeader>
         <CardContent>
+
+          {/* Colored badges for read-only fields (Email / Dept / Desig / Role / Status / DOJ) */}
+          {employee && (
+            <div className="flex gap-2 flex-wrap mb-4" data-testid="profile-badges-colored">
+              <Badge className="bg-blue-600 text-white text-xs" data-testid="badge-email">
+                Email: <span className="ml-2 font-medium">{employee.email}</span>
+              </Badge>
+
+              <Badge className="bg-red-500 text-white text-xs" data-testid="badge-dept">
+                Dept: <span className="ml-2 font-medium">{employee.department || '—'}</span>
+              </Badge>
+
+              <Badge className="bg-yellow-400 text-black text-xs" data-testid="badge-desig">
+                Desig: <span className="ml-2 font-medium">{employee.designation || '—'}</span>
+              </Badge>
+
+              <Badge className="bg-orange-500 text-white text-xs" data-testid="badge-role">
+                Role: <span className="ml-2 font-medium">{employee.role || '—'}</span>
+              </Badge>
+
+              <Badge className={employee.status === 'Active' ? 'bg-green-500 text-white text-xs' : 'bg-red-600 text-white text-xs'} data-testid="badge-status">
+                Status: <span className="ml-2 font-medium">{employee.status || '—'}</span>
+              </Badge>
+
+              <Badge className="bg-pink-400 text-black text-xs" data-testid="badge-doj">
+                DOJ: <span className="ml-2 font-medium">{employee.doj ? (typeof employee.doj === 'string' ? employee.doj : (employee.doj as any)?.split?.('T')?.[0] || '') : '—'}</span>
+              </Badge>
+            </div>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Email - Read Only */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <Input
-                    value={employee.email}
-                    disabled
-                    className="bg-muted mt-1.5"
-                    data-testid="input-email-readonly"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
-                </div>
 
-                {/* Department - Read Only */}
-                <div>
-                  <label className="text-sm font-medium">Department</label>
-                  <Input
-                    value={employee.department}
-                    disabled
-                    className="bg-muted mt-1.5"
-                    data-testid="input-department-readonly"
-                  />
-                </div>
-              </div>
 
-              {/* Designation - Read Only */}
-              <div>
-                <label className="text-sm font-medium">Designation</label>
-                <Input
-                  value={employee.designation}
-                  disabled
-                  className="bg-muted mt-1.5"
-                  data-testid="input-designation-readonly"
-                />
-              </div>
+
+
+
 
               {/* Editable Fields */}
               <div className="grid gap-4 md:grid-cols-2">
@@ -406,7 +542,20 @@ export default function MyProfile() {
                     <FormItem>
                       <FormLabel>City *</FormLabel>
                       <FormControl>
-                        <Input placeholder="City" {...field} data-testid="input-city" />
+                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {cities.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -420,7 +569,32 @@ export default function MyProfile() {
                     <FormItem>
                       <FormLabel>State *</FormLabel>
                       <FormControl>
-                        <Input placeholder="State" {...field} data-testid="input-state" />
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            const newCities = getCitiesByState(val);
+                            setCities(newCities);
+                            // clear city only if it doesn't belong to the new state's cities
+                            const currentCity = form.getValues("city");
+                            if (!newCities.includes(currentCity)) {
+                              form.setValue("city", "", { shouldValidate: false });
+                            }
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {IndianStates.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -489,8 +663,8 @@ export default function MyProfile() {
               </div>
 
               <div className="flex gap-4">
-                <Button type="submit" disabled={loading} data-testid="button-save-profile">
-                  {loading ? "Saving..." : "Save Changes"}
+                <Button type="submit" disabled={saving} data-testid="button-save-profile">
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
                 <Button
                   type="button"

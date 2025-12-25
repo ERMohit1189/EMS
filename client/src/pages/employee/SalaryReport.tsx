@@ -13,6 +13,7 @@ interface SalaryData {
   id: string;
   employeeId: string;
   employeeName: string;
+  employeeCode: string;
   department: string;
   designation: string;
   basicSalary: number;
@@ -42,9 +43,28 @@ const formatValue = (value: number | string): string | number => {
 };
 
 export default function SalaryReport() {
+    // Role-based access control
+    const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+    const vendorId = localStorage.getItem('vendorId');
+    const isAllowed = employeeRole === 'admin' || employeeRole === 'user' || employeeRole === 'superadmin';
+    if (!isAllowed) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Not Authorized</CardTitle>
+              <CardDescription>You do not have permission to view this report.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => window.location.href = '/'}>Go to Dashboard</Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
   const { toast } = useToast();
   const [salaryData, setSalaryData] = useState<SalaryData[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'gross' | 'net'>('name');
   const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
@@ -67,13 +87,14 @@ export default function SalaryReport() {
         const data = await response.json();
         setSalaryData(data);
       } else {
-        throw new Error('Failed to fetch salary report');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to fetch salary report (${response.status})`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching salary report:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load salary report',
+        description: error.message || 'Failed to load salary report',
         variant: 'destructive',
       });
     } finally {
@@ -84,6 +105,7 @@ export default function SalaryReport() {
   const filteredData = salaryData
     .filter(item =>
       item.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.employeeCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.department.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
@@ -105,11 +127,12 @@ export default function SalaryReport() {
       ['SALARY REPORT'],
       ['Generated on:', formatExportDate()],
       [''],
-      ['Employee Name', 'Department', 'Designation', 'Basic', 'HRA', 'DA', 'LTA', 'Conveyance', 'Medical', 'Bonuses', 'Other Benefits', 'Gross Salary', 'PF', 'Professional Tax', 'Income Tax', 'EPF', 'ESIC', 'Total Deductions', 'Net Salary'],
+      ['Employee Code', 'Employee Name', 'Department', 'Designation', 'Basic', 'HRA', 'DA', 'LTA', 'Conveyance', 'Medical', 'Bonuses', 'Other Benefits', 'Gross Salary', 'PF', 'Professional Tax', 'Income Tax', 'EPF', 'ESIC', 'Total Deductions', 'Net Salary'],
     ];
 
     filteredData.forEach(item => {
       data.push([
+        item.employeeCode,
         item.employeeName,
         item.department,
         item.designation,
@@ -133,9 +156,9 @@ export default function SalaryReport() {
     });
 
     data.push(['']);
-    data.push(['TOTAL', '', '', '', '', '', '', '', '', '', '', totalGross, '', '', '', '', '', totalDeductions, totalNet]);
+    data.push(['TOTAL', '', '', '', '', '', '', '', '', '', '', '', totalGross, '', '', '', '', '', totalDeductions, totalNet]);
 
-    const columnWidths = Array(19).fill(14);
+    const columnWidths = Array(20).fill(14);
     createProfessionalSalaryExcel(data, columnWidths, `SalaryReport_${getCurrentYear()}.xlsx`);
 
     toast({
@@ -182,7 +205,7 @@ export default function SalaryReport() {
     yPos += 8;
 
     pdf.setFontSize(8);
-    const headers = ['Name', 'Department', 'Designation', 'Basic', 'Gross', 'PF', 'Prof Tax', 'Income Tax', 'EPF', 'ESIC', 'Deductions', 'Net'];
+    const headers = ['Code', 'Name', 'Department', 'Designation', 'Basic', 'Gross', 'PF', 'Prof Tax', 'Income Tax', 'EPF', 'ESIC', 'Deductions', 'Net'];
     const colWidth = (pageWidth - 30) / headers.length;
 
     headers.forEach((header, index) => {
@@ -200,18 +223,19 @@ export default function SalaryReport() {
         yPos = 15;
       }
 
-      pdf.text(item.employeeName, 15, yPos);
-      pdf.text(item.department, 15 + colWidth, yPos);
-      pdf.text(item.designation, 15 + colWidth * 2, yPos);
-      pdf.text(`Rs ${formatValue(item.basicSalary)}`, 15 + colWidth * 3, yPos);
-      pdf.text(`Rs ${formatValue(item.gross)}`, 15 + colWidth * 4, yPos);
-      pdf.text(`Rs ${formatValue(item.pf)}`, 15 + colWidth * 5, yPos);
-      pdf.text(`Rs ${formatValue(item.professionalTax)}`, 15 + colWidth * 6, yPos);
-      pdf.text(`Rs ${formatValue(item.incomeTax)}`, 15 + colWidth * 7, yPos);
-      pdf.text(`Rs ${formatValue(item.epf)}`, 15 + colWidth * 8, yPos);
-      pdf.text(`Rs ${formatValue(item.esic)}`, 15 + colWidth * 9, yPos);
-      pdf.text(`Rs ${formatValue(item.deductions)}`, 15 + colWidth * 10, yPos);
-      pdf.text(`Rs ${formatValue(item.net)}`, 15 + colWidth * 11, yPos);
+      pdf.text(item.employeeCode, 15, yPos);
+      pdf.text(item.employeeName, 15 + colWidth, yPos);
+      pdf.text(item.department, 15 + colWidth * 2, yPos);
+      pdf.text(item.designation, 15 + colWidth * 3, yPos);
+      pdf.text(`Rs ${formatValue(item.basicSalary)}`, 15 + colWidth * 4, yPos);
+      pdf.text(`Rs ${formatValue(item.gross)}`, 15 + colWidth * 5, yPos);
+      pdf.text(`Rs ${formatValue(item.pf)}`, 15 + colWidth * 6, yPos);
+      pdf.text(`Rs ${formatValue(item.professionalTax)}`, 15 + colWidth * 7, yPos);
+      pdf.text(`Rs ${formatValue(item.incomeTax)}`, 15 + colWidth * 8, yPos);
+      pdf.text(`Rs ${formatValue(item.epf)}`, 15 + colWidth * 9, yPos);
+      pdf.text(`Rs ${formatValue(item.esic)}`, 15 + colWidth * 10, yPos);
+      pdf.text(`Rs ${formatValue(item.deductions)}`, 15 + colWidth * 11, yPos);
+      pdf.text(`Rs ${formatValue(item.net)}`, 15 + colWidth * 12, yPos);
 
       yPos += 5;
     });
@@ -220,9 +244,9 @@ export default function SalaryReport() {
     pdf.line(15, yPos, pageWidth - 15, yPos);
     yPos += 5;
     pdf.text('TOTAL', 15, yPos);
-    pdf.text(`Rs ${formatValue(totalGross)}`, 15 + colWidth * 4, yPos);
-    pdf.text(`Rs ${formatValue(totalDeductions)}`, 15 + colWidth * 10, yPos);
-    pdf.text(`Rs ${formatValue(totalNet)}`, 15 + colWidth * 11, yPos);
+    pdf.text(`Rs ${formatValue(totalGross)}`, 15 + colWidth * 5, yPos);
+    pdf.text(`Rs ${formatValue(totalDeductions)}`, 15 + colWidth * 11, yPos);
+    pdf.text(`Rs ${formatValue(totalNet)}`, 15 + colWidth * 12, yPos);
 
     pdf.save(`SalaryReport_${getCurrentYear()}.pdf`);
 
@@ -246,7 +270,7 @@ export default function SalaryReport() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label>Search by Name or Department</Label>
+              <Label>Search by Name, Code or Department</Label>
               <Input
                 placeholder="Search..."
                 value={searchTerm}
@@ -287,6 +311,7 @@ export default function SalaryReport() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
+                  <th className="text-left py-2 px-3 font-semibold">Employee Code</th>
                   <th className="text-left py-2 px-3 font-semibold">Employee Name</th>
                   <th className="text-left py-2 px-3 font-semibold">Department</th>
                   <th className="text-left py-2 px-3 font-semibold">Designation</th>
@@ -299,6 +324,7 @@ export default function SalaryReport() {
               <tbody>
                 {filteredData.map((item) => (
                   <tr key={item.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-900">
+                    <td className="py-2 px-3">{item.employeeCode}</td>
                     <td className="py-2 px-3">{item.employeeName}</td>
                     <td className="py-2 px-3">{item.department}</td>
                     <td className="py-2 px-3">{item.designation}</td>

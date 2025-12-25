@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
-import { MapPin, Calendar, Radio, Globe, Hash, Search, RefreshCw, Eye, X, AlertCircle, Download } from "lucide-react";
+import { MapPin, Calendar, Radio, Globe, Hash, Search, RefreshCw, Eye, X, AlertCircle, Download, FileText } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 
@@ -67,7 +67,10 @@ export default function VendorSiteReport() {
   const [antennaFilter, setAntennaFilter] = useState("");
   const [zoneFilter, setZoneFilter] = useState("");
   const [planIdFilter, setPlanIdFilter] = useState("");
+  const [poInvoiceFilter, setPoInvoiceFilter] = useState<'all'|'po'|'inv'|'both'>('all');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [vendorPOs, setVendorPOs] = useState<any[]>([]);
+  const [vendorInvoices, setVendorInvoices] = useState<any[]>([]);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -200,8 +203,36 @@ export default function VendorSiteReport() {
       fetchZones();
       fetchSites();
       fetchVendor();
+      fetchVendorPOs();
+      fetchVendorInvoices();
     }
   }, [vendorId]);
+
+  const fetchVendorPOs = async () => {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`);
+      if (res.ok) {
+        const json = await res.json();
+        const data = json.data || [];
+        setVendorPOs(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch vendor POs', err);
+    }
+  };
+
+  const fetchVendorInvoices = async () => {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/invoices`);
+      if (res.ok) {
+        const json = await res.json();
+        const data = json.data || [];
+        setVendorInvoices(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch vendor invoices', err);
+    }
+  };
 
   const fetchVendor = async () => {
     try {
@@ -302,12 +333,56 @@ export default function VendorSiteReport() {
     return matchesDate && matchesAntenna && matchesZone && matchesPlanId;
   });
 
+  const sitePOInvoiceMap = useMemo(() => {
+    const map = new Map<string, { poCount: number; invoiceCount: number; planPresent: boolean }>();
+    const invoicePoSet = new Set(vendorInvoices.map(inv => inv.poId));
+
+    vendorPOs.forEach((po: any) => {
+      // Build unique set of siteIds in this PO and whether that site has plan id on any line
+      const sitesInPo = new Map<string, { hasPlan: boolean }>();
+      (po.lines || []).forEach((ln: any) => {
+        if (!ln.siteId) return;
+        const cur = sitesInPo.get(ln.siteId) || { hasPlan: false };
+        if (ln.sitePlanId) cur.hasPlan = true;
+        sitesInPo.set(ln.siteId, cur);
+      });
+
+      const hasInvoice = invoicePoSet.has(po.id);
+
+      for (const [sid, info] of sitesInPo.entries()) {
+        const entry = map.get(sid) || { poCount: 0, invoiceCount: 0, planPresent: false };
+        entry.poCount += 1;
+        if (hasInvoice) entry.invoiceCount += 1;
+        if (info.hasPlan) entry.planPresent = true;
+        map.set(sid, entry);
+      }
+    });
+
+    return map;
+  }, [vendorPOs, vendorInvoices]);
+
+  const finalSites = useMemo(() => {
+    if (poInvoiceFilter === 'all') return filteredSites;
+    return filteredSites.filter(site => {
+      const entry = sitePOInvoiceMap.get(site.id) || { poCount: 0, invoiceCount: 0, planPresent: false };
+      const hasPO = Boolean(entry.planPresent);
+      const hasInv = entry.invoiceCount > 0;
+      switch (poInvoiceFilter) {
+        case 'po': return hasPO;
+        case 'inv': return hasInv;
+        case 'both': return hasPO && hasInv;
+        default: return true;
+      }
+    });
+  }, [filteredSites, poInvoiceFilter, sitePOInvoiceMap]);
+
   const clearFilters = () => {
     setFromDate("");
     setToDate("");
     setAntennaFilter("");
     setZoneFilter("");
     setPlanIdFilter("");
+    setPoInvoiceFilter('all');
   };
 
   const getStatusColor = (status: string) => {
@@ -432,6 +507,7 @@ export default function VendorSiteReport() {
               />
             </div>
 
+
             <div className="flex items-end">
               <Button onClick={clearFilters} variant="outline" className="w-full" data-testid="button-clear">
                 Clear Filters
@@ -444,14 +520,14 @@ export default function VendorSiteReport() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-purple-900">{filteredSites.length}</p>
+            <p className="text-3xl font-bold text-purple-900">{finalSites.length}</p>
             <p className="text-sm text-purple-700">Total Sites</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-green-900">
-              {filteredSites.filter((s) => s.phyAtStatus?.toLowerCase() === "completed").length}
+              {finalSites.filter((s) => (s.phyAtStatus || '').toLowerCase() === "approved").length}
             </p>
             <p className="text-sm text-green-700">Physical AT Completed</p>
           </CardContent>
@@ -459,41 +535,57 @@ export default function VendorSiteReport() {
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-blue-900">
-              {filteredSites.filter((s) => s.softAtStatus?.toLowerCase() === "completed").length}
+              {finalSites.filter((s) => (s.softAtStatus || '').toLowerCase() === "approved").length}
             </p>
             <p className="text-sm text-blue-700">Soft AT Completed</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-orange-900">₹{filteredSites.reduce((sum, s) => sum + parseFloat(s.vendorAmount || "0"), 0).toLocaleString()}</p>
-            <p className="text-sm text-orange-700">Total Vendor Amount</p>
+            <p className="text-3xl font-bold text-orange-900">Rs {finalSites.reduce((sum, s) => sum + parseFloat(s.vendorAmount || "0"), 0).toLocaleString()}</p>
+            <p className="text-sm text-orange-700">Total Amount</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Sites ({filteredSites.length})</CardTitle>
-          <Button 
-            onClick={downloadExcel} 
-            className="gap-2"
-            data-testid="button-download-excel"
-            disabled={filteredSites.length === 0}
-          >
-            <Download className="h-4 w-4" />
-            Download Excel
-          </Button>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <CardTitle>Sites ({finalSites.length})</CardTitle>
+          <div className="flex items-center gap-3">
+            <select
+              id="poInv"
+              value={poInvoiceFilter}
+              onChange={(e) => setPoInvoiceFilter(e.target.value as any)}
+              className="hidden sm:inline-flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              data-testid="select-po-inv"
+              aria-label="PO/Invoice filter"
+            >
+              <option value="all">All</option>
+              <option value="po">PO generated</option>
+              <option value="inv">Invoice generated</option>
+              <option value="both">Both generated</option>
+            </select>
+            <Button 
+              onClick={downloadExcel} 
+              className="gap-2"
+              data-testid="button-download-excel"
+              disabled={finalSites.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Download Excel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
-          ) : filteredSites.length > 0 ? (
+          ) : finalSites.length > 0 ? (
             <div className="space-y-3">
-              {filteredSites.map((site) => (
-                <Card key={site.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" data-testid={`card-site-${site.id}`}>
+              {finalSites.map((site, idx) => (
+                <Card key={site.id} className="relative overflow-visible hover:shadow-md transition-shadow cursor-pointer" data-testid={`card-site-${site.id}`}>
+                  <div className="absolute -left-4 -top-4 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center border-2 border-white text-sm font-semibold shadow z-20">{idx + 1}</div>
                   <CardHeader className="py-4 pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -511,10 +603,18 @@ export default function VendorSiteReport() {
                         <Eye className="h-5 w-5" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-3">
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Site ID</label>
-                        <p className="text-sm font-semibold mt-0.5 truncate">{site.siteId}</p>
+                        <label className="text-xs font-medium text-muted-foreground">Site Name</label>
+                        <p className="text-sm font-semibold mt-0.5 truncate">{site.hopAB || site.siteHopAB || site.siteId}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Installation Date</label>
+                        <p className="text-sm font-semibold mt-0.5">{site.siteAInstallationDate ? new Date(site.siteAInstallationDate).toISOString().slice(0,10) : '—'}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Soft AT</label>
+                        <p className="text-sm font-semibold mt-0.5">{site.softAtStatus || '—'}</p>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
@@ -525,11 +625,18 @@ export default function VendorSiteReport() {
                         <p className="text-sm font-semibold mt-0.5 truncate">{site.siteBName || "—"}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Phy AT</label>
-                        <div className="mt-0.5">
-                          <Badge className={getStatusColor(site.phyAtStatus)}>
-                            {site.phyAtStatus || "N/A"}
-                          </Badge>
+                        <div className="mt-0.5 flex gap-2">
+                          {(() => {
+                            const entry = sitePOInvoiceMap.get(site.id) || { poCount: 0, invoiceCount: 0, planPresent: false };
+                            const hasPO = Boolean(entry.planPresent);
+                            const hasInv = entry.invoiceCount > 0;
+                            return (
+                              <>
+                                <span className={`text-xs px-2 py-0.5 rounded ${hasPO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{hasPO ? 'PO ✓' : 'PO ✕'}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${hasInv ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{hasInv ? 'Inv ✓' : 'Inv ✕'}</span>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -563,8 +670,16 @@ export default function VendorSiteReport() {
                     <p className="text-sm font-semibold mt-1">{vendor?.vendorCode || "—"}</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-md">
-                    <label className="text-xs font-medium text-muted-foreground">Site ID</label>
-                    <p className="text-sm font-semibold mt-1">{selectedSite.siteId}</p>
+                    <label className="text-xs font-medium text-muted-foreground">Site Name</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.hopAB || selectedSite.siteHopAB || selectedSite.siteId}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Installation Date</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.siteAInstallationDate ? new Date(selectedSite.siteAInstallationDate).toISOString().slice(0,10) : '—'}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <label className="text-xs font-medium text-muted-foreground">Soft AT Status</label>
+                    <p className="text-sm font-semibold mt-1">{selectedSite.softAtStatus || '—'}</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-md">
                     <label className="text-xs font-medium text-muted-foreground">Plan ID</label>
@@ -581,6 +696,21 @@ export default function VendorSiteReport() {
                   <div className="bg-muted/50 p-3 rounded-md">
                     <label className="text-xs font-medium text-muted-foreground">HOP Type</label>
                     <p className="text-sm font-semibold mt-1">{selectedSite.hopType || "—"}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <div className="flex gap-2 mt-1">
+                      {(() => {
+                        const entry = sitePOInvoiceMap.get(selectedSite.id) || { poCount: 0, invoiceCount: 0, planPresent: false };
+                        const hasPO = Boolean(entry.planPresent);
+                        const hasInv = entry.invoiceCount > 0;
+                        return (
+                          <>
+                            <span className={`text-xs px-2 py-0.5 rounded ${hasPO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{hasPO ? 'PO ✓' : 'PO ✕'}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${hasInv ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{hasInv ? 'Inv ✓' : 'Inv ✕'}</span>
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>

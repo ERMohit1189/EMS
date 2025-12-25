@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { FileText, Calendar, MapPin, Search, Download, RefreshCw, AlertCircle } from "lucide-react";
@@ -39,6 +40,12 @@ export default function VendorPOReport() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
+
+  const [sitesModalOpen, setSitesModalOpen] = useState(false);
+  const [modalSites, setModalSites] = useState<any[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalPoNumber, setModalPoNumber] = useState<string | null>(null);
+
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -85,10 +92,19 @@ export default function VendorPOReport() {
   const fetchPurchaseOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`);
+      // Try to fetch POs with lines (preferred); fallback to without-lines if not available or unauthorized
+      let response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders/with-lines`);
       if (response.ok) {
         const data = await response.json();
         setPurchaseOrders(data.data || []);
+      } else {
+        response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`);
+        if (response.ok) {
+          const data = await response.json();
+          setPurchaseOrders(data.data || []);
+        } else {
+          toast({ title: "Error", description: "Failed to fetch purchase orders", variant: "destructive" });
+        }
       }
     } catch (error: any) {
       toast({
@@ -139,15 +155,36 @@ export default function VendorPOReport() {
     setSelectedSite("");
   };
 
+  const openSitesModal = async (po: any) => {
+    const siteIds = Array.from(new Set((po.lines || []).map((ln: any) => ln.siteId).filter(Boolean)));
+    if (siteIds.length === 0) {
+      setModalSites([]);
+      setModalPoNumber(po.poNumber || null);
+      setSitesModalOpen(true);
+      return;
+    }
+
+    try {
+      setModalLoading(true);
+      setModalPoNumber(po.poNumber || null);
+      const fetches = siteIds.map(id => fetch(`${getApiBaseUrl()}/api/sites/${id}`).then(r => r.ok ? r.json() : null));
+      const results = await Promise.all(fetches);
+      const sitesData = results.filter(Boolean);
+      setModalSites(sitesData as any[]);
+      setSitesModalOpen(true);
+    } catch (err) {
+      console.error('Failed to load sites for PO', err);
+      toast({ title: 'Error', description: 'Failed to load site details', variant: 'destructive' });
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   const totalAmount = filteredPOs.reduce(
     (sum, po) => sum + parseFloat(po.totalAmount || "0"),
     0
   );
 
-  const totalVendorAmount = filteredPOs.reduce((sum, po) => {
-    const site = sites.find(s => s.id === po.siteId);
-    return sum + parseFloat(site?.vendorAmount || "0");
-  }, 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -234,7 +271,7 @@ export default function VendorPOReport() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <p className="text-3xl font-bold text-blue-900">{filteredPOs.length}</p>
@@ -243,22 +280,8 @@ export default function VendorPOReport() {
         </Card>
         <Card className="bg-gradient-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-green-900">₹{totalAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-900">Rs {totalAmount.toLocaleString()}</p>
             <p className="text-sm text-green-700">Total PO Amount</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
-          <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-purple-900">
-              {filteredPOs.filter((po) => po.status?.toLowerCase() === "approved").length}
-            </p>
-            <p className="text-sm text-purple-700">Approved POs</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
-          <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-orange-900">₹{totalVendorAmount.toLocaleString()}</p>
-            <p className="text-sm text-orange-700">Total Vendor Amount</p>
           </CardContent>
         </Card>
       </div>
@@ -277,26 +300,38 @@ export default function VendorPOReport() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 py-3 text-left font-medium">S.No</th>
                     <th className="px-4 py-3 text-left font-medium">PO Number</th>
                     <th className="px-4 py-3 text-left font-medium">Date</th>
                     <th className="px-4 py-3 text-left font-medium">Description</th>
-                    <th className="px-4 py-3 text-center font-medium">Qty</th>
-                    <th className="px-4 py-3 text-right font-medium">Unit Price</th>
+                    <th className="px-4 py-3 text-center font-medium">Sites</th>
                     <th className="px-4 py-3 text-right font-medium">Total</th>
                     <th className="px-4 py-3 text-center font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filteredPOs.map((po) => (
+                  {filteredPOs.map((po, idx) => (
                     <tr key={po.id} className="hover:bg-gray-50" data-testid={`row-po-${po.id}`}>
+                      <td className="px-4 py-3">{idx + 1}</td>
                       <td className="px-4 py-3 font-medium">{po.poNumber}</td>
                       <td className="px-4 py-3">
                         {po.poDate ? format(new Date(po.poDate), "dd MMM yyyy") : "N/A"}
                       </td>
                       <td className="px-4 py-3">{po.description}</td>
-                      <td className="px-4 py-3 text-center">{po.quantity}</td>
-                      <td className="px-4 py-3 text-right">₹{parseFloat(po.unitPrice).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right font-medium">₹{parseFloat(po.totalAmount).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          className="text-sm text-blue-600 hover:underline"
+                          onClick={() => openSitesModal(po)}
+                          data-testid={`button-po-sites-${po.id}`}
+                        >
+                          {(() => {
+                            const sites = (po.lines || []).map((ln: any) => ln.siteHopAB || ln.sitePlanId || ln.siteId || '').filter(Boolean);
+                            const uniqCount = Array.from(new Set(sites)).length;
+                            return uniqCount;
+                          })()}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">Rs {parseFloat(po.totalAmount || '0').toLocaleString()}</td> 
                       <td className="px-4 py-3 text-center">
                         <Badge className={getStatusColor(po.status)}>{po.status}</Badge>
                       </td>
@@ -306,7 +341,7 @@ export default function VendorPOReport() {
                 <tfoot className="bg-gray-100">
                   <tr>
                     <td colSpan={5} className="px-4 py-3 font-bold text-right">Total:</td>
-                    <td className="px-4 py-3 text-right font-bold">₹{totalAmount.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-bold">Rs {totalAmount.toLocaleString()}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -317,6 +352,61 @@ export default function VendorPOReport() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={sitesModalOpen} onOpenChange={(open) => { if (!open) { setSitesModalOpen(false); setModalSites([]); setModalPoNumber(null);} }}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sites for PO {modalPoNumber}</DialogTitle>
+          </DialogHeader>
+
+          {modalLoading ? (
+            <div className="flex justify-center py-8"><div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
+          ) : modalSites.length > 0 ? (
+            <div className="space-y-4">
+              {modalSites.map((s, idx) => (
+                <Card key={s.id} className="p-3 relative">
+                  <div className="absolute -left-4 -top-4 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center border-2 border-white text-sm font-semibold shadow z-20">
+                    {idx + 1}
+                  </div>
+                  <div className="pt-6 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Site Name</p>
+                      <p className="text-sm">{s.hopAB || s.siteHopAB || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Plan ID</p>
+                      <p className="text-sm">{s.planId || s.sitePlanId || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Max Ant Size</p>
+                      <p className="text-sm">{s.maxAntSize ?? (Math.max(parseFloat(s.siteAAntDia||0), parseFloat(s.siteBAntDia||0)) || '—')}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Vendor Amount</p>
+                      <p className="text-sm">{s.vendorAmount ? `Rs ${parseFloat(String(s.vendorAmount)).toLocaleString()}` : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Installation Date</p>
+                      <p className="text-sm">{s.siteAInstallationDate ? new Date(s.siteAInstallationDate).toISOString().slice(0,10) : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Soft AT Status</p>
+                      <p className="text-sm">{s.softAtStatus || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">PHY AT Status</p>
+                      <p className="text-sm">{s.phyAtStatus || '—'}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-muted-foreground">No sites found for this PO</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

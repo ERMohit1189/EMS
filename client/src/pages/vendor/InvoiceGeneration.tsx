@@ -13,17 +13,28 @@ import { SkeletonLoader } from "@/components/SkeletonLoader";
 import SmartSearchTextbox, { Suggestion } from "@/components/SmartSearchTextbox";
 import type { PurchaseOrder, Vendor } from "@shared/schema";
 
+// Helper function to truncate site names with "and X more" format
+const formatSiteNames = (siteNames: string[], maxDisplay: number = 3): string => {
+  if (siteNames.length <= maxDisplay) {
+    return siteNames.join(", ");
+  }
+  const displayed = siteNames.slice(0, maxDisplay);
+  const remaining = siteNames.length - maxDisplay;
+  return `${displayed.join(", ")} and ${remaining} more`;
+};
+
 interface InvoiceRecord {
   id: string;
   invoiceNumber: string;
   poNumber: string;
+  poCount: number;
+  siteCount: number;
   poDate: string;
   poDueDate: string;
   vendorName: string;
   vendorCode?: string;
   vendorEmail?: string;
   siteName: string;
-  maxAntennaSize?: string;
   description: string;
   quantity: number;
   unitPrice: string;
@@ -33,6 +44,9 @@ interface InvoiceRecord {
   invoiceDate: string;
   invoiceDueDate: string;
   status: string;
+  poIds?: string[];
+  poDetails?: any[];
+  invoiceSites?: any[];
 }
 
 export default function InvoiceGeneration() {
@@ -52,16 +66,24 @@ export default function InvoiceGeneration() {
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSizeOptions = [10, 25, 50, 100];
+  // Modal states for PO and Site details
+  const [showPODetailsModal, setShowPODetailsModal] = useState(false);
+  const [showSiteDetailsModal, setShowSiteDetailsModal] = useState(false);
+  const [selectedPODetails, setSelectedPODetails] = useState<any[]>([]);
+  const [selectedSiteDetails, setSelectedSiteDetails] = useState<any[]>([]);
+  const [selectedPoForSites, setSelectedPoForSites] = useState<string | null>(null);
 
   // Clamp current page when filters or page size change
   useEffect(() => {
-    const filteredCount = availablePOs.filter(po => !selectedVendorFilter || po.vendorId === selectedVendorFilter).length;
+    // Ensure availablePOs is an array before filtering (defensive in case of unexpected API shapes)
+    const filteredCount = (Array.isArray(availablePOs) ? availablePOs : []).filter(po => !selectedVendorFilter || po.vendorId === selectedVendorFilter).length;
     const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [availablePOs, selectedVendorFilter, pageSize, currentPage]);
   const [vendorSuggestions, setVendorSuggestions] = useState<Suggestion[]>([]);
   const [isVendor, setIsVendor] = useState(false);
   const [invoiceGenerationDate, setInvoiceGenerationDate] = useState<number>(1);
+  const [groupByVendor, setGroupByVendor] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -94,28 +116,64 @@ export default function InvoiceGeneration() {
         const invoices = invoicesData.data || [];
 
         // Invoices already have all details joined from backend - no lookups needed!
-        const invoiceRecords: InvoiceRecord[] = invoices.map((invoice: any) => ({
-          id: invoice.id,
-          invoiceNumber: invoice.invoiceNumber,
-          poNumber: invoice.poNumber || "Unknown",
-          poDate: invoice.poDate || "",
-          poDueDate: invoice.poDueDate || "",
-          vendorName: invoice.vendorName || "Unknown",
-          vendorCode: invoice.vendorCode,
-          vendorEmail: invoice.vendorEmail,
-          siteName: invoice.siteName || invoice.siteId2 || "Unknown",
-          maxAntennaSize: invoice.maxAntennaSize,
-          description: invoice.description || "N/A",
-          quantity: invoice.quantity || 0,
-          unitPrice: invoice.unitPrice?.toString() || "0",
-          amount: invoice.amount,
-          gst: invoice.gst,
-          totalAmount: invoice.totalAmount,
-          invoiceDate: invoice.invoiceDate,
-          invoiceDueDate: invoice.dueDate,
-          status: invoice.status,
-        }));
+        const invoiceRecords: InvoiceRecord[] = invoices.map((invoice: any) => {
+          // Handle poIds - could be array, null, or comma-separated string
+          let poIds: string[] = [];
+          if (Array.isArray(invoice.poIds) && invoice.poIds.length > 0) {
+            poIds = invoice.poIds;
+          } else if (typeof invoice.poIds === 'string' && invoice.poIds.trim()) {
+            poIds = invoice.poIds.split(',').map((id: string) => id.trim()).filter(Boolean);
+          } else if (invoice.poId) {
+            poIds = [invoice.poId];
+          }
+
+          // Get sites from purchase_order_lines (returned by backend as allSiteNames)
+          const siteNames = (Array.isArray(invoice.allSiteNames) && invoice.allSiteNames.length > 0)
+            ? invoice.allSiteNames.filter((s: string) => s) // Filter out null/empty values
+            : [invoice.siteName || invoice.siteId2 || "Unknown"];
+
+          // Get first PO details for display (if multiple POs, show the first one)
+          const firstPoDetail = (Array.isArray(invoice.poDetails) && invoice.poDetails.length > 0)
+            ? invoice.poDetails[0]
+            : null;
+
+          return {
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            poNumber: firstPoDetail?.poNumber || "Unknown",
+            poCount: poIds.length,
+            siteCount: siteNames.length,
+            poIds: poIds,
+            poDate: firstPoDetail?.poDate || "",
+            poDueDate: firstPoDetail?.poDate || "", // Use poDate for both (dueDate not in poDetails)
+            vendorName: firstPoDetail?.vendorName || invoice.vendorName || "Unknown",
+            vendorCode: invoice.vendorCode,
+            vendorEmail: invoice.vendorEmail,
+            siteName: formatSiteNames(siteNames, 3), // Show first 3 sites, then "and X more"
+            description: invoice.description || "N/A",
+            quantity: invoice.quantity || 0,
+            unitPrice: invoice.unitPrice?.toString() || "0",
+            amount: invoice.amount,
+            gst: invoice.gst,
+            totalAmount: invoice.totalAmount,
+            invoiceDate: invoice.invoiceDate,
+            invoiceDueDate: invoice.dueDate,
+            status: invoice.status,
+            poDetails: invoice.poDetails || [],
+            invoiceSites: invoice.invoiceSites || [],
+          };
+        });
         setAllInvoices(invoiceRecords);
+
+        // Collect all PO IDs that are already in invoices (from po_ids column)
+        const invoicedPOIds = new Set<string>();
+        invoiceRecords.forEach((invoice) => {
+          if (invoice.poIds && Array.isArray(invoice.poIds)) {
+            invoice.poIds.forEach((poId) => {
+              if (poId) invoicedPOIds.add(poId);
+            });
+          }
+        });
 
         // Load available POs with all details in parallel AFTER initial render (lazy load)
         // OPTIMIZED: Single query returns POs with vendor and site details pre-joined, no loops needed!
@@ -127,12 +185,15 @@ export default function InvoiceGeneration() {
               const posData = await posRes.json();
               const pos = posData.data || [];
 
-              // All vendor and site data already joined! No lookups needed
-              setAvailablePOs(pos);
+              // Filter out POs that are already in invoices (from po_ids column)
+              const filteredPos = pos.filter((po: any) => !invoicedPOIds.has(po.id));
 
-              // Build vendor suggestions for SmartSearchTextbox directly from available POs
+              // All vendor and site data already joined! No lookups needed
+              setAvailablePOs(filteredPos);
+
+              // Build vendor suggestions for SmartSearchTextbox directly from filtered available POs
               const vendorMap = new Map<string, { id: string; name: string; code: string }>();
-              pos.forEach((po: any) => {
+              filteredPos.forEach((po: any) => {
                 if (po.vendorId && !vendorMap.has(po.vendorId)) {
                   vendorMap.set(po.vendorId, {
                     id: po.vendorId,
@@ -200,8 +261,26 @@ export default function InvoiceGeneration() {
       console.log(`[Frontend] Delete response:`, responseData);
 
       if (response.ok) {
+        // Update all invoices list
         setAllInvoices(allInvoices.filter(inv => inv.id !== invoiceId));
         setInvoiceRecords(invoiceRecords.filter(inv => inv.id !== invoiceId));
+
+        // Refetch available POs to restore any POs that were in the deleted invoice
+        try {
+          const posResponse = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000&withDetails=true&availableOnly=true`, {
+            credentials: 'include',
+          });
+          if (posResponse.ok) {
+            const posData = await posResponse.json();
+            // API returns { data: [...] } — normalize to an array for consistency
+            const posList = Array.isArray(posData) ? posData : (posData.data || []);
+            console.log(`[Delete] Refetched POs. Available: ${posList.length}`);
+            setAvailablePOs(posList);
+          }
+        } catch (error) {
+          console.error('Failed to refetch available POs:', error);
+        }
+
         toast({
           title: "Success",
           description: `Invoice ${invoiceNumber} has been deleted.`,
@@ -251,194 +330,322 @@ export default function InvoiceGeneration() {
 
   const generateInvoicePDF = async (invoice: InvoiceRecord) => {
     const exportHeader = await fetchExportHeader();
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 12;
-    let yPosition = 15;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageW = 210;
+    const m = 12;
+    let y = 20;
 
-    // Colors
-    const primaryColor = [102, 126, 234];
-    const textColor = [44, 62, 80];
-    const lightGray = [248, 249, 250];
-    const darkGray = [100, 100, 100];
+    // ===== HEADER =====
+    doc.setFont('Arial', 'bold');
+    doc.setFontSize(26);
+    doc.setTextColor(44, 62, 80);
+    doc.text('TAX INVOICE', m, y);
 
-    // Company Header Background
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, pageWidth, 35, "F");
+    doc.setFontSize(11);
+    doc.setTextColor(153, 153, 153);
+    doc.setFont('Arial', 'normal');
+    doc.text(exportHeader.companyName || 'Company Name', m, y + 7);
 
-    // Company Details
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text(exportHeader.companyName || 'Enterprise Management System', pageWidth / 2, yPosition, { align: 'center' });
-    
-    yPosition += 7;
+    // Right side info
+    const rX = pageW - m - 60;
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('Arial', 'bold');
+    doc.text('Invoice No.:', rX, y);
+    doc.setFont('Arial', 'normal');
+    doc.text(String(invoice.invoiceNumber), rX + 28, y);
+
+    y += 7;
+    doc.setFont('Arial', 'bold');
+    doc.text('Invoice Date:', rX, y);
+    doc.setFont('Arial', 'normal');
+    doc.text(String(invoice.invoiceDate), rX + 28, y);
+
+    y += 7;
+    doc.setFont('Arial', 'bold');
+    doc.text('Due Date:', rX, y);
+    doc.setFont('Arial', 'normal');
+    doc.text(String(invoice.invoiceDueDate), rX + 28, y);
+
+    y += 18;
+
+    // ===== COMPANY INFO =====
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Arial', 'normal');
+    doc.setTextColor(0, 0, 0);
+    if (exportHeader.companyName) {
+      doc.text(exportHeader.companyName, m, y);
+      y += 4;
+    }
     if (exportHeader.address) {
-      doc.text(exportHeader.address, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 5;
+      doc.text(exportHeader.address, m, y);
+      y += 4;
     }
-    if (exportHeader.contactEmail || exportHeader.contactPhone) {
-      doc.text([exportHeader.contactEmail, exportHeader.contactPhone].filter(Boolean).join(' | '), pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 5;
+    if (exportHeader.contactPhone) {
+      doc.text(`Phone: ${exportHeader.contactPhone}`, m, y);
+      y += 4;
     }
-    if (exportHeader.gstin || exportHeader.website) {
-      doc.text([exportHeader.gstin ? `GSTIN: ${exportHeader.gstin}` : '', exportHeader.website].filter(Boolean).join(' | '), pageWidth / 2, yPosition, { align: 'center' });
+    if (exportHeader.website) {
+      doc.text(`Website: ${exportHeader.website}`, m, y);
+      y += 4;
     }
 
-    // Invoice Title
-    yPosition = 45;
-    doc.setTextColor(...textColor);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text("TAX INVOICE", pageWidth / 2, yPosition, { align: "center" });
+    y += 6;
 
-    // Reset position
-    yPosition = 55;
+    // ===== BILL TO & VENDOR INFO =====
+    doc.setFontSize(11);
+    doc.setFont('Arial', 'bold');
+    doc.text('Bill To', m, y);
 
-    // Two Column Layout - Invoice Details & Dates
-    const col1X = margin;
-    const col2X = pageWidth / 2 + 5;
-
-    // Two column starting position
-    let leftYPos = yPosition;
-    let rightYPos = yPosition;
-
-    // Left Column - Invoice Details
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text("INVOICE DETAILS", col1X, leftYPos);
-    leftYPos += 5;
-
-    doc.setFontSize(9);
-    doc.setTextColor(...darkGray);
-    doc.text(`Invoice #: ${String(invoice.invoiceNumber)}`, col1X, leftYPos);
-    leftYPos += 4;
-    doc.text(`Invoice Date: ${String(invoice.invoiceDate)}`, col1X, leftYPos);
-    leftYPos += 4;
-    doc.text(`Due Date: ${String(invoice.invoiceDueDate)}`, col1X, leftYPos);
-
-    // Right Column - PO References
-    rightYPos = yPosition;
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text("PURCHASE ORDER", col2X, rightYPos);
-    rightYPos += 5;
-
-    doc.setFontSize(9);
-    doc.setTextColor(...darkGray);
-    doc.text(`PO #: ${String(invoice.poNumber)}`, col2X, rightYPos);
-    rightYPos += 4;
-    doc.text(`PO Date: ${String(invoice.poDate)}`, col2X, rightYPos);
-    rightYPos += 4;
-    doc.text(`PO Due: ${String(invoice.poDueDate)}`, col2X, rightYPos);
-
-    // Move to next section after both columns
-    yPosition = Math.max(leftYPos, rightYPos) + 6;
+    y += 5;
 
     // Separator
-    doc.setDrawColor(0, 51, 102);
-    doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 10;
+    doc.setDrawColor(221, 221, 221);
+    doc.line(m, y, pageW - m, y);
 
-    // Vendor Details Section
-    doc.setFontSize(10);
-    doc.setTextColor(...primaryColor);
-    doc.text("BILL TO:", margin, yPosition);
-    yPosition += 6;
+    y += 4;
 
+    // Vendor content
     doc.setFontSize(9);
-    doc.setTextColor(...darkGray);
-    doc.text(`Vendor: ${String(invoice.vendorName)}`, margin + 2, yPosition);
-    yPosition += 4;
-    if (invoice.vendorEmail) {
-      doc.text(`Email: ${String(invoice.vendorEmail)}`, margin + 2, yPosition);
-      yPosition += 4;
+    doc.setFont('Arial', 'normal');
+    doc.setTextColor(0, 0, 0);
+
+    const vn = invoice.vendorName || '[Vendor Name]';
+    const ve = invoice.vendorEmail || '';
+
+    doc.setFont('Arial', 'bold');
+    doc.setFontSize(10);
+    doc.text(vn, m, y);
+    y += 4;
+
+    doc.setFont('Arial', 'normal');
+    doc.setFontSize(9);
+    if (ve) {
+      doc.text(ve, m, y);
+      y += 4;
     }
-    doc.text(`Site: ${String(invoice.siteName)}`, margin + 2, yPosition);
-    yPosition += 8;
-
-    // Item Details Section
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text("ITEM DETAILS", margin, yPosition);
-    yPosition += 5;
-
-    // Table Headers
-    doc.setFillColor(...lightGray);
-    doc.rect(margin, yPosition - 3, pageWidth - 2 * margin, 6, "F");
-    
-    doc.setFontSize(8);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Description", margin + 2, yPosition + 1);
-    doc.text("Qty", pageWidth / 2 + 10, yPosition + 1);
-    doc.text("Unit Rate (Rs)", pageWidth / 2 + 30, yPosition + 1);
-    doc.text("Amount (Rs)", pageWidth - margin - 22, yPosition + 1, { align: "right" });
-
-    yPosition += 8;
-
-    // Item Row
-    doc.setFontSize(9);
-    doc.setTextColor(...darkGray);
-    
-    const descLines = doc.splitTextToSize(invoice.description, 50);
-    doc.text(descLines, margin + 2, yPosition);
-    
-    doc.text(invoice.quantity.toString(), pageWidth / 2 + 10, yPosition);
-    doc.text(parseFloat(invoice.unitPrice).toFixed(2), pageWidth / 2 + 30, yPosition);
-    doc.text((parseFloat(invoice.unitPrice) * invoice.quantity).toFixed(2), pageWidth - margin - 22, yPosition, { align: "right" });
-
-    yPosition += 12;
-
-    // Summary Section
-    doc.setDrawColor(0, 51, 102);
-    doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 6;
-
-    // Subtotal
-    doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Subtotal:", pageWidth / 2, yPosition, { align: "right" });
-    doc.setTextColor(...darkGray);
-    doc.text(`Rs ${parseFloat(invoice.amount).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
-    yPosition += 5;
-
-    // GST - only show if greater than 0
-    if (parseFloat(invoice.gst) > 0) {
-      const gstPercent = (parseFloat(invoice.gst) / parseFloat(invoice.amount) * 100).toFixed(1);
-      doc.setTextColor(0, 0, 0);
-      doc.text(`GST (${gstPercent}%):`, pageWidth / 2, yPosition, { align: "right" });
-      doc.setTextColor(...darkGray);
-      doc.text(`Rs ${parseFloat(invoice.gst).toFixed(2)}`, pageWidth - margin - 2, yPosition, { align: "right" });
-      yPosition += 5;
+    if (invoice.vendorCode) {
+      doc.text(`Code: ${invoice.vendorCode}`, m, y);
+      y += 4;
     }
 
-    // Total
-    doc.setFillColor(...lightGray);
-    doc.rect(pageWidth / 2 - 5, yPosition - 3, pageWidth / 2 - margin + 3, 6, "F");
-    
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text("TOTAL AMOUNT:", pageWidth / 2, yPosition + 1, { align: "right" });
-    doc.text(`Rs ${parseFloat(invoice.totalAmount).toFixed(2)}`, pageWidth - margin - 2, yPosition + 1, { align: "right" });
+    y += 8;
 
-    // Status Badge
-    yPosition += 10;
-    doc.setFontSize(8);
-    const statusColor = invoice.status === "Draft" ? [255, 193, 7] : [76, 175, 80];
-    doc.setFillColor(...statusColor);
-    doc.rect(pageWidth / 2 - 5, yPosition - 2, 30, 5, "F");
+    // ===== ITEMS TABLE =====
+    doc.setFontSize(9);
+    doc.setFont('Arial', 'bold');
+    doc.setFillColor(44, 62, 80);
     doc.setTextColor(255, 255, 255);
-    doc.text(`Status: ${invoice.status}`, pageWidth / 2 - 3, yPosition + 0.5, { align: "center" });
 
-    // Footer
-    yPosition = pageHeight - 12;
-    doc.setFontSize(7);
+    const col1X = m;
+    const col2X = m + 90;
+    const col3X = m + 130;
+    const col4X = m + 160;
+
+    // TABLE HEADER ROW
+    doc.setFillColor(44, 62, 80);
+    doc.rect(col1X, y, 90, 7, 'F');
+    doc.text('Site/Description', col1X + 2, y + 4.5);
+
+    doc.setFillColor(44, 62, 80);
+    doc.rect(col2X, y, 40, 7, 'F');
+    doc.text('Antenna', col2X + 10, y + 4.5);
+
+    doc.setFillColor(44, 62, 80);
+    doc.rect(col3X, y, 30, 7, 'F');
+    doc.text('Amount', col3X + 2, y + 4.5);
+
+    doc.setFillColor(44, 62, 80);
+    doc.rect(col4X, y, 30, 7, 'F');
+    doc.text('Total', col4X + 5, y + 4.5);
+
+    y += 8;
+
+    // ITEM DATA ROWS - Group by PO and show each site
+    doc.setFont('Arial', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(221, 221, 221);
+    doc.setFontSize(9);
+
+    let totalAmount = 0;
+
+    // Group sites by PO
+    const sitesByPo: { [key: string]: any[] } = {};
+    if (invoice.invoiceSites && Array.isArray(invoice.invoiceSites)) {
+      invoice.invoiceSites.forEach((site: any) => {
+        const poKey = site.poNumber || 'Unknown PO';
+        if (!sitesByPo[poKey]) {
+          sitesByPo[poKey] = [];
+        }
+        sitesByPo[poKey].push(site);
+      });
+    }
+
+    // Display each PO and its sites
+    Object.keys(sitesByPo).forEach((poNumber: string) => {
+      const sites = sitesByPo[poNumber];
+
+      // PO subheader
+      doc.setFont('Arial', 'bold');
+      doc.setFillColor(240, 240, 240);
+      doc.rect(col1X, y, pageW - 2 * m, 6, 'F');
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(8);
+      doc.text(`Purchase Order: ${poNumber}`, col1X + 2, y + 4);
+      y += 7;
+
+      // Sites for this PO
+      doc.setFont('Arial', 'normal');
+      sites.forEach((site: any) => {
+        // Check if we need a new page
+        if (y > 250) {
+          doc.addPage();
+          y = 20;
+
+          // Re-draw table header on new page
+          doc.setFontSize(9);
+          doc.setFont('Arial', 'bold');
+          doc.setFillColor(44, 62, 80);
+          doc.setTextColor(255, 255, 255);
+
+          doc.rect(col1X, y, 90, 7, 'F');
+          doc.text('Site/Description', col1X + 2, y + 4.5);
+
+          doc.rect(col2X, y, 40, 7, 'F');
+          doc.text('Antenna', col2X + 10, y + 4.5);
+
+          doc.rect(col3X, y, 30, 7, 'F');
+          doc.text('Amount', col3X + 2, y + 4.5);
+
+          doc.rect(col4X, y, 30, 7, 'F');
+          doc.text('Total', col4X + 5, y + 4.5);
+
+          y += 8;
+
+          doc.setFont('Arial', 'normal');
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(9);
+        }
+
+        const siteName = site.siteName || 'Unknown Site';
+        const description = `Installation and commissioning for ${siteName}`;
+        const antenna = site.maxAntennaSize || '-';
+        const amount = site.vendorAmount ? parseFloat(site.vendorAmount) : 0;
+        const amountDisplay = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        totalAmount += amount;
+
+        // Description cell
+        doc.rect(col1X, y, 90, 8);
+        doc.setFontSize(8);
+        doc.text(description, col1X + 2, y + 4.5);
+
+        // Antenna cell
+        doc.rect(col2X, y, 40, 8);
+        doc.setFontSize(9);
+        doc.text(antenna, col2X + 15, y + 4.5);
+
+        // Amount cell
+        doc.rect(col3X, y, 30, 8);
+        doc.text(`Rs. ${amountDisplay}`, col3X + 2, y + 4.5);
+
+        // Total cell (same as amount for now)
+        doc.rect(col4X, y, 30, 8);
+        doc.text(`Rs. ${amountDisplay}`, col4X + 2, y + 4.5);
+
+        y += 8;
+      });
+    });
+
+    y += 6;
+
+    // Check if totals section needs a new page
+    if (y > 260) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // ===== TOTALS =====
+    const tX = col3X;
+    doc.setFontSize(9);
+    doc.setFont('Arial', 'normal');
+
+    const subtotalDisplay = totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    doc.setTextColor(0, 0, 0);
+    doc.text('Subtotal:', tX, y);
+    doc.text(`Rs. ${subtotalDisplay}`, col4X + 2, y);
+    y += 6;
+
+    // Get GST info from first PO in poDetails array
+    let gstAmount = 0;
+    let igstAmount = 0;
+    let cgstAmount = 0;
+    let sgstAmount = 0;
+    let showGST = false;
+    let gstType = '';
+
+    if (invoice.poDetails && invoice.poDetails.length > 0) {
+      const firstPO = invoice.poDetails[0];
+      // Note: These fields would need to come from the backend in poDetails
+      // For now, checking if gstApply exists (would be added to backend response)
+      if (firstPO.gstApply) {
+        showGST = true;
+        gstType = firstPO.gstType || 'igst';
+
+        if (gstType === 'igst') {
+          igstAmount = totalAmount * 0.18;
+          gstAmount = igstAmount;
+        } else if (gstType === 'cgstsgst') {
+          cgstAmount = totalAmount * 0.09;
+          sgstAmount = totalAmount * 0.09;
+          gstAmount = cgstAmount + sgstAmount;
+        }
+      }
+    }
+
+    // Only show GST if it's applied
+    if (showGST) {
+      if (gstType === 'igst') {
+        const gstDisplay = igstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        doc.text('IGST (18%):', tX, y);
+        doc.text(`Rs. ${gstDisplay}`, col4X + 2, y);
+        y += 6;
+      } else if (gstType === 'cgstsgst') {
+        const cgstDisplay = cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const sgstDisplay = sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        doc.text('CGST (9%):', tX, y);
+        doc.text(`Rs. ${cgstDisplay}`, col4X + 2, y);
+        y += 6;
+        doc.text('SGST (9%):', tX, y);
+        doc.text(`Rs. ${sgstDisplay}`, col4X + 2, y);
+        y += 6;
+      }
+    }
+
+    doc.text('Shipping:', tX, y);
+    doc.text('Rs. 0', col4X + 2, y);
+    y += 7;
+
+    // Total box
+    doc.setFont('Arial', 'bold');
+    doc.setFontSize(11);
+    doc.setFillColor(44, 62, 80);
+    doc.setTextColor(255, 255, 255);
+    doc.rect(tX, y, 60, 7, 'F');
+    doc.text('TOTAL:', tX + 2, y + 5);
+    const finalTotal = totalAmount + gstAmount;
+    const finalDisplay = finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    doc.text(`Rs. ${finalDisplay}`, col4X + 2, y + 5);
+
+    y += 14;
+
+    // ===== FOOTER =====
+    doc.setFontSize(8);
+    doc.setFont('Arial', 'normal');
     doc.setTextColor(150, 150, 150);
-    doc.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-    doc.text("This is an electronically generated document. No signature required.", pageWidth / 2, yPosition + 1, { align: "center" });
+    doc.line(m, y, pageW - m, y);
+    y += 4;
+    doc.text('This is an electronically generated document. No signature required.', pageW / 2, y, { align: 'center' });
 
     return doc;
   };
@@ -502,64 +709,242 @@ export default function InvoiceGeneration() {
       const selectedPOIds = Array.from(selectedPOs);
       const posData = availablePOs.filter(po => selectedPOIds.includes(po.id));
 
-      const records: InvoiceRecord[] = posData.map((po, index) => {
-        // NO LOOKUPS! All data comes pre-joined from database
-        const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
-        const totalAmount = parseFloat(po.totalAmount.toString()) + gstAmount;
+      // Fetch full lines for selected POs so we can compute accurate site lists immediately
+      const poLinesMap: Record<string, string[]> = {};
+      await Promise.all(selectedPOIds.map(async (id) => {
+        try {
+          const r = await fetch(`${getApiBaseUrl()}/api/purchase-orders/${id}?withLines=true`, { credentials: 'include' });
+          if (r.ok) {
+            const parsed = await r.json(); // { po, lines: [...] }
+            const lines = Array.isArray(parsed.lines) ? parsed.lines : [];
+            const names = lines.map((l: any) => l.siteHopAB || l.siteName || l.siteId || 'Unknown').filter(Boolean);
+            poLinesMap[id] = names.length > 0 ? names : [(posData.find(p => p.id === id)?.siteName) || 'Unknown'];
+          } else {
+            poLinesMap[id] = [(posData.find(p => p.id === id)?.siteName) || 'Unknown'];
+          }
+        } catch (e) {
+          poLinesMap[id] = [(posData.find(p => p.id === id)?.siteName) || 'Unknown'];
+        }
+      }));
 
-        return {
-          id: "",
-          invoiceNumber: `INV-${Date.now()}-${index + 1}`,
-          poNumber: po.poNumber,
-          siteName: po.siteName || po.siteId2 || "Unknown",
-          maxAntennaSize: po.maxAntennaSize || undefined,
-          vendorName: po.vendorName || "Unknown",
-          vendorCode: po.vendorCode,
-          poDate: po.poDate || "",
-          poDueDate: po.dueDate || "",
-          vendorEmail: po.vendorEmail,
-          description: po.description || "N/A",
-          quantity: po.quantity || 0,
-          unitPrice: po.unitPrice?.toString() || "0",
-          amount: po.totalAmount.toString(),
-          gst: gstAmount.toString(),
-          totalAmount: totalAmount.toString(),
-          invoiceDate: new Date().toISOString().split('T')[0],
-          invoiceDueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: "Draft",
-        };
-      });
-
-      // Create invoices via API
       const createdInvoices = [];
-      for (let i = 0; i < records.length; i++) {
-        const record = records[i];
-        const po = posData[i];
 
-        const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: 'include',
-          body: JSON.stringify({
-            invoiceNumber: record.invoiceNumber,
-            vendorId: po.vendorId,
-            poId: po.id,
-            invoiceDate: record.invoiceDate,
-            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            amount: po.totalAmount.toString(),
-            gst: record.gst,
-            totalAmount: record.totalAmount,
-            status: "Draft",
-          }),
+      if (groupByVendor) {
+        // Group POs by vendor and create one consolidated invoice per vendor
+        const byVendor: Record<string, typeof posData> = {};
+        posData.forEach(po => {
+          const vendorId = String(po.vendorId);
+          if (!byVendor[vendorId]) {
+            byVendor[vendorId] = [];
+          }
+          byVendor[vendorId].push(po);
         });
 
-        if (response.ok) {
-          const createdInvoice = await response.json();
-          createdInvoices.push({ ...record, id: createdInvoice.id });
+        // Create one invoice per vendor with all their POs
+        for (const vendorId of Object.keys(byVendor)) {
+          const vendorPOs = byVendor[vendorId];
+          const firstPO = vendorPOs[0];
+          const poIds = vendorPOs.map(po => po.id);
+
+          // Calculate totals from all POs
+          let totalAmount = 0;
+          let totalGst = 0;
+          vendorPOs.forEach(po => {
+            const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
+            totalAmount += parseFloat(po.totalAmount.toString());
+            totalGst += gstAmount;
+          });
+          const finalTotal = totalAmount + totalGst;
+
+          const siteList = vendorPOs.flatMap(po => poLinesMap[po.id] || [po.siteName || po.siteId2 || "Unknown"]);
+          const uniqueSites = [...new Set(siteList)]; // Get unique sites
+          const record: InvoiceRecord = {
+            id: "",
+            invoiceNumber: `INV-${Date.now()}-${vendorId.slice(0, 6)}`,
+            poNumber: vendorPOs.map(po => po.poNumber).join(", "), // Show all PO numbers in detail
+            poCount: vendorPOs.length, // Show count
+            siteCount: uniqueSites.length, // Show site count
+            poIds: poIds,
+            siteName: formatSiteNames(uniqueSites, 3), // Show first 3 sites, then "and X more"
+            vendorName: firstPO.vendorName || "Unknown",
+            vendorCode: firstPO.vendorCode,
+            poDate: firstPO.poDate || "",
+            poDueDate: firstPO.dueDate || "",
+            vendorEmail: firstPO.vendorEmail,
+            description: vendorPOs.map(po => po.description || "N/A").join("; "),
+            quantity: vendorPOs.reduce((sum, po) => sum + (po.quantity || 0), 0),
+            unitPrice: "0", // Not applicable for consolidated invoice
+            amount: totalAmount.toString(),
+            gst: totalGst.toString(),
+            totalAmount: finalTotal.toString(),
+            invoiceDate: new Date().toISOString().split('T')[0],
+            invoiceDueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: "Draft",
+            // Build a minimal invoiceSites array from the POs so UI can show site details immediately
+            invoiceSites: uniqueSites.map(name => ({ siteName: name })),
+          };
+
+          const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: 'include',
+            body: JSON.stringify({
+              invoiceNumber: record.invoiceNumber,
+              vendorId: firstPO.vendorId,
+              poId: poIds[0], // First PO for backward compatibility
+              poIds: poIds, // All PO IDs for consolidated invoice
+              invoiceDate: record.invoiceDate,
+              dueDate: record.invoiceDueDate,
+              amount: totalAmount.toString(),
+              gst: totalGst.toString(),
+              totalAmount: finalTotal.toString(),
+              status: "Draft",
+            }),
+          });
+
+          if (response.ok) {
+            const createdInvoice = await response.json();
+            createdInvoices.push({ ...record, id: createdInvoice.id });
+          }
+        }
+      } else {
+        // Default: one invoice per PO
+        const records: InvoiceRecord[] = posData.map((po, index) => {
+          // NO LOOKUPS! All data comes pre-joined from database but we also fetched full PO lines for accuracy
+          const gstAmount = (parseFloat(po.cgstAmount || 0) || 0) + (parseFloat(po.sgstAmount || 0) || 0) + (parseFloat(po.igstAmount || 0) || 0);
+          const totalAmount = parseFloat(po.totalAmount.toString()) + gstAmount;
+
+          const poSites = poLinesMap[po.id] || [po.siteName || po.siteId2 || "Unknown"];
+
+          return {
+            id: "",
+            invoiceNumber: `INV-${Date.now()}-${index + 1}`,
+            poNumber: po.poNumber,
+            poCount: 1, // Single PO invoice
+            siteCount: poSites.length,
+            poIds: [po.id],
+            siteName: formatSiteNames(poSites, 3),
+            vendorName: po.vendorName || "Unknown",
+            vendorCode: po.vendorCode,
+            poDate: po.poDate || "",
+            poDueDate: po.dueDate || "",
+            vendorEmail: po.vendorEmail,
+            description: po.description || "N/A",
+            quantity: po.quantity || 0,
+            unitPrice: po.unitPrice?.toString() || "0",
+            amount: po.totalAmount.toString(),
+            gst: gstAmount.toString(),
+            totalAmount: totalAmount.toString(),
+            invoiceDate: new Date().toISOString().split('T')[0],
+            invoiceDueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: "Draft",
+            invoiceSites: poSites.map((n: string) => ({ siteName: n })),
+          };
+        });
+
+        // Create invoices via API
+        for (let i = 0; i < records.length; i++) {
+          const record = records[i];
+          const po = posData[i];
+
+          const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: 'include',
+            body: JSON.stringify({
+              invoiceNumber: record.invoiceNumber,
+              vendorId: po.vendorId,
+              poIds: [po.id],  // Send as array (required)
+              invoiceDate: record.invoiceDate,
+              dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              amount: po.totalAmount.toString(),
+              gst: record.gst,
+              totalAmount: record.totalAmount,
+              status: "Draft",
+            }),
+          });
+
+          if (response.ok) {
+            const createdInvoice = await response.json();
+
+            // Process the response through the same mapping logic as other invoices
+            const poIds = Array.isArray(createdInvoice.poIds) && createdInvoice.poIds.length > 0
+              ? createdInvoice.poIds
+              : [];
+
+            const siteNames = (Array.isArray(createdInvoice.allSiteNames) && createdInvoice.allSiteNames.length > 0)
+              ? createdInvoice.allSiteNames.filter((s: string) => s)
+              : [createdInvoice.siteName || createdInvoice.siteId2 || "Unknown"];
+
+            const firstPoDetail = (Array.isArray(createdInvoice.poDetails) && createdInvoice.poDetails.length > 0)
+              ? createdInvoice.poDetails[0]
+              : null;
+
+            // Normalize site details: prefer server-provided invoiceSites, otherwise build from the original PO
+            const invoiceSites = (Array.isArray(createdInvoice.invoiceSites) && createdInvoice.invoiceSites.length > 0)
+              ? createdInvoice.invoiceSites
+              : [{ siteName: po.siteName || po.siteId2 || "Unknown" }];
+
+            const siteNamesFromSites = invoiceSites.map((s: any) => s.siteName || s.name || s.siteId || "Unknown").filter(Boolean);
+
+            const mappedInvoice: InvoiceRecord = {
+              id: createdInvoice.id,
+              invoiceNumber: createdInvoice.invoiceNumber,
+              poNumber: firstPoDetail?.poNumber || "Unknown",
+              poCount: poIds.length,
+              siteCount: siteNamesFromSites.length,
+              poIds: poIds,
+              poDate: firstPoDetail?.poDate || "",
+              poDueDate: firstPoDetail?.poDate || "",
+              vendorName: firstPoDetail?.vendorName || createdInvoice.vendorName || "Unknown",
+              vendorCode: createdInvoice.vendorCode,
+              vendorEmail: createdInvoice.vendorEmail,
+              siteName: formatSiteNames(siteNamesFromSites, 3),
+              description: createdInvoice.description || "N/A",
+              quantity: createdInvoice.quantity || 0,
+              unitPrice: createdInvoice.unitPrice?.toString() || "0",
+              amount: createdInvoice.amount,
+              gst: createdInvoice.gst,
+              totalAmount: createdInvoice.totalAmount,
+              invoiceDate: createdInvoice.invoiceDate,
+              invoiceDueDate: createdInvoice.dueDate,
+              status: createdInvoice.status,
+              poDetails: createdInvoice.poDetails || [],
+              invoiceSites: invoiceSites,
+            };
+
+            createdInvoices.push(mappedInvoice);
+          }
         }
       }
 
-      setInvoiceRecords(createdInvoices);
+      // Ensure each created invoice has invoiceSites/siteCount populated (defensive) using the selected POs
+      const normalizedCreated = createdInvoices.map((ci) => {
+        // If server didn't provide invoiceSites, derive from selected POs or fetched PO lines
+        if (!Array.isArray(ci.invoiceSites) || ci.invoiceSites.length === 0) {
+          const siteNames: string[] = [];
+          (ci.poIds || []).forEach((pid: string) => {
+            const namesFromLines = poLinesMap[pid];
+            if (Array.isArray(namesFromLines) && namesFromLines.length > 0) {
+              namesFromLines.forEach(n => { if (!siteNames.includes(n)) siteNames.push(n); });
+            } else {
+              const matchingPo = posData.find((p: any) => p.id === pid);
+              const name = matchingPo ? (matchingPo.siteName || matchingPo.siteId2 || 'Unknown') : 'Unknown';
+              if (!siteNames.includes(name)) siteNames.push(name);
+            }
+          });
+          ci.invoiceSites = siteNames.map((n) => ({ siteName: n }));
+          ci.siteCount = siteNames.length;
+          ci.siteName = formatSiteNames(siteNames, 3);
+        } else {
+          const siteNamesFromSites = ci.invoiceSites.map((s: any) => s.siteName || s.name || s.siteId || 'Unknown').filter(Boolean);
+          ci.siteCount = siteNamesFromSites.length;
+          ci.siteName = formatSiteNames(siteNamesFromSites, 3);
+        }
+        return ci;
+      });
+
+      setInvoiceRecords(normalizedCreated);
       setSelectedPOs(new Set());
 
       // Update available POs and all invoices
@@ -567,7 +952,7 @@ export default function InvoiceGeneration() {
         po => !selectedPOIds.includes(po.id)
       );
       setAvailablePOs(updatedAvailable);
-      setAllInvoices([...allInvoices, ...createdInvoices]);
+      setAllInvoices(prev => [...prev, ...normalizedCreated]);
 
       toast({
         title: "Success",
@@ -625,34 +1010,53 @@ export default function InvoiceGeneration() {
                 <CardDescription>Select POs to generate invoices ({availablePOs.filter(po => !selectedVendorFilter || po.vendorId === selectedVendorFilter).length} available)</CardDescription>
               </CardHeader>
               <CardContent>
-                {!isVendor && vendors.length > 0 && (
-                  <div className="mb-4 flex items-center gap-3">
-                    <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Filter by Vendor:</label>
-                    <SmartSearchTextbox
-                      value={selectedVendorFilter ? (vendorSuggestions.find(v => v.id === selectedVendorFilter)?.label || '') : ''}
-                      onChange={(v) => {
-                        if (!v) setSelectedVendorFilter('');
-                      }}
-                      onSelect={(s) => {
-                        setSelectedVendorFilter(s.id || '');
-                      }}
-                      suggestions={vendorSuggestions}
-                      placeholder="Search vendor by name or code..."
-                      maxSuggestions={5000}
-                      className="flex-1"
+                <div className="space-y-4">
+                  {!isVendor && vendors.length > 0 && (
+                    <div className="mb-4 flex items-center gap-3">
+                      <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Filter by Vendor:</label>
+                      <SmartSearchTextbox
+                        value={selectedVendorFilter ? (vendorSuggestions.find(v => v.id === selectedVendorFilter)?.label || '') : ''}
+                        onChange={(v) => {
+                          if (!v) setSelectedVendorFilter('');
+                        }}
+                        onSelect={(s) => {
+                          setSelectedVendorFilter(s.id || '');
+                        }}
+                        suggestions={vendorSuggestions}
+                        placeholder="Search vendor by name or code..."
+                        maxSuggestions={5000}
+                        className="flex-1"
+                      />
+                      {selectedVendorFilter && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedVendorFilter('')}
+                          className="whitespace-nowrap"
+                        >
+                          Clear Filter
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Invoice Grouping Option */}
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <input
+                      type="checkbox"
+                      id="groupByVendor"
+                      checked={groupByVendor}
+                      onChange={(e) => setGroupByVendor(e.target.checked)}
+                      className="w-4 h-4 rounded cursor-pointer"
                     />
-                    {selectedVendorFilter && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedVendorFilter('')}
-                        className="whitespace-nowrap"
-                      >
-                        Clear Filter
-                      </Button>
-                    )}
+                    <label htmlFor="groupByVendor" className="text-sm font-medium text-slate-700 cursor-pointer flex-1">
+                      Generate Single Invoice for Each Vendor (Group Multiple POs)
+                    </label>
+                    <span className="text-xs text-slate-500">
+                      {groupByVendor ? 'Enabled' : 'Disabled'}
+                    </span>
                   </div>
-                )}
+                </div>
 
                 {/* Desktop grid layout (matching PO page style) */}
                 <div className="hidden md:block rounded-md border bg-card overflow-x-auto max-h-96">
@@ -827,33 +1231,49 @@ export default function InvoiceGeneration() {
               <CardContent>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {invoiceRecords.map((invoice) => (
-                    <div key={invoice.id} className="border rounded-lg p-4 bg-white hover:shadow-md hover:border-blue-400 transition-all">
-                      <div className="space-y-3">
+                    <div key={invoice.id} className="border rounded-lg p-2 bg-white hover:shadow-md hover:border-blue-400 transition-all">
+                      <div className="space-y-2">
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase">Invoice Number</p>
-                          <p className="text-base font-bold text-blue-600">{invoice.invoiceNumber}</p>
+                          <p className="text-sm font-bold text-blue-600">{invoice.invoiceNumber}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">PO Number</p>
-                            <p className="text-sm font-semibold">{invoice.poNumber}</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Invoice Date</p>
+                            <p className="text-xs font-semibold text-slate-700">{invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN') : 'N/A'}</p>
                           </div>
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Vendor</p>
-                            <p className="text-sm font-semibold">{invoice.vendorName}{invoice.vendorCode ? ` (${invoice.vendorCode})` : ''}</p>
+                            <p className="text-xs font-semibold">{invoice.vendorName}{invoice.vendorCode ? ` (${invoice.vendorCode})` : ''}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">PO Number</p>
+                            <button
+                              onClick={() => {
+                                setSelectedPODetails(invoice.poDetails || []);
+                                setShowPODetailsModal(true);
+                              }}
+                              className="text-xs font-semibold cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              ({invoice.poCount} PO{invoice.poCount !== 1 ? 's' : ''})
+                            </button>
+                          </div>
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">SITE</p>
-                            <p className="text-sm font-semibold">{invoice.siteName}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">ANT</p>
-                            <p className="text-sm font-semibold">{invoice.maxAntennaSize || "-"}</p>
+                            <button
+                              onClick={() => {
+                                setSelectedSiteDetails(invoice.invoiceSites || []);
+                                setShowSiteDetailsModal(true);
+                              }}
+                              className="text-xs font-semibold cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              ({invoice.siteCount} Site{invoice.siteCount !== 1 ? 's' : ''})
+                            </button>
                           </div>
                         </div>
-                        <div className="space-y-2 border-t pt-2">
+                        <div className="space-y-1 border-t pt-1">
                           <div className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-slate-600 uppercase">Amount</span>
                             <span className="font-bold text-slate-700">Rs {parseFloat(invoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
@@ -864,12 +1284,12 @@ export default function InvoiceGeneration() {
                               <span className="font-bold text-orange-600">Rs {parseFloat(invoice.gst).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </div>
                           )}
-                          <div className="flex justify-between items-center bg-green-50 p-2 rounded">
+                          <div className="flex justify-between items-center bg-green-50 p-1 rounded">
                             <span className="text-xs font-bold text-slate-700">Total</span>
-                            <span className="text-sm font-bold text-green-600">Rs {parseFloat(invoice.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                            <span className="text-xs font-bold text-green-600">Rs {parseFloat(invoice.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
                         </div>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 mt-1">
                           <Button
                             onClick={() => downloadInvoicePDF(invoice)}
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs gap-1"
@@ -924,35 +1344,51 @@ export default function InvoiceGeneration() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {allInvoices.map((invoice) => (
-                    <div key={invoice.id} className="border rounded-lg p-4 hover:shadow-md hover:border-primary/50 transition-all">
-                      <div className="space-y-3">
+                    <div key={invoice.id} className="border rounded-lg p-2 hover:shadow-md hover:border-primary/50 transition-all">
+                      <div className="space-y-2">
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase">Invoice Number</p>
-                          <p className="text-base font-bold text-blue-600">{invoice.invoiceNumber}</p>
+                          <p className="text-sm font-bold text-blue-600">{invoice.invoiceNumber}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">PO Number</p>
-                            <p className="text-sm font-semibold">{invoice.poNumber}</p>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">Invoice Date</p>
+                            <p className="text-xs font-semibold text-slate-700">{invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN') : 'N/A'}</p>
                           </div>
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">Vendor</p>
-                            <p className="text-sm font-semibold">{invoice.vendorName}{invoice.vendorCode ? ` (${invoice.vendorCode})` : ''}</p>
+                            <p className="text-xs font-semibold">{invoice.vendorName}{invoice.vendorCode ? ` (${invoice.vendorCode})` : ''}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground uppercase">PO Number</p>
+                            <button
+                              onClick={() => {
+                                setSelectedPODetails(invoice.poDetails || []);
+                                setShowPODetailsModal(true);
+                              }}
+                              className="text-xs font-semibold cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              ({invoice.poCount} PO{invoice.poCount !== 1 ? 's' : ''})
+                            </button>
+                          </div>
                           <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase">SITE</p>
-                            <p className="text-sm font-semibold">{invoice.siteName}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase">ANT</p>
-                            <p className="text-sm font-semibold">{invoice.maxAntennaSize || "-"}</p>
+                            <button
+                              onClick={() => {
+                                setSelectedSiteDetails(invoice.invoiceSites || []);
+                                setShowSiteDetailsModal(true);
+                              }}
+                              className="text-xs font-semibold cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              ({invoice.siteCount} Site{invoice.siteCount !== 1 ? 's' : ''})
+                            </button>
                           </div>
                         </div>
-                        <div className="space-y-2 border-t pt-2">
+                        <div className="space-y-1 border-t pt-1">
                           <div className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-slate-600 uppercase">Amount</span>
                             <span className="font-bold text-slate-700">Rs {parseFloat(invoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
@@ -963,20 +1399,20 @@ export default function InvoiceGeneration() {
                               <span className="font-bold text-orange-600">Rs {parseFloat(invoice.gst).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </div>
                           )}
-                          <div className="flex justify-between items-center bg-green-50 p-2 rounded">
+                          <div className="flex justify-between items-center bg-green-50 p-1 rounded">
                             <span className="text-xs font-bold text-slate-700">Total</span>
-                            <span className="text-sm font-bold text-green-600">Rs {(parseFloat(invoice.amount) + parseFloat(invoice.gst)).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                            <span className="text-xs font-bold text-green-600">Rs {(parseFloat(invoice.amount) + parseFloat(invoice.gst)).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                           </div>
                         </div>
                         {invoice.status !== 'Draft' && (
-                          <div className="pt-2 border-t">
-                            <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Status</p>
+                          <div className="pt-1 border-t">
+                            <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Status</p>
                             <span className={`text-xs px-2 py-1 rounded-full ${invoice.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
                               {invoice.status}
                             </span>
                           </div>
                         )}
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 mt-1">
                           <Button
                             onClick={() => downloadInvoicePDF(invoice)}
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs gap-1"
@@ -1017,6 +1453,158 @@ export default function InvoiceGeneration() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* PO Details Modal */}
+          {showPODetailsModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <Card className="w-full max-w-2xl max-h-96 overflow-y-auto">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Purchase Order Details</CardTitle>
+                  <button
+                    onClick={() => setShowPODetailsModal(false)}
+                    className="text-2xl font-bold text-gray-600 hover:text-gray-900"
+                  >
+                    ×
+                  </button>
+                </CardHeader>
+                <CardContent>
+                  {selectedPODetails.length === 0 ? (
+                    <p className="text-muted-foreground">No PO details available</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedPODetails.map((po: any, idx: number) => (
+                        <div key={idx} className="border rounded-lg p-3 bg-gray-50">
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <p className="font-semibold text-gray-600">PO Number</p>
+                              <p className="text-gray-800 font-bold text-blue-700">{po.poNumber || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">Vendor Name</p>
+                              <p className="text-gray-800">{po.vendorName || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">Total Sites</p>
+                              <button
+                                onClick={() => {
+                                  // Find the current invoice to get all its sites
+                                  const currentInvoice = allInvoices.find((inv: any) =>
+                                    inv.poDetails?.some((poDetail: any) => poDetail.poId === po.poId)
+                                  );
+
+                                  // Filter sites that belong to this specific PO
+                                  const poSites = currentInvoice?.invoiceSites?.filter((site: any) => site.poId === po.poId) || [];
+
+                                  setSelectedSiteDetails(poSites);
+                                  setSelectedPoForSites(po.poId);
+                                  setShowPODetailsModal(false);
+                                  setShowSiteDetailsModal(true);
+                                }}
+                                className="text-gray-800 font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                              >
+                                {po.totalSites || '0'}
+                              </button>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">PO Generation Date</p>
+                              <p className="text-gray-800">{po.poDate ? new Date(po.poDate).toLocaleDateString('en-IN') : 'N/A'}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="font-semibold text-gray-600">Total PO Amount</p>
+                              <p className="text-gray-800 font-bold text-green-600">Rs {parseFloat(po.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Site Details Modal */}
+          {showSiteDetailsModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <Card className="w-full max-w-2xl max-h-96 overflow-y-auto">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Site Details</CardTitle>
+                    {selectedPoForSites && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Showing sites for PO: <span className="font-mono font-bold text-purple-600">{selectedSiteDetails[0]?.poNumber || 'N/A'}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {selectedPoForSites && (
+                      <button
+                        onClick={() => {
+                          setSelectedPoForSites(null);
+                          setShowSiteDetailsModal(false);
+                          setShowPODetailsModal(true);
+                        }}
+                        className="text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        ← Back
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowSiteDetailsModal(false);
+                        setSelectedPoForSites(null);
+                      }}
+                      className="text-2xl font-bold text-gray-600 hover:text-gray-900"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {selectedSiteDetails.length === 0 ? (
+                    <p className="text-muted-foreground">No site details available</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {selectedSiteDetails.map((site: any, idx: number) => (
+                        <div key={idx} className="border rounded-lg p-3 bg-gray-50">
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <p className="font-semibold text-gray-600">Site Name</p>
+                              <p className="text-gray-800 font-bold text-blue-700">{site.siteName || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">PO Number</p>
+                              <p className="text-gray-800 font-mono font-bold text-purple-600">{site.poNumber || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">PO Date</p>
+                              <p className="text-gray-800">{site.poDate ? new Date(site.poDate).toLocaleDateString('en-IN') : 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">Plan ID</p>
+                              <p className="text-gray-800">{site.planId || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">Max Antenna Size</p>
+                              <p className="text-gray-800">{site.maxAntennaSize || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-600">Vendor Amount</p>
+                              <p className="text-gray-800 font-bold text-green-600">Rs {parseFloat(site.vendorAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="font-semibold text-gray-600">Site A Installation Date</p>
+                              <p className="text-gray-800">{site.siteAInstallationDate ? new Date(site.siteAInstallationDate).toLocaleDateString('en-IN') : 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
         </>
       )}

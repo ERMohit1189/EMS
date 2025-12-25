@@ -38,7 +38,7 @@ export default function EmployeePrivacyPolicy() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm leading-relaxed">
           <p>
-            This Privacy Policy outlines how the Enterprise Management System (EMS) Employee Portal collects, uses, and protects your personal information. We are committed to maintaining your privacy and ensuring transparency in our data handling practices.
+            This Privacy Policy outlines how the Enterprise Operations Management System (EOMS) Employee Portal collects, uses, and protects your personal information. We are committed to maintaining your privacy and ensuring transparency in our data handling practices.
           </p>
         </CardContent>
       </Card>

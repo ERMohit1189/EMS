@@ -27,6 +27,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Upload, X } from 'lucide-react';
 
 const vendorSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -68,6 +69,11 @@ export default function VendorRegistration() {
   const [cityHighlight, setCityHighlight] = useState(-1);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
+  
+  // File upload states
+  const [aadharFile, setAadharFile] = useState<File | null>(null);
+  const [panFile, setPanFile] = useState<File | null>(null);
+  const [gstinFile, setGstinFile] = useState<File | null>(null);
 
   const form = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
@@ -454,17 +460,56 @@ export default function VendorRegistration() {
               <CardTitle>Documents & Compliance</CardTitle>
               <CardDescription>Upload necessary legal documents.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
+            <CardContent className="grid gap-4">
               <FormField
                 control={form.control}
                 name="aadhar"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Aadhar Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="12-digit Aadhar" maxLength={12} {...field} onBlur={(e) => { field.onBlur(); form.trigger('aadhar'); }} />
-                    </FormControl>
-                    <FormDescription>Optional - 12 digits if available</FormDescription>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input placeholder="12-digit Aadhar" maxLength={12} {...field} onBlur={(e) => { field.onBlur(); form.trigger('aadhar'); }} className="flex-1" />
+                      </FormControl>
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast({ title: "Error", description: "File must be <5MB", variant: "destructive" });
+                              return;
+                            }
+                            setAadharFile(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="aadhar-file"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById('aadhar-file')?.click()}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      {aadharFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAadharFile(null)}
+                          className="text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {aadharFile && (
+                      <p className="text-xs text-green-600">{aadharFile.name}</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -476,10 +521,49 @@ export default function VendorRegistration() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>PAN Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="10-digit PAN" maxLength={10} {...field} onBlur={(e) => { field.onBlur(); form.trigger('pan'); }} />
-                    </FormControl>
-                    <FormDescription>Optional - Format: AAAAA9999A if available</FormDescription>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input placeholder="10-digit PAN" maxLength={10} {...field} onBlur={(e) => { field.onBlur(); form.trigger('pan'); }} className="flex-1" />
+                      </FormControl>
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast({ title: "Error", description: "File must be <5MB", variant: "destructive" });
+                              return;
+                            }
+                            setPanFile(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="pan-file"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById('pan-file')?.click()}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      {panFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPanFile(null)}
+                          className="text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {panFile && (
+                      <p className="text-xs text-green-600">{panFile.name}</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -491,10 +575,49 @@ export default function VendorRegistration() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>GSTIN</FormLabel>
-                    <FormControl>
-                      <Input placeholder="GST Number" maxLength={15} {...field} onBlur={(e) => { field.onBlur(); form.trigger('gstin'); }} />
-                    </FormControl>
-                    <FormDescription>Optional - 15 character GST number</FormDescription>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input placeholder="15-char GST Number" maxLength={15} {...field} onBlur={(e) => { field.onBlur(); form.trigger('gstin'); }} className="flex-1" />
+                      </FormControl>
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast({ title: "Error", description: "File must be <5MB", variant: "destructive" });
+                              return;
+                            }
+                            setGstinFile(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="gstin-file"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById('gstin-file')?.click()}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      {gstinFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setGstinFile(null)}
+                          className="text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {gstinFile && (
+                      <p className="text-xs text-green-600">{gstinFile.name}</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -523,7 +646,17 @@ export default function VendorRegistration() {
             <Button type="button" variant="outline" onClick={() => setLocation('/')}>
               Cancel
             </Button>
-            <Button type="submit" size="lg">Register Vendor</Button>
+            <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Registering...
+                </span>
+              ) : "Register Vendor"}
+            </Button>
           </div>
         </form>
       </Form>

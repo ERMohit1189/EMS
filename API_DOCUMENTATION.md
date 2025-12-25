@@ -212,6 +212,13 @@ file: <Excel file with vendor data>
 - `status` (string): Active, Inactive, Pending
 - `vendorId` (string): Filter by vendor
 
+**Notes:**
+- The list endpoint returns summary fields only (to reduce payload and improve performance). Use **GET** `/sites/{id}` to fetch full details for a single site.
+
+**Note: Vendor creation during Excel import**
+- The client-side Excel import POSTs to `/api/vendors/find-or-create` and requires `vendorCode` (the PARTNER CODE from Excel). `name` is optional and, if omitted, the server will use `vendorCode` as the vendor name when creating a new vendor.
+- This ensures rows with the same vendor name but different `vendorCode` create distinct vendor records.
+
 **Response (200 OK):**
 ```json
 {
@@ -220,13 +227,13 @@ file: <Excel file with vendor data>
       "id": "site-uuid",
       "siteId": "DL-1001",
       "vendorId": "1",
-      "vendorName": "Acme Towers",
       "planId": "P-500",
       "antennaSize": "2.4m",
       "state": "Delhi",
       "region": "North",
-      "zone": "Zone-1",
-      "status": "Active",
+      "circle": "Circle-1",
+      "softAtStatus": "Accepted",
+      "phyAtStatus": "Pending",
       "siteAmount": 50000,
       "vendorAmount": 45000,
       "createdAt": "2024-01-20T10:30:00Z"

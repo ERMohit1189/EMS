@@ -39,7 +39,7 @@ export default function VendorPrivacyPolicy() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm leading-relaxed">
           <p>
-            This Privacy Policy explains how the Enterprise Management System (EMS) Vendor Portal collects, uses, and protects your business and personal information. We are committed to safeguarding your data and ensuring transparent business practices.
+            This Privacy Policy explains how the Enterprise Operations Management System (EOMS) Vendor Portal collects, uses, and protects your business and personal information. We are committed to safeguarding your data and ensuring transparent business practices.
           </p>
         </CardContent>
       </Card>

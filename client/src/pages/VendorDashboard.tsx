@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -73,7 +73,26 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
+  // Use localStorage for vendorId for better persistence
   const vendorId = localStorage.getItem("vendorId");
+
+  const [installYear, setInstallYear] = useState('');
+  const years = useMemo(() => {
+    const cur = new Date().getFullYear();
+    const arr: string[] = [];
+    for (let y = cur; y >= 2000; y--) arr.push(String(y));
+    return arr;
+  }, []);
+
+  const filteredSites = useMemo(() => {
+    if (!installYear) return sites;
+    return sites.filter(s => {
+      try {
+        const d = s.siteAInstallationDate ? new Date(s.siteAInstallationDate) : null;
+        return d && d.getFullYear() === Number(installYear);
+      } catch (e) { return false; }
+    });
+  }, [sites, installYear]);
 
   const columnHeaderMap: Record<string, string> = {
     siteId: 'Site ID',
@@ -91,7 +110,7 @@ export default function VendorDashboard() {
     tocoVendorB: 'TOCO Vendor B',
     tocoIdB: 'TOCO ID B',
     hopType: 'HOP Type',
-    hopAB: 'HOP AB',
+    hopAB: 'Site Name',
     hopBA: 'HOP BA',
     nominalAop: 'Nominal AOP',
     mediaAvailabilityStatus: 'Media Availability Status',
@@ -188,7 +207,12 @@ export default function VendorDashboard() {
       return;
     }
     
-    const formattedData = getFormattedExcelData(sites);
+    // Use filtered set based on installYear
+    const filtered = installYear ? sites.filter(s => {
+      try { const d = s.siteAInstallationDate ? new Date(s.siteAInstallationDate) : null; return d && d.getFullYear() === Number(installYear); } catch (e) { return false; }
+    }) : sites;
+
+    const formattedData = getFormattedExcelData(filtered);
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(formattedData);
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sites");
@@ -196,6 +220,32 @@ export default function VendorDashboard() {
     
     toast({ title: "Success", description: "Sites data downloaded successfully" });
   };
+
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/api/session`, { credentials: 'include' });
+        if (!res.ok) {
+          localStorage.removeItem('vendorId');
+          setError('Session expired. Please log in again.');
+          setLocation('/vendor-login');
+          return;
+        }
+        const session = await res.json();
+        if (!session.vendorId) {
+          localStorage.removeItem('vendorId');
+          setError('Session expired. Please log in again.');
+          setLocation('/vendor-login');
+          return;
+        }
+      } catch (err) {
+        localStorage.removeItem('vendorId');
+        setError('Session expired. Please log in again.');
+        setLocation('/vendor-login');
+      }
+    }
+    checkSession();
+  }, []);
 
   useEffect(() => {
     if (!vendorId) {
@@ -430,7 +480,7 @@ export default function VendorDashboard() {
                             {po.poDate ? format(new Date(po.poDate), "dd MMM yyyy") : "N/A"}
                           </td>
                           <td className="px-4 py-3">{po.description}</td>
-                          <td className="px-4 py-3 text-right">₹{parseFloat(po.totalAmount).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">Rs {parseFloat(po.totalAmount).toLocaleString()}</td>
                           <td className="px-4 py-3 text-center">
                             <Badge className={getStatusColor(po.status)}>{po.status}</Badge>
                           </td>
@@ -478,7 +528,7 @@ export default function VendorDashboard() {
                           <td className="px-4 py-3">
                             {invoice.dueDate ? format(new Date(invoice.dueDate), "dd MMM yyyy") : "N/A"}
                           </td>
-                          <td className="px-4 py-3 text-right">₹{parseFloat(invoice.totalAmount).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">Rs {parseFloat(invoice.totalAmount).toLocaleString()}</td>
                           <td className="px-4 py-3 text-center">
                             <Badge className={getStatusColor(invoice.status)}>{invoice.status}</Badge>
                           </td>
@@ -497,26 +547,46 @@ export default function VendorDashboard() {
         <TabsContent value="site" className="mt-6">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Your assigned sites ({sites.length})</h3>
-              <Button onClick={downloadSitesExcel} className="gap-2" data-testid="button-download-sites">
-                <Download className="h-4 w-4" />
-                Download
-              </Button>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold">Your assigned sites ({filteredSites.length})</h3>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium">Install Year</label>
+                  <select
+                    value={installYear}
+                    onChange={(e) => { const y = e.target.value; setInstallYear(y); }}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                    data-testid="vendor-sites-install-year"
+                  >
+                    <option value="">All</option>
+                    {years.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <Button onClick={downloadSitesExcel} className="gap-2" data-testid="button-download-sites">
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              </div>
             </div>
-            {sites.length > 0 ? (
+            {filteredSites.length > 0 ? (
               <div className="space-y-3">
-                {sites.map((site) => (
-                  <Card key={site.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => setExpandedSite(expandedSite === site.id ? null : site.id)} data-testid={`card-site-${site.id}`}>
-                    <CardHeader className="py-4">
+                {filteredSites.map((site) => (
+                  <Card key={site.id} className="overflow-visible cursor-pointer hover:shadow-md transition-shadow" onClick={() => setExpandedSite(expandedSite === site.id ? null : site.id)} data-testid={`card-site-${site.id}`}>                    <CardHeader className="py-4">
                       <div className="space-y-3">
                         <div>
                           <CardTitle className="text-base font-mono">{site.planId || site.siteId}</CardTitle>
                           <p className="text-sm text-muted-foreground">{site.circle || "—"} • {site.hopType || "—"}</p>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-6 gap-3">
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground">Site ID</label>
-                            <p className="text-sm font-semibold mt-0.5">{site.siteId}</p>
+                            <label className="text-xs font-medium text-muted-foreground">Site Name</label>
+                            <p className="text-sm font-semibold mt-0.5">{site.hopAB || "—"}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Installation Date: {site.siteAInstallationDate ? new Date(site.siteAInstallationDate).toISOString().slice(0,10) : '—'}</p>
                           </div>
                           <div>
                             <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
@@ -529,6 +599,14 @@ export default function VendorDashboard() {
                           <div>
                             <label className="text-xs font-medium text-muted-foreground">Max Ant Size</label>
                             <p className="text-sm font-semibold mt-0.5">{site.maxAntSize || "—"}</p>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Soft AT Status</label>
+                            <p className="text-sm font-semibold mt-0.5">{site.softAtStatus || "—"}</p>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">PHY AT Status</label>
+                            <p className="text-sm font-semibold mt-0.5">{site.phyAtStatus || "—"}</p>
                           </div>
                         </div>
                       </div>

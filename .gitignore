@@ -4,3 +4,66 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment files (SENSITIVE - never commit!)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+iisnode
+
+# Uploads and temp files
+uploads/
+tmp/
+*.zip
+
+# Local config
+web.config
+*.config.backup
+.vscode/settings.json
+
+# Database and backup files
+*.sql
+*.sqlite
+*.db
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Test and debug files
+*.jsonl
+cookies.txt
+payload.json
+pms.json
+
+# Documentation (too many md files)
+*_GUIDE.md
+*_SUMMARY.md
+*_FIX.md
+*_OPTIMIZATION.md
+*_DEBUGGING.md
+*_COMPLETE.md
+*_CHECKLIST.md
+*_REFERENCE.md
+
+# Folders to exclude
+llama.cpp/
+ClientApp/
+server - Copy/
+client/src - Copy/
+client/src/pages - Copy/
+
+# Windows reserved files
+nul
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif

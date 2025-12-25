@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { Mail, Lock, Building2 } from "lucide-react";
+import { Footer } from "@/components/layout/Footer";
 
 export default function VendorLogin() {
   const [email, setEmail] = useState("");
@@ -16,33 +17,25 @@ export default function VendorLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Load saved credentials from cookies on mount
+  // Load saved credentials from localStorage on mount (Remember Me feature)
   useEffect(() => {
-    const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
-    if (cookiesEnabled) {
-      const cookies = document.cookie.split("; ");
-      const savedCredsCookie = cookies.find(cookie => cookie.startsWith("vendorLoginCredentials="));
-      
-      if (savedCredsCookie) {
-        try {
-          const credsJson = decodeURIComponent(savedCredsCookie.substring("vendorLoginCredentials=".length));
-          const creds = JSON.parse(credsJson);
-          setEmail(creds.email || "");
-          setPassword(creds.password || "");
-          setRememberMe(true);
-        } catch (error) {
-          console.error("Failed to load saved credentials:", error);
-        }
-      }
+    const savedEmail = localStorage.getItem("vendorRememberMe_email");
+    const savedPassword = localStorage.getItem("vendorRememberMe_password");
+
+    console.log("[VendorLogin] Page loaded - checking for saved credentials...");
+    console.log("[VendorLogin] Saved email found:", !!savedEmail, savedEmail ? `(${savedEmail})` : "");
+    console.log("[VendorLogin] Saved password found:", !!savedPassword);
+
+    if (savedEmail && savedPassword) {
+      console.log("[VendorLogin] ✅ Loading saved credentials from localStorage");
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberMe(true);
+      console.log("[VendorLogin] ✅ Form pre-filled with saved credentials!");
+    } else {
+      console.log("[VendorLogin] No saved credentials found");
     }
   }, []);
-
-  const setCookie = (name: string, value: string, days: number = 7) => {
-    const date = new Date();
-    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-    const expires = "expires=" + date.toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Strict`;
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,24 +65,42 @@ export default function VendorLogin() {
         return;
       }
 
+      // Clear any employee-related data from previous sessions
+      localStorage.removeItem("employeeId");
+      localStorage.removeItem("employeeEmail");
+      localStorage.removeItem("employeeName");
+      localStorage.removeItem("employeeRole");
+
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("vendorId", data.vendor.id);
       localStorage.setItem("vendorEmail", data.vendor.email);
-      localStorage.setItem("vendorName", data.vendor.name);
+      localStorage.setItem("vendorName", `${data.vendor.name} (${data.vendor.vendorCode || 'N/A'})`);
 
-      // Save credentials to cookies if Remember Me is checked and cookies are enabled
-      const cookiesEnabled = localStorage.getItem("useCredentialsCookies") === "true";
-      if (rememberMe && cookiesEnabled) {
-        setCookie(
-          "vendorLoginCredentials",
-          JSON.stringify({ email, password }),
-          7
-        );
+      // Store last login type for session expiry redirect
+      localStorage.setItem("lastLoginType", "vendor");
+
+      // CRITICAL: Set browserSessionId to mark this as an active session
+      // This prevents App.tsx from treating page refresh as a new browser session
+      const browserSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('browserSessionId', browserSessionId);
+      console.log('[VendorLogin] Browser session ID set:', browserSessionId);
+
+      // Save credentials to localStorage if Remember Me is checked
+      console.log("[VendorLogin] Remember Me checkbox state:", rememberMe);
+
+      if (rememberMe) {
+        console.log("[VendorLogin] Saving credentials to localStorage...");
+        localStorage.setItem("vendorRememberMe_email", email);
+        localStorage.setItem("vendorRememberMe_password", password);
+        console.log("[VendorLogin] ✅ Credentials saved successfully!");
         toast({
           title: "Success",
-          description: "Login successful! Credentials saved to cookies",
+          description: "Login successful! Credentials saved for next time",
         });
       } else {
+        console.log("[VendorLogin] Remember Me was not checked, clearing saved credentials");
+        localStorage.removeItem("vendorRememberMe_email");
+        localStorage.removeItem("vendorRememberMe_password");
         toast({
           title: "Success",
           description: "Login successful!",
@@ -110,29 +121,35 @@ export default function VendorLogin() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 p-4">
-      <div className="w-full max-w-md">
+    <div className="w-screen h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 px-2 sm:px-4">
+      <div className="w-full max-w-md flex flex-col items-center justify-center">
         {/* Header Logo Area */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg mb-4">
-            <Building2 className="h-8 w-8 text-white" />
+        <div className="text-center mb-2 sm:mb-3 flex-shrink-0">
+          <div className="inline-flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg mb-2 sm:mb-3">
+            <Building2 className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Vendor Portal</h1>
-          <p className="text-sm text-gray-600 mt-2">Enterprise Management System</p>
+          <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 leading-tight text-center">
+            <span className="block text-xs sm:text-sm md:text-base">Vendor Portal</span>
+            <span className="block text-sm sm:text-base md:text-lg">Enterprise Operations Management System</span>
+          </h1>
+          {/* <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            Designed &amp; Developed by <a href="https://qaiinnovation.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Quantum AI Innovation</a>
+          </p> */}
         </div>
 
-        <Card className="shadow-2xl border-0">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg border-b">
-            <CardTitle className="text-2xl text-blue-900">Welcome Back</CardTitle>
-            <CardDescription className="text-gray-600">Sign in to access your dashboard</CardDescription>
+        <Card className="shadow-2xl border-0 flex-shrink-0">
+          <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-t-lg py-2 sm:py-3 shadow-md">
+            <CardTitle className="text-lg sm:text-2xl text-blue-900">Welcome Back</CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-gray-600">Sign in to access your dashboard</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
-            <form onSubmit={handleLogin} className="space-y-5">
+
+          <CardContent className="pt-3 sm:pt-4">
+            <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4 bg-white bg-opacity-70 p-3 sm:p-4 rounded-lg shadow-sm">
               {/* Email Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Email Address</label>
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-semibold text-gray-700">Email Address</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                   <Input
                     type="email"
                     placeholder="vendor@example.com"
@@ -141,16 +158,16 @@ export default function VendorLogin() {
                     disabled={loading}
                     required
                     data-testid="input-email"
-                    className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-9 sm:pl-10 h-9 sm:h-11 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
                   />
                 </div>
               </div>
 
               {/* Password Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Password</label>
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-semibold text-gray-700">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                   <Input
                     type="password"
                     placeholder="Enter your password"
@@ -159,13 +176,13 @@ export default function VendorLogin() {
                     disabled={loading}
                     required
                     data-testid="input-password"
-                    className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-9 sm:pl-10 h-9 sm:h-11 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
                   />
                 </div>
               </div>
 
               {/* Remember Me Checkbox */}
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 p-1 sm:p-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
                 <Checkbox
                   id="remember-me"
                   checked={rememberMe}
@@ -174,34 +191,27 @@ export default function VendorLogin() {
                   data-testid="checkbox-remember-me"
                   className="h-4 w-4 border-gray-300"
                 />
-                <label htmlFor="remember-me" className="text-sm text-gray-700 cursor-pointer flex-1">
+                <label htmlFor="remember-me" className="text-xs sm:text-sm text-gray-700 cursor-pointer flex-1">
                   Remember me for 7 days
                 </label>
               </div>
 
               {/* Forgot Password Link */}
-              <div className="text-right">
-                <Link href="/vendor/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 font-semibold" data-testid="link-forgot-password">
+              <div className="text-right -mt-1">
+                <Link href="/vendor/forgot-password" className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-semibold" data-testid="link-forgot-password">
                   Forgot Password?
                 </Link>
-              </div>
-
-              {/* Divider */}
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
               </div>
 
               {/* Login Button */}
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+                className="w-full h-9 sm:h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                 disabled={loading}
                 data-testid="button-login"
               >
                 {loading ? (
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center justify-center gap-2">
                     <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Logging in...
                   </span>
@@ -211,26 +221,24 @@ export default function VendorLogin() {
               </Button>
 
               {/* Footer Info */}
-              <p className="text-xs text-center text-gray-500 mt-4">
+              <p className="text-xs text-center text-gray-500 mt-0.5">
                 Protected by enterprise-grade security. Your data is encrypted and secure.
               </p>
-            </form>
-
-            {/* Sign Up Link */}
-            <div className="mt-6 text-center border-t pt-4">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
-                <Link href="/vendor-signup" className="text-blue-600 hover:text-blue-800 font-semibold" data-testid="link-signup">
-                  Sign Up
-                </Link>
+              <p className="text-xs text-center text-gray-500 mt-0">
+                Designed &amp; Developed by <a href="https://qaiinnovation.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Quantum AI Innovation</a>
               </p>
-            </div>
+            </form>
           </CardContent>
         </Card>
 
-        {/* Privacy Policy Link */}
-        <div className="text-center mt-6">
-          <Link href="/vendor/privacy-policy" className="text-xs text-gray-600 hover:text-gray-900 underline transition-colors" data-testid="link-privacy-policy">
+        <div className="mt-2 sm:mt-3 w-full flex justify-between items-center px-1 sm:px-2 flex-shrink-0 flex-nowrap">
+          <p className="text-[10px] sm:text-xs text-gray-600 whitespace-nowrap">
+            Don't have account?{" "}
+            <Link href="/vendor-signup" className="text-blue-600 hover:text-blue-800 font-semibold" data-testid="link-signup">
+              Sign Up
+            </Link>
+          </p>
+          <Link href="/vendor/privacy-policy" className="text-[10px] sm:text-xs text-gray-600 hover:text-gray-900 underline whitespace-nowrap ml-1" data-testid="link-privacy-policy">
             Privacy Policy
           </Link>
         </div>

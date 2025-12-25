@@ -1,4 +1,4 @@
-import { Bell, Search, Settings, Menu } from "lucide-react";
+import { Bell, Search, Settings, Menu, HelpCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import {
@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { VoiceCommand } from "@/components/VoiceCommand";
+// QuickGuide temporarily disabled until rework
+// import QuickGuide from "@/components/QuickGuide";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -19,16 +22,32 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
   const [, setLocation] = useLocation();
-  const [employeeName, setEmployeeName] = useState("User");
-  const [isEmployee, setIsEmployee] = useState(false);
-  const [isVendor, setIsVendor] = useState(false);
-  const [employeeRole, setEmployeeRole] = useState<string | null>(null);
-  const userDataStr = localStorage.getItem("user");
+
+  // Initialize state from localStorage to avoid showing "User" initially
+  const getInitialName = () => {
+    try {
+      const userDataStr = localStorage.getItem("user");
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        return userData.name || localStorage.getItem("employeeName") || localStorage.getItem("vendorName") || "User";
+      }
+    } catch (e) {
+      // ignore parsing errors
+    }
+    return localStorage.getItem("employeeName") || localStorage.getItem("vendorName") || "User";
+  };
+
+  const [employeeName, setEmployeeName] = useState(getInitialName());
+  const [isEmployee, setIsEmployee] = useState(localStorage.getItem("employeeId") !== null);
+  const [isVendor, setIsVendor] = useState(localStorage.getItem("vendorId") !== null);
+  const [employeeRole, setEmployeeRole] = useState<string | null>(localStorage.getItem("employeeRole"));
+  const [employeePhoto, setEmployeePhoto] = useState<string | null>(localStorage.getItem('employeePhoto') || null);
+
   useEffect(() => {
     // Update user info from localStorage
     const updateUserInfo = () => {
-      // Try to get user info from stored userData object first (contains name and role)
-      //const userDataStr = localStorage.getItem('user');
+      // Read current user data from localStorage each time (fix stale closure)
+      const userDataStr = localStorage.getItem("user");
       let name = "User";
       let role = null;
 
@@ -64,6 +83,10 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
       setIsEmployee(empId);
       setIsVendor(vendId);
       setEmployeeRole(role);
+
+      // Update photo state if available
+      const photo = localStorage.getItem('employeePhoto') || null;
+      setEmployeePhoto(photo);
     };
 
     // Initial update on mount
@@ -77,10 +100,13 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
 
     window.addEventListener("storage", updateUserInfo);
     window.addEventListener("login", handleLogin);
+    // Listen for explicit user updates (e.g., profile/photo changed in same tab)
+    window.addEventListener("user-updated", updateUserInfo);
 
     return () => {
       window.removeEventListener("storage", updateUserInfo);
       window.removeEventListener("login", handleLogin);
+      window.removeEventListener("user-updated", updateUserInfo);
     };
   }, []);
 
@@ -88,25 +114,35 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
   const showSettings = !isUserEmployee && !isVendor;
 
   const handleLogout = () => {
+    // Read current user data first so we can redirect appropriately after clearing
+    const prevUserStr = localStorage.getItem("user");
+    let redirectPath = "/login";
+    if (prevUserStr) {
+      try {
+        const userData = JSON.parse(prevUserStr);
+        if (userData.role === "admin" || userData.role === "user") {
+          redirectPath = "/employee-login";
+        } else if (userData.role === "superadmin") {
+          redirectPath = "/login";
+        } else if (userData.role === "vendor") {
+          redirectPath = "/vendor-login";
+        }
+      } catch (e) {
+        // ignore parsing errors and fall back to default
+      }
+    }
+
+    // Clear session-related keys and dispatch logout
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("user");
     localStorage.removeItem("employeeEmail");
     localStorage.removeItem("employeeName");
     localStorage.removeItem("employeeId");
     localStorage.removeItem("vendorName");
+    localStorage.removeItem("employeePhoto");
     window.dispatchEvent(new Event("logout"));
-    if (userDataStr) {
-      const userData = JSON.parse(userDataStr);
-      if (userData.role === "admin" || userData.role === "user") {
-        setLocation("/employee-login");
-      } else if (userData.role === "superadmin") {
-        setLocation("/login");
-      } else if (userData.role === "vendor") {
-        setLocation("/vendor-login");
-      }
-    } else {
-      setLocation("/login");
-    }
+
+    setLocation(redirectPath);
   };
 
   return (
@@ -135,6 +171,14 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 md:border-l md:pl-3 lg:pl-4">
+        {/* Voice Command Button */}
+        <VoiceCommand />
+
+        {/* Quick Guide disabled until it is stable */}
+        {/* <div className="hidden md:inline-flex">
+          <QuickGuide />
+        </div> */}
+
         <Button
           variant="ghost"
           size="icon"
@@ -165,9 +209,13 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
               className="rounded-full h-9 w-9 md:h-10 md:w-10"
               data-testid="button-user-menu"
             >
-              <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs">
-                {employeeName.slice(0, 2).toUpperCase()}
-              </div>
+              {employeePhoto ? (
+                <img src={employeePhoto} alt={employeeName} className="h-7 w-7 md:h-8 md:w-8 rounded-full object-cover" />
+              ) : (
+                <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs">
+                  {employeeName.slice(0, 2).toUpperCase()}
+                </div>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

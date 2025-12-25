@@ -1,5 +1,8 @@
 # Local Development Setup with Cloud Database
 
+**Application:** Enterprise Operations Management System (EOMS)
+**Design and Developed by:** Quantum AI Innovation
+
 This guide explains how to run your frontend from your local server while using the Neon cloud database.
 
 ## Architecture Overview

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,10 +23,12 @@ interface Employee {
   name: string;
   email: string;
   designation: string;
+  emp_code?: string;
 }
 
 interface EmployeeCredential {
   employeeId: string;
+  employeeCode?: string;
   employeeName: string;
   designation: string;
   email: string;
@@ -35,12 +38,27 @@ interface EmployeeCredential {
 }
 
 export default function EmployeeCredentials() {
+  // Role-based access control
+  const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+  if (employeeRole !== 'admin' && employeeRole !== 'user' && employeeRole !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
   const { toast } = useToast();
   const [credentials, setCredentials] = useState<EmployeeCredential[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalEmployees, setTotalEmployees] = useState(0);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [regenerateId, setRegenerateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [useCookies, setUseCookies] = useState(() => {
     return localStorage.getItem('useCredentialsCookies') === 'true';
   });
@@ -49,39 +67,31 @@ export default function EmployeeCredentials() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
+        setTableLoading(true);
+        const params = new URLSearchParams();
+        params.append('page', String(currentPage));
+        params.append('pageSize', String(pageSize));
+
+        const response = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`);
         if (response.ok) {
           const data = await response.json();
           const empList = data.data || [];
           setEmployees(empList);
-          
-          // Clean up credentials for deleted employees
-          const saved = localStorage.getItem('employeeCredentials');
-          if (saved) {
-            const allCreds = JSON.parse(saved);
-            // Keep only credentials for employees that still exist
-            const validCreds = allCreds.filter((c: EmployeeCredential) =>
-              empList.some((e: Employee) => e.id === c.employeeId)
-            );
-            // Deduplicate valid credentials
-            const uniqueCreds = Array.from(
-              new Map(validCreds.map((c: EmployeeCredential) => [c.employeeId, c])).values()
-            );
-            setCredentials(uniqueCreds);
-            // Update localStorage with cleaned credentials
-            localStorage.setItem('employeeCredentials', JSON.stringify(uniqueCreds));
-          }
+          setTotalEmployees(data.totalCount || 0);
+
+
         }
       } catch (error) {
         console.error('Failed to fetch employees:', error);
       } finally {
         setLoading(false);
+        setTableLoading(false);
       }
     };
 
     const saved = localStorage.getItem('employeeCredentials');
     if (saved) {
-      const allCreds = JSON.parse(saved);
+      const allCreds = JSON.parse(saved) as EmployeeCredential[];
       // Deduplicate credentials - keep only the latest for each employeeId
       const uniqueCreds = Array.from(
         new Map(allCreds.map((c: EmployeeCredential) => [c.employeeId, c])).values()
@@ -149,13 +159,18 @@ export default function EmployeeCredentials() {
   };
 
   const generateCredentialsForEmployee = async (employeeId: string) => {
+    setGeneratingId(employeeId);
     const employee = employees.find(e => e.id === employeeId);
-    if (!employee) return;
+    if (!employee) {
+      setGeneratingId(null);
+      return;
+    }
 
     const generatedPassword = generatePassword();
     
     const newCred: EmployeeCredential = {
       employeeId,
+      employeeCode: employee.emp_code,
       employeeName: employee.name,
       designation: employee.designation,
       email: employee.email,
@@ -191,6 +206,8 @@ export default function EmployeeCredentials() {
         description: error?.message || 'Credentials generated locally but failed to sync to database',
         variant: 'destructive',
       });
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -228,8 +245,9 @@ export default function EmployeeCredentials() {
       return;
     }
 
-    const headers = ['Employee Name', 'Designation', 'Email/Username', 'Password', 'Created Date'];
+    const headers = ['Employee Code', 'Employee Name', 'Designation', 'Email/Username', 'Password', 'Created Date'];
     const rows = credentials.map(c => [
+      c.employeeCode || 'N/A',
       c.employeeName,
       c.designation,
       c.email,
@@ -296,7 +314,7 @@ export default function EmployeeCredentials() {
             <CardTitle className="text-sm font-medium">Pending Credentials</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{employeesWithoutCreds.length}</div>
+            <div className="text-2xl font-bold">{Math.max(0, totalEmployees - credentials.length)}</div>
             <p className="text-xs text-muted-foreground">Awaiting generation</p>
           </CardContent>
         </Card>
@@ -344,6 +362,7 @@ export default function EmployeeCredentials() {
                 <div key={`${cred.employeeId}-cred`} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
+                      <div className="text-xs text-muted-foreground font-mono">Code: {cred.employeeCode || 'N/A'}</div>
                       <div className="font-semibold">{cred.employeeName}</div>
                       <div className="text-sm text-muted-foreground">{cred.designation}</div>
                     </div>
@@ -400,8 +419,15 @@ export default function EmployeeCredentials() {
                         onClick={() => setRegenerateId(cred.employeeId)}
                         className="gap-2 flex-1"
                         data-testid={`button-regenerate-${cred.employeeId}`}
+                        disabled={generatingId === cred.employeeId}
                       >
-                        <RotateCcw className="h-4 w-4" /> Regenerate
+                        {generatingId === cred.employeeId ? (
+                          'Generating...'
+                        ) : (
+                          <>
+                            <RotateCcw className="h-4 w-4" /> Regenerate
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -420,26 +446,57 @@ export default function EmployeeCredentials() {
             <CardDescription>Employees without login credentials</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {employeesWithoutCreds.map(employee => (
-                <div
-                  key={employee.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1">
+            <div className="overflow-x-auto max-h-[48vh] overflow-auto rounded-md border bg-card">
+              <div className="sticky top-0 z-20 grid grid-cols-4 gap-0 p-3 font-medium border-b bg-primary text-primary-foreground text-sm">
+                <div>Employee Code</div>
+                <div>Name</div>
+                <div>Designation</div>
+                <div className="text-right">Action</div>
+              </div>
+              {tableLoading ? (
+                <div className="p-6">
+                  <SkeletonLoader type="table" count={Math.min(pageSize, 6)} />
+                </div>
+              ) : employeesWithoutCreds.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">No pending credentials on this page.</div>
+              ) : (
+                employeesWithoutCreds.map(employee => (
+                  <div key={employee.id} className="grid grid-cols-4 gap-0 items-center border-b p-3">
+                    <div className="text-sm font-mono text-blue-600">{employee.emp_code || 'N/A'}</div>
                     <div className="font-medium">{employee.name}</div>
                     <div className="text-sm text-muted-foreground">{employee.designation}</div>
+                    <div className="text-right">
+                      <Button
+                        onClick={() => generateCredentialsForEmployee(employee.id)}
+                        size="sm"
+                        className="gap-2"
+                        data-testid={`button-generate-${employee.id}`}
+                        disabled={generatingId === employee.id}
+                      >
+                        {generatingId === employee.id ? 'Generating...' : 'Generate Credentials'}
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    onClick={() => generateCredentialsForEmployee(employee.id)}
-                    size="sm"
-                    className="gap-2"
-                    data-testid={`button-generate-${employee.id}`}
-                  >
-                    Generate Credentials
-                  </Button>
+                ))
+              )}
+
+              {/* Sticky footer for pagination */}
+              {totalEmployees > 0 && (
+                <div className="sticky bottom-0 bg-card/90 backdrop-blur border-t p-2 flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Showing {totalEmployees === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(totalEmployees, currentPage * pageSize)} of {totalEmployees.toLocaleString()} employees</div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>First</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</Button>
+                    <div className="px-2">Page</div>
+                    <Input value={String(currentPage)} onChange={(e) => { const v = Number(e.target.value || 1); if (!isNaN(v)) setCurrentPage(Math.min(Math.max(1, v), Math.max(1, Math.ceil(totalEmployees / pageSize)))); }} className="w-16 text-center" onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+                    <div className="px-2">of {Math.max(1, Math.ceil(totalEmployees / pageSize))}</div>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.min(Math.max(1, Math.ceil(totalEmployees / pageSize)), p + 1))} disabled={currentPage === Math.max(1, Math.ceil(totalEmployees / pageSize))}>Next</Button>
+                    <select className="form-select text-sm" value={String(pageSize)} onChange={(e) => { const v = Number(e.target.value || 50); setPageSize(v); setCurrentPage(1); }}>
+                      {[10,25,50,100].map(sz => <option key={sz} value={sz}>{sz}</option>) }
+                    </select>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -470,8 +527,9 @@ export default function EmployeeCredentials() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => regenerateId && regenerateCredentialsForEmployee(regenerateId)}
+              disabled={generatingId !== null}
             >
-              Regenerate
+              {generatingId === regenerateId ? 'Generating...' : 'Regenerate'}
             </AlertDialogAction>
           </div>
         </AlertDialogContent>

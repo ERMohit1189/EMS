@@ -14,6 +14,7 @@ import {
   insertPOSchema,
   insertInvoiceSchema,
   insertPaymentMasterSchema,
+  insertVendorRateSchema,
   insertZoneSchema,
   insertTeamSchema,
   insertAppSettingsSchema,
@@ -49,15 +50,19 @@ import {
   leaveAllotments,
   insertLeaveAllotmentSchema,
   paymentMasters,
+  vendorRates,
+  vendorPasswordOtps,
 } from "@shared/schema";
 import { eq, and, or, inArray, sql, ne, desc, count, gte, lte, ilike } from "drizzle-orm";
-import { 
-  requireAuth, 
-  requireEmployeeAuth, 
+import {
+  requireAuth,
+  requireEmployeeAuth,
   requireVendorAuth,
   requireAdminAuth,
-  checkSession 
+  requireSuperadminAuth,
+  checkSession
 } from "./auth-middleware";
+import { sendOtpEmail } from "./utils/email";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -293,7 +298,6 @@ export async function registerRoutes(
   app.post("/api/vendors", async (req, res) => {
     try {
       const data = insertVendorSchema.parse(req.body);
-      const bcrypt = require("bcrypt");
       const tempPassword = Math.random().toString(36).slice(-10);
       const hashedPassword = await bcrypt.hash(tempPassword, 4);
       const vendorData = { ...data, password: hashedPassword };
@@ -316,12 +320,34 @@ export async function registerRoutes(
       }
       // Check if vendor status is Approved
       if (vendor.status !== "Approved") {
-        return res.status(403).json({ 
-          error: `Account access denied. Your account status is "${vendor.status}". Please contact the administrator for approval.` 
+        return res.status(403).json({
+          error: `Account access denied. Your account status is "${vendor.status}". Please contact the administrator for approval.`
         });
       }
-      req.session.vendorId = vendor.id;
-      req.session.vendorEmail = vendor.email;
+
+      // Store in session (for server-side session tracking)
+      if (req.session) {
+        req.session.vendorId = vendor.id;
+        req.session.vendorEmail = vendor.email;
+
+        // Explicitly save session before sending response
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error('[Vendor Login] Session save error:', err);
+              reject(err);
+            } else {
+              console.log('[Vendor Login] Session saved successfully:', {
+                vendorId: req.session.vendorId,
+                vendorEmail: req.session.vendorEmail,
+                sessionID: req.sessionID
+              });
+              resolve();
+            }
+          });
+        });
+      }
+
       res.json({
         success: true,
         vendor: { id: vendor.id, name: vendor.name, email: vendor.email, vendorCode: vendor.vendorCode },
@@ -388,10 +414,11 @@ export async function registerRoutes(
       }
 
       // Hash password
-      const bcrypt = require("bcrypt");
       const hashedPassword = await bcrypt.hash(password, 4);
 
       // Validate and create vendor using schema
+      // Generate temporary identifiers for required fields that are not part of the signup form
+      const uniqueSuffix = Math.random().toString(36).slice(-8).toUpperCase();
       const vendorData = insertVendorSchema.parse({
         name,
         email,
@@ -404,8 +431,17 @@ export async function registerRoutes(
         category: "Individual",
         status: "Pending",
         role: "Vendor",
+        aadhar: `TEMP${Date.now()}${uniqueSuffix}`,
+        pan: `TEMP${uniqueSuffix}`,
       });
 
+      console.log('[Vendor Signup] creating vendor with data:', {
+        name: vendorData.name,
+        email: vendorData.email,
+        mobile: vendorData.mobile,
+        aadhar: vendorData.aadhar,
+        pan: vendorData.pan,
+      });
       const vendor = await storage.createVendor(vendorData);
       res.json({
         success: true,
@@ -441,7 +477,6 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Vendor not found" });
       }
 
-      const bcrypt = require("bcrypt");
       const passwordMatch = await bcrypt.compare(
         currentPassword,
         vendor.password,
@@ -459,7 +494,7 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor forgot password endpoint
+  // Vendor forgot password endpoint (legacy; kept for compatibility)
   app.post("/api/vendors/forgot-password", async (req, res) => {
     try {
       const { email, newPassword } = req.body;
@@ -476,13 +511,254 @@ export async function registerRoutes(
           .json({ error: "Vendor with this email not found" });
       }
 
-      const bcrypt = require("bcrypt");
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await storage.updateVendor(vendor.id, { password: hashedPassword });
 
       res.json({ success: true, message: "Password reset successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // --- New OTP-based flow endpoints (superadmin configurable SMTP) ---
+  // Request OTP (sends OTP to registered email) - public
+  app.post('/api/vendors/request-reset-otp', async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // Step 1: Validate email is provided
+      if (!email || typeof email !== 'string' || email.trim().length === 0) {
+        return res.status(400).json({ error: 'Valid email is required' });
+      }
+
+      const trimmedEmail = email.trim().toLowerCase();
+
+      // Step 2: Check if email exists in database
+      const vendor = await storage.getVendorByEmail(trimmedEmail);
+      if (!vendor) {
+        console.warn(`[OTP Request] Email not found in database: ${trimmedEmail}`);
+        return res.status(404).json({ error: 'No vendor account found with this email' });
+      }
+
+      // Step 3: Validate vendor ID exists
+      if (!vendor.id) {
+        console.error('[OTP Request] Vendor found but has no ID:', vendor);
+        return res.status(500).json({ error: 'Vendor account is corrupted. Please contact support.' });
+      }
+
+      console.log(`[OTP Request] Processing OTP for vendor: ${vendor.id}, email: ${trimmedEmail}`);
+
+      // Step 4: Generate OTP and store hashed value
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpHash = await bcrypt.hash(otp, 4);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Step 5: Store OTP in database
+      const otpRecord = await (storage as any).createVendorPasswordOTP(vendor.id, trimmedEmail, otpHash, expiresAt);
+
+      console.log('[OTP Request] OTP record raw:', otpRecord);
+
+      // Accept multiple shapes (snake_case from raw SQL or camelCase from typed inserts)
+      const otpRecordId = otpRecord?.id || otpRecord?.ID || otpRecord?.insertedId || otpRecord?.vendor_id || otpRecord?.vendorId;
+      if (!otpRecord || !otpRecordId) {
+        console.error('[OTP Request] Failed to create OTP record or missing id:', otpRecord);
+        return res.status(500).json({ error: 'Failed to generate OTP. Please try again.' });
+      }
+
+      console.log(`[OTP Request] OTP record created: ${otpRecordId}`);
+
+      // Step 6: Send OTP email
+      const emailResult = await sendOtpEmail(trimmedEmail, otp);
+
+      if (!emailResult) {
+        console.warn(`[OTP Request] Email sending failed or SMTP not configured for ${trimmedEmail}, but OTP stored successfully`);
+        // Still return success as OTP is stored - user can reset password manually
+      } else {
+        console.log(`[OTP Request] Email sent successfully to ${trimmedEmail}`);
+      }
+
+      res.json({ success: true, message: 'OTP sent to email if it exists' });
+    } catch (err: any) {
+      console.error('[OTP Request Error]', err?.message || err, err?.stack);
+      res.status(500).json({ error: 'Failed to request OTP: ' + (err?.message || 'Unknown error') });
+    }
+  });
+
+  // Validate OTP only (used to confirm email before allowing password change) - public
+  app.post('/api/vendors/validate-reset-otp', async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+
+      const vendor = await storage.getVendorByEmail(email);
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+      const otpRow = await (storage as any).findValidOTPByEmail(email);
+      if (!otpRow) return res.status(400).json({ error: 'OTP not found or expired' });
+
+      // Support both snake_case and camelCase column names
+      const otpHash = otpRow?.otp_hash ?? otpRow?.otpHash;
+      if (!otpHash) {
+        console.error('[OTP Validate] OTP row missing hash', otpRow);
+        return res.status(500).json({ error: 'OTP record malformed' });
+      }
+
+      const match = await bcrypt.compare(otp, otpHash);
+      if (!match) {
+        // Increment attempts safely using typed table
+        await db.update(vendorPasswordOtps).set({ attempts: (otpRow.attempts || 0) + 1 }).where(eq(vendorPasswordOtps.id, otpRow.id));
+        return res.status(400).json({ error: 'Invalid OTP' });
+      }
+
+      // OTP valid (do not mark used yet)
+      res.json({ success: true, message: 'OTP is valid' });
+    } catch (err: any) {
+      console.error('[OTP Validate Error]', err);
+      res.status(500).json({ error: 'Failed to validate OTP' });
+    }
+  });
+
+  // Verify OTP and reset password
+  app.post('/api/vendors/verify-reset-otp', async (req, res) => {
+    try {
+      const { email, otp, newPassword } = req.body;
+      if (!email || !otp || !newPassword) return res.status(400).json({ error: 'Email, OTP and newPassword are required' });
+
+      const vendor = await storage.getVendorByEmail(email);
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+      const otpRow = await (storage as any).findValidOTPByEmail(email);
+      if (!otpRow) return res.status(400).json({ error: 'OTP not found or expired' });
+
+      // Support both snake_case and camelCase column names
+      const otpHash = otpRow?.otp_hash ?? otpRow?.otpHash;
+      if (!otpHash) {
+        console.error('[OTP Verify] OTP row missing hash', otpRow);
+        return res.status(500).json({ error: 'OTP record malformed' });
+      }
+
+      const match = await bcrypt.compare(otp, otpHash);
+      if (!match) {
+        // Increment attempts safely using typed table
+        await db.update(vendorPasswordOtps).set({ attempts: (otpRow.attempts || 0) + 1 }).where(eq(vendorPasswordOtps.id, otpRow.id));
+        return res.status(400).json({ error: 'Invalid OTP' });
+      }
+
+      // All good - update password and mark OTP used
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateVendor(vendor.id, { password: hashedPassword });
+      await (storage as any).markOtpUsed(otpRow.id);
+
+      res.json({ success: true, message: 'Password reset successfully' });
+    } catch (err: any) {
+      console.error('[OTP Verify Error]', err);
+      res.status(500).json({ error: 'Failed to verify OTP' });
+    }
+  });
+
+  // Superadmin GET email settings
+  app.get('/api/admin/email-settings', requireSuperadminAuth, async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      res.json({ success: true, settings: {
+        smtpHost: settings?.smtpHost || null,
+        smtpPort: settings?.smtpPort || null,
+        smtpUser: settings?.smtpUser || null,
+        smtpPass: settings?.smtpPass ? '*****' : null, // mask
+        smtpSecure: settings?.smtpSecure || false,
+        fromEmail: settings?.fromEmail || null,
+        fromName: settings?.fromName || null,
+      }});
+    } catch (err: any) {
+      res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+  });
+
+  // Superadmin update email settings
+  app.post('/api/admin/email-settings', requireSuperadminAuth, async (req, res) => {
+    try {
+      console.log('[Email Settings Update] request body:', { ...req.body, smtpPass: req.body?.smtpPass ? '*****' : undefined });
+      const { smtpHost, smtpPort, smtpUser, smtpPass, smtpSecure, fromEmail, fromName } = req.body;
+
+      // Basic validation & normalization
+      const payload: any = {};
+      if (typeof smtpHost !== 'undefined') payload.smtpHost = smtpHost === '' ? null : String(smtpHost).trim();
+      if (typeof smtpPort !== 'undefined') {
+        if (smtpPort === '' || smtpPort === null) payload.smtpPort = null;
+        else {
+          const n = Number(smtpPort);
+          if (Number.isNaN(n)) return res.status(400).json({ error: 'smtpPort must be a number' });
+          payload.smtpPort = Math.floor(n);
+        }
+      }
+      if (typeof smtpUser !== 'undefined') payload.smtpUser = smtpUser === '' ? null : String(smtpUser).trim();
+      // Only set smtpPass if explicitly provided and not the masked placeholder
+      if (typeof smtpPass !== 'undefined' && smtpPass !== null && smtpPass !== '' && smtpPass !== '*****') payload.smtpPass = String(smtpPass);
+      if (typeof smtpSecure !== 'undefined') payload.smtpSecure = (smtpSecure === true || smtpSecure === 'true');
+      if (typeof fromEmail !== 'undefined') payload.fromEmail = fromEmail === '' ? null : String(fromEmail).trim();
+      if (typeof fromName !== 'undefined') payload.fromName = fromName === '' ? null : String(fromName).trim();
+
+      const updated = await storage.updateAppSettings(payload);
+      res.json({ success: true, settings: updated });
+    } catch (err: any) {
+      console.error('[Email Settings Update] failed:', err?.message || err, { stack: err?.stack });
+      res.status(500).json({ error: 'Failed to update settings', detail: err?.message });
+    }
+  });
+
+  // Superadmin test email send
+  app.post('/api/admin/email-settings/test', requireSuperadminAuth, async (req, res) => {
+    try {
+      const { to } = req.body;
+      if (!to) return res.status(400).json({ error: 'Recipient email (to) is required' });
+
+      // send a test OTP and return preview + masked settings so admin can verify
+      const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const result = await sendOtpEmail(to, testOtp);
+
+      // Build masked settings for response
+      const settingsUsed = result?.settingsUsed || {} as any;
+      const masked = {
+        host: settingsUsed.host || null,
+        port: settingsUsed.port || null,
+        user: settingsUsed.user ? `${String(settingsUsed.user).slice(0, 3)}*****` : null,
+        from: settingsUsed.from || null,
+        fromName: settingsUsed.fromName || null,
+        secure: settingsUsed.secure || false,
+      };
+
+      const company = result?.company || null;
+      const maskedCompany = company ? {
+        companyName: company.companyName || null,
+        address: company.address || null,
+        website: company.website || null,
+        contactEmail: company.contactEmail || null,
+        contactPhone: company.contactPhone || null,
+      } : null;
+
+      res.json({
+        success: true,
+        message: 'Test email attempted. Check logs or recipient inbox.',
+        preview: result?.preview || null,
+        settings: masked,
+        company: maskedCompany,
+        messageId: result?.info?.messageId || null,
+      });
+    } catch (err: any) {
+      console.error('[Email Test Error]', err);
+      // Persist error to tmp file for debugging
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const dir = path.join(process.cwd(), 'tmp');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const out = `[${new Date().toISOString()}] Email test error: ${err?.message || String(err)}\n${err?.stack || ''}\n`;
+        fs.appendFileSync(path.join(dir, 'email_errors.log'), out);
+      } catch (e) {
+        console.error('[Email Test Error] Failed to write debug log:', e);
+      }
+      // Return error details for debugging (temporary)
+      res.status(500).json({ error: 'Failed to send test email', detail: err?.message || String(err) });
     }
   });
 
@@ -513,7 +789,9 @@ export async function registerRoutes(
         req.session.employeeId = employee.id;
         req.session.employeeEmail = employee.email;
         req.session.employeeRole = employee.role || "user";
-        
+        (req.session as any).employeeName = employee.name;
+        (req.session as any).employeeCode = (employee as any).emp_code || employee.id;
+
         // Explicitly save session before sending response
         await new Promise<void>((resolve, reject) => {
           req.session.save((err) => {
@@ -525,6 +803,7 @@ export async function registerRoutes(
                 employeeId: req.session.employeeId,
                 employeeEmail: req.session.employeeEmail,
                 employeeRole: req.session.employeeRole,
+                employeeName: (req.session as any).employeeName,
                 sessionID: req.sessionID
               });
               resolve();
@@ -533,20 +812,61 @@ export async function registerRoutes(
         });
       }
 
-      // Return quick response without checking reporting person status
-      // This check can be done on-demand when needed, not on every login
-      const responseData = {
+      // Return quick response and include reporting-person status to keep client localStorage accurate
+      const responseData: any = {
         success: true,
         employee: {
           id: employee.id,
           name: employee.name,
           email: employee.email,
+          emp_code: (employee as any).emp_code || employee.id,
           role: employee.role || "user",
           department: (employee as any).departmentName || "Not Assigned",
           designation: (employee as any).designationName || "Not Specified",
-          isReportingPerson: false, // Will be checked when needed, not on login
+          photo: employee.photo || null,
+          isReportingPerson: false, // will be updated below if detected
+          reportingTeamIds: [],
         },
+
       };
+
+      // Determine whether the employee is a reporting person (and which teams)
+      try {
+        // const rows = await db.select().from(teamMembers).where(
+        //   or(
+        //     eq(teamMembers.employeeId, employee.id),
+        //     eq(teamMembers.reportingPerson2, employee.id),
+        //     eq(teamMembers.reportingPerson3, employee.id)
+        //   )
+        // );
+        // responseData.employee.isReportingPerson = rows.length > 0;
+        const tm = teamMembers;
+
+        const subQuery = await db
+        .select({ id: teamMembers.id })
+        .from(teamMembers)
+        .where(eq(teamMembers.employeeId, employee.id))
+        .as("sub_tm");
+
+        const rows = await db
+        .select()
+        .from(tm)
+        .innerJoin(subQuery, eq(subQuery.id, tm.id))
+        .where(
+          or(
+            eq(tm.reportingPerson1, subQuery.id),
+            eq(tm.reportingPerson2, subQuery.id),
+            eq(tm.reportingPerson3, subQuery.id)
+          )
+        );
+
+        responseData.employee.isReportingPerson = rows.length > 0;
+        
+        responseData.employee.reportingTeamIds = rows.map((r: any) => r.teamId).filter(Boolean);
+      } 
+      catch (e: any) {
+        console.error('[Employee Login] Error checking reporting-person during login:', e?.message || e);
+      }
 
       console.log(`[Employee Login] Sending response:`, responseData);
       res.json(responseData);
@@ -580,7 +900,6 @@ export async function registerRoutes(
       "[API] Change Password Route - POST /api/employees/:id/change-password",
     );
     try {
-      const bcrypt = require("bcrypt");
       const { currentPassword, newPassword } = req.body;
 
       if (!currentPassword || !newPassword) {
@@ -778,9 +1097,8 @@ export async function registerRoutes(
       }
 
       // FULL QUERY MODE: For admin pages that need detailed vendor information
-      // Includes site counts, PO counts, invoice counts via LEFT JOINs
-      // Performance: ~75% faster with proper indexes
-      const query = db
+      // Returns basic vendor info without counts (counts can be expensive with JOINs)
+      let query = db
         .select({
           id: vendors.id,
           vendorCode: vendors.vendorCode,
@@ -798,35 +1116,32 @@ export async function registerRoutes(
           pan: vendors.pan,
           gstin: vendors.gstin,
           moa: vendors.moa,
-          aadharDoc: vendors.aadharDoc,
-          panDoc: vendors.panDoc,
-          gstinDoc: vendors.gstinDoc,
-          moaDoc: vendors.moaDoc,
           password: vendors.password,
           createdAt: vendors.createdAt,
-          siteCount: sql<number>`CAST(COUNT(DISTINCT ${sites.id}) AS INTEGER)`,
-          poCount: sql<number>`CAST(COUNT(DISTINCT ${purchaseOrders.id}) AS INTEGER)`,
-          invoiceCount: sql<number>`CAST(COUNT(DISTINCT ${invoices.id}) AS INTEGER)`,
         })
-        .from(vendors)
-        .leftJoin(sites, eq(sites.vendorId, vendors.id))
-        .leftJoin(purchaseOrders, eq(purchaseOrders.vendorId, vendors.id))
-        .leftJoin(invoices, eq(invoices.vendorId, vendors.id));
+        .from(vendors);
 
       // Apply status filter to WHERE clause if provided
       if (whereConditions.length > 0) {
-        query.where(whereConditions[0]);
+        query = query.where(whereConditions[0]);
       }
 
-      const vendorsWithUsage = await query
-        .groupBy(vendors.id)
+      const data = await query
+        .orderBy(vendors.createdAt)
         .limit(pageSize)
         .offset(offset);
 
-      // Add isUsed flag based on counts
-      const data = vendorsWithUsage.map(vendor => ({
+      // Add isUsed flag and document fields (documents need to be fetched separately if needed)
+      const vendorData = data.map(vendor => ({
         ...vendor,
-        isUsed: vendor.siteCount > 0 || vendor.poCount > 0 || vendor.invoiceCount > 0,
+        aadharDoc: null,
+        panDoc: null,
+        gstinDoc: null,
+        moaDoc: null,
+        isUsed: false,
+        siteCount: 0,
+        poCount: 0,
+        invoiceCount: 0,
       }));
 
       // Get total count with status filter applied if provided
@@ -842,13 +1157,14 @@ export async function registerRoutes(
       }
 
       res.json({
-        data,
+        data: vendorData,
         totalCount,
         pageNumber: page,
         pageSize,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('[Vendors API] Error fetching vendors:', error);
+      res.status(500).json({ error: error.message || 'Failed to fetch vendors' });
     }
   });
 
@@ -870,7 +1186,6 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Vendor not found" });
       }
 
-      const bcrypt = require("bcrypt");
       const tempPassword = Math.random().toString(36).slice(-10);
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
@@ -1015,6 +1330,9 @@ export async function registerRoutes(
           address: 'Pending Registration',
           city: 'N/A',
           state: 'N/A',
+          pincode: '',
+          country: 'India',
+          role: 'Vendor',
           status: 'Pending' as const,
           aadhar: '',
           pan: '',
@@ -1024,12 +1342,29 @@ export async function registerRoutes(
 
       let createdVendors = [];
       if (vendorsToCreate.length > 0) {
-        // SINGLE BATCH INSERT: Create all missing vendors in one operation
-        createdVendors = await db
-          .insert(vendors)
-          .values(vendorsToCreate)
-          .returning();
-        console.log(`[Routes] Created ${createdVendors.length} new vendors in SINGLE BATCH INSERT`);
+        // Try single batch insert first (fast path). Return only essential columns
+        // to avoid referencing columns that may be missing in older DB schemas.
+        try {
+          createdVendors = await db
+            .insert(vendors)
+            .values(vendorsToCreate)
+            .returning({ id: vendors.id, vendorCode: vendors.vendorCode, name: vendors.name });
+          console.log(`[Routes] Created ${createdVendors.length} new vendors in SINGLE BATCH INSERT`);
+        } catch (batchErr: any) {
+          console.error('[Routes] Batch insert failed, falling back to safe per-vendor creation:', batchErr.message || batchErr);
+          // Fallback: create vendors individually using storage.getOrCreateVendorByCode which applies safe defaults
+          const created: any[] = [];
+          for (const v of vendorsToCreate) {
+            try {
+              const vendor = await storage.getOrCreateVendorByCode(v.vendorCode, v.name);
+              created.push(vendor);
+            } catch (indErr: any) {
+              console.error('[Routes] Failed to create vendor during fallback:', v.vendorCode, indErr.message || indErr);
+            }
+          }
+          createdVendors = created;
+          console.log(`[Routes] Fallback created ${createdVendors.length} vendors individually`);
+        }
       }
 
       // Combine results from existing + newly created vendors
@@ -1045,6 +1380,43 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error('[Routes] /api/vendors/batch-find-or-create error:', error.message);
       res.status(400).json({ error: error.message, vendors: [] });
+    }
+  });
+
+  // Simple help content store (JSON file) - allows admin/superadmin to update Help Center content
+  const helpFilePath = path.join(process.cwd(), 'server', 'help-data.json');
+
+  app.get('/api/help', async (req, res) => {
+    try {
+      if (fs.existsSync(helpFilePath)) {
+        const data = await fs.promises.readFile(helpFilePath, 'utf8');
+        return res.json(JSON.parse(data));
+      }
+      // Default content
+      const defaultContent = {
+        overview: 'This portal manages vendors, sites, POs, invoices and payroll. Use the sidebar to navigate modules.',
+        vendorCredentials: 'Generate, reset and copy vendor login credentials. Use the table to search and generate passwords.',
+        poGeneration: 'Bulk-create Purchase Orders for approved sites. Desktop table + mobile cards. GST auto-calculation.',
+        invoiceGeneration: 'Create invoices from POs, export to PDF, print and manage statuses.',
+        contributing: 'Edit this Help Center as a superadmin to add screenshots and expanded docs.'
+      };
+      return res.json(defaultContent);
+    } catch (err: any) {
+      console.error('Failed to load help content:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/help', requireSuperadminAuth, async (req, res) => {
+    try {
+      const payload = req.body || {};
+      // Basic validation: require object
+      if (!payload || typeof payload !== 'object') return res.status(400).json({ error: 'Invalid payload' });
+      await fs.promises.writeFile(helpFilePath, JSON.stringify(payload, null, 2), 'utf8');
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error('Failed to save help content:', err);
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -1249,17 +1621,15 @@ export async function registerRoutes(
     } catch (error: any) {
       // Map DB unique-constraint errors to friendly messages
       let userMessage = error.message || 'Failed to upsert site';
-      if (error.code === '23505' || (typeof error.message === 'string' && error.message.includes('sites_site_id_unique'))) {
-        const dup = req.body?.siteId || '-';
-        userMessage = `Duplicate site identifier: a site with site_id "${dup}" already exists.`;
+      if (error.code === '23505') {
+        userMessage = 'Duplicate key error: unique constraint violation. Check input for conflicting values.';
       }
       console.error('[Routes] /api/sites/upsert error:', {
         errorMessage: error.message,
         userMessage,
         planId: req.body?.planId,
-        siteId: req.body?.siteId,
       });
-      res.status(400).json({ error: userMessage, planId: req.body?.planId, siteId: req.body?.siteId });
+      res.status(400).json({ error: userMessage, planId: req.body?.planId });
     }
   });
 
@@ -1316,6 +1686,26 @@ export async function registerRoutes(
 
       console.log(`[Routes] ✅ STEP 2 Complete: ${insertSites.length} to INSERT, ${updateSites.length} to UPDATE (${Date.now() - splitStartTime}ms)`);
 
+      // Normalize Soft/Phy AT status values to canonical set (Pending/Approved/Raised/Rejected)
+      const normalizeAtStatus = (val: any): string => {
+        const s = (val === null || val === undefined) ? null : String(val).trim();
+        if (!s) return 'Pending';
+        const lower = s.toLowerCase();
+        const mapping: Record<string,string> = { pending: 'Pending', approved: 'Approved', raised: 'Raised', rejected: 'Rejected' };
+        return mapping[lower] || 'Pending';
+      };
+
+      for (const s of insertSites) {
+        s.softAtStatus = normalizeAtStatus((s as any).softAtStatus);
+        s.phyAtStatus = normalizeAtStatus((s as any).phyAtStatus);
+      }
+      for (const s of updateSites) {
+        s.softAtStatus = normalizeAtStatus((s as any).softAtStatus);
+        s.phyAtStatus = normalizeAtStatus((s as any).phyAtStatus);
+      }
+
+      console.log('[Routes] Normalized sample statuses:', insertSites[0]?.softAtStatus, insertSites[0]?.phyAtStatus);
+
       // STEP 3: Run INSERT and UPDATE in PARALLEL with 100-site batches
       console.log(`[Routes] STEP 3: Running PARALLEL inserts and updates (100 sites per batch)...`);
       const parallelStartTime = Date.now();
@@ -1353,9 +1743,9 @@ export async function registerRoutes(
               } catch (siteError: any) {
                       // Normalize DB errors into clear, actionable messages
                       let errMsg = siteError.message || String(siteError);
-                      if (siteError.code === '23505' || (typeof siteError.message === 'string' && siteError.message.includes('sites_site_id_unique'))) {
-                        const dup = site.siteId || (siteError.detail && String(siteError.detail).match(/\(([^)]+)\)=\(([^)]+)\)/)?.[2]) || '-';
-                        errMsg = `Duplicate site identifier: a site with site_id "${dup}" already exists. Consider updating the existing site or using a different Site ID.`;
+                      if (siteError.code === '23505') {
+                        const dup = (siteError.detail && String(siteError.detail).match(/\(([^)]+)\)=\(([^)]+)\)/)?.[2]) || '-';
+                        errMsg = `Duplicate key error during insert: conflicting value "${dup}". Consider updating the existing row or changing the unique value.`;
                       }
                       results.failed++;
                       results.errors.push({
@@ -1447,7 +1837,7 @@ export async function registerRoutes(
       console.error('═══════════════════════════════════════════════════════════');
 
       // Friendly handling for unique constraint violations on site_id
-      if (error && (error.code === '23505' || (typeof error.message === 'string' && error.message.includes('sites_site_id_unique')))) {
+      if (error && error.code === '23505') {
         // Try to extract the conflicting value from error.detail if available
         let dupVal = '-';
         try {
@@ -1455,11 +1845,11 @@ export async function registerRoutes(
           if (m) dupVal = m[2];
         } catch (e) {}
 
-        const userMessage = `Duplicate site identifier detected during import: a site with site_id "${dupVal}" already exists. Please remove or rename duplicate rows and try again, or use update mode to modify existing sites.`;
+        const userMessage = `Duplicate key detected during import: conflicting value "${dupVal}". Please remove or fix duplicate rows and try again, or use update mode to modify existing rows.`;
         return res.status(409).json({
           success: false,
           error: {
-            code: 'DUPLICATE_SITE_ID',
+            code: 'DUPLICATE_KEY',
             message: userMessage,
             timestamp: new Date().toISOString(),
             requestId: req.headers['x-request-id'] as string
@@ -1683,6 +2073,39 @@ export async function registerRoutes(
     }
   });
 
+  // Vendor Rates endpoints
+  app.get('/api/vendors/:vendorId/rates', requireAdminAuth, async (req, res) => {
+    try {
+      const vendorId = req.params.vendorId;
+      const rates = await storage.getVendorRatesByVendor(vendorId);
+      res.json({ data: rates });
+    } catch (error) {
+      console.error('GET /api/vendors/:vendorId/rates error', error);
+      res.status(500).json({ error: 'Failed to fetch vendor rates' });
+    }
+  });
+
+  app.post('/api/vendors/:vendorId/rates', requireAdminAuth, async (req, res) => {
+    try {
+      const parsed = insertVendorRateSchema.parse({ vendorId: req.params.vendorId, ...(req.body || {}) });
+      const updated = await storage.upsertVendorRate(parsed.vendorId, parsed.antennaSize, parsed.vendorAmount);
+      res.json({ data: updated });
+    } catch (error) {
+      console.error('POST /api/vendors/:vendorId/rates error', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid request' });
+    }
+  });
+
+  app.delete('/api/vendors/:vendorId/rates/:antennaSize', requireAdminAuth, async (req, res) => {
+    try {
+      await storage.deleteVendorRateByVendorAntenna(req.params.vendorId, req.params.antennaSize);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('DELETE /api/vendors/:vendorId/rates/:antennaSize error', error);
+      res.status(500).json({ error: 'Failed to delete vendor rate' });
+    }
+  });
+
   app.get("/api/sites/for-po-generation", requireAuth, async (req, res) => {
     const startTime = Date.now();
     try {
@@ -1771,7 +2194,6 @@ export async function registerRoutes(
         const pattern = `%${search}%`;
         filters.push(
           or(
-            sql`${sites.siteId} ILIKE ${pattern}`,
             sql`${sites.planId} ILIKE ${pattern}`,
             sql`${sites.partnerName} ILIKE ${pattern}`
           )
@@ -1837,7 +2259,7 @@ export async function registerRoutes(
         // If exportAllColumns is requested, defer header creation until we fetch the first batch
         if (!exportAllColumns) {
           headers = Object.keys({
-            siteId: "Site ID",
+            id: "Site ID",
             planId: "Plan ID",
             partnerCode: "Partner Code",
             partnerName: "Partner Name",
@@ -1916,6 +2338,22 @@ export async function registerRoutes(
       if (!site) {
         return res.status(404).json({ error: "Site not found" });
       }
+
+      // If vendorAmount missing on the single-site payload (join missed), try to find a payment master fallback for this site
+      if (!site.vendorAmount) {
+        try {
+          const masters = await storage.getPaymentMastersBySite(site.id);
+          // prefer one with matching antenna size
+          const exact = masters.find((m: any) => String(m.antennaSize) === String(site.maxAntSize));
+          const chosen = exact || masters[0];
+          if (chosen && chosen.vendorAmount != null) {
+            (site as any).vendorAmount = chosen.vendorAmount;
+          }
+        } catch (e) {
+          console.error('[Routes] fallback fetch payment masters failed', e);
+        }
+      }
+
       res.json(site);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1929,7 +2367,6 @@ export async function registerRoutes(
       const [row] = await db
         .select({
           id: sites.id,
-          siteId: sites.siteId,
           planId: sites.planId,
           partnerCode: sites.partnerCode,
           partnerName: sites.partnerName,
@@ -2204,15 +2641,150 @@ export async function registerRoutes(
     }
   });
 
+  // Get employees without generated credentials (pending credentials)
+  app.get("/api/employees/pending-credentials", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 50;
+      const offset = (page - 1) * pageSize;
+
+      // Select employees where password is null or empty string (exclude superadmin)
+      const rows = await db
+        .select({
+          id: employees.id,
+          name: employees.name,
+          email: employees.email,
+          designation: designations.name,
+          department: departments.name,
+        })
+        .from(employees)
+        .leftJoin(designations, eq(employees.designationId, designations.id))
+        .leftJoin(departments, eq(employees.departmentId, departments.id))
+        .where(
+          and(
+            or(eq(employees.password, ""), sql`${employees.password} IS NULL`),
+            ne(employees.role, "superadmin"),
+          ),
+        )
+        .limit(pageSize)
+        .offset(offset);
+
+      const [countRow] = await db
+        .select({ total: count() })
+        .from(employees)
+        .where(
+          and(
+            or(eq(employees.password, ""), sql`${employees.password} IS NULL`),
+            ne(employees.role, "superadmin"),
+          ),
+        );
+      const totalCount = Number((countRow as any)?.total) || 0;
+
+      res.json({ data: rows, totalCount, pageNumber: page, pageSize });
+    } catch (error: any) {
+      console.error('[API] GET /api/employees/pending-credentials error:', error);
+      res.status(500).json({ error: error.message || 'Failed to fetch pending credentials' });
+    }
+  });
+
   app.get("/api/employees/:id", async (req, res) => {
     try {
-      const employee = await storage.getEmployee(req.params.id);
+      // Return employee with department and designation names (joins), include all profile fields
+      const [employee] = await db
+        .select({
+          id: employees.id,
+          name: employees.name,
+          fatherName: employees.fatherName,
+          email: employees.email,
+          mobile: employees.mobile,
+          alternateNo: employees.alternateNo,
+          address: employees.address,
+          city: employees.city,
+          state: employees.state,
+          country: employees.country,
+          dob: employees.dob,
+          doj: employees.doj,
+          aadhar: employees.aadhar,
+          pan: employees.pan,
+          bloodGroup: employees.bloodGroup,
+          maritalStatus: employees.maritalStatus,
+          nominee: employees.nominee,
+          ppeKit: employees.ppeKit,
+          kitNo: employees.kitNo,
+          role: employees.role,
+          status: employees.status,
+          emp_code: employees.emp_code,
+          photo: employees.photo,
+          departmentId: employees.departmentId,
+          designationId: employees.designationId,
+          department: departments.name,
+          designation: designations.name,
+        })
+        .from(employees)
+        .leftJoin(departments, eq(departments.id, employees.departmentId))
+        .leftJoin(designations, eq(designations.id, employees.designationId))
+        .where(eq(employees.id, req.params.id));
+
       if (!employee) {
+        console.warn(`[API] GET /api/employees/:id - employee not found for id: ${req.params.id}`);
         return res.status(404).json({ error: "Employee not found" });
       }
+      console.log(`[API] GET /api/employees/:id - returning employee for id: ${req.params.id}`, employee);
       res.json(employee);
     } catch (error: any) {
+      console.error(`[API] GET /api/employees/:id - error for id: ${req.params.id}`, error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Employee profile update - only allow selected personal fields + photo upload from employees
+  app.put("/api/employees/:id/profile", requireEmployeeAuth, upload.single('photo'), async (req, res) => {
+    try {
+      // Log incoming upload details for debugging
+      try {
+        console.log(`[API] PUT /api/employees/:id/profile - id=${req.params.id} bodyKeys=${Object.keys(req.body).join(',')}`, {
+          file: req.file ? { originalname: req.file.originalname, filename: req.file.filename, size: req.file.size, mimetype: req.file.mimetype } : null,
+        });
+      } catch (logErr) {
+        console.warn('[API] PUT profile - failed to log request details', logErr);
+      }
+
+      // Allow only admins/superadmins to update any profile; regular employees can only update their own profile
+      const requesterId = (req as any).session?.employeeId;
+      const requesterRole = (req as any).session?.employeeRole;
+      if (requesterRole !== 'admin' && requesterRole !== 'superadmin' && requesterId !== req.params.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const allowed = ['name','fatherName','mobile','alternateNo','address','city','state','dob','bloodGroup','aadhar','pan'];
+      const data: any = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) {
+          // treat empty string as null for DOB or optional fields
+          data[key] = req.body[key] === '' ? null : req.body[key];
+        }
+      }
+
+      let photoUrl: string | undefined;
+      if (req.file) {
+        const ext = path.extname(req.file.filename);
+        const newFilename = `employee-photo-${req.params.id}${ext}`;
+        const oldPath = path.join(uploadDir, req.file.filename);
+        const newPath = path.join(uploadDir, newFilename);
+        try { fs.unlinkSync(newPath); } catch (e) { /* ignore if not exists */ }
+        fs.renameSync(oldPath, newPath);
+        photoUrl = `${req.protocol}://${req.get('host')}/uploads/${newFilename}`;
+        // Persist photo url to employee record
+        data.photo = photoUrl;
+      }
+
+      const employee = await storage.updateEmployee(req.params.id, data);
+      const result: any = { ...employee };
+      if (photoUrl) result.photo = photoUrl;
+      res.json(result);
+    } catch (error: any) {
+      console.error('[API] PUT /api/employees/:id/profile error', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
@@ -2743,10 +3315,16 @@ export async function registerRoutes(
   });
 
   // Purchase Order routes
+  // Create single-line PO (legacy) or grouped POs via /generate
   app.post("/api/purchase-orders", requireAuth, async (req, res) => {
     try {
+      // Accept legacy single-line PO payloads that may include `siteId` and create a PO header + single line
       const data = insertPOSchema.parse(req.body);
-      
+      const legacySiteId = (req.body as any).siteId || null;
+      const legacyQuantity = (req.body as any).quantity || 1;
+      const legacyUnitPrice = (req.body as any).unitPrice || '0';
+      const legacyTotalAmount = (req.body as any).totalAmount || String((Number(legacyUnitPrice) || 0) * Number(legacyQuantity));
+
       // Check if vendor is logged in
       const isVendor = !!req.session?.vendorId;
       const isEmployee = !!req.session?.employeeId;
@@ -2769,11 +3347,104 @@ export async function registerRoutes(
         }
       }
       // Employees (especially admins) can generate POs for any vendor anytime
-      
+
+      // If legacy siteId provided, create header + line using createPOWithLines for consistency
+      if (legacySiteId) {
+        const header = {
+          vendorId: data.vendorId,
+          poNumber: data.poNumber || `PO-${Date.now()}`,
+          poDate: data.poDate || new Date().toISOString().split('T')[0],
+          dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          totalAmount: legacyTotalAmount,
+          gstType: data.gstType || 'cgstsgst',
+          gstApply: typeof data.gstApply === 'boolean' ? data.gstApply : false,
+        };
+
+        const created = await storage.createPOWithLines(header as any, [{ siteId: legacySiteId, description: data.description || '', quantity: legacyQuantity, unitPrice: String(legacyUnitPrice), totalAmount: String(legacyTotalAmount) }]);
+        return res.json(created);
+      }
+
+      // Otherwise, create a bare PO header (lines expected via separate endpoint or grouped flow)
       const po = await storage.createPO(data);
       res.json(po);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Grouped PO generation endpoint: accepts array of PO headers with lines and creates POs with lines
+  app.post("/api/purchase-orders/generate", requireAuth, async (req, res) => {
+    try {
+      // Log incoming request for debugging grouped create failures
+      try {
+        console.log('[POGeneration][INFO] incoming grouped generate request', {
+          path: req.path,
+          method: req.method,
+          headers: req.headers ? {
+            'content-type': req.headers['content-type'],
+            cookiePresent: !!req.headers.cookie
+          } : undefined,
+          bodyPreview: (typeof req.body === 'object' && req.body) ? { posCount: Array.isArray(req.body.pos) ? req.body.pos.length : 0 } : String(req.body).slice(0, 200)
+        });
+      } catch (e) {
+        console.warn('[POGeneration][WARN] failed to log request metadata', e?.message || e);
+      }
+
+      const body = req.body;
+      const pos = Array.isArray(body.pos) ? body.pos : [];
+      if (pos.length === 0) return res.status(400).json({ error: 'No POs provided' });
+
+      const created: any[] = [];
+      const errors: any[] = [];
+
+      for (const p of pos) {
+        // Basic validation
+        if (!p.vendorId || !Array.isArray(p.lines) || p.lines.length === 0) {
+          errors.push({ p, error: 'Invalid PO payload' });
+          continue;
+        }
+
+        // If vendor session, ensure vendorId matches
+        if (req.session?.vendorId && String(req.session.vendorId) !== String(p.vendorId)) {
+          errors.push({ p, error: 'Vendor mismatch with session' });
+          continue;
+        }
+
+        try {
+          const header = {
+            vendorId: p.vendorId,
+            poNumber: p.poNumber || `PO-${Date.now()}`,
+            poDate: p.poDate || new Date().toISOString().split('T')[0],
+            dueDate: p.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            totalAmount: p.totalAmount || String((p.lines || []).reduce((s:any, l:any) => s + (parseFloat(String(l.totalAmount || '0')) || 0), 0)),
+            gstType: p.gstType || 'cgstsgst',
+            gstApply: typeof p.gstApply === 'boolean' ? p.gstApply : false,
+          };
+
+          const resPo = await storage.createPOWithLines(header as any, p.lines.map((l: any) => ({
+            siteId: l.siteId,
+            description: l.description,
+            quantity: l.quantity || 1,
+            unitPrice: String(l.unitPrice || '0'),
+            totalAmount: String(l.totalAmount || ((l.quantity || 1) * (parseFloat(String(l.unitPrice || '0')) || 0)))
+          })));
+
+          created.push(resPo);
+        } catch (err: any) {
+          console.error('[POGeneration][ERROR] failed to create PO with lines', {
+            po: p,
+            message: err?.message || err,
+            stack: err?.stack
+          });
+          errors.push({ p, error: (err as any).message || err });
+        }
+      }
+
+      console.log('[POGeneration][INFO] grouped generation result', { createdCount: created.length, errorsCount: errors.length });
+      res.json({ created, errors });
+    } catch (error: any) {
+      console.error('[POGeneration][ERROR] grouped create failed', error?.message || error, error?.stack);
+      res.status(500).json({ error: error?.message || 'Internal server error' });
     }
   });
 
@@ -2788,10 +3459,48 @@ export async function registerRoutes(
         isVendor,
         employeeId: req.session?.employeeId || null,
         vendorId: req.session?.vendorId || null,
+        employeeCode: (req.session as any)?.employeeCode || null,
         employeeRole: (req.session as any)?.employeeRole || null,
         employeeEmail: req.session?.employeeEmail || null,
         vendorEmail: req.session?.vendorEmail || null,
       };
+
+      // If employee is logged in, check if they are a reporting person for any team(s)
+      if (isEmployee && req.session?.employeeId) {
+        try {
+           var employeeId = req.session?.employeeId
+               const tm = teamMembers;
+
+        const subQuery = await db
+        .select({ id: teamMembers.id })
+        .from(teamMembers)
+        .where(eq(teamMembers.employeeId, employeeId))
+        .as("sub_tm");
+
+        const rows = await db
+        .select()
+        .from(tm)
+        .innerJoin(subQuery, eq(subQuery.id, tm.id))
+        .where(
+          or(
+            eq(tm.reportingPerson1, subQuery.id),
+            eq(tm.reportingPerson2, subQuery.id),
+            eq(tm.reportingPerson3, subQuery.id)
+          )
+        );
+        
+        result.isReportingPerson = rows.length > 0;
+          const reportingTeamIds = rows.map((r: any) => r.teamId).filter(Boolean);
+        
+          result.reportingTeamIds = reportingTeamIds;
+        
+        } catch (e: any) {
+          console.error('[Session] Error checking reporting person status', e?.message || e);
+          result.isReportingPerson = false;
+          result.reportingTeamIds = [];
+        }
+      }
+
       return res.json(result);
     } catch (error: any) {
       console.error('[Session] Error reading session', error?.message || error);
@@ -2824,12 +3533,32 @@ export async function registerRoutes(
           ? data.length
           : data.length;
 
-        res.json({
+        return res.json({
           data,
           totalCount,
           pageNumber: page,
           pageSize,
         });
+      }
+
+      // If client requests lines with headers, return POs with their lines
+      if (req.query.withLines === 'true') {
+        let data;
+        try {
+          data = await storage.getPOsWithLines(pageSize, offset);
+        } catch (err: any) {
+          console.error('[PO] getPOsWithLines failed', { limit: pageSize, offset, message: err?.message || err, stack: err?.stack });
+          throw err;
+        }
+        if (isVendor && vendorId) data = data.filter((p:any) => p.vendorId === vendorId);
+        let totalCount;
+        try {
+          totalCount = isVendor && vendorId ? data.length : await storage.getPOCount();
+        } catch (err: any) {
+          console.error('[PO] getPOCount failed', { message: err?.message || err, stack: err?.stack });
+          throw err;
+        }
+        return res.json({ data, totalCount, pageNumber: page, pageSize });
       } else if (withDetails) {
         let data = await storage.getPOsWithDetails(pageSize, offset);
         // Filter for vendor-specific data
@@ -2864,13 +3593,33 @@ export async function registerRoutes(
         });
       }
     } catch (error: any) {
-      console.error('[PO] Error:', error.message);
-      res.status(500).json({ error: error.message });
+      console.error('[PO] Error:', error?.message || error, error?.stack || 'no stack');
+      res.status(500).json({ error: error?.message || 'Internal server error', stack: error?.stack });
+    }
+  });
+
+  // DEBUG: Unauthenticated PO listing for reproduction/testing only
+  app.get("/api/debug/purchase-orders", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const offset = (page - 1) * pageSize;
+      const data = await storage.getPOsWithLines(pageSize, offset);
+      res.json({ data, totalCount: data.length, pageNumber: page, pageSize });
+    } catch (error: any) {
+      console.error('[Debug] /api/debug/purchase-orders error', { message: error?.message || error, stack: error?.stack });
+      res.status(500).json({ error: error?.message || 'Internal server error' });
     }
   });
 
   app.get("/api/purchase-orders/:id", requireAuth, async (req, res) => {
     try {
+      if (req.query.withLines === 'true') {
+        const resPO = await storage.getPOByIdWithLines(req.params.id);
+        if (!resPO) return res.status(404).json({ error: 'PO not found' });
+        return res.json(resPO);
+      }
+
       const po = await storage.getPO(req.params.id);
       if (!po) {
         return res.status(404).json({ error: "PO not found" });
@@ -2887,6 +3636,92 @@ export async function registerRoutes(
       res.json({ data: pos });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // New endpoint: Get vendor's POs with lines (for PO Generation page)
+  app.get("/api/vendors/:vendorId/purchase-orders/with-lines", requireAuth, async (req, res) => {
+    try {
+      const vendorId = req.params.vendorId;
+      const sessionVendorId = req.session?.vendorId;
+
+      // Vendors can only see their own POs
+      if (sessionVendorId && sessionVendorId !== vendorId) {
+        return res.status(403).json({ error: "Unauthorized: Cannot access other vendor's POs" });
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 100;
+      const offset = (page - 1) * pageSize;
+
+      console.log('[PO] GET vendor POs with lines:', { vendorId, page, pageSize, offset });
+
+      const pos = await storage.getPOsByVendor(vendorId);
+
+      // Apply pagination
+      const paginatedPos = pos.slice(offset, offset + pageSize);
+
+      res.json({
+        data: paginatedPos,
+        totalCount: pos.length,
+        pageNumber: page,
+        pageSize,
+      });
+    } catch (error: any) {
+      console.error('[PO] Get vendor POs with lines error:', error?.message || error, error?.stack || 'no stack');
+      res.status(500).json({ error: error?.message || "Internal server error", stack: error?.stack });
+    }
+  });
+
+  // Dedicated endpoint: Get saved POs for vendor with all details (for PO Generation page)
+  app.get("/api/vendors/:vendorId/saved-pos", requireAuth, async (req, res) => {
+    try {
+      const vendorId = req.params.vendorId;
+      const sessionVendorId = req.session?.vendorId;
+
+      // Vendors can only see their own POs
+      if (sessionVendorId && sessionVendorId !== vendorId) {
+        return res.status(403).json({ error: "Unauthorized: Cannot access other vendor's POs" });
+      }
+
+      console.log('[PO] GET saved POs for vendor:', { vendorId });
+
+      const pos = await storage.getSavedPOsByVendorWithLines(vendorId);
+
+      
+      console.log('ggh78999999999999999999999999');
+
+      res.json({
+        data: pos,
+        totalCount: pos.length,
+      });
+    } catch (error: any) {
+      console.error('[PO] Get saved POs for vendor error:', error?.message || error, error?.stack || 'no stack');
+      res.status(500).json({ error: error?.message || "Internal server error" });
+    }
+  });
+
+  // Endpoint: Get all saved POs with lines (for employees/admins on PO Generation page)
+  app.get("/api/saved-pos", requireEmployeeAuth, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const offset = (page - 1) * pageSize;
+
+      console.log('[PO] GET all saved POs for employees:', { page, pageSize, offset });
+
+      let data = await storage.getPOsWithLines(pageSize, offset);
+      const totalCount = await storage.getPOCount();
+
+      res.json({
+        data,
+        totalCount,
+        pageNumber: page,
+        pageSize,
+      });
+    } catch (error: any) {
+      console.error('[PO] Get saved POs error:', error?.message || error, error?.stack || 'no stack');
+      res.status(500).json({ error: error?.message || "Internal server error" });
     }
   });
 
@@ -2912,43 +3747,74 @@ export async function registerRoutes(
   // Invoice routes
   app.post("/api/invoices", requireAuth, async (req, res) => {
     try {
-      const data = insertInvoiceSchema.parse(req.body);
-      
+      let data = insertInvoiceSchema.parse(req.body);
+
+      // Get poIds array - required for invoice creation
+      const poIds = req.body.poIds && Array.isArray(req.body.poIds) ? req.body.poIds : [];
+
+      if (poIds.length === 0) {
+        return res.status(400).json({ error: "At least one PO ID is required to create an invoice" });
+      }
+
       // Check if vendor is logged in
       const isVendor = !!req.session?.vendorId;
       const isEmployee = !!req.session?.employeeId;
-      
+
       if (isVendor) {
         // Vendors must match the invoice vendorId
         if (data.vendorId !== req.session.vendorId) {
           return res.status(403).json({ error: "You can only generate invoices for your own vendor account" });
         }
-        
-        // Check if the PO is already used in another invoice
-        const existingInvoice = await storage.getInvoicesByPO(data.poId);
-        if (existingInvoice.length > 0) {
-          return res.status(409).json({ 
-            error: "This PO is already used in another invoice. Each PO can only have one invoice." 
-          });
+
+        // Check if any of the POs are already used in another invoice
+        for (const poId of poIds) {
+          const existingInvoice = await storage.getInvoicesByPO(poId);
+          if (existingInvoice.length > 0) {
+            return res.status(409).json({
+              error: `PO ${poId} is already used in another invoice. Each PO can only have one invoice.`
+            });
+          }
         }
-        
+
         // Check if today is within the allowed invoice generation date range
         // Vendors can generate invoices from the configured date to 5 days after
         const settings = await storage.getAppSettings();
         const today = new Date().getDate();
         const startDate = settings?.invoiceGenerationDate || 1;
         const endDate = startDate + 5; // 5-day window for invoice generation
-        
+
         if (today < startDate || today > endDate) {
-          return res.status(403).json({ 
-            error: `Vendors can generate invoices from day ${startDate} to day ${endDate} of each month. Today is day ${today}.` 
+          return res.status(403).json({
+            error: `Vendors can generate invoices from day ${startDate} to day ${endDate} of each month. Today is day ${today}.`
           });
         }
       }
       // Employees (especially admins) can generate invoices anytime without date restrictions
-      
-      const invoice = await storage.createInvoice(data);
-      res.json(invoice);
+
+      // Store poIds in the invoice record (now required)
+      const invoiceData = {
+        ...data,
+        poIds: poIds  // Store all PO IDs
+      };
+
+      console.log('Creating invoice with poIds:', JSON.stringify(poIds), 'Type:', typeof poIds, 'IsArray:', Array.isArray(poIds));
+
+      const invoice = await storage.createInvoice(invoiceData as any);
+
+      console.log('Created invoice poIds from DB:', JSON.stringify(invoice.poIds), 'Type:', typeof invoice.poIds, 'IsArray:', Array.isArray(invoice.poIds));
+
+      // Fetch the full invoice details by ID (more efficient than searching through 10000 invoices)
+      const createdInvoiceWithDetails = await storage.getInvoiceWithDetailsById(invoice.id);
+
+      console.log('Created invoice ID:', invoice.id);
+      console.log('Found invoice with details:', !!createdInvoiceWithDetails);
+      if (createdInvoiceWithDetails) {
+        console.log('poDetails count:', createdInvoiceWithDetails.poDetails?.length);
+        console.log('allSiteNames:', createdInvoiceWithDetails.allSiteNames);
+        console.log('invoiceSites count:', createdInvoiceWithDetails.invoiceSites?.length);
+      }
+
+      res.json(createdInvoiceWithDetails || invoice);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -3300,6 +4166,7 @@ export async function registerRoutes(
           id: salaryStructures.id,
           employeeId: salaryStructures.employeeId,
           employeeName: employees.name,
+          employeeCode: employees.emp_code,
           department: departments.name,
           designation: designations.name,
           basicSalary: salaryStructures.basicSalary,
@@ -3349,6 +4216,7 @@ export async function registerRoutes(
           id: row.id,
           employeeId: row.employeeId,
           employeeName: row.employeeName || "Unknown",
+          employeeCode: row.employeeCode || "N/A",
           department: row.department || "Not Assigned",
           designation: row.designation || "Not Specified",
           basicSalary: Number(row.basicSalary),
@@ -3415,17 +4283,38 @@ export async function registerRoutes(
     }
   });
 
-  // Detailed salary records for a specific month/year
+  // Detailed salary records for a specific month/year (supports paging and search)
   app.get("/api/reports/salary-generated/:year/:month", async (req, res) => {
     try {
       const year = Number(req.params.year);
       const month = Number(req.params.month);
       if (!year || !month) return res.status(400).json({ error: "Invalid year or month" });
 
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 20));
+      const search = (req.query.search as string) || '';
+
+      // Build base query with optional search
+      const baseWhere = and(eq(generateSalary.year, year), eq(generateSalary.month, month));
+
+      // If search provided, add ILIKE filter on employee name
+      const filteredWhere = search.trim()
+        ? and(baseWhere, sql`${sql.raw('LOWER(')}${employees.name}${sql.raw(')')} LIKE ${`%${search.toLowerCase()}%`}`)
+        : baseWhere;
+
+      // Total count
+      const countRows = await db.select({ count: sql<number>`CAST(COUNT(*) AS INTEGER)` })
+        .from(generateSalary)
+        .innerJoin(employees, eq(generateSalary.employeeId, employees.id))
+        .where(filteredWhere);
+
+      const total = Number(countRows[0]?.count || 0);
+
       const rows = await db
         .select({
           id: generateSalary.id,
           employeeId: generateSalary.employeeId,
+          employeeCode: employees.emp_code,
           employeeName: employees.name,
           netSalary: generateSalary.netSalary,
           grossSalary: generateSalary.grossSalary,
@@ -3434,13 +4323,47 @@ export async function registerRoutes(
         })
         .from(generateSalary)
         .innerJoin(employees, eq(generateSalary.employeeId, employees.id))
-        .where(and(eq(generateSalary.year, year), eq(generateSalary.month, month)))
-        .orderBy(generateSalary.employeeId);
+        .where(filteredWhere)
+        .orderBy(generateSalary.employeeId)
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
 
-      res.json(rows);
+      res.json({ data: rows, total, page, pageSize });
     } catch (error: any) {
       console.error("[Reports] salary-generated detail error:", error.message, error.stack);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a generated salary record (unlock attendance as well)
+  app.delete('/api/reports/salary-generated/:id', requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!id) return res.status(400).json({ error: 'ID required' });
+
+      const existing = await db.select().from(generateSalary).where(eq(generateSalary.id, id));
+      if (!existing || existing.length === 0) return res.status(404).json({ error: 'Generated salary not found' });
+
+      const record = existing[0];
+      await db.delete(generateSalary).where(eq(generateSalary.id, id));
+
+      // Unlock attendance for this employee/month/year if present
+      try {
+        const att = await db.select().from(attendances).where(
+          and(eq(attendances.employeeId, record.employeeId), eq(attendances.month, record.month), eq(attendances.year, record.year))
+        );
+        if (att && att.length > 0) {
+          const attendanceRecord = att[0];
+          await storage.updateAttendance(attendanceRecord.id, { locked: false, lockedAt: null, lockedBy: null });
+        }
+      } catch (unlockErr: any) {
+        console.error('[Delete Generated Salary] Failed to unlock attendance', unlockErr);
+      }
+
+      res.json({ success: true, message: 'Generated salary deleted and attendance unlocked' });
+    } catch (error: any) {
+      console.error('[Delete Generated Salary] error', error);
+      res.status(500).json({ error: error?.message || 'Failed to delete generated salary' });
     }
   });
 
@@ -3500,13 +4423,38 @@ export async function registerRoutes(
       // All roles can mark any day in the current month if attendance is unlocked
       // The lock check above already prevents modifications to locked attendance
 
-      // Update or create attendance (existing was already fetched above for lock check)
+      // Merge incoming attendance with existing but skip immutable (locked) days and report them
       let attendance;
-      if (existing) {
-        // Update existing
-        attendance = await storage.updateAttendance(existing.id, {
-          attendanceData: JSON.stringify(attendanceData),
-        });
+      let skippedDays: string[] = [];
+
+      if (existing && existing.attendanceData) {
+        try {
+          const existingData = typeof existing.attendanceData === 'string' ? JSON.parse(existing.attendanceData) : existing.attendanceData;
+          const merged: Record<string, any> = { ...existingData };
+
+          for (const [dayKey, newVal] of Object.entries(attendanceData)) {
+            const d = existingData[dayKey];
+            if (d && d.immutable) {
+              const oldSerialized = typeof d === 'string' ? d : JSON.stringify(d);
+              const newSerialized = typeof newVal === 'string' ? newVal : JSON.stringify(newVal);
+              if (oldSerialized !== newSerialized) {
+                // Skip updating this day and record it as skipped
+                skippedDays.push(dayKey);
+                continue;
+              }
+            }
+            // Apply update
+            merged[dayKey] = newVal;
+          }
+
+          attendance = await storage.updateAttendance(existing.id, {
+            attendanceData: JSON.stringify(merged),
+          });
+        } catch (e) {
+          console.error('[Attendance] Error merging attendance data:', e);
+          // Fallback to overwrite if merge failed unexpectedly
+          attendance = await storage.updateAttendance(existing.id, { attendanceData: JSON.stringify(attendanceData) });
+        }
       } else {
         // Create new
         attendance = await storage.createAttendance({
@@ -3520,6 +4468,11 @@ export async function registerRoutes(
       console.log(
         `[Attendance] Successfully saved for employee ${employeeId}, month ${month}/${year}`,
       );
+
+      if (skippedDays.length > 0) {
+        return res.json({ success: true, attendance, skippedDays, message: `Skipped ${skippedDays.length} locked day(s): ${skippedDays.join(', ')}` });
+      }
+
       res.json({ success: true, attendance });
     } catch (error: any) {
       console.error(`[Attendance Error]`, error.message);
@@ -3611,6 +4564,8 @@ export async function registerRoutes(
 
       // Prepare bulk insert/update data
       const recordsToUpsert: any[] = [];
+      const skippedMap: Record<string, string[]> = {};
+      const fullySkippedEmployees: string[] = [];
 
       for (const employeeId of validEmployeeIds) {
         const empSpecificAttendance = attendanceData && typeof attendanceData === 'object' && (attendanceData as any)[employeeId] ? (attendanceData as any)[employeeId] : null;
@@ -3643,6 +4598,39 @@ export async function registerRoutes(
           dataKeys: Object.keys(finalAttendanceData || {}),
           firstDayValue: finalAttendanceData[1]
         });
+
+        // Check immutable days before upsert and skip them if needed
+        const existingRecord = existingMap.get(employeeId);
+        const skippedForEmployee: string[] = [];
+        if (existingRecord && existingRecord.attendanceData) {
+          try {
+            const existingData = typeof existingRecord.attendanceData === 'string' ? JSON.parse(existingRecord.attendanceData) : existingRecord.attendanceData;
+            for (const [dayKey, val] of Object.entries({ ...finalAttendanceData })) {
+              const d = existingData[dayKey];
+              if (d && d.immutable) {
+                const oldSerialized = typeof d === 'string' ? d : JSON.stringify(d);
+                const newSerialized = typeof val === 'string' ? val : JSON.stringify(val);
+                if (oldSerialized !== newSerialized) {
+                  // Skip this day
+                  skippedForEmployee.push(dayKey);
+                  delete finalAttendanceData[dayKey];
+                }
+              }
+            }
+          } catch (e: any) {
+            console.error('[Bulk Attendance] Error parsing existing data for employee', employeeId, e);
+          }
+        }
+
+        if (skippedForEmployee.length > 0) {
+          skippedMap[employeeId] = skippedForEmployee;
+        }
+
+        // If nothing left to update (all days skipped), don't add to upsert list
+        if (!finalAttendanceData || Object.keys(finalAttendanceData).length === 0) {
+          fullySkippedEmployees.push(employeeId);
+          continue;
+        }
 
         recordsToUpsert.push({
           employeeId,
@@ -3700,22 +4688,49 @@ export async function registerRoutes(
         console.log(`[Bulk Attendance] ✓ Individual operations completed, ${successCount}/${recordsToUpsert.length} succeeded`);
       }
 
+      // If requested, lock attendance for the successfully updated employees
+      let lockedCount = 0;
+      try {
+        if (lockAfterSave && recordsToUpsert.length > 0) {
+          const idsToLock = recordsToUpsert.map(r => r.employeeId);
+          const locker = (req.session as any)?.employeeId || null;
+          const updateResult = await db
+            .update(attendances)
+            .set({ locked: true, lockedAt: new Date(), lockedBy: locker })
+            .where(
+              and(
+                inArray(attendances.employeeId, idsToLock),
+                eq(attendances.month, Number(month)),
+                eq(attendances.year, Number(year))
+              )
+            )
+            .returning();
+          lockedCount = updateResult.length;
+          console.log(`[Bulk Attendance] Locked attendance for ${lockedCount} employees`);
+        }
+      } catch (lockErr: any) {
+        console.error('[Bulk Attendance] Failed to lock attendance after save', lockErr);
+      }
+
+      const successfulEmployeeIds = recordsToUpsert.map(r => r.employeeId);
+      const failedEntries = [
+        ...allLockedEmployees.map(id => ({ employeeId: id, error: lockedEmployees.includes(id) ? "Attendance cannot be modified after salary is saved" : "Attendance is locked" })),
+        ...fullySkippedEmployees.map(id => ({ employeeId: id, error: "All selected days are locked and were skipped" })),
+      ];
+
       res.json({
         success: true,
         results: {
-          success: validEmployeeIds,
-          failed: allLockedEmployees.map(id => ({
-            employeeId: id,
-            error: lockedEmployees.includes(id)
-              ? "Attendance cannot be modified after salary is saved"
-              : "Attendance is locked",
-          })),
+          success: successfulEmployeeIds,
+          failed: failedEntries,
+          skipped: skippedMap,
         },
         summary: {
           total: employeeIds.length,
-          successful: validEmployeeIds.length,
-          failed: allLockedEmployees.length,
+          successful: successfulEmployeeIds.length,
+          failed: failedEntries.length,
         },
+        lockedCount
       });
     } catch (error: any) {
       console.error(`[Bulk Attendance Error]`, error.message);
@@ -3753,6 +4768,7 @@ export async function registerRoutes(
 
   // Get leave allotment for an employee by year
   app.get("/api/leave-allotments/employee/:employeeId/:year", requireEmployeeAuth, async (req, res) => {
+    // existing handler... (unchanged)
     try {
       const { employeeId, year } = req.params;
       const yearNum = parseInt(year);
@@ -3827,7 +4843,34 @@ export async function registerRoutes(
       });
       
       if (allotment.length === 0) {
-        // If no allotment found, allow only UL and LWP (unpaid leaves)
+        // If no allotment found, attempt to pull carry-forward from previous year
+        const prevYear = yearNum - 1;
+        try {
+          const prev = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, employeeId), eq(leaveAllotments.year, prevYear))).limit(1);
+          if (prev.length > 0 && (prev[0].carryForwardEarned || prev[0].carryForwardPersonal || prev[0].carryForward)) {
+            const p = prev[0];
+            // Only carry Earned (EL) and/or Personal (PL) based on flags; legacy carryForward true implies both
+            const el = (p.carryForwardEarned || p.carryForward) ? Math.max(0, (p.earnedLeave || 0) - (p.usedEarnedLeave || 0)) : 0;
+            const pl = (p.carryForwardPersonal || p.carryForward) ? Math.max(0, (p.personalLeave || 0) - (p.usedPersonalLeave || 0)) : 0;
+            return res.json({
+              leaveTypes: [
+                { code: 'ML', name: 'Medical Leave', allocated: 0, used: usedLeaves.ML, remaining: 0, disabled: true },
+                { code: 'CL', name: 'Casual Leave', allocated: 0, used: usedLeaves.CL, remaining: 0, disabled: true },
+                { code: 'EL', name: 'Earned Leave', allocated: el, used: 0, remaining: el, disabled: el <= 0, carriedFromYear: prevYear },
+                { code: 'SL', name: 'Sick Leave', allocated: 0, used: usedLeaves.SL, remaining: 0, disabled: true },
+                { code: 'PL', name: 'Personal Leave', allocated: pl, used: 0, remaining: pl, disabled: pl <= 0, carriedFromYear: prevYear },
+                { code: 'UL', name: 'Unpaid Leave', allocated: 999, used: usedLeaves.UL, remaining: 999, disabled: false },
+                { code: 'LWP', name: 'Leave Without Pay', allocated: 999, used: usedLeaves.LWP, remaining: 999, disabled: false },
+              ],
+              carryForwardApplied: true,
+              carryFromYear: prevYear
+            });
+          }
+        } catch (e) {
+          console.error('[Leave Allotments] Failed to fetch previous year allotment for carry-forward', e);
+        }
+
+        // If no carry-forward, allow only UL and LWP (unpaid leaves)
         return res.json({
           leaveTypes: [
             { code: 'ML', name: 'Medical Leave', allocated: 0, used: usedLeaves.ML, remaining: 0, disabled: true },
@@ -3842,68 +4885,713 @@ export async function registerRoutes(
       }
       
       const data = allotment[0];
-      const leaveTypes = [
-        { 
-          code: 'ML', 
-          name: 'Medical Leave', 
-          allocated: data.medicalLeave, 
-          used: usedLeaves.ML, 
-          remaining: data.medicalLeave - usedLeaves.ML,
-          disabled: false
-        },
-        { 
-          code: 'CL', 
-          name: 'Casual Leave', 
-          allocated: data.casualLeave, 
-          used: usedLeaves.CL, 
-          remaining: data.casualLeave - usedLeaves.CL,
-          disabled: false
-        },
-        { 
-          code: 'EL', 
-          name: 'Earned Leave', 
-          allocated: data.earnedLeave, 
-          used: usedLeaves.EL, 
-          remaining: data.earnedLeave - usedLeaves.EL,
-          disabled: false
-        },
-        { 
-          code: 'SL', 
-          name: 'Sick Leave', 
-          allocated: data.sickLeave, 
-          used: usedLeaves.SL, 
-          remaining: data.sickLeave - usedLeaves.SL,
-          disabled: false
-        },
-        { 
-          code: 'PL', 
-          name: 'Personal Leave', 
-          allocated: data.personalLeave, 
-          used: usedLeaves.PL, 
-          remaining: data.personalLeave - usedLeaves.PL,
-          disabled: false
-        },
-        { 
-          code: 'UL', 
-          name: 'Unpaid Leave', 
-          allocated: data.unpaidLeave, 
-          used: usedLeaves.UL, 
-          remaining: data.unpaidLeave - usedLeaves.UL,
-          disabled: false
-        },
-        { 
-          code: 'LWP', 
-          name: 'Leave Without Pay', 
-          allocated: data.leaveWithoutPay, 
-          used: usedLeaves.LWP, 
-          remaining: data.leaveWithoutPay - usedLeaves.LWP,
-          disabled: false
-        },
-      ];
-      
-      res.json({ leaveTypes });
+
+      // Check previous year's allotment to optionally carry forward remaining days
+      try {
+        const prevYear = yearNum - 1;
+        const prev = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, employeeId), eq(leaveAllotments.year, prevYear))).limit(1);
+        let carried = { ML: 0, CL: 0, EL: 0, SL: 0, PL: 0 };
+        if (prev.length > 0 && (prev[0].carryForwardEarned || prev[0].carryForwardPersonal || prev[0].carryForward)) {
+          const p = prev[0];
+          // Only carry Earned and/or Personal leaves; legacy carryForward implies both
+          carried.EL = (p.carryForwardEarned || p.carryForward) ? Math.max(0, (p.earnedLeave || 0) - (p.usedEarnedLeave || 0)) : 0;
+          carried.PL = (p.carryForwardPersonal || p.carryForward) ? Math.max(0, (p.personalLeave || 0) - (p.usedPersonalLeave || 0)) : 0;
+        }
+
+        const leaveTypes = [
+          { 
+            code: 'ML', 
+            name: 'Medical Leave', 
+            allocated: (data.medicalLeave || 0) + carried.ML, 
+            used: usedLeaves.ML, 
+            remaining: (data.medicalLeave || 0) + carried.ML - usedLeaves.ML,
+            disabled: ((data.medicalLeave || 0) + carried.ML) - usedLeaves.ML <= 0,
+            carried: carried.ML
+          },
+          { 
+            code: 'CL', 
+            name: 'Casual Leave', 
+            allocated: (data.casualLeave || 0) + carried.CL, 
+            used: usedLeaves.CL, 
+            remaining: (data.casualLeave || 0) + carried.CL - usedLeaves.CL,
+            disabled: ((data.casualLeave || 0) + carried.CL) - usedLeaves.CL <= 0,
+            carried: carried.CL
+          },
+          { 
+            code: 'EL', 
+            name: 'Earned Leave', 
+            allocated: (data.earnedLeave || 0) + carried.EL, 
+            used: usedLeaves.EL, 
+            remaining: (data.earnedLeave || 0) + carried.EL - usedLeaves.EL,
+            disabled: ((data.earnedLeave || 0) + carried.EL) - usedLeaves.EL <= 0,
+            carried: carried.EL
+          },
+          { 
+            code: 'SL', 
+            name: 'Sick Leave', 
+            allocated: (data.sickLeave || 0) + carried.SL, 
+            used: usedLeaves.SL, 
+            remaining: (data.sickLeave || 0) + carried.SL - usedLeaves.SL,
+            disabled: ((data.sickLeave || 0) + carried.SL) - usedLeaves.SL <= 0,
+            carried: carried.SL
+          },
+          { 
+            code: 'PL', 
+            name: 'Personal Leave', 
+            allocated: (data.personalLeave || 0) + carried.PL, 
+            used: usedLeaves.PL, 
+            remaining: (data.personalLeave || 0) + carried.PL - usedLeaves.PL,
+            disabled: ((data.personalLeave || 0) + carried.PL) - usedLeaves.PL <= 0,
+            carried: carried.PL
+          },
+          { 
+            code: 'UL', 
+            name: 'Unpaid Leave', 
+            allocated: data.unpaidLeave, 
+            used: usedLeaves.UL, 
+            remaining: data.unpaidLeave - usedLeaves.UL,
+            disabled: false
+          },
+          { 
+            code: 'LWP', 
+            name: 'Leave Without Pay', 
+            allocated: data.leaveWithoutPay, 
+            used: usedLeaves.LWP, 
+            remaining: data.leaveWithoutPay - usedLeaves.LWP,
+            disabled: false
+          },
+        ];
+        
+        res.json({ leaveTypes });
+      } catch (e) {
+        console.error('[Leave Allotments] Failed to check previous year for carry-forward', e);
+        const leaveTypes = [
+          { 
+            code: 'ML', 
+            name: 'Medical Leave', 
+            allocated: data.medicalLeave, 
+            used: usedLeaves.ML, 
+            remaining: data.medicalLeave - usedLeaves.ML,
+            disabled: false
+          },
+          { 
+            code: 'CL', 
+            name: 'Casual Leave', 
+            allocated: data.casualLeave, 
+            used: usedLeaves.CL, 
+            remaining: data.casualLeave - usedLeaves.CL,
+            disabled: false
+          },
+          { 
+            code: 'EL', 
+            name: 'Earned Leave', 
+            allocated: data.earnedLeave, 
+            used: usedLeaves.EL, 
+            remaining: data.earnedLeave - usedLeaves.EL,
+            disabled: false
+          },
+          { 
+            code: 'SL', 
+            name: 'Sick Leave', 
+            allocated: data.sickLeave, 
+            used: usedLeaves.SL, 
+            remaining: data.sickLeave - usedLeaves.SL,
+            disabled: false
+          },
+          { 
+            code: 'PL', 
+            name: 'Personal Leave', 
+            allocated: data.personalLeave, 
+            used: usedLeaves.PL, 
+            remaining: data.personalLeave - usedLeaves.PL,
+            disabled: false
+          },
+          { 
+            code: 'UL', 
+            name: 'Unpaid Leave', 
+            allocated: data.unpaidLeave, 
+            used: usedLeaves.UL, 
+            remaining: data.unpaidLeave - usedLeaves.UL,
+            disabled: false
+          },
+          { 
+            code: 'LWP', 
+            name: 'Leave Without Pay', 
+            allocated: data.leaveWithoutPay, 
+            used: usedLeaves.LWP, 
+            remaining: data.leaveWithoutPay - usedLeaves.LWP,
+            disabled: false
+          },
+        ];
+        
+        res.json({ leaveTypes });
+      }
     } catch (error: any) {
       console.error('[Leave Allotments API Error]:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get years for which this employee has leave allotments (distinct years)
+  app.get("/api/leave-allotments/employee/:employeeId/years", requireEmployeeAuth, async (req, res) => {
+    try {
+      const { employeeId } = req.params;
+      const rows = await db.select({ year: leaveAllotments.year }).from(leaveAllotments).where(eq(leaveAllotments.employeeId, employeeId)).orderBy(desc(leaveAllotments.year));
+      const years = Array.from(new Set((rows || []).map((r: any) => Number(r.year)))).sort((a,b) => b - a);
+      res.json({ years });
+    } catch (error: any) {
+      console.error('[Leave Allotments Years API Error]:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Check if an employee has an explicit allotment record for a given year
+  app.get("/api/leave-allotments/employee/:employeeId/:year/exists", requireAdminAuth, async (req, res) => {
+    try {
+      const { employeeId, year } = req.params;
+      const yearNum = parseInt(year as string);
+      const rows = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, employeeId), eq(leaveAllotments.year, yearNum))).limit(1);
+      res.json({ exists: (rows || []).length > 0 });
+    } catch (error: any) {
+      console.error('[Leave Allotments Exists API Error]:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bulk check: count distinct employees who already have an allotment for the given year+1
+  app.get("/api/leave-allotments/bulk/check", requireAdminAuth, async (req, res) => {
+    try {
+      const year = req.query.year ? parseInt(String(req.query.year)) : null;
+      if (!year) return res.status(400).json({ error: 'Missing year parameter' });
+      const rows = await db.select({ employeeId: leaveAllotments.employeeId }).from(leaveAllotments).where(eq(leaveAllotments.year, year + 1));
+      const distinct = Array.from(new Set((rows || []).map((r: any) => r.employeeId))).filter(Boolean);
+      res.json({ count: distinct.length });
+    } catch (error: any) {
+      console.error('[Leave Allotments Bulk Check Error]:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Validate leave date ranges (disallow Sundays and active holidays)
+  app.post('/api/leaves/validate-dates', requireEmployeeAuth, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.body as { startDate?: string; endDate?: string };
+      if (!startDate || !endDate) return res.status(400).json({ error: 'startDate and endDate are required' });
+      const s = new Date(startDate);
+      const e = new Date(endDate);
+      if (isNaN(s.getTime()) || isNaN(e.getTime())) return res.status(400).json({ error: 'Invalid dates' });
+      if (s > e) return res.status(400).json({ error: 'startDate must be on or before endDate' });
+
+      const invalid: Array<{ date: string; reason: string }> = [];
+      for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+        if (d.getDay() === 0) invalid.push({ date: d.toISOString().slice(0,10), reason: 'sunday' });
+      }
+
+      try {
+        const holidayRows = await db.select().from(holidays).where(and(eq(holidays.isActive, true), sql`${holidays.date} BETWEEN ${s.toISOString().slice(0,10)}::date AND ${e.toISOString().slice(0,10)}::date`));
+        for (const hr of holidayRows) {
+          const iso = (new Date(hr.date)).toISOString().slice(0,10);
+          if (!invalid.find(i => i.date === iso)) invalid.push({ date: iso, reason: 'holiday', holidayName: hr.name || null });
+        }
+      } catch (err) {
+        console.error('[Leaves][Validate Dates] Holiday check failed', err?.message || err);
+      }
+
+      res.json({ valid: invalid.length === 0, invalidDates: invalid });
+    } catch (error: any) {
+      console.error('[Leaves][Validate Dates] Error:', error);
+      res.status(500).json({ error: error.message || String(error) });
+    }
+  });
+
+  // Leave requests - apply
+  app.post('/api/leaves/apply', requireEmployeeAuth, async (req, res) => {
+    try {
+      const { employeeId, leaveType, startDate, endDate, days, remark } = req.body;
+      const applicant = req.session?.employeeId;
+      if (!employeeId || !leaveType || !startDate || !endDate || !days) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Only allow employee to apply for themselves or admins can apply for others
+      if (applicant !== employeeId && req.session?.role !== 'admin') {
+        return res.status(403).json({ error: 'Not allowed to apply for other employees' });
+      }
+
+      // Prevent start dates in the past for regular employees (admins may apply retroactively)
+      try {
+        const todayStr = new Date().toISOString().slice(0,10);
+        const role = (req.session as any)?.employeeRole as string | undefined;
+        if (role !== 'admin' && role !== 'superadmin') {
+          if (startDate < todayStr) {
+            return res.status(400).json({ error: 'Start date must be today or a future date' });
+          }
+        }
+      } catch (err) {
+        // ignore date check errors
+      }
+
+      // Validate selected range does not include Sundays or active holidays
+      try {
+        const sDate = new Date(startDate);
+        const eDate = new Date(endDate);
+        const invalid: Array<{ date: string; reason: string }> = [];
+        for (let d = new Date(sDate); d <= eDate; d.setDate(d.getDate() + 1)) {
+          if (d.getDay() === 0) invalid.push({ date: d.toISOString().slice(0,10), reason: 'sunday' });
+        }
+        try {
+          const holidayRows = await db.select().from(holidays).where(and(eq(holidays.isActive, true), sql`${holidays.date} BETWEEN ${sDate.toISOString().slice(0,10)}::date AND ${eDate.toISOString().slice(0,10)}::date`));
+          for (const hr of holidayRows) {
+            const iso = (new Date(hr.date)).toISOString().slice(0,10);
+            if (!invalid.find(i => i.date === iso)) invalid.push({ date: iso, reason: 'holiday', holidayName: hr.name || null });
+          }
+        } catch (hErr) {
+          console.error('[Leaves][Apply] Holiday lookup failed', hErr?.message || hErr);
+        }
+
+        if (invalid.length > 0) {
+          return res.status(400).json({ error: 'Selected range includes disallowed dates (Sunday/holiday)', invalidDates: invalid });
+        }
+      } catch (valErr) {
+        console.error('[Leaves][Apply] Date validation failed', valErr?.message || valErr);
+      }
+
+      // Check for overlapping pending/approved leaves for this employee
+      try {
+        const existing = await storage.getLeaveRequestsByEmployee(employeeId);
+        const conflict = (existing || []).find((l: any) => {
+          if (!l || !l.startDate || !l.endDate) return false;
+          if (l.status === 'rejected') return false; // rejected leaves don't block
+          const ls = new Date(l.startDate);
+          const le = new Date(l.endDate);
+          const s = new Date(startDate);
+          const e = new Date(endDate);
+          return s <= le && e >= ls; // overlap
+        });
+
+        if (conflict) {
+          return res.status(400).json({ error: `Selected dates overlap with existing ${conflict.status} leave (${conflict.startDate} → ${conflict.endDate})` });
+        }
+      } catch (innerErr: any) {
+        console.error('[Leaves][Apply] Failed to validate date overlap:', innerErr?.message || innerErr);
+        // allow apply if overlap check fails unexpectedly
+      }
+
+      // Server-side balance check (considers carry-forward if configured)
+      try {
+        const sYear = new Date(startDate).getFullYear();
+        const leaveTypeMap: Record<string,string> = { ML: 'medicalLeave', CL: 'casualLeave', EL: 'earnedLeave', SL: 'sickLeave', PL: 'personalLeave', UL: 'unpaidLeave', LWP: 'leaveWithoutPay' };
+        const usedMap: Record<string,string> = { ML: 'usedMedicalLeave', CL: 'usedCasualLeave', EL: 'usedEarnedLeave', SL: 'usedSickLeave', PL: 'usedPersonalLeave', UL: 'usedUnpaidLeave', LWP: 'usedLeaveWithoutPay' };
+
+        let allotmentRows = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, employeeId), eq(leaveAllotments.year, sYear))).limit(1);
+        let carried: Record<string, number> = { ML: 0, CL: 0, EL: 0, SL: 0, PL: 0 };
+
+        if (allotmentRows.length === 0) {
+          // check previous year for carry-forward
+          const prev = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, employeeId), eq(leaveAllotments.year, sYear - 1))).limit(1);
+          if (prev.length > 0 && (prev[0].carryForwardEarned || prev[0].carryForwardPersonal || prev[0].carryForward)) {
+            const p = prev[0] as any;
+            // Only compute carried amounts for Earned and Personal leaves
+            carried.EL = (p.carryForwardEarned || p.carryForward) ? Math.max(0, (p.earnedLeave || 0) - (p.usedEarnedLeave || 0)) : 0;
+            carried.PL = (p.carryForwardPersonal || p.carryForward) ? Math.max(0, (p.personalLeave || 0) - (p.usedPersonalLeave || 0)) : 0;
+            // If no allocation exists for the year but carry exists for the requested leave type, allow carried amounts
+            if (leaveType in leaveTypeMap && !['UL', 'LWP'].includes(leaveType)) {
+              const rem = (carried[leaveType as keyof typeof carried] || 0);
+              if (rem < Number(days)) return res.status(400).json({ error: 'Insufficient leave balance' });
+            }
+          } else {
+            // No allotment and no carry-forward: only allow UL and LWP
+            if (!['UL', 'LWP'].includes(leaveType)) return res.status(400).json({ error: 'Insufficient leave balance' });
+          }
+        } else {
+          const a = allotmentRows[0] as any;
+          // also check previous year carried amounts and add
+          const prev = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, employeeId), eq(leaveAllotments.year, sYear - 1))).limit(1);
+          if (prev.length > 0 && (prev[0].carryForwardEarned || prev[0].carryForwardPersonal || prev[0].carryForward)) {
+            const p = prev[0] as any;
+            carried.EL = (p.carryForwardEarned || p.carryForward) ? Math.max(0, (p.earnedLeave || 0) - (p.usedEarnedLeave || 0)) : 0;
+            carried.PL = (p.carryForwardPersonal || p.carryForward) ? Math.max(0, (p.personalLeave || 0) - (p.usedPersonalLeave || 0)) : 0;
+          }
+          if (leaveType in leaveTypeMap) {
+            const allocated = Number(a[leaveTypeMap[leaveType]] || 0) + (carried[leaveType as keyof typeof carried] || 0);
+            const used = Number(a[usedMap[leaveType]] || 0);
+            const remaining = allocated - used;
+            if (remaining < Number(days)) return res.status(400).json({ error: 'Insufficient leave balance' });
+          }
+        }
+      } catch (balErr: any) {
+        console.error('[Leaves][Apply] Balance check failed', balErr);
+        // failing balance check shouldn't block unless we can determine insufficiency; continue
+      }
+
+      const insert = {
+        employeeId,
+        leaveType,
+        startDate,
+        endDate,
+        days: Number(days),
+        appliedBy: applicant,
+        remark: remark || null,
+      };
+
+      const created = await storage.createLeaveRequest(insert as any);
+      res.json({ success: true, leave: created });
+    } catch (error: any) {
+      console.error('[Leaves][Apply] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get my leave requests
+  app.get('/api/leaves/my', requireEmployeeAuth, async (req, res) => {
+    try {
+      const employeeId = req.session?.employeeId as string;
+      if (!employeeId) return res.status(400).json({ error: 'Missing employee' });
+      const rows = await storage.getLeaveRequestsByEmployee(employeeId);
+      res.json(rows);
+    } catch (error: any) {
+      console.error('[Leaves][My] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get pending leaves for approver (reporting person)
+  app.get('/api/leaves/pending', requireEmployeeAuth, async (req, res) => {
+    try {
+      const approver = req.session?.employeeId as string;
+      if (!approver) return res.status(400).json({ error: 'Missing approver' });
+      // Debug: log approver id
+      console.debug('[Leaves][Pending] approver:', approver);
+
+      // Also fetch team members to log which employees this approver is reporting for
+      const approverTmRows = await db.select().from(teamMembers).where(eq(teamMembers.employeeId, approver));
+      const approverTmIds = approverTmRows.map((r: any) => r.id);
+      const teamRows = await db.select().from(teamMembers).where(or(inArray(teamMembers.reportingPerson1, [approver, ...approverTmIds]), inArray(teamMembers.reportingPerson2, [approver, ...approverTmIds]), inArray(teamMembers.reportingPerson3, [approver, ...approverTmIds]) ));
+      const employeeIds = teamRows.map((t: any) => t.employeeId);
+      console.debug('[Leaves][Pending] approver team_member ids:', approverTmIds, 'reporting for employees:', employeeIds);
+
+      const teamId = typeof req.query.teamId === 'string' && req.query.teamId ? req.query.teamId : undefined;
+      const employeeId = typeof req.query.employeeId === 'string' && req.query.employeeId ? req.query.employeeId : undefined;
+
+      const rows = await storage.getPendingLeaveRequestsForApprover(approver, teamId, employeeId);
+      console.debug('[Leaves][Pending] found pending leave requests:', (rows && rows.length) || 0);
+
+      // enrich with employee names when possible
+      try {
+        const employeeIds = Array.from(new Set(rows.map((r: any) => r.employeeId).filter(Boolean)));
+        const appliedByIds = Array.from(new Set(rows.map((r: any) => r.appliedBy).filter(Boolean)));
+        const allIds = Array.from(new Set([...employeeIds, ...appliedByIds]));
+        if (allIds.length > 0) {
+          const empRows = await db.select({ id: employees.id, name: employees.name, department: employees.department, designation: employees.designation, email: employees.email }).from(employees).where(inArray(employees.id, allIds));
+          const empMap: Record<string, any> = {};
+          empRows.forEach((er: any) => empMap[er.id] = er);
+          const enriched = rows.map((r: any) => ({
+            ...r,
+            employeeName: empMap[r.employeeId]?.name || null,
+            employeeDepartment: empMap[r.employeeId]?.department || null,
+            employeeDesignation: empMap[r.employeeId]?.designation || null,
+            appliedByName: empMap[r.appliedBy]?.name || null,
+            appliedByEmail: empMap[r.appliedBy]?.email || null,
+          }));
+          return res.json(enriched);
+        }
+      } catch (e: any) {
+        console.error('[Leaves][Pending] Failed to enrich pending leaves with employee info', e?.stack || e);
+      }
+
+      res.json(rows);
+    } catch (error: any) {
+      console.error('[Leaves][Pending] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get reporting teams and members for the current approver
+  app.get('/api/leaves/reporting-teams', requireEmployeeAuth, async (req, res) => {
+    try {
+      const approver = req.session?.employeeId as string;
+      if (!approver) return res.status(400).json({ error: 'Missing approver' });
+
+      // Approver's team_member rows (if any)
+      let approverTmRows: any[] = [];
+      try {
+        approverTmRows = await db.select().from(teamMembers).where(eq(teamMembers.employeeId, approver));
+      } catch (e: any) {
+        console.error('[Leaves][ReportingTeams] Failed to fetch approver team member rows', approver, e?.stack || e);
+        approverTmRows = [];
+      }
+
+      const approverTmIds = approverTmRows.map((r: any) => r.id).filter(Boolean);
+      const candidates = [approver, ...approverTmIds];
+      console.debug('[Leaves][ReportingTeams] candidates:', candidates);
+
+      // Find team_members rows that reference the approver in reporting_person_* fields
+      let refs: any[] = [];
+      try {
+        refs = await db.select().from(teamMembers).where(or(inArray(teamMembers.reportingPerson1, candidates), inArray(teamMembers.reportingPerson2, candidates), inArray(teamMembers.reportingPerson3, candidates)));
+      } catch (e: any) {
+        console.error('[Leaves][ReportingTeams] Failed to fetch referencing team_members rows', approver, e?.stack || e);
+        refs = [];
+      }
+
+      const teamIds = Array.from(new Set(refs.map((r: any) => r.teamId).filter(Boolean)));
+      console.debug('[Leaves][ReportingTeams] teamIds:', teamIds);
+      if (teamIds.length === 0) return res.json([]);
+
+      // Fetch teams and their members
+      let teamRows: any[] = [];
+      try {
+        teamRows = await db.select().from(teams).where(inArray(teams.id, teamIds));
+      } catch (e: any) {
+        console.error('[Leaves][ReportingTeams] Failed to fetch team rows for teamIds', teamIds, e?.stack || e);
+        return res.json([]);
+      }
+
+      const result: any[] = [];
+      for (const t of teamRows) {
+        try {
+          const members = await db.select({ tmId: teamMembers.id, employeeId: teamMembers.employeeId, employeeName: employees.name })
+            .from(teamMembers)
+            .leftJoin(employees, eq(teamMembers.employeeId, employees.id))
+            .where(eq(teamMembers.teamId, t.id));
+          result.push({ teamId: t.id, teamName: t.name, members: Array.isArray(members) ? members : [] });
+        } catch (innerError: any) {
+          console.error('[Leaves][ReportingTeams] Failed to load members for team', t.id, innerError?.stack || innerError);
+          result.push({ teamId: t.id, teamName: t.name, members: [] });
+        }
+      }
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error('[Leaves][ReportingTeams] Error:', error?.stack || error);
+      res.status(500).json({ error: error?.message || 'Internal Server Error' });
+    }
+  });
+
+  // Approve a leave request
+  app.post('/api/leaves/:id/approve', requireEmployeeAuth, async (req, res) => {
+    try {
+      const approver = req.session?.employeeId as string;
+      const id = req.params.id;
+      if (!approver) return res.status(400).json({ error: 'Missing approver' });
+      const leave = await storage.getLeaveRequestById(id);
+      if (!leave) return res.status(404).json({ error: 'Leave request not found' });
+      if (leave.status !== 'pending') return res.status(400).json({ error: 'Leave is not pending' });
+
+      // Check reporting relationship; allow admins/superadmins to approve any leave
+      const role = req.session?.employeeRole as string | undefined;
+      console.debug('[Leaves][Approve] approver session', { approver, role, leaveEmployeeId: leave.employeeId });
+      if (role !== 'admin' && role !== 'superadmin') {
+        const teamRows = await db.select().from(teamMembers).where(or(eq(teamMembers.reportingPerson1, approver), eq(teamMembers.reportingPerson2, approver), eq(teamMembers.reportingPerson3, approver)));
+        const employeeIds = teamRows.map((t: any) => t.employeeId);
+        console.debug('[Leaves][Approve] approver reports for employeeIds count', { count: employeeIds.length, employeeIdsSample: employeeIds.slice(0,5) });
+        if (!employeeIds.includes(leave.employeeId)) {
+          console.warn('[Leaves][Approve] Approver not authorized', { approver, role, leaveEmployeeId: leave.employeeId });
+          return res.status(403).json({ error: 'Not authorized to approve this employee' });
+        }
+      }
+
+      // Check leave balance for the year
+      const year = new Date(leave.startDate).getFullYear();
+      const allotmentRows = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, leave.employeeId), eq(leaveAllotments.year, year))).limit(1);
+      const leaveTypeMap: Record<string,string> = { ML: 'medicalLeave', CL: 'casualLeave', EL: 'earnedLeave', SL: 'sickLeave', PL: 'personalLeave', UL: 'unpaidLeave', LWP: 'leaveWithoutPay' };
+      const usedMap: Record<string,string> = { ML: 'usedMedicalLeave', CL: 'usedCasualLeave', EL: 'usedEarnedLeave', SL: 'usedSickLeave', PL: 'usedPersonalLeave', UL: 'usedUnpaidLeave', LWP: 'usedLeaveWithoutPay' };
+
+      if (allotmentRows.length > 0 && leave.leaveType in leaveTypeMap) {
+        const a = allotmentRows[0] as any;
+        // include carried amounts from previous year if carryForward set
+        let carriedAmount = 0;
+        try {
+          const prev = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, leave.employeeId), eq(leaveAllotments.year, year - 1))).limit(1);
+          if (prev.length > 0 && (prev[0].carryForwardEarned || prev[0].carryForwardPersonal || prev[0].carryForward)) {
+            const p = prev[0] as any;
+            // Only allow carry for EL and PL respectively
+            if (leave.leaveType === 'EL' && (p.carryForwardEarned || p.carryForward)) {
+              carriedAmount = Math.max(0, (p.earnedLeave || 0) - (p.usedEarnedLeave || 0));
+            }
+            if (leave.leaveType === 'PL' && (p.carryForwardPersonal || p.carryForward)) {
+              carriedAmount = Math.max(0, (p.personalLeave || 0) - (p.usedPersonalLeave || 0));
+            }
+          }
+        } catch (e) {
+          console.error('[Leaves][Approve] Failed to fetch previous allotment for carry-forward', e);
+        }
+
+        const allocated = Number(a[leaveTypeMap[leave.leaveType]] || 0) + (carriedAmount || 0);
+        const used = Number(a[usedMap[leave.leaveType]] || 0);
+        const remaining = allocated - used;
+        if (remaining < leave.days) {
+          return res.status(400).json({ error: 'Insufficient leave balance' });
+        }
+        // Update used count
+        await db.update(leaveAllotments).set({ [usedMap[leave.leaveType]]: used + leave.days }).where(eq(leaveAllotments.id, a.id)).returning();
+      }
+
+      // Update leave request status
+      const updated = await storage.updateLeaveRequest(id, { status: 'approved', approvedBy: approver, approvedAt: new Date() });
+
+      // Reflect in attendance: set each day to leave and mark immutable
+      const start = new Date(leave.startDate);
+      const end = new Date(leave.endDate);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const month = d.getMonth() + 1;
+        const yearNum = d.getFullYear();
+        const day = d.getDate();
+
+        let attendance = await storage.getEmployeeMonthlyAttendance(leave.employeeId, month, yearNum);
+        let attendanceData: any = {};
+        if (attendance && attendance.attendanceData) {
+          attendanceData = typeof attendance.attendanceData === 'string' ? JSON.parse(attendance.attendanceData) : attendance.attendanceData;
+        }
+
+        // If day is immutable and not already this leave, block
+        const existing = attendanceData[day];
+        if (existing && existing.immutable && existing.leaveId !== id) {
+          return res.status(400).json({ error: `Day ${d.toISOString().slice(0,10)} is locked and cannot be modified` });
+        }
+
+        attendanceData[day] = { status: 'leave', leaveType: leave.leaveType, leaveId: id, immutable: true };
+
+        if (attendance) {
+          await storage.updateAttendance(attendance.id, { attendanceData: JSON.stringify(attendanceData) });
+        } else {
+          await storage.createAttendance({ employeeId: leave.employeeId, month, year: yearNum, attendanceData: JSON.stringify(attendanceData) });
+        }
+      }
+
+      res.json({ success: true, leave: updated });
+    } catch (error: any) {
+      console.error('[Leaves][Approve] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update a pending leave request (allow approver to change dates/remark)
+  app.patch('/api/leaves/:id', requireEmployeeAuth, async (req, res) => {
+    try {
+      const approver = req.session?.employeeId as string;
+      const id = req.params.id;
+      if (!approver) return res.status(400).json({ error: 'Missing approver' });
+      const leave = await storage.getLeaveRequestById(id);
+      if (!leave) return res.status(404).json({ error: 'Leave request not found' });
+      if (leave.status !== 'pending') return res.status(400).json({ error: 'Only pending leaves may be edited' });
+
+      // Check reporting relationship (same as approve) or allow admins
+      const role = req.session?.employeeRole as string | undefined;
+      if (role !== 'admin') {
+        const teamRows = await db.select().from(teamMembers).where(or(eq(teamMembers.reportingPerson1, approver), eq(teamMembers.reportingPerson2, approver), eq(teamMembers.reportingPerson3, approver)));
+        const employeeIds = teamRows.map((t: any) => t.employeeId);
+        if (!employeeIds.includes(leave.employeeId)) return res.status(403).json({ error: 'Not authorized to edit this leave' });
+      }
+
+      const { startDate, endDate, approverRemark } = req.body as { startDate?: string; endDate?: string; approverRemark?: string };
+      if (!startDate || !endDate) return res.status(400).json({ error: 'startDate and endDate are required' });
+      const s = new Date(startDate);
+      const e = new Date(endDate);
+      if (isNaN(s.getTime()) || isNaN(e.getTime())) return res.status(400).json({ error: 'Invalid dates' });
+      if (s > e) return res.status(400).json({ error: 'startDate must be on or before endDate' });
+      // Prevent editing to past dates
+      const today = new Date(); today.setHours(0,0,0,0);
+      const sMid = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+      if (sMid < today) return res.status(400).json({ error: 'startDate must be today or a future date' });
+
+      // Validate selected range does not include Sundays or active holidays
+      try {
+        const invalid: Array<{ date: string; reason: string }> = [];
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+          if (d.getDay() === 0) invalid.push({ date: d.toISOString().slice(0,10), reason: 'sunday' });
+        }
+        try {
+          const holidayRows = await db.select().from(holidays).where(and(eq(holidays.isActive, true), sql`${holidays.date} BETWEEN ${s.toISOString().slice(0,10)}::date AND ${e.toISOString().slice(0,10)}::date`));
+          for (const hr of holidayRows) {
+            const iso = (new Date(hr.date)).toISOString().slice(0,10);
+            if (!invalid.find(i => i.date === iso)) invalid.push({ date: iso, reason: 'holiday', holidayName: hr.name || null });
+          }
+        } catch (hErr) {
+          console.error('[Leaves][Update] Holiday lookup failed', hErr?.message || hErr);
+        }
+
+        if (invalid.length > 0) {
+          return res.status(400).json({ error: 'Selected range includes disallowed dates (Sunday/holiday)', invalidDates: invalid });
+        }
+      } catch (valErr) {
+        console.error('[Leaves][Update] Date validation failed', valErr?.message || valErr);
+      }
+
+      // Calculate inclusive days
+      const days = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Check leave balance if allotments exist (do not allow increasing beyond remaining)
+      const year = s.getFullYear();
+      const allotmentRows = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, leave.employeeId), eq(leaveAllotments.year, year))).limit(1);
+      const leaveTypeMap: Record<string,string> = { ML: 'medicalLeave', CL: 'casualLeave', EL: 'earnedLeave', SL: 'sickLeave', PL: 'personalLeave', UL: 'unpaidLeave', LWP: 'leaveWithoutPay' };
+      const usedMap: Record<string,string> = { ML: 'usedMedicalLeave', CL: 'usedCasualLeave', EL: 'usedEarnedLeave', SL: 'usedSickLeave', PL: 'usedPersonalLeave', UL: 'usedUnpaidLeave', LWP: 'usedLeaveWithoutPay' };
+      if (allotmentRows.length > 0 && leave.leaveType in leaveTypeMap) {
+        const a = allotmentRows[0] as any;
+        // include carried amounts from previous year if carryForward set
+        let carriedAmount = 0;
+        try {
+          const prev = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, leave.employeeId), eq(leaveAllotments.year, year - 1))).limit(1);
+          if (prev.length > 0 && (prev[0].carryForwardEarned || prev[0].carryForwardPersonal || prev[0].carryForward)) {
+            const p = prev[0] as any;
+            // Only allow carry for EL and PL respectively
+            if (leave.leaveType === 'EL' && (p.carryForwardEarned || p.carryForward)) {
+              carriedAmount = Math.max(0, (p.earnedLeave || 0) - (p.usedEarnedLeave || 0));
+            }
+            if (leave.leaveType === 'PL' && (p.carryForwardPersonal || p.carryForward)) {
+              carriedAmount = Math.max(0, (p.personalLeave || 0) - (p.usedPersonalLeave || 0));
+            }
+          }
+        } catch (e) {
+          console.error('[Leaves][Update] Failed to fetch previous allotment for carry-forward check', e);
+        }
+
+        const allocated = Number(a[leaveTypeMap[leave.leaveType]] || 0) + (carriedAmount || 0);
+        const used = Number(a[usedMap[leave.leaveType]] || 0);
+        // used currently reflects existing approved usage; we don't include this pending leave in used yet
+        const remaining = allocated - used;
+        if (remaining < days) {
+          return res.status(400).json({ error: 'Insufficient leave balance for requested range' });
+        }
+      }
+
+      const updated = await storage.updateLeaveRequest(id, { startDate: s.toISOString().slice(0,10), endDate: e.toISOString().slice(0,10), days, approverRemark });
+      res.json(updated);
+    } catch (error: any) {
+      console.error('[Leaves][Update] Error:', error?.stack || error);
+      res.status(500).json({ error: error?.message || 'Internal Server Error' });
+    }
+  });
+
+  // Reject a leave request
+  app.post('/api/leaves/:id/reject', requireEmployeeAuth, async (req, res) => {
+    try {
+      const approver = req.session?.employeeId as string;
+      const id = req.params.id;
+      const { reason } = req.body;
+      if (!approver) return res.status(400).json({ error: 'Missing approver' });
+      const leave = await storage.getLeaveRequestById(id);
+      if (!leave) return res.status(404).json({ error: 'Leave request not found' });
+      if (leave.status !== 'pending') return res.status(400).json({ error: 'Leave is not pending' });
+
+      // Allow the employee to cancel/reject their own leave
+      if (approver !== leave.employeeId) {
+        // Check reporting relationship; allow admins/superadmins to reject any leave
+        const role = req.session?.employeeRole as string | undefined;
+        if (role !== 'admin' && role !== 'superadmin') {
+          const teamRows = await db.select().from(teamMembers).where(or(eq(teamMembers.reportingPerson1, approver), eq(teamMembers.reportingPerson2, approver), eq(teamMembers.reportingPerson3, approver)));
+          const employeeIds = teamRows.map((t: any) => t.employeeId);
+          if (!employeeIds.includes(leave.employeeId)) {
+            console.warn('[Leaves][Reject] Approver not authorized', { approver, role, leaveEmployeeId: leave.employeeId });
+            return res.status(403).json({ error: 'Not authorized to reject this employee' });
+          }
+        }
+      }
+
+      const updated = await storage.updateLeaveRequest(id, { status: 'rejected', approvedBy: approver, approvedAt: new Date(), rejectionReason: reason || null });
+      res.json({ success: true, leave: updated });
+    } catch (error: any) {
+      console.error('[Leaves][Reject] Error:', error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -4563,6 +6251,7 @@ app.post("/api/allowances/bulk", async (req, res) => {
           id: employee.id,
           name: employee.name,
           email: employee.email,
+          emp_code: (employee as any).emp_code || employee.id,
           role: role,
         },
       });
@@ -4585,7 +6274,6 @@ app.post("/api/allowances/bulk", async (req, res) => {
         });
       }
 
-      const bcrypt = require("bcrypt");
       const hashedPassword = await bcrypt.hash("SuperAdmin@123", 10);
 
       const newAdmin = await storage.createEmployee({
@@ -4887,6 +6575,7 @@ app.post("/api/allowances/bulk", async (req, res) => {
       const allEmployees = await db
         .select({
           id: employees.id,
+          employeeCode: employees.emp_code,
           name: employees.name,
           departmentId: employees.departmentId,
           designationId: employees.designationId,
@@ -4949,6 +6638,7 @@ app.post("/api/allowances/bulk", async (req, res) => {
         
         return {
           employeeId: emp.id,
+          employeeCode: emp.employeeCode || emp.emp_code || null,
           employeeName: emp.name,
           department: emp.departmentId ? deptMap[emp.departmentId] || 'Not Assigned' : 'Not Assigned',
           designation: emp.designationId ? desigMap[emp.designationId] || 'Not Assigned' : 'Not Assigned',
@@ -5117,6 +6807,7 @@ app.post("/api/allowances/bulk", async (req, res) => {
           id: leaveAllotments.id,
           employeeId: leaveAllotments.employeeId,
           employeeName: employees.name,
+          employeeCode: employees.emp_code,
           year: leaveAllotments.year,
           medicalLeave: leaveAllotments.medicalLeave,
           casualLeave: leaveAllotments.casualLeave,
@@ -5125,6 +6816,8 @@ app.post("/api/allowances/bulk", async (req, res) => {
           personalLeave: leaveAllotments.personalLeave,
           unpaidLeave: leaveAllotments.unpaidLeave,
           leaveWithoutPay: leaveAllotments.leaveWithoutPay,
+          carryForwardEarned: leaveAllotments.carryForwardEarned,
+          carryForwardPersonal: leaveAllotments.carryForwardPersonal,
         })
         .from(leaveAllotments)
         .leftJoin(employees, eq(leaveAllotments.employeeId, employees.id))
@@ -5192,7 +6885,11 @@ app.post("/api/allowances/bulk", async (req, res) => {
   // Create or update leave allotment (individual)
   app.post("/api/leave-allotments", requireAdminAuth, async (req, res) => {
     try {
+      // allow forceOverride in body but don't include in validated data
+      const forceOverride = Boolean(req.body.forceOverride);
+      const reason = req.body.forceReason || null;
       const validatedData = insertLeaveAllotmentSchema.parse(req.body);
+      console.log('[Leave Allotments] Create/Update payload validated:', validatedData, { forceOverride });
       
       // Check if allotment already exists
       const existing = await db
@@ -5208,16 +6905,76 @@ app.post("/api/allowances/bulk", async (req, res) => {
       
       if (existing.length > 0) {
         // Update existing
-        const [updated] = await db
-          .update(leaveAllotments)
-          .set({
-            ...validatedData,
-            updatedAt: new Date(),
-          })
-          .where(eq(leaveAllotments.id, existing[0].id))
-          .returning();
-        
-        res.json(updated);
+        const prev = existing[0] as any;
+
+        // Prevent decreasing allocations below already consumed leaves in ANY condition
+        const usedMap: Record<string,string> = {
+          medicalLeave: 'usedMedicalLeave',
+          casualLeave: 'usedCasualLeave',
+          earnedLeave: 'usedEarnedLeave',
+          sickLeave: 'usedSickLeave',
+          personalLeave: 'usedPersonalLeave',
+          unpaidLeave: 'usedUnpaidLeave',
+          leaveWithoutPay: 'usedLeaveWithoutPay',
+        };
+
+        const violations: string[] = [];
+        for (const allocKey of Object.keys(usedMap)) {
+          const usedKey = usedMap[allocKey as keyof typeof usedMap];
+          const used = Number(prev[usedKey] || 0);
+          const newAlloc = Number((validatedData as any)[allocKey] || 0);
+          if (newAlloc < used) {
+            violations.push(`${allocKey} (allocated ${newAlloc} < consumed ${used})`);
+          }
+        }
+
+        if (violations.length > 0) {
+          // Record blocked attempt as audit for traceability
+          try {
+            await db.execute(sql`INSERT INTO leave_allotment_override_audits (allotment_id, employee_id, year, operation, performed_by, previous_allotment, new_allotment, reason, created_at) VALUES (${prev.id}, ${validatedData.employeeId}, ${validatedData.year}, 'blocked_update', ${(req.session as any)?.employeeId || null}, ${JSON.stringify(prev)}, ${JSON.stringify(validatedData)}, ${`Attempt to decrease allocation below consumed: ${violations.join(', ')}`}, NOW())`);
+          } catch (auditErr) {
+            console.error('Failed to write blocked update audit', auditErr);
+          }
+
+          return res.status(400).json({ error: `Cannot decrease allocation below consumed leaves: ${violations.join(', ')}` });
+        }
+
+        // Check if next-year exists and no forceOverride -> prevent change
+        const [nextYear] = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, validatedData.employeeId), eq(leaveAllotments.year, validatedData.year + 1))).limit(1);
+        if (nextYear && !forceOverride) {
+          return res.status(403).json({ error: 'Cannot modify this allotment because a next-year allotment already exists. Use force override if necessary (admins only).' });
+        }
+
+        if (!forceOverride) {
+          const [updated] = await db
+            .update(leaveAllotments)
+            .set({
+              ...validatedData,
+              updatedAt: new Date(),
+            })
+            .where(eq(leaveAllotments.id, existing[0].id))
+            .returning();
+          
+          res.json(updated);
+        } else {
+          // Force override: record audit and update
+          const [updated] = await db
+            .update(leaveAllotments)
+            .set({
+              ...validatedData,
+              updatedAt: new Date(),
+            })
+            .where(eq(leaveAllotments.id, existing[0].id))
+            .returning();
+          // Insert audit
+          try {
+            await db.execute(sql`INSERT INTO leave_allotment_override_audits (allotment_id, employee_id, year, operation, performed_by, previous_allotment, new_allotment, reason, created_at) VALUES (${existing[0].id}, ${validatedData.employeeId}, ${validatedData.year}, 'override', ${(req.session as any)?.employeeId || null}, ${JSON.stringify(prev)}, ${JSON.stringify(validatedData)}, ${reason}, NOW())`);
+          } catch (auditErr) {
+            console.error('Failed to write override audit', auditErr);
+          }
+
+          res.json(updated);
+        }
       } else {
         // Create new
         const [newAllotment] = await db
@@ -5225,6 +6982,15 @@ app.post("/api/allowances/bulk", async (req, res) => {
           .values(validatedData)
           .returning();
         
+        // If forceOverride used to create despite next-year constraints, log audit
+        if (forceOverride) {
+          try {
+            await db.execute(sql`INSERT INTO leave_allotment_override_audits (allotment_id, employee_id, year, operation, performed_by, previous_allotment, new_allotment, reason, created_at) VALUES (${newAllotment.id}, ${validatedData.employeeId}, ${validatedData.year}, 'create_override', ${(req.session as any)?.employeeId || null}, NULL, ${JSON.stringify(validatedData)}, ${reason}, NOW())`);
+          } catch (auditErr) {
+            console.error('Failed to write override audit for create', auditErr);
+          }
+        }
+
         res.json(newAllotment);
       }
     } catch (error: any) {
@@ -5235,7 +7001,9 @@ app.post("/api/allowances/bulk", async (req, res) => {
   // Bulk leave allotment
   app.post("/api/leave-allotments/bulk", requireAdminAuth, async (req, res) => {
     try {
-      const { year, medicalLeave, casualLeave, earnedLeave, sickLeave, personalLeave, unpaidLeave, leaveWithoutPay } = req.body;
+      const payload = req.body;
+      console.log('[Leave Allotments][Bulk] Received payload:', payload);
+      const { year, medicalLeave, casualLeave, earnedLeave, sickLeave, personalLeave, unpaidLeave, leaveWithoutPay, carryForwardEarned, carryForwardPersonal, forceOverride, forceReason } = payload;
       
       if (!year) {
         return res.status(400).json({ error: "Year is required" });
@@ -5253,6 +7021,7 @@ app.post("/api/allowances/bulk", async (req, res) => {
         );
       
       let count = 0;
+      const skipped: Array<any> = [];
       
       for (const employee of activeEmployees) {
         // Check if allotment exists
@@ -5277,10 +7046,47 @@ app.post("/api/allowances/bulk", async (req, res) => {
           personalLeave: personalLeave || 0,
           unpaidLeave: unpaidLeave || 0,
           leaveWithoutPay: leaveWithoutPay || 0,
+          carryForwardEarned: !!carryForwardEarned,
+          carryForwardPersonal: !!carryForwardPersonal,
         };
         
         if (existing.length > 0) {
-          // Update existing
+          // Update existing - but STRICTLY prevent decreasing allocations below consumed leaves
+          const prev = existing[0] as any;
+
+          // Check for next-year allotment existence; if present and no forceOverride, skip
+          const [nextYear] = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, employee.id), eq(leaveAllotments.year, year + 1))).limit(1);
+          if (nextYear && !forceOverride) {
+            skipped.push({ employeeId: employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`, reasons: ['nextYear allotment exists'] });
+            continue;
+          }
+
+          const usedMap: Record<string,string> = {
+            medicalLeave: 'usedMedicalLeave',
+            casualLeave: 'usedCasualLeave',
+            earnedLeave: 'usedEarnedLeave',
+            sickLeave: 'usedSickLeave',
+            personalLeave: 'usedPersonalLeave',
+            unpaidLeave: 'usedUnpaidLeave',
+            leaveWithoutPay: 'usedLeaveWithoutPay',
+          };
+
+          const violations: string[] = [];
+          for (const allocKey of Object.keys(usedMap)) {
+            const usedKey = usedMap[allocKey as keyof typeof usedMap];
+            const used = Number(prev[usedKey] || 0);
+            const newAlloc = Number((allotmentData as any)[allocKey] || 0);
+            if (newAlloc < used) {
+              violations.push(`${allocKey} (allocated ${newAlloc} < consumed ${used})`);
+            }
+          }
+
+          if (violations.length > 0) {
+              // Skip this employee and continue, record reason
+              console.warn(`Skipping update for employee ${employee.id} due to allocation < consumed: ${violations.join(', ')}`);
+              skipped.push({ employeeId: employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`, reasons: violations });
+              continue;
+            }
           await db
             .update(leaveAllotments)
             .set({
@@ -5288,45 +7094,90 @@ app.post("/api/allowances/bulk", async (req, res) => {
               updatedAt: new Date(),
             })
             .where(eq(leaveAllotments.id, existing[0].id));
+          if (forceOverride) {
+            try {
+              await db.execute(sql`INSERT INTO leave_allotment_override_audits (allotment_id, employee_id, year, operation, performed_by, previous_allotment, new_allotment, reason, created_at) VALUES (${existing[0].id}, ${employee.id}, ${year}, 'bulk_override_update', ${(req.session as any)?.employeeId || null}, ${JSON.stringify(prev)}, ${JSON.stringify(allotmentData)}, ${forceReason || null}, NOW())`);
+            } catch (auditErr) {
+              console.error('Failed to write bulk override audit (update):', auditErr);
+            }
+          }
         } else {
           // Create new
-          await db.insert(leaveAllotments).values(allotmentData);
+          const [created] = await db.insert(leaveAllotments).values(allotmentData).returning();
+          if (forceOverride) {
+            try {
+              await db.execute(sql`INSERT INTO leave_allotment_override_audits (allotment_id, employee_id, year, operation, performed_by, previous_allotment, new_allotment, reason, created_at) VALUES (${created.id}, ${employee.id}, ${year}, 'bulk_override_create', ${(req.session as any)?.employeeId || null}, NULL, ${JSON.stringify(allotmentData)}, ${forceReason || null}, NOW())`);
+            } catch (auditErr) {
+              console.error('Failed to write bulk override audit (create):', auditErr);
+            }
+          }
         }
         
         count++;
       }
       
-      res.json({ success: true, count, message: `Leave allotted to ${count} employees` });
+      const responsePayload: any = { success: true, count, message: `Leave allotted to ${count} employees` };
+      if (skipped.length > 0) responsePayload.skipped = skipped;
+      res.json(responsePayload);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Delete leave allotment
+  // Delete leave allotment (strict: prohibit if any leave consumed or next-year allotment exists)
   app.delete("/api/leave-allotments/:id", requireAdminAuth, async (req, res) => {
     try {
-      const { id } = req.params;
-      
+      const { id } = req.params as any;
+
+      const [allotment] = await db.select().from(leaveAllotments).where(eq(leaveAllotments.id, id));
+      if (!allotment) {
+        return res.status(404).json({ error: "Leave allotment not found" });
+      }
+
+      // Check if any leaves have been consumed
+      const usedFields = [
+        'usedMedicalLeave',
+        'usedCasualLeave',
+        'usedEarnedLeave',
+        'usedSickLeave',
+        'usedPersonalLeave',
+        'usedUnpaidLeave',
+        'usedLeaveWithoutPay',
+      ];
+
+      const consumed = usedFields.some((f) => Number((allotment as any)[f] || 0) > 0);
+
+      // Check for next-year allotment existence
+      const [nextYear] = await db.select().from(leaveAllotments).where(and(eq(leaveAllotments.employeeId, (allotment as any).employeeId), eq(leaveAllotments.year, (allotment as any).year + 1)));
+
+      if (consumed || nextYear) {
+        // Record blocked delete attempt for audit
+        try {
+          await db.execute(sql`INSERT INTO leave_allotment_override_audits (allotment_id, employee_id, year, operation, performed_by, previous_allotment, new_allotment, reason, created_at) VALUES (${allotment.id}, ${(allotment as any).employeeId}, ${(allotment as any).year}, 'blocked_delete', ${(req.session as any)?.employeeId || null}, ${JSON.stringify(allotment)}, NULL, ${`Attempt to delete but consumption/next-year exists`}, NOW())`);
+        } catch (auditErr) {
+          console.error('Failed to write blocked delete audit', auditErr);
+        }
+
+        return res.status(403).json({ error: 'Cannot delete leave allotment: either leave has been consumed or a next-year allotment exists' });
+      }
+
       const [deleted] = await db
         .delete(leaveAllotments)
         .where(eq(leaveAllotments.id, id))
         .returning();
-      
-      if (!deleted) {
-        return res.status(404).json({ error: "Leave allotment not found" });
-      }
-      
+
       res.json({ success: true, message: "Leave allotment deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Generate salary for all employees
+  // Generate salary for all employees (supports generating only missing ones)
   app.post("/api/salary/generate", requireAdminAuth, async (req, res) => {
     try {
       const { month, year } = req.query;
-      
+      const missingOnly = String(req.query.missingOnly || '').toLowerCase() === '1' || String(req.query.missingOnly || '').toLowerCase() === 'true';
+
       if (!month || !year) {
         return res.status(400).json({ error: "Month and year are required" });
       }
@@ -5334,8 +7185,17 @@ app.post("/api/allowances/bulk", async (req, res) => {
       const selectedMonth = parseInt(month as string);
       const selectedYear = parseInt(year as string);
 
+      // Get existing generated salary employee ids for this month/year
+      const existingRows = await db.select({ employeeId: generateSalary.employeeId }).from(generateSalary).where(and(eq(generateSalary.month, selectedMonth), eq(generateSalary.year, selectedYear)));
+      const existingEmployeeIds = (existingRows || []).map((r: any) => r.employeeId).filter(Boolean);
+
+      // If not allowed to generate missing only and existing saved salaries exist, return conflict
+      if (!missingOnly && existingEmployeeIds.length > 0) {
+        return res.status(409).json({ error: 'Salaries already saved for this month and year. Delete saved salaries to regenerate.' });
+      }
+
       // Get all active employees (excluding superadmin)
-      const employeesList = await db
+      const allEmployees = await db
         .select()
         .from(employees)
         .where(
@@ -5344,6 +7204,15 @@ app.post("/api/allowances/bulk", async (req, res) => {
             ne(employees.role, 'superadmin')
           )
         );
+
+      // If missingOnly is requested, filter out employees that already have generated salaries
+      let employeesList = allEmployees;
+      let skippedCount = 0;
+      if (missingOnly && existingEmployeeIds.length > 0) {
+        const beforeCount = allEmployees.length;
+        employeesList = allEmployees.filter(e => !existingEmployeeIds.includes(e.id));
+        skippedCount = beforeCount - employeesList.length;
+      }
 
       // Fetch all departments and designations for lookup
       const allDepartments = await db.select().from(departments);
@@ -5488,6 +7357,7 @@ app.post("/api/allowances/bulk", async (req, res) => {
         salaryData.push({
           employeeId: employee.id,
           employeeName: employee.name,
+          employeeCode: employee.emp_code || 'N/A',
           department: departmentName,
           designation: designationName,
           totalDays: daysInMonth,
@@ -5515,6 +7385,11 @@ app.post("/api/allowances/bulk", async (req, res) => {
           totalDeductions: safeTotalDeductions,
           netSalary: safeNetSalary,
         });
+      }
+
+      // If missingOnly was requested, include skippedCount in response for visibility
+      if (missingOnly) {
+        return res.json({ generated: salaryData, generatedCount: salaryData.length, skippedCount });
       }
 
       res.json(salaryData);
@@ -5676,19 +7551,122 @@ app.post("/api/allowances/bulk", async (req, res) => {
       if (!employeeId) {
         return res.status(400).json({ error: 'Employee ID required' });
       }
-      // Get latest salary slip for employee from generated salaries
-      const salary = await db
-        .select()
+      // Get latest salary slip for employee from generated salaries with employee code
+      const salaryRows = await db
+        .select({
+          ...generateSalary,
+        })
         .from(generateSalary)
+        .leftJoin(employees, eq(generateSalary.employeeId, employees.id))
         .where(eq(generateSalary.employeeId, employeeId as string))
         .orderBy(desc(generateSalary.year), desc(generateSalary.month))
         .limit(1);
+
+      if (!salaryRows.length) {
+        return res.status(404).json({ error: 'No salary slip found' });
+      }
+
+      // Get employee code separately
+      const empData = await db
+        .select({ emp_code: employees.emp_code })
+        .from(employees)
+        .where(eq(employees.id, employeeId as string))
+        .limit(1);
+
+      const salary = [{ ...salaryRows[0], emp_code: empData[0]?.emp_code || null }];
       if (!salary.length) {
         return res.status(404).json({ error: 'No salary slip found' });
       }
       res.json(salary[0]);
     } catch (error: any) {
       res.status(500).json({ error: error?.message || 'Failed to fetch salary slip' });
+    }
+  });
+
+  // Get specific salary slip by ID
+  app.get("/api/salary-slip/:id", requireEmployeeAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const employeeId = (req.session as any).employeeId;
+
+      if (!employeeId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Get salary slip by ID and verify it belongs to the logged-in employee
+      const salarySlip = await db
+        .select({
+          id: generateSalary.id,
+          month: generateSalary.month,
+          year: generateSalary.year,
+          basicSalary: generateSalary.basicSalary,
+          grossSalary: generateSalary.grossSalary,
+          totalDeductions: generateSalary.totalDeductions,
+          netSalary: generateSalary.netSalary,
+          earnedSalary: generateSalary.earnedSalary,
+          hra: generateSalary.hra,
+          da: generateSalary.da,
+          lta: generateSalary.lta,
+          conveyance: generateSalary.conveyance,
+          medical: generateSalary.medical,
+          bonuses: generateSalary.bonuses,
+          otherBenefits: generateSalary.otherBenefits,
+          pf: generateSalary.pf,
+          professionalTax: generateSalary.professionalTax,
+          incomeTax: generateSalary.incomeTax,
+        })
+        .from(generateSalary)
+        .where(and(eq(generateSalary.id, id), eq(generateSalary.employeeId, employeeId)))
+        .limit(1);
+
+      if (!salarySlip.length) {
+        return res.status(404).json({ error: 'Salary slip not found' });
+      }
+
+      res.json(salarySlip[0]);
+    } catch (error: any) {
+      console.error('[Salary Slip] Error:', error);
+      res.status(500).json({ error: error?.message || 'Failed to fetch salary slip' });
+    }
+  });
+
+  // Get salary history for logged-in employee
+  app.get("/api/salary-history", requireEmployeeAuth, async (req, res) => {
+    try {
+      const employeeId = (req.session as any).employeeId;
+      if (!employeeId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const salaryRecords = await db
+        .select({
+          id: generateSalary.id,
+          month: generateSalary.month,
+          year: generateSalary.year,
+          netSalary: generateSalary.netSalary,
+          grossSalary: generateSalary.grossSalary,
+          totalDeductions: generateSalary.totalDeductions,
+          createdAt: generateSalary.createdAt,
+        })
+        .from(generateSalary)
+        .where(eq(generateSalary.employeeId, employeeId))
+        .orderBy(desc(generateSalary.year), desc(generateSalary.month))
+        .limit(100);
+
+      const formattedData = salaryRecords.map(record => ({
+        id: record.id,
+        month: Number(record.month),
+        year: Number(record.year),
+        netSalary: Number(record.netSalary),
+        grossSalary: Number(record.grossSalary),
+        deductions: Number(record.totalDeductions),
+        status: 'Generated',
+      }));
+
+      res.json(formattedData);
+    } catch (error: any) {
+      console.error('[Salary History] Error:', error);
+      res.status(500).json({ error: error?.message || 'Failed to fetch salary history' });
     }
   });
 

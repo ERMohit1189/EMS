@@ -96,6 +96,16 @@ interface Designation {
 }
 
 export default function EmployeeEdit() {
+  // Role-based access control
+  const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+  if (employeeRole !== 'admin' && employeeRole !== 'user' && employeeRole !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
   const [match, params] = useRoute("/employee/edit/:id");
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
@@ -214,6 +224,8 @@ export default function EmployeeEdit() {
       });
       form.setValue("city", employee.city || "", { shouldValidate: false });
       form.setValue("state", employee.state || "", { shouldValidate: false });
+      // Preload city options for the employee's state so the existing city is selectable
+      setCities(getCitiesByState(employee.state || ""));
       form.setValue("country", employee.country || "India", {
         shouldValidate: false,
       });
@@ -287,10 +299,17 @@ export default function EmployeeEdit() {
   useEffect(() => {
     if (watchedState) {
       setCities(getCitiesByState(watchedState));
+      // Only clear city when state was changed by the user (not during initial population)
+      if (watchedState !== employee?.state) {
+        form.setValue("city", "", { shouldValidate: false });
+        setCitySearch("");
+      }
+    } else {
+      setCities([]);
       form.setValue("city", "", { shouldValidate: false });
       setCitySearch("");
     }
-  }, [watchedState, form]);
+  }, [watchedState, form, employee?.state]);
 
   useEffect(() => {
     calculateAge(watchedDob || "");

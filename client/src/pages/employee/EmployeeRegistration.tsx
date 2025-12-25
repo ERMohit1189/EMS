@@ -94,6 +94,16 @@ interface Designation {
 }
 
 export default function EmployeeRegistration() {
+  // Role-based access control
+  const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+  if (employeeRole !== 'admin' && employeeRole !== 'user' && employeeRole !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [cities, setCities] = useState<string[]>([]);

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import SmartSearchTextbox, { Suggestion } from '@/components/SmartSearchTextbox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { X, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import {
@@ -137,6 +138,10 @@ export default function SiteStatus() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [vendorSuggestions, setVendorSuggestions] = useState<Suggestion[]>([]);
+  const [vendorSearchText, setVendorSearchText] = useState('');
+  const [vendorLoading, setVendorLoading] = useState(false);
+  const [selectedVendorFilter, setSelectedVendorFilter] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
   const [bulkPhyAtStatus, setBulkPhyAtStatus] = useState('');
@@ -173,6 +178,12 @@ export default function SiteStatus() {
       const params = new URLSearchParams();
       params.append('page', currentPage.toString());
       params.append('pageSize', pageSize.toString());
+      // Global search across ALL records (server-side)
+      if (searchTerm && searchTerm.trim()) params.append('search', searchTerm.trim());
+      // Vendor filter (server-side)
+      if (selectedVendorFilter) params.append('vendorId', selectedVendorFilter);
+      // Site status filter (server-side)
+      if (selectedStatus && selectedStatus !== 'All') params.append('status', selectedStatus);
       // Apply ATP card filter to server query if set
       if (cardFilterArea && cardStatusFilter) {
         if (cardFilterArea === 'phy') params.append('phyAtStatus', cardStatusFilter);
@@ -212,17 +223,44 @@ export default function SiteStatus() {
     }
   };
 
-  const filteredSites = sites.filter(site => {
-    const matchesSearch = 
-      site.planId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      site.circle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      site.district?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // If card filter is set, use it; otherwise use status filter
-    const matchesStatus = cardStatusFilter ? site.status === cardStatusFilter : (selectedStatus === 'All' || site.status === selectedStatus);
+  const fetchVendors = async () => {
+    setVendorLoading(true);
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`);
+      if (!response.ok) throw new Error('Failed to fetch vendors');
+      const result = await response.json();
+      let vendorsData: any[] = result.data || [];
+      vendorsData = vendorsData.map((v: any) => ({ ...v, id: v.id || v._id })).filter(Boolean);
+      vendorsData = vendorsData.filter((v: any, idx: number, arr: any[]) => arr.findIndex(x => String(x.id) === String(v.id)) === idx);
+      vendorsData.sort((a: any, b: any) => ((a.name || a.vendorCode || '').toString().toLowerCase()).localeCompare((b.name || b.vendorCode || '').toString().toLowerCase()));
+      const sugg = vendorsData.map((v: any, i: number) => ({ id: v.id, label: `${(v.name || '').trim()} — ${(String(v.vendorCode || '')).trim()}`, name: v.name || '', code: String(v.vendorCode || '').trim(), index: i + 1 }));
+      setVendorSuggestions(sugg);
+    } catch (error) {
+      console.error('[SiteStatus] Failed to fetch vendors:', error);
+    } finally {
+      setVendorLoading(false);
+    }
+  };
 
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    // Fetch aggregated ATP counts once on mount
+    fetchAtpCounts();
+    // also fetch vendors for smart search
+    fetchVendors();
+  }, []);
+
+  // Debounced server-side search / vendor / status changes
+  useEffect(() => {
+    const t = setTimeout(() => {
+      // Reset to first page when changing global filters
+      setCurrentPage(1);
+      fetchSites();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchTerm, selectedVendorFilter, selectedStatus]);
+
+  // Server returns pre-filtered results when query params are provided. Use sites directly.
+  const filteredSites = sites;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -872,7 +910,7 @@ export default function SiteStatus() {
                 size="sm" 
                 onClick={() => {
                   setCardStatusFilter(null);
-+                  setCardFilterArea(null);
+                  setCardFilterArea(null);
                   setStartDate('');
                   setEndDate('');
                 }}
@@ -905,6 +943,56 @@ export default function SiteStatus() {
         )}
       </Button>
 
+      {/* Quick Filters (always visible) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label className="text-sm font-medium mb-2 block">Search</label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search across all records by Plan ID, Circle, or District..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+              data-testid="input-global-search"
+            />
+          </div>
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium mb-2 block">Vendor</label>
+          <div className="flex items-center gap-2">
+            <SmartSearchTextbox
+              value={selectedVendorFilter ? (vendorSuggestions.find(v => v.id === selectedVendorFilter)?.label || vendorSearchText) : vendorSearchText}
+              onChange={(v) => {
+                setVendorSearchText(v);
+                if (!v) {
+                  setSelectedVendorFilter('');
+                }
+              }}
+              onSelect={(s) => {
+                setSelectedVendorFilter(s.id || '');
+                setVendorSearchText(s.label);
+              }}
+              suggestions={vendorSuggestions}
+              loading={vendorLoading}
+              placeholder="Search vendor by name or code..."
+              maxSuggestions={5000}
+              className="flex-1"
+            />
+            {selectedVendorFilter && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setSelectedVendorFilter(''); setVendorSearchText(''); }}
+                className="whitespace-nowrap"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Filters */}
       {showAdvancedFilters && (
         <Card className="shadow-md">
@@ -912,22 +1000,7 @@ export default function SiteStatus() {
             <CardTitle className="text-lg">Advanced Filters</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Search */}
-            <div>
-              <label className="text-sm font-medium mb-2 block">Search</label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by Plan ID, Circle, or District..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            {/* Status Filter */}
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Site Status</label>
               <div className="flex gap-2 flex-wrap">

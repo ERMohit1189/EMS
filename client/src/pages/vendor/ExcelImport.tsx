@@ -5,9 +5,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, Download, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Upload, Download, CheckCircle, AlertCircle, Trash2, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchWithLoader } from '@/lib/fetchWithLoader';
+import { fetchJsonWithLoader, fetchWithLoader } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 interface RawRowData {
@@ -22,6 +22,12 @@ export default function ExcelImport() {
   const [errorDetails, setErrorDetails] = useState<any[]>([]);
   const [importType, setImportType] = useState<'site' | 'vendor' | 'employee'>('site');
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, stage: '' });
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [estimatedTime, setEstimatedTime] = useState<{ minutes: number; seconds: number; totalSeconds: number }>({ minutes: 0, seconds: 0, totalSeconds: 0 });
+  const [elapsedTime, setElapsedTime] = useState(0); // Track elapsed seconds
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -65,19 +71,135 @@ export default function ExcelImport() {
     reader.readAsArrayBuffer(file);
   };
 
+  const calculateEstimatedTime = () => {
+    // Fast estimate based on high-throughput runs (56s per 1000 rows)
+    // Use a faster estimate derived from the 500-row measurement.
+    const SECONDS_PER_THOUSAND = 56; // fast measured value (s per 1000 rows)
+    const BASELINE_SECONDS = 5;
+
+    const totalSeconds = Math.ceil((importedData.length * SECONDS_PER_THOUSAND) / 1000 + BASELINE_SECONDS);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    console.log(`[TimeEstimate] Fast estimate: ${totalSeconds}s for ${importedData.length} rows (${minutes}m ${seconds}s) using ${SECONDS_PER_THOUSAND}s/1000 rows`);
+    return { minutes, seconds, totalSeconds };
+  };
+
+  // Timer effect - updates elapsed time while importing
+  useEffect(() => {
+    if (!importing) {
+      setElapsedTime(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setElapsedTime((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [importing]);
+
+  // Format seconds to MM:SS format
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const showImportConfirmation = () => {
+    if (importedData.length === 0) return;
+
+    const timeEst = calculateEstimatedTime();
+    setEstimatedTime(timeEst);
+    setShowConfirmDialog(true);
+  };
+
+  const proceedWithImport = async () => {
+    setShowConfirmDialog(false);
+    await handleImport();
+  };
+
   const handleImport = async () => {
     if (importedData.length === 0) return;
 
+    setImporting(true);
     setLoading(true);
+    setImportProgress({ current: 0, total: 100, stage: 'STEP 1/4: Validating Partner Code column...' });
     const importErrors: string[] = [];
-    const validData: any[] = [];
+    const errorDetailsArray: any[] = [];
+    const validData: any[] = []; // Store validated site data
 
-    console.log(`[ExcelImport] STEP 1: Validating ${importedData.length} records as ${importType}`);
+    // Define helper functions OUTSIDE the loop for better performance
+    const toString = (val: any) => {
+      if (val === null || val === undefined || val === '') return null;
+      const str = String(val).trim();
+      return str && str !== 'undefined' && str !== 'null' ? str : null;
+    };
+
+    console.log(`[ExcelImport] FAST IMPORT PROCESS: ${importedData.length} records`);
+
+    // ===== STEP 1: VALIDATE PARTNER CODE COLUMN =====
+    console.log(`[ExcelImport] STEP 1: Validating Partner Code column...`);
+
+    // Check if Partner Code column exists
+    if (!columns.includes('PARTNER CODE')) {
+      const error = 'Missing required column: PARTNER CODE';
+      console.error(`[ExcelImport] ${error}`);
+      toast({
+        title: 'Validation Failed',
+        description: error,
+        variant: 'destructive',
+      });
+      setLoading(false);
+      setImporting(false);
+      setErrors([error]);
+      setImportProgress({ current: 0, total: 0, stage: '' });
+      return;
+    }
+
+    // Check for blank Partner Code values
+    const blankPartnerCodeRows: any[] = [];
+    for (let idx = 0; idx < importedData.length; idx++) {
+      const row = importedData[idx];
+      const partnerCode = String(row['PARTNER CODE'] || '').trim();
+
+      if (!partnerCode) {
+        const planId = toString(row['PLAN ID']) || '-';
+        const partnerName = toString(row['PARTNER NAME']) || '-';
+        blankPartnerCodeRows.push({
+          rowNum: idx + 2,
+          planId,
+          partnerName,
+          error: 'PARTNER CODE is required and cannot be blank'
+        });
+      }
+    }
+
+    // If there are blank Partner Codes, stop and show errors
+    if (blankPartnerCodeRows.length > 0) {
+      console.error(`[ExcelImport] Found ${blankPartnerCodeRows.length} rows with blank PARTNER CODE`);
+      const errors = blankPartnerCodeRows.map(e => `Row ${e.rowNum}: ${e.error} (Plan: ${e.planId})`);
+
+      toast({
+        title: 'Validation Failed',
+        description: `${blankPartnerCodeRows.length} rows have blank PARTNER CODE. Please fix and try again.`,
+        variant: 'destructive',
+      });
+      setErrors(errors);
+      setErrorDetails(blankPartnerCodeRows);
+      setLoading(false);
+      setImporting(false);
+      setImportProgress({ current: 0, total: 0, stage: '' });
+      return;
+    }
+
+    console.log(`[ExcelImport] ✅ Partner Code validation passed`);
+    setImportProgress({ current: 25, total: 100, stage: 'STEP 2/4: Checking vendors in database...' });
 
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
     try {
-      const zonesRes = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=10000`);
+      const zonesRes = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=500`);
       if (zonesRes.ok) {
         const zonesData = await zonesRes.json();
         zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
@@ -89,86 +211,124 @@ export default function ExcelImport() {
       console.error('Failed to fetch zones');
     }
 
-    // STEP 1: VALIDATION PHASE - Check all data before uploading
-    const errorDetailsArray: any[] = [];
+    // Pre-calculate Excel epoch date once (not for each row)
+    const excelEpoch = new Date(1900, 0, 1).getTime();
+
+    // Optimized date conversion with pre-calculated epoch
+    const excelDateToISO = (val: any) => {
+      if (val === null || val === undefined || val === '') return null;
+      const num = Number(val);
+
+      // Check if it's an Excel serial number (numeric)
+      if (!isNaN(num) && num > 0 && num < 100000) {
+        const date = new Date((num - 1) * 86400000 + excelEpoch);
+        return date.toISOString().split('T')[0];
+      }
+
+      // Otherwise treat as string date
+      const str = toString(val);
+      if (!str) return null;
+
+      // Try parsing DD-MMM-YYYY format (e.g., "15-Mar-2025")
+      const ddMmmYyyyMatch = str.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+      if (ddMmmYyyyMatch) {
+        const day = ddMmmYyyyMatch[1].padStart(2, '0');
+        const monthStr = ddMmmYyyyMatch[2].toLowerCase();
+        const year = ddMmmYyyyMatch[3];
+        const months: { [key: string]: string } = {
+          'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+          'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+          'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+        };
+        const month = months[monthStr];
+        if (month) {
+          return `${year}-${month}-${day}`;
+        }
+      }
+
+      // Try parsing YYYY-MM-DD format (already ISO)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return str;
+      }
+
+      // Try parsing DD/MM/YYYY format
+      const ddSlashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (ddSlashMatch) {
+        const day = ddSlashMatch[1].padStart(2, '0');
+        const month = ddSlashMatch[2].padStart(2, '0');
+        const year = ddSlashMatch[3];
+        return `${year}-${month}-${day}`;
+      }
+
+      // Try parsing MM/DD/YYYY format
+      const mmSlashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (mmSlashMatch) {
+        const month = mmSlashMatch[1].padStart(2, '0');
+        const day = mmSlashMatch[2].padStart(2, '0');
+        const year = mmSlashMatch[3];
+        // Ambiguous - assume DD/MM if day > 12, otherwise try to parse with Date constructor
+        if (parseInt(mmSlashMatch[1]) > 12) {
+          return `${year}-${mmSlashMatch[2].padStart(2, '0')}-${mmSlashMatch[1].padStart(2, '0')}`;
+        }
+        return `${year}-${month}-${day}`;
+      }
+
+      // Try JavaScript Date parsing as last resort
+      try {
+        const parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split('T')[0];
+        }
+      } catch (e) {
+        // Fall through
+      }
+
+      return null;
+    };
+
+    const toDate = excelDateToISO;
+
+    // Normalize Soft/Phy AT status values: map null/empty/unknown values to 'Pending'
+    const normalizeAtStatus = (val: any) => {
+      const s = toString(val);
+      if (!s) return 'Pending';
+      const lower = s.toLowerCase();
+      const mapping: { [key: string]: string } = {
+        'pending': 'Pending',
+        'approved': 'Approved',
+        'raised': 'Raised',
+        'rejected': 'Rejected'
+      };
+      return mapping[lower] || 'Pending';
+    };
+
     for (let idx = 0; idx < importedData.length; idx++) {
       const row = importedData[idx];
+
+      // Update progress less frequently for speed (every 50 rows, not 10)
+      if (idx % 50 === 0) {
+        setImportProgress({ current: idx + 1, total: importedData.length, stage: `Validating row ${idx + 1} of ${importedData.length}...` });
+      }
+
       try {
         if (importType === 'site') {
-          // Helper functions to handle Excel values
-          const toString = (val: any) => {
-            if (val === null || val === undefined || val === '') return null;
-            const str = String(val).trim();
-            return str && str !== 'undefined' && str !== 'null' ? str : null;
-          };
-
-          // Convert Excel serial numbers to ISO date strings
-          const excelDateToISO = (val: any) => {
-            if (val === null || val === undefined || val === '') return null;
-            
-            // Check if it's an Excel serial number (numeric)
-            const num = Number(val);
-            if (!isNaN(num) && num > 0 && num < 100000) {
-              try {
-                // Excel stores dates as days since January 1, 1900
-                const date = new Date((num - 1) * 86400000 + new Date(1900, 0, 1).getTime());
-                return date.toISOString().split('T')[0];
-              } catch (e) {
-                return null;
-              }
-            }
-            
-            // Otherwise treat as string date
-            const str = toString(val);
-            return str ? str : null;
-          };
-
-          const toDate = excelDateToISO;
 
           // Map all 81 columns for site from Excel
           // Get vendor from Partner Name and Partner Code columns
           const partnerName = toString(row['PARTNER NAME']);
           const partnerCode = toString(row['PARTNER CODE']);
-          
-          if (!partnerName) {
-            const error = `Row ${idx + 2}: Partner Name (vendor) is required`;
-            importErrors.push(error);
-            errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-' });
-            continue;
-          }
 
+          // FAST VALIDATION: Only check required fields, skip vendor API calls
+          // Partner name is optional; PARTNER CODE is required to identify vendor
           if (!partnerCode) {
-            const error = `Row ${idx + 2}: Partner or ${partnerName} must have PARTNER CODE`;
+            const error = `Row ${idx + 2}: PARTNER CODE is required`;
             importErrors.push(error);
             errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-', partner: partnerName });
             continue;
           }
 
-          let vendorId: string;
-          try {
-            const response = await fetch(`${getApiBaseUrl()}/api/vendors/find-or-create`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ vendorCode: partnerCode, name: partnerName }),
-            });
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({ error: response.statusText }));
-              const error = `Row ${idx + 2}: Vendor error - ${errorData.error || response.statusText}`;
-              console.error(`[ExcelImport] Row ${idx + 2}: Vendor API error - Status: ${response.status}`, errorData);
-              importErrors.push(error);
-              errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-', partner: partnerName });
-              continue;
-            }
-            const vendor = await response.json();
-            vendorId = vendor.id;
-            console.log(`[ExcelImport] Row ${idx + 2}: Vendor created/found - ${partnerName} (code: ${partnerCode}, id: ${vendorId})`);
-          } catch (err: any) {
-            const error = `Row ${idx + 2}: Vendor error - ${err?.message || String(err)}`;
-            console.error(`[ExcelImport] Row ${idx + 2}: Vendor error details:`, err?.message, err?.response, err);
-            importErrors.push(error);
-            errorDetailsArray.push({ rowNum: idx + 2, planId: toString(row['PLAN ID']) || '-', error, siteId: toString(row['SITE ID']) || '-', partner: partnerName });
-            continue;
-          }
+          // Store partner code as vendorId placeholder (will be resolved during upload)
+          const vendorId = partnerCode;
 
           // Match Circle column with Zone name to get zoneId
           const circleValue = toString(row['Circle']);
@@ -177,18 +337,20 @@ export default function ExcelImport() {
           // Generate IDs with fallbacks - accept any ID from available columns
           const planIdValue = toString(row['PLAN ID']) || toString(row['planId']);
           const siteIdValue = toString(row['SITE ID']) || toString(row['siteId']) || toString(row['Nominal Aop']);
-          // Use unique suffix combining index and random to ensure no duplicates
-          const uniqueSuffix = `${idx}-${Math.random().toString(36).slice(-8)}`;
-          const generatedSiteId = siteIdValue || `SITE-${uniqueSuffix}`;
-          const generatedPlanId = planIdValue || `PLAN-${uniqueSuffix}`; // Use unique suffix as fallback for planId
+          // Use just index for unique suffix (faster than random)
+          const generatedSiteId = siteIdValue || `SITE-${idx}`;
+          const generatedPlanId = planIdValue || `PLAN-${idx}`;
 
-          const siteData = {
+          // Build site data object with optimized field access
+          const siteData: any = {
             siteId: generatedSiteId,
             vendorId,
+            partnerCode,
             zoneId,
             sno: Number(row['S.No.']) || undefined,
             circle: circleValue,
             planId: generatedPlanId,
+            partnerName: partnerName,
             nominalAop: toString(row['Nominal Aop']),
             hopType: toString(row['HOP TYPE']),
             hopAB: toString(row['HOP A-B']),
@@ -219,7 +381,6 @@ export default function ExcelImport() {
             rfaiOfferedDateSiteA: toDate(row['RFAI OFFERED DATE SITE A']),
             rfaiOfferedDateSiteB: toDate(row['RFAI OFFERED DATE SITE B']),
             actualHopRfaiOfferedDate: toDate(row['ACTUAL HOP RFAI OFFERED DATE']),
-            partnerName: partnerName,
             rfaiSurveyCompletionDate: toDate(row['RFAI SURVEY COMPLETION DATE']),
             moNumberSiteA: toString(row['MO NUMBER SITE A']),
             materialTypeSiteA: toString(row['MATERIAL TYPE SITE A(SRN, FRESH, FRESH+SRN)']),
@@ -246,10 +407,10 @@ export default function ExcelImport() {
             nmsVisibleDate: toDate(row['NMS VISIBLE DATE']),
             softAtOfferDate: toDate(row['SOFT AT OFFER DATE']),
             softAtAcceptanceDate: toDate(row['SOFT AT ACCEPTANCE DATE']),
-            softAtStatus: toString(row['SOFT-AT STATUS']),
+            softAtStatus: normalizeAtStatus(row['SOFT-AT STATUS']),
             phyAtOfferDate: toDate(row['PHY-AT OFFER DATE']),
             phyAtAcceptanceDate: toDate(row['PHY-AT ACCEPTANCE DATE']),
-            phyAtStatus: toString(row['PHY-AT STATUS']),
+            phyAtStatus: normalizeAtStatus(row['PHY-AT STATUS']),
             bothAtStatus: toString(row['BOTH AT STATUS']),
             priIssueCategory: toString(row['PRI ISSUE CATEGORY']),
             priSiteId: toString(row['PRI SITE ID']),
@@ -270,62 +431,69 @@ export default function ExcelImport() {
             status: 'Pending' as const,
           };
 
-          console.log(`[ExcelImport] Row ${idx + 2}: Validation passed - siteId: "${siteData.siteId}", planId: "${siteData.planId}", vendor: "${siteData.partnerName}"`);
+          // Only log every 100 rows to reduce console overhead
+          if (idx % 100 === 0) {
+            console.log(`[ExcelImport] Row ${idx + 2}: Validation passed - siteId: "${siteData.siteId}", planId: "${siteData.planId}"`);
+          }
           validData.push({ type: 'site', data: siteData, rowNum: idx + 2 });
         } else if (importType === 'vendor') {
-          // Map all columns for vendor
-          const vendorData = {
-            name: row['name'] || row['Name'] || '',
-            email: row['email'] || row['Email'] || `vendor${idx}@example.com`,
-            mobile: row['mobile'] || row['Mobile No'] || row['Mobile'] || '',
-            address: row['address'] || row['Address'] || '',
-            city: row['city'] || row['City'] || '',
-            state: row['state'] || row['State'] || '',
-            pincode: row['pincode'] || row['Pincode'] || '',
-            country: row['country'] || row['Country'] || 'India',
-            aadhar: row['aadhar'] || row['Aadhar'] || '',
-            pan: row['pan'] || row['PAN'] || '',
-            gstin: row['gstin'] || row['GSTIN'] || '',
-            category: (row['category'] || row['Category'] || 'Individual') as 'Individual' | 'Company',
-            status: 'Pending' as const,
-            moa: row['moa'] || row['MOA'] || '',
-          };
+          // FAST VALIDATION for vendor: Quick field check
+          const name = toString(row['PARTNER NAME']) || toString(row['PARTNER CODE']) || '';
+          const aadhar = row['aadhar'] || row['Aadhar'] || '';
+          const pan = row['pan'] || row['PAN'] || '';
 
-          if (vendorData.name && vendorData.aadhar && vendorData.pan) {
-            console.log(`[ExcelImport] Row ${idx + 2}: Vendor validation passed - ${vendorData.name}`);
+          if (name && aadhar && pan) {
+            // Valid vendor - store for later processing
+            const vendorData = {
+              name: name,
+              email: row['email'] || row['Email'] || `vendor${idx}@example.com`,
+              mobile: row['mobile'] || row['Mobile No'] || row['Mobile'] || '',
+              address: row['address'] || row['Address'] || '',
+              city: row['city'] || row['City'] || '',
+              state: row['state'] || row['State'] || '',
+              pincode: row['pincode'] || row['Pincode'] || '',
+              country: row['country'] || row['Country'] || 'India',
+              aadhar: aadhar,
+              pan: pan,
+              gstin: row['gstin'] || row['GSTIN'] || '',
+              category: (row['category'] || row['Category'] || 'Individual') as 'Individual' | 'Company',
+              status: 'Pending' as const,
+              moa: row['moa'] || row['MOA'] || '',
+            };
             validData.push({ type: 'vendor', data: vendorData, rowNum: idx + 2 });
           } else {
-            console.warn(`[ExcelImport] Row ${idx + 2}: Missing vendor required fields`);
             importErrors.push(`Row ${idx + 2}: Missing required vendor fields (name, aadhar, pan)`);
           }
         } else if (importType === 'employee') {
-          // Map all columns for employee
-          const employeeData = {
-            name: row['name'] || row['Name'] || '',
-            dob: row['dob'] || row['DOB'] || '',
-            fatherName: row['fatherName'] || row['Father Name'] || '',
-            mobile: row['mobile'] || row['Mobile No'] || row['Mobile'] || '',
-            alternateNo: row['alternateNo'] || row['Alternate No'] || '',
-            address: row['address'] || row['Address'] || '',
-            city: row['city'] || row['City'] || '',
-            state: row['state'] || row['State'] || '',
-            country: row['country'] || row['Country'] || 'India',
-            designation: row['designation'] || row['Designation'] || '',
-            doj: row['doj'] || row['Date of Joining'] || row['DOJ'] || '',
-            aadhar: row['aadhar'] || row['Aadhar'] || '',
-            pan: row['pan'] || row['PAN'] || '',
-            bloodGroup: row['bloodGroup'] || row['Blood Group'] || 'O+',
-            maritalStatus: (row['maritalStatus'] || row['Marital Status'] || 'Single') as 'Single' | 'Married',
-            nominee: row['nominee'] || row['Nominee'] || '',
-            ppeKit: (row['ppeKit'] === 'YES' || row['ppeKit'] === true) as boolean,
-            kitNo: row['kitNo'] || row['Kit No'] || '',
-          };
+          // FAST VALIDATION for employee: Quick field check
+          const name = row['name'] || row['Name'] || '';
+          const aadhar = row['aadhar'] || row['Aadhar'] || '';
+          const pan = row['pan'] || row['PAN'] || '';
 
-          if (employeeData.name && employeeData.aadhar && employeeData.pan) {
-            console.log(`[ExcelImport] Row ${idx + 2}: Employee validation passed - ${employeeData.name}`);
+          if (name && aadhar && pan) {
+            // Valid employee - store for later processing
+            const employeeData = {
+              name: name,
+              dob: row['dob'] || row['DOB'] || '',
+              fatherName: row['fatherName'] || row['Father Name'] || '',
+              mobile: row['mobile'] || row['Mobile No'] || row['Mobile'] || '',
+              alternateNo: row['alternateNo'] || row['Alternate No'] || '',
+              address: row['address'] || row['Address'] || '',
+              city: row['city'] || row['City'] || '',
+              state: row['state'] || row['State'] || '',
+              country: row['country'] || row['Country'] || 'India',
+              designation: row['designation'] || row['Designation'] || '',
+              doj: row['doj'] || row['Date of Joining'] || row['DOJ'] || '',
+              aadhar: aadhar,
+              pan: pan,
+              bloodGroup: row['bloodGroup'] || row['Blood Group'] || 'O+',
+              maritalStatus: (row['maritalStatus'] || row['Marital Status'] || 'Single') as 'Single' | 'Married',
+              nominee: row['nominee'] || row['Nominee'] || '',
+              ppeKit: (row['ppeKit'] === 'YES' || row['ppeKit'] === true) as boolean,
+              kitNo: row['kitNo'] || row['Kit No'] || '',
+            };
             validData.push({ type: 'employee', data: employeeData, rowNum: idx + 2 });
           } else {
-            console.warn(`[ExcelImport] Row ${idx + 2}: Missing employee required fields`);
             importErrors.push(`Row ${idx + 2}: Missing required employee fields (name, aadhar, pan)`);
           }
         }
@@ -348,115 +516,417 @@ export default function ExcelImport() {
       setErrors(importErrors);
       setErrorDetails(errorDetailsArray);
       setLoading(false);
+      setImporting(false);
+      setImportProgress({ current: 0, total: 0, stage: '' });
       return;
     }
 
-    // STEP 2: UPLOAD PHASE - If all validation passes, upload all data at once
-    console.log(`[ExcelImport] STEP 2: Uploading ${validData.length} validated records`);
-    let imported = 0;
-    const uploadErrors: string[] = [];
+    console.log(`[ExcelImport] ✅ Validation complete. Moving to Step 2...`);
 
-    // Upload all data in parallel
-    const uploadPromises = validData.map(async (item) => {
-      try {
-        if (item.type === 'site') {
-          const response = await fetch(`${getApiBaseUrl()}/api/sites/upsert`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item.data),
-          });
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`${response.status} - ${errorText}`);
-          }
-          console.log(`[ExcelImport] Row ${item.rowNum}: Site uploaded successfully`);
-          return { success: true };
-        } else if (item.type === 'vendor') {
-          const response = await fetch(`${getApiBaseUrl()}/api/vendors`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item.data),
-          });
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`${response.status} - ${errorText}`);
-          }
-          console.log(`[ExcelImport] Row ${item.rowNum}: Vendor uploaded successfully`);
-          return { success: true };
-        } else if (item.type === 'employee') {
-          const response = await fetch(`${getApiBaseUrl()}/api/employees`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item.data),
-          });
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`${response.status} - ${errorText}`);
-          }
-          console.log(`[ExcelImport] Row ${item.rowNum}: Employee uploaded successfully`);
-          return { success: true };
-        }
-      } catch (err: any) {
-        console.error(`[ExcelImport] Row ${item.rowNum}: Upload failed -`, err.message);
-        uploadErrors.push(`Row ${item.rowNum}: ${err.message}`);
-        return { success: false };
+    // STEP 2: HANDLE VENDORS - Explicit 4-step process
+    console.log(`[ExcelImport] STEP 2/4: Handling vendors...`);
+
+    const siteItems = validData.filter(v => v.type === 'site');
+    const errorDetailsArray2: any[] = [];
+    const siteDataMap = new Map(); // Map to store full site data for error reporting
+    let uploadedCount = 0;
+
+    // Store full site data for each siteId for error reporting
+    for (const item of siteItems) {
+      siteDataMap.set(item.data.siteId, item.data);
+    }
+
+    // STEP 2.1: Collect all vendor codes in JSON
+    setImportProgress({ current: 50, total: 100, stage: 'STEP 2a/4: Collecting vendor codes...' });
+
+    // Build a code->name map using partnerName from the site rows when available
+    const vendorCodeToName = new Map<string, string>();
+    for (const item of siteItems) {
+      const vendorCode = String(item.data.vendorId).trim();
+      if (!vendorCode) continue;
+      if (!vendorCodeToName.has(vendorCode)) {
+        const pn = (item.data.partnerName || '').trim();
+        vendorCodeToName.set(vendorCode, pn || vendorCode);
       }
+    }
+
+    const vendorCodesJson = Array.from(vendorCodeToName.entries()).map(([code, name]) => ({ code, name }));
+
+    console.log(`[ExcelImport] ✅ Collected ${vendorCodeToName.size} unique vendor codes`);
+
+    // STEP 2.2: Send to database and get missing vendors
+    setImportProgress({ current: 55, total: 100, stage: 'STEP 2b/4: Checking which vendors are missing...' });
+
+    let missingVendors: any[] = [];
+    try {
+      const checkMissingResponse = await fetch(`${getApiBaseUrl()}/api/vendors/check-missing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendors: vendorCodesJson }),
+      });
+
+      if (checkMissingResponse.ok) {
+        const missingResult = await checkMissingResponse.json();
+        missingVendors = missingResult.missing || [];
+        console.log(`[ExcelImport] Found ${missingVendors.length} vendors NOT in database`);
+      } else {
+        console.warn(`[ExcelImport] Check-missing endpoint not available, will create all`);
+        missingVendors = vendorCodesJson;
+      }
+    } catch (err: any) {
+      console.warn(`[ExcelImport] Could not check missing vendors, will proceed with create-all:`, err.message);
+      missingVendors = vendorCodesJson;
+    }
+
+    // STEP 2.3: Send all missing vendors to database and insert
+    setImportProgress({ current: 60, total: 100, stage: `STEP 2c/4: Inserting ${missingVendors.length} missing vendors...` });
+
+    try {
+      if (missingVendors.length > 0) {
+        const insertVendorsResponse = await fetch(`${getApiBaseUrl()}/api/vendors/batch-create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vendors: missingVendors }),
+        });
+
+        if (!insertVendorsResponse.ok) {
+          console.warn(`[ExcelImport] Batch create not available, using find-or-create instead`);
+          // Fallback: use find-or-create
+        } else {
+          const insertResult = await insertVendorsResponse.json();
+          console.log(`[ExcelImport] ✅ Inserted ${insertResult.created || missingVendors.length} vendors`);
+        }
+      } else {
+        console.log(`[ExcelImport] ✅ All vendors already exist in database`);
+      }
+    } catch (err: any) {
+      console.warn(`[ExcelImport] Error creating vendors:`, err.message);
+    }
+
+    // STEP 2.4: Send all vendor codes again and get code->ID mapping
+    setImportProgress({ current: 65, total: 100, stage: 'STEP 2d/4: Getting vendor ID mappings...' });
+
+    const vendorCodeToIdMap = new Map<string, string>();
+    try {
+      console.log(`[ExcelImport] Step 2a: Getting existing vendor mappings for ${vendorCodesJson.length} codes...`);
+
+      // STEP 1: Try to get existing vendors first
+      const getMappingResponse = await fetch(`${getApiBaseUrl()}/api/vendors/get-mapping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendors: vendorCodesJson }),
+      });
+
+      if (getMappingResponse.ok) {
+        const mappingResult = await getMappingResponse.json();
+        if (mappingResult.mapping && typeof mappingResult.mapping === 'object') {
+          for (const [code, id] of Object.entries(mappingResult.mapping)) {
+            vendorCodeToIdMap.set(code, id as string);
+          }
+        }
+        console.log(`[ExcelImport] ✅ Found ${vendorCodeToIdMap.size} existing vendors`);
+      }
+
+      // STEP 2: Check if there are any missing vendors that need to be created
+      const missingVendorCodes = vendorCodesJson.filter(v => !vendorCodeToIdMap.has(v.code));
+
+      if (missingVendorCodes.length > 0) {
+        console.log(`[ExcelImport] Step 2b: Creating ${missingVendorCodes.length} missing vendors...`);
+        console.log(`[ExcelImport] Missing vendor codes:`, missingVendorCodes.map(v => v.code));
+
+        // Use batch-find-or-create to auto-create missing vendors
+        const createResponse = await fetch(`${getApiBaseUrl()}/api/vendors/batch-find-or-create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vendors: missingVendorCodes }),
+        });
+
+        if (createResponse.ok) {
+          const createResult = await createResponse.json();
+          console.log(`[ExcelImport] Create response:`, createResult);
+
+          if (createResult.vendors && Array.isArray(createResult.vendors)) {
+            let createdCount = 0;
+            for (const vendor of createResult.vendors) {
+              if (!vendorCodeToIdMap.has(vendor.code)) {
+                vendorCodeToIdMap.set(vendor.code, vendor.id);
+                createdCount++;
+              }
+            }
+            console.log(`[ExcelImport] ✅ Auto-created ${createdCount} new vendors`);
+          }
+        } else {
+          const errorData = await createResponse.json().catch(() => ({}));
+          throw new Error(`Failed to create missing vendors: ${errorData.error || createResponse.statusText}`);
+        }
+      }
+
+      console.log(`[ExcelImport] ✅ Final vendor mapping complete: ${vendorCodeToIdMap.size} vendors ready`);
+      console.log(`[ExcelImport] Vendor codes:`, Array.from(vendorCodeToIdMap.keys()));
+    } catch (err: any) {
+      console.error(`[ExcelImport] Failed to setup vendor mappings:`, err.message);
+      toast({
+        title: 'Vendor Setup Failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+      setLoading(false);
+      setImporting(false);
+      return;
+    }
+
+    // STEP 3: Prepare all site data with vendor IDs in SINGLE BATCH
+    setImportProgress({ current: 75, total: 100, stage: 'STEP 3/4: Preparing sites for insertion...' });
+
+    // Collect all missing vendor codes first
+    const missingVendorCodes = new Set<string>();
+    const allSites = siteItems.map((item) => {
+      const vendorCode = String(item.data.vendorId).trim();
+      const resolvedVendorId = vendorCodeToIdMap.get(vendorCode);
+
+      if (!resolvedVendorId) {
+        missingVendorCodes.add(vendorCode);
+      }
+
+      return { item, vendorCode, resolvedVendorId };
     });
 
-    const results = await Promise.all(uploadPromises);
-    imported = results.filter(r => r.success).length;
+    // Check if there are any missing vendors and throw error with details
+    if (missingVendorCodes.size > 0) {
+      const availableVendors = Array.from(vendorCodeToIdMap.keys());
+      const missingList = Array.from(missingVendorCodes).join(', ');
+      throw new Error(
+        `Vendor codes not found: ${missingList}\n\nAvailable vendor codes: ${availableVendors.length > 0 ? availableVendors.join(', ') : 'None'}\n\nPlease ensure all vendor codes exist in the system or check if they were properly created.`
+      );
+    }
 
-    console.log(`[ExcelImport] Upload complete: ${imported} uploaded, ${uploadErrors.length} upload errors`);
+    // Now create the final sites array
+    const finalSites = allSites.map(({ item, resolvedVendorId }) => {
 
-    if (uploadErrors.length > 0) {
-      console.error('[ExcelImport] Upload errors:', uploadErrors);
-      // Collect upload error details
-      const uploadErrorDetails = validData.map((item, idx) => {
-        if (!results[idx].success) {
-          return {
+      return {
+        ...item.data,
+        vendorId: resolvedVendorId
+      };
+    });
+
+    console.log(`[ExcelImport] ✅ Prepared ${finalSites.length} sites for insertion`);
+
+    // STEP 4: INSERT ALL SITES IN PARALLEL BATCHES
+    setImportProgress({ current: 85, total: 100, stage: 'STEP 4/4: Inserting all sites in parallel batches...' });
+
+    try {
+      console.log(`[ExcelImport] Inserting ${finalSites.length} sites in parallel intelligent mode...`);
+
+      const insertResponse = await fetch(`${getApiBaseUrl()}/api/sites/batch-upsert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sites: finalSites }),
+      });
+
+      if (!insertResponse.ok) {
+        let errorDetail = '';
+        try {
+          const errorJson = await insertResponse.json();
+          if (insertResponse.status === 413) {
+            errorDetail = 'Request payload too large. Try reducing the number of records per import.';
+          } else if (errorJson?.error?.message) {
+            errorDetail = errorJson.error.message;
+          } else if (errorJson?.message) {
+            errorDetail = errorJson.message;
+          } else {
+            errorDetail = typeof errorJson === 'string' ? errorJson : JSON.stringify(errorJson, null, 2);
+          }
+        } catch {
+          errorDetail = await insertResponse.text();
+        }
+        throw new Error(`HTTP ${insertResponse.status}: ${errorDetail}`);
+      }
+
+      const result = await insertResponse.json();
+      uploadedCount = result.successful || 0;
+
+      // Update progress based on actual response
+      const totalProcessed = uploadedCount + (result.failed || 0);
+      const progressPercent = Math.round((totalProcessed / siteItems.length) * 100);
+
+      console.log(`[ExcelImport] ✅ Insertion complete: ${uploadedCount} successful, ${result.failed || 0} failed`);
+      console.log(`[ExcelImport] Progress: ${uploadedCount}/${siteItems.length} sites (${progressPercent}%)`);
+
+      // Update progress bar with actual results
+      setImportProgress({
+        current: uploadedCount,
+        total: siteItems.length,
+        stage: `Inserted: ${uploadedCount}/${siteItems.length} sites (${progressPercent}%)`
+      });
+
+      // Collect error details with full site information
+      if (result.errors && result.errors.length > 0) {
+        errorDetailsArray2.push(
+          ...result.errors.map((err: any) => {
+            const siteId = err.siteId || '-';
+            const fullSiteData = siteDataMap.get(siteId) || {};
+
+            return {
+              rowNum: err.planId,
+              planId: err.planId || fullSiteData.planId || '-',
+              siteId: siteId,
+              circle: fullSiteData.circle || '-',
+              district: fullSiteData.district || '-',
+              project: fullSiteData.project || '-',
+              partnerName: fullSiteData.partnerName || '-',
+              hopType: fullSiteData.hopType || '-',
+              siteAName: fullSiteData.siteAName || '-',
+              siteBName: fullSiteData.siteBName || '-',
+              nominalAop: fullSiteData.nominalAop || '-',
+              status: fullSiteData.status || '-',
+              error: err.error || 'Unknown error'
+            };
+          })
+        );
+      }
+    } catch (err: any) {
+      console.error(`[ExcelImport] INSERTION FAILED:`, err.message);
+      toast({
+        title: 'Insertion Failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+      setLoading(false);
+      setImporting(false);
+      setImportProgress({ current: 0, total: 0, stage: '' });
+      return;
+    }
+
+    // Final progress update
+    setImportProgress({ current: uploadedCount, total: siteItems.length, stage: `Complete! ${uploadedCount}/${siteItems.length} sites inserted successfully` });
+
+    // Process non-site items (vendor, employee) if any
+    const nonSiteItems = validData.filter(v => v.type !== 'site');
+    if (nonSiteItems.length > 0) {
+      console.log(`[ExcelImport] Processing ${nonSiteItems.length} non-site items...`);
+      setImportProgress({
+        current: siteItems.length,
+        total: validData.length,
+        stage: `Processing ${nonSiteItems.length} additional items...`
+      });
+
+      for (let idx = 0; idx < nonSiteItems.length; idx++) {
+        const item = nonSiteItems[idx];
+
+        try {
+          let response;
+          if (item.type === 'vendor') {
+            response = await fetch(`${getApiBaseUrl()}/api/vendors`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item.data),
+            });
+          } else if (item.type === 'employee') {
+            response = await fetch(`${getApiBaseUrl()}/api/employees`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item.data),
+            });
+          }
+
+          if (!response || !response.ok) {
+            const errorText = response ? await response.text() : 'Unknown error';
+            throw new Error(`${response?.status || 'Unknown'} - ${errorText}`);
+          }
+
+          console.log(`[ExcelImport] Row ${item.rowNum}: ${item.type} inserted successfully`);
+          uploadedCount++;
+        } catch (err: any) {
+          console.error(`[ExcelImport] Row ${item.rowNum}: ${item.type} insertion failed -`, err.message);
+          errorDetailsArray2.push({
             rowNum: item.rowNum,
             planId: item.data.planId || item.data.name || '-',
             siteId: item.data.siteId || '-',
             partner: item.data.partnerName || item.data.name || '-',
-            error: uploadErrors.find(e => e.includes(`Row ${item.rowNum}`)) || `Upload failed`
-          };
+            error: `${item.type} insertion failed: ${err.message}`
+          });
         }
-      }).filter(Boolean);
-      setErrorDetails(uploadErrorDetails);
+      }
     }
 
-    toast({
-      title: 'Import Complete',
-      description: `${imported} records uploaded successfully. ${uploadErrors.length} errors found.`,
-      variant: uploadErrors.length > 0 ? 'destructive' : 'default',
+    console.log(`[ExcelImport] Import complete: ${uploadedCount} inserted successfully, ${errorDetailsArray2.length} errors collected`);
+    const imported = uploadedCount;
+    const siteErrors = errorDetailsArray2.map(e => `Row ${e.rowNum}: ${e.error}`);
+
+    // Update final progress
+    setImportProgress({
+      current: validData.length,
+      total: validData.length,
+      stage: `Complete! ${imported} inserted successfully, ${errorDetailsArray2.length} errors`
     });
 
+    // Show completion toast
+    toast({
+      title: 'Import Complete',
+      description: `${imported} records inserted successfully. ${errorDetailsArray2.length} errors found.`,
+      variant: errorDetailsArray2.length > 0 ? 'destructive' : 'default',
+    });
+
+    // Clear imported data and show results
     setImportedData([]);
     setColumns([]);
-    setErrors(uploadErrors);
+    setErrors(siteErrors); // Show all errors
+    setErrorDetails(errorDetailsArray2); // Set detailed error info for download
     setLoading(false);
+    setImporting(false);
+
+    // Keep progress bar visible for 2 seconds, then clear
+    setTimeout(() => {
+      setImportProgress({ current: 0, total: 0, stage: '' });
+    }, 2000);
   };
 
   const downloadErrorsReport = () => {
     if (errorDetails.length === 0) return;
 
     const errorData = errorDetails.map(err => ({
-      'Row Number': err.rowNum,
-      'Plan ID': err.planId,
+      'Plan ID': err.planId || '-',
       'Site ID': err.siteId || '-',
-      'Partner Name': err.partner || '-',
-      'Error Message': err.error,
-      'Timestamp': new Date().toISOString()
+      'Circle': err.circle || '-',
+      'District': err.district || '-',
+      'Project': err.project || '-',
+      'Partner Name': err.partnerName || '-',
+      'HOP Type': err.hopType || '-',
+      'Site A Name': err.siteAName || '-',
+      'Site B Name': err.siteBName || '-',
+      'Nominal AOP': err.nominalAop || '-',
+      'Status': err.status || '-',
+      'Error Message': err.error || 'Unknown error',
+      'Downloaded At': new Date().toISOString()
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(errorData);
+
+    // Set column widths for better readability
+    const columnWidths = [
+      { wch: 18 }, // Plan ID
+      { wch: 20 }, // Site ID
+      { wch: 12 }, // Circle
+      { wch: 15 }, // District
+      { wch: 15 }, // Project
+      { wch: 20 }, // Partner Name
+      { wch: 12 }, // HOP Type
+      { wch: 20 }, // Site A Name
+      { wch: 20 }, // Site B Name
+      { wch: 15 }, // Nominal AOP
+      { wch: 12 }, // Status
+      { wch: 40 }, // Error Message
+      { wch: 25 }  // Downloaded At
+    ];
+    worksheet['!cols'] = columnWidths;
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Errors');
-    XLSX.writeFile(workbook, `import_errors_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Site Errors');
+    XLSX.writeFile(workbook, `site_import_errors_${new Date().toISOString().split('T')[0]}.xlsx`);
 
     toast({
       title: 'Success',
-      description: `Downloaded ${errorDetails.length} error records`,
+      description: `Downloaded ${errorDetails.length} error records with full site details`,
     });
   };
 
@@ -565,7 +1035,6 @@ export default function ExcelImport() {
       });
 
       if (response.ok) {
-        clearSites();
         toast({
           title: 'Success',
           description: 'All site data has been deleted.',
@@ -588,13 +1057,13 @@ export default function ExcelImport() {
       let endpoint = '';
 
       if (importType === 'site') {
-        endpoint = `${getApiBaseUrl()}/api/sites?pageSize=10000`;
+        endpoint = `${getApiBaseUrl()}/api/sites?pageSize=500`;
         fileName = `sites_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (importType === 'vendor') {
-        endpoint = `${getApiBaseUrl()}/api/vendors?pageSize=10000`;
+        endpoint = `${getApiBaseUrl()}/api/vendors?pageSize=500`;
         fileName = `vendors_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (importType === 'employee') {
-        endpoint = `${getApiBaseUrl()}/api/employees?pageSize=10000`;
+        endpoint = `${getApiBaseUrl()}/api/employees?pageSize=500`;
         fileName = `employees_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       }
 
@@ -626,10 +1095,6 @@ export default function ExcelImport() {
       });
     }
   };
-
-  if (loading) {
-    return <SkeletonLoader type="dashboard" />;
-  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -737,9 +1202,12 @@ export default function ExcelImport() {
           {errors.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
               <div className="flex gap-2 mb-2 items-center justify-between">
-                <div className="flex gap-2">
+                <div
+                  className="flex gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setShowErrorModal(true)}
+                >
                   <AlertCircle className="h-5 w-5 text-amber-600" />
-                  <span className="font-medium text-amber-900">{errors.length} Errors Found</span>
+                  <span className="font-medium text-amber-900 underline">{errors.length} Errors Found</span>
                 </div>
                 {errorDetails.length > 0 && (
                   <Button
@@ -816,6 +1284,60 @@ export default function ExcelImport() {
                 </p>
               )}
 
+              {/* Progress Indicator with Timer */}
+              {importing && importProgress.total > 0 && (
+                <div className="space-y-3 p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-blue-900 dark:text-blue-100">
+                      {importProgress.stage}
+                    </span>
+                    <span className="text-blue-700 dark:text-blue-300">
+                      {importProgress.current} / {importProgress.total}
+                    </span>
+                  </div>
+
+                  {/* Timer Section */}
+                  <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-6">
+                      <div className="text-center">
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Elapsed</div>
+                        <div className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">{formatTime(elapsedTime)}</div>
+                      </div>
+                      <div className="h-8 w-px bg-blue-200 dark:bg-blue-800"></div>
+                      <div className="text-center">
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Est. Remaining</div>
+                        <div className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400">
+                          {Math.max(0, estimatedTime.totalSeconds - elapsedTime) > 0
+                            ? formatTime(Math.max(0, estimatedTime.totalSeconds - elapsedTime))
+                            : '--:--'}
+                        </div>
+                      </div>
+                      <div className="h-8 w-px bg-blue-200 dark:bg-blue-800"></div>
+                      <div className="text-center">
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Total Est.</div>
+                        <div className="text-lg font-bold font-mono text-green-600 dark:text-green-400">
+                          {formatTime(estimatedTime.totalSeconds)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-400 h-full transition-all duration-300 ease-out flex items-center justify-center"
+                      style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                    >
+                      <span className="text-xs text-white font-medium px-2">
+                        {Math.round((importProgress.current / importProgress.total) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+                    Please wait, processing your data...
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-4">
                 <Button
                   onClick={() => {
@@ -823,17 +1345,170 @@ export default function ExcelImport() {
                     setColumns([]);
                   }}
                   variant="outline"
+                  disabled={importing}
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleImport} size="lg" className="flex-1">
-                  Import {importedData.length} Rows
+                <Button onClick={showImportConfirmation} size="lg" className="flex-1" disabled={importing}>
+                  {importing ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : `Import ${importedData.length} Rows`}
                 </Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Error Details Modal */}
+      {showErrorModal && errorDetails.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 bg-red-50 dark:bg-red-950">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                <h2 className="text-xl font-bold text-red-900 dark:text-red-100">
+                  Import Errors - {errorDetails.length} Record(s) Failed
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+              >
+                <X className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto flex-1 p-6">
+              <div className="space-y-4">
+                {errorDetails.map((error, idx) => (
+                  <div
+                    key={idx}
+                    className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 rounded-lg p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-red-900 dark:text-red-100">
+                          Row {error.rowNum}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                          <div className="text-slate-700 dark:text-slate-300">
+                            <span className="font-medium">Plan ID:</span> {error.planId}
+                          </div>
+                          <div className="text-slate-700 dark:text-slate-300">
+                            <span className="font-medium">Site ID:</span> {error.siteId}
+                          </div>
+                          <div className="col-span-2 text-slate-700 dark:text-slate-300">
+                            <span className="font-medium">Partner:</span> {error.partner}
+                          </div>
+                          {error.vendorCode && (
+                            <div className="col-span-2 text-slate-700 dark:text-slate-300">
+                              <span className="font-medium">Vendor Code:</span> {error.vendorCode}
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3 p-3 bg-red-100 dark:bg-red-900/50 rounded border border-red-300 dark:border-red-700">
+                          <div className="font-medium text-red-800 dark:text-red-200 text-sm">Error Reason:</div>
+                          <div className="text-red-700 dark:text-red-300 text-sm mt-1 break-words font-mono">
+                            {error.error}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+              <Button
+                onClick={downloadErrorsReport}
+                className="flex-1"
+                variant="outline"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Error Report
+              </Button>
+              <Button
+                onClick={() => setShowErrorModal(false)}
+                className="flex-1"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-blue-50 dark:bg-blue-950">
+              <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                Confirm Import
+              </h2>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">Total Rows:</span>
+                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{importedData.length}</span>
+                </div>
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">Estimated Time:</span>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                    {estimatedTime.minutes > 0 ? `${estimatedTime.minutes}m ${estimatedTime.seconds}s` : `${estimatedTime.seconds}s`}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    This is an estimate. Actual time depends on server performance and network speed.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-sm text-slate-600 dark:text-slate-400 p-3 bg-amber-50 dark:bg-amber-950 rounded">
+                <p>The process will:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Validate all rows (quick local check)</li>
+                  <li>Validate/create vendors for each row</li>
+                  <li>Insert all sites with vendor references</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+              <Button
+                onClick={() => setShowConfirmDialog(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={proceedWithImport}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                Start Import
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

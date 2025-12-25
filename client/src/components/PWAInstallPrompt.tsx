@@ -96,7 +96,7 @@ export function PWAInstallPrompt() {
           </button>
         </div>
         <p className="text-sm text-slate-600 mb-4">
-          Install EMS Portal on your device for offline access and faster loading.
+          Install EOMS (Enterprise Operations Management System) on your device for offline access and faster loading.
         </p>
         <div className="flex gap-2">
           <Button

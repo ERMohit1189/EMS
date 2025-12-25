@@ -45,9 +45,19 @@ const formatValue = (value: number | string): string => {
 };
 
 export default function EmployeeSalary() {
+  // Role-based access control
+  const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+  if (employeeRole !== 'admin' && employeeRole !== 'user' && employeeRole !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
   const { toast } = useToast();
   const [salary, setSalary] = useState<SalaryStructure | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!localStorage.getItem('employeeId') || !!localStorage.getItem('vendorId'));
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [exportHeader, setExportHeader] = useState<ExportHeader | null>(null);
   const [allSalaries, setAllSalaries] = useState<SalaryWithEmployee[]>([]);
@@ -78,7 +88,7 @@ export default function EmployeeSalary() {
       
       if (isSuperAdmin) {
         // For superadmin: fetch all salary structures
-        const response = await fetch(`${getApiBaseUrl()}/api/salary-structures?page=1&pageSize=1000`);
+        const response = await fetch(`${getApiBaseUrl()}/api/salary-structures?page=1&pageSize=500`);
         if (response.ok) {
           const result = await response.json();
           const salaries = result.data || [];
@@ -195,7 +205,7 @@ export default function EmployeeSalary() {
       let yPosition = 12;
 
       // Professional Header with Company Info
-      const companyName = exportHeader?.companyName || 'Enterprise Management System';
+      const companyName = exportHeader?.companyName || 'Enterprise Operations Management System (EOMS)';
       const companyAddress = exportHeader?.address || '';
       const contactPhone = exportHeader?.contactPhone || '';
       const contactEmail = exportHeader?.contactEmail || '';
@@ -203,14 +213,14 @@ export default function EmployeeSalary() {
 
       // Company Name - Large and Bold
       doc.setFontSize(14);
-      doc.setFont(undefined, 'bold');
+      (doc.setFont as any)(undefined, 'bold');
       doc.setTextColor(0, 30, 90);
       doc.text(companyName, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 8;
 
       // Company Details - Smaller
       doc.setFontSize(8);
-      doc.setFont(undefined, 'normal');
+      (doc.setFont as any)(undefined, 'normal');
       doc.setTextColor(50, 50, 50);
       
       if (companyAddress) {
@@ -237,7 +247,7 @@ export default function EmployeeSalary() {
 
       // Title
       doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
+      (doc.setFont as any)(undefined, 'bold');
       doc.setTextColor(0, 30, 90);
       doc.text("SALARY STRUCTURE", pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 8;
@@ -246,11 +256,11 @@ export default function EmployeeSalary() {
 
       // Employee Details Section
       doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
+      (doc.setFont as any)(undefined, 'normal');
       
       const detailsData = [
         { label: "Employee Name", value: employeeName || "N/A" },
-        { label: "Employee ID", value: employeeId || "N/A" },
+        { label: "Employee Code", value: localStorage.getItem('employeeCode') || employeeId || "N/A" },
         { label: "Designation", value: localStorage.getItem('employeeDesignation') || "N/A" },
         { label: "Department", value: localStorage.getItem('employeeDepartment') || "N/A" },
       ];
@@ -269,7 +279,7 @@ export default function EmployeeSalary() {
       doc.rect(leftMargin - 2, earningsHeaderY - 3.5, contentWidth + 4, 5, 'F');
       
       doc.setFontSize(10);
-      doc.setFont(undefined, 'bold');
+      (doc.setFont as any)(undefined, 'bold');
       doc.setTextColor(255, 255, 255);
       doc.text("EARNINGS", leftMargin + 1, earningsHeaderY, { align: 'left' });
       doc.setTextColor(0, 0, 0);
@@ -288,7 +298,7 @@ export default function EmployeeSalary() {
       ];
 
       doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
+      (doc.setFont as any)(undefined, 'normal');
       let tableY = yPosition;
       
       earningsData.forEach((row, index) => {
@@ -303,10 +313,10 @@ export default function EmployeeSalary() {
         if (isHeader) {
           doc.setFillColor(76, 175, 80); // Light Green header
           doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
-          doc.setFont(undefined, 'bold');
+          (doc.setFont as any)(undefined, 'bold');
           doc.setTextColor(255, 255, 255);
         } else {
-          doc.setFont(undefined, 'normal');
+          (doc.setFont as any)(undefined, 'normal');
           doc.setTextColor(0, 0, 0);
         }
         
@@ -322,7 +332,7 @@ export default function EmployeeSalary() {
       // Gross Salary line - Colored
       doc.setFillColor(34, 139, 34); // Forest Green
       doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
-      doc.setFont(undefined, 'bold');
+      (doc.setFont as any)(undefined, 'bold');
       doc.setFontSize(9);
       doc.setTextColor(255, 255, 255);
       doc.text("GROSS SALARY", leftMargin + 1, tableY);
@@ -337,7 +347,7 @@ export default function EmployeeSalary() {
         doc.rect(leftMargin - 2, deductionsHeaderY - 3.5, contentWidth + 4, 5, 'F');
         
         doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
+        (doc.setFont as any)('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
         doc.text("DEDUCTIONS", leftMargin + 1, deductionsHeaderY);
         doc.setTextColor(0, 0, 0);
@@ -353,7 +363,7 @@ export default function EmployeeSalary() {
         ];
 
         doc.setFontSize(9);
-        doc.setFont(undefined, 'normal');
+        (doc.setFont as any)(undefined, 'normal');
         tableY = yPosition;
         
         deductionsData.forEach((row, index) => {
@@ -368,10 +378,10 @@ export default function EmployeeSalary() {
           if (isHeader) {
             doc.setFillColor(240, 80, 100); // Lighter red header
             doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
-            doc.setFont(undefined, 'bold');
+            (doc.setFont as any)(undefined, 'bold');
             doc.setTextColor(255, 255, 255);
           } else {
-            doc.setFont(undefined, 'normal');
+            (doc.setFont as any)(undefined, 'normal');
             doc.setTextColor(0, 0, 0);
           }
           
@@ -387,7 +397,7 @@ export default function EmployeeSalary() {
         // Total Deductions line - Colored
         doc.setFillColor(220, 53, 69); // Red
         doc.rect(leftMargin - 2, tableY - 3.5, contentWidth + 4, 5, 'F');
-        doc.setFont(undefined, 'bold');
+        (doc.setFont as any)(undefined, 'bold');
         doc.setFontSize(9);
         doc.setTextColor(255, 255, 255);
         doc.text("TOTAL DEDUCTIONS", leftMargin + 1, tableY);
@@ -402,7 +412,7 @@ export default function EmployeeSalary() {
       doc.rect(leftMargin - 2, yPosition - 4, contentWidth + 4, netSalaryBoxHeight + 1, 'F');
       
       doc.setFontSize(11);
-      doc.setFont(undefined, 'bold');
+      (doc.setFont as any)(undefined, 'bold');
       doc.setTextColor(255, 255, 255);
       doc.text("NET SALARY (Monthly)", leftMargin + 1, yPosition + 1);
       doc.setFontSize(13);
@@ -412,7 +422,7 @@ export default function EmployeeSalary() {
       // Footer
       yPosition += 15;
       doc.setFontSize(8);
-      doc.setFont(undefined, 'italic');
+      (doc.setFont as any)(undefined, 'italic');
       doc.text("This is a computer-generated document. No signature required.", leftMargin, yPosition);
 
       // Save PDF
@@ -526,7 +536,7 @@ export default function EmployeeSalary() {
               <SelectContent>
                 {allSalaries.map((s) => (
                   <SelectItem key={s.employeeId} value={s.employeeId}>
-                    {s.employee?.name || 'Employee'} - {s.employeeId}
+                    {s.employee?.name || 'Employee'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -544,11 +554,11 @@ export default function EmployeeSalary() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium">{displayEmployeeName}</p>
+              <p className="font-medium">{displayEmployeeName} {localStorage.getItem('employeeCode') && <span className="text-sm text-slate-500">({localStorage.getItem('employeeCode')})</span>}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Employee ID</p>
-              <p className="font-medium">{selectedEmployeeId || employeeId}</p>
+              <p className="text-sm text-muted-foreground">Employee Code</p>
+              <p className="font-medium">{localStorage.getItem('employeeCode') || (selectedEmployeeId || employeeId)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Department</p>

@@ -142,8 +142,10 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
   } else if (!origin && process.env.NODE_ENV === "development") {
-    // Allow no-origin requests in development
-    res.header("Access-Control-Allow-Origin", "*");
+    // In development without origin header, use localhost
+    // This is needed for requests from tools like curl or direct navigation
+    res.header("Access-Control-Allow-Origin", "http://localhost:5173");
+    res.header("Access-Control-Allow-Credentials", "true");
   }
 
   res.header(
@@ -187,11 +189,28 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   next(err);
 });
 
-// Add session debugging middleware - DISABLED for performance
-// app.use((req, res, next) => {
-//   console.log(`[Session Debug] ${req.method} ${req.path} - Has session:`, !!req.session);
-//   next();
-// });
+// Add session debugging middleware - ENABLED for debugging
+app.use((req, res, next) => {
+  if (req.path.includes('/api/auth') || req.path.includes('/login')) {
+    console.log(`[Session Debug] ${req.method} ${req.path}`, {
+      hasSession: !!req.session,
+      sessionID: req.sessionID,
+      vendorId: req.session?.vendorId,
+      employeeId: req.session?.employeeId,
+      cookie: req.headers.cookie ? 'present' : 'missing'
+    });
+  }
+  next();
+});
+
+// Redirect /login to /employee-login
+app.use((req, res, next) => {
+  if (req.path === '/login' || req.path === '/login/') {
+    console.log('[Server] Redirecting /login to /employee-login', { path: req.path, ip: req.ip });
+    return res.redirect(302, '/employee-login');
+  }
+  next();
+});
 
 // Re-export logger for backward compatibility
 export { logger } from "./logger";
@@ -267,7 +286,8 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
+  const portStr = process.env.PORT || "5000";
+  const port = parseInt(portStr, 10) || 5000;
   // Use 127.0.0.1 for local development (explicit IPv4 binding)
   // Use 0.0.0.0 only when deployed on Replit
   const host = process.env.REPLIT_DEV_DOMAIN ? "0.0.0.0" : "127.0.0.1";

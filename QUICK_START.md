@@ -1,5 +1,8 @@
 # Quick Start Guide - Local Development with Cloud Database
 
+**Application:** Enterprise Operations Management System (EOMS)
+**Design and Developed by:** Quantum AI Innovation
+
 ## 🚀 Get Started in 2 Minutes
 
 ### Prerequisites

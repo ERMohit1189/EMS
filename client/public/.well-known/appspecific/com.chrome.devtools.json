@@ -1,0 +1,4 @@
+{
+  "htmlProxy": true,
+  "description": "DevTools helper file to avoid Vite parse issue"
+}

@@ -1,11 +1,11 @@
 /**
- * API Configuration - Local Development with Neon Cloud Database
+ * API Configuration
  *
- * Frontend & Backend: http://localhost:7000 (Both served from Express)
- * Database: Neon Cloud (PostgreSQL)
+ * Set the frontend API base URL with environment variable `VITE_API_URL`.
+ * Defaults to https://dummy.qaiinnovation.com/ when not provided.
  */
 
 export const API_CONFIG = {
-  // Use your local backend server (same port as frontend)
-  API_URL: import.meta.env.VITE_API_URL || "http://localhost:7000",
+  // Use VITE_API_URL (if set) otherwise default to the requested domain
+  API_URL: "https://dummy.qaiinnovation.com",
 };

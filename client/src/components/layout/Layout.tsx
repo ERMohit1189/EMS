@@ -1,7 +1,10 @@
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Breadcrumb } from './Navigation';
+import { Footer } from './Footer';
 import { useState } from 'react';
+// FabFaq (Quick FAQs) disabled until a stable implementation is available
+// import FabFaq from '@/components/FabFaq';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -35,6 +38,11 @@ export function Layout({ children, isLoggedIn, setIsLoggedIn }: LayoutProps) {
         <main className="flex-1 overflow-y-auto p-3 md:p-6">
           {children}
         </main>
+        {/* <FabFaq /> -- disabled until Quick FAQs are reworked */}
+        {/* Site footer */}
+        <div className="mt-auto">
+          <Footer />
+        </div>
       </div>
     </div>
   );

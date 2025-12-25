@@ -266,19 +266,19 @@ export default function VendorInvoiceReport() {
         </Card>
         <Card className="bg-gradient-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-green-900">₹{totalAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-900">Rs {totalAmount.toLocaleString()}</p>
             <p className="text-sm text-green-700">Total Invoice Amount (With GST)</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-purple-900">₹{paidAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-purple-900">Rs {paidAmount.toLocaleString()}</p>
             <p className="text-sm text-purple-700">Paid Amount</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-orange-900">₹{totalVendorAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-orange-900">Rs {totalVendorAmount.toLocaleString()}</p>
             <p className="text-sm text-orange-700">Total Vendor Amount</p>
           </CardContent>
         </Card>
@@ -317,9 +317,9 @@ export default function VendorInvoiceReport() {
                       <td className="px-4 py-3">
                         {invoice.dueDate ? format(new Date(invoice.dueDate), "dd MMM yyyy") : "N/A"}
                       </td>
-                      <td className="px-4 py-3 text-right">₹{parseFloat(invoice.amount).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right">₹{parseFloat(invoice.gst || "0").toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right font-medium">₹{parseFloat(invoice.totalAmount).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right">Rs {parseFloat(invoice.amount).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right">Rs {parseFloat(invoice.gst || "0").toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-medium">Rs {parseFloat(invoice.totalAmount).toLocaleString()}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge className={getStatusColor(invoice.status)}>{invoice.status}</Badge>
                       </td>
@@ -329,7 +329,7 @@ export default function VendorInvoiceReport() {
                 <tfoot className="bg-gray-100">
                   <tr>
                     <td colSpan={5} className="px-4 py-3 font-bold text-right">Total:</td>
-                    <td className="px-4 py-3 text-right font-bold">₹{totalAmount.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-bold">Rs {totalAmount.toLocaleString()}</td>
                     <td></td>
                   </tr>
                 </tfoot>

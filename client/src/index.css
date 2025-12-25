@@ -154,7 +154,18 @@
   * {
     @apply border-border;
   }
+  html, body {
+    @apply h-full w-full overflow-hidden;
+  }
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  #root {
+    @apply h-full w-full overflow-hidden;
+  }
+}
+
+/* Override Tailwind indigo-50 to use OKLCh value for better perceptual color */
+.bg-indigo-50 {
+  background-color: oklch(0.79 0.21 151.65) !important;
 }

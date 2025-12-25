@@ -22,6 +22,11 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
+-- Sequence for employee codes
+CREATE SEQUENCE IF NOT EXISTS public.empcode_seq START 1;
+
+
+
 --
 -- Name: app_settings; Type: TABLE; Schema: public; Owner: neondb_owner
 --
@@ -47,7 +52,11 @@ CREATE TABLE public.attendances (
     month integer NOT NULL,
     year integer NOT NULL,
     attendance_data text NOT NULL,
+    submitted boolean DEFAULT false,
     submitted_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    locked boolean DEFAULT false,
+    locked_at timestamp,
+    locked_by character varying,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
@@ -74,7 +83,8 @@ CREATE TABLE public.daily_allowances (
     paid_status character varying(50) DEFAULT 'unpaid'::character varying NOT NULL,
     rejection_reason character varying,
     approval_count integer DEFAULT 0,
-    selected_employee_ids text
+    selected_employee_ids text,
+    approval_history text
 );
 
 
@@ -126,9 +136,10 @@ CREATE TABLE public.employees (
     doj date NOT NULL,
     aadhar character varying,
     pan character varying,
-    blood_group character varying NOT NULL,
-    marital_status character varying NOT NULL,
-    nominee text NOT NULL,
+    emp_code character varying(20) DEFAULT ('EMP' || lpad(nextval('public.empcode_seq')::text, 5, '0')) NOT NULL,
+    blood_group character varying,
+    marital_status character varying,
+    nominee text,
     ppe_kit boolean DEFAULT false NOT NULL,
     kit_no character varying,
     created_at timestamp without time zone DEFAULT now(),
@@ -269,7 +280,20 @@ CREATE TABLE public.salary_structures (
     esic numeric NOT NULL,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
-    want_deduction boolean DEFAULT true NOT NULL
+    want_deduction boolean DEFAULT true NOT NULL,
+    month integer NOT NULL DEFAULT 1,
+    year integer NOT NULL DEFAULT 2025,
+    gross_salary numeric(12,2),
+    per_day_salary numeric(12,2),
+    earned_salary numeric(12,2),
+    total_deductions numeric(12,2),
+    net_salary numeric(12,2),
+    total_days integer,
+    present_days integer,
+    half_days integer,
+    absent_days integer,
+    leave_days integer,
+    working_days numeric(5,2)
 );
 
 
@@ -322,6 +346,7 @@ CREATE TABLE public.sites (
     rfai_offered_date_site_b date,
     actual_hop_rfai_offered_date date,
     partner_name character varying,
+    partner_code character varying,
     rfai_survey_completion_date date,
     mo_number_site_a character varying,
     material_type_site_a character varying,
@@ -369,6 +394,7 @@ CREATE TABLE public.sites (
     survey character varying,
     final_partner_survey character varying,
     survey_date date,
+    state character varying,
     zone_id character varying
 );
 
@@ -453,6 +479,162 @@ CREATE TABLE public.zones (
 
 ALTER TABLE public.zones OWNER TO neondb_owner;
 
+-- Name: session; Type: TABLE; Schema: public; Owner: neondb_owner
+
+CREATE TABLE public.session (
+    sid character varying NOT NULL,
+    sess json NOT NULL,
+    expire timestamp without time zone NOT NULL
+);
+
+ALTER TABLE public.session OWNER TO neondb_owner;
+
+-- Name: generate_salary; Type: TABLE; Schema: public; Owner: neondb_owner
+
+CREATE TABLE public.generate_salary (
+    id character varying DEFAULT gen_random_uuid() NOT NULL,
+    employee_id character varying NOT NULL,
+    month integer NOT NULL,
+    year integer NOT NULL,
+    total_days integer,
+    present_days integer,
+    half_days integer,
+    absent_days integer,
+    leave_days integer,
+    working_days numeric(6,2),
+    basic_salary numeric(12,2),
+    hra numeric(12,2),
+    da numeric(12,2),
+    lta numeric(12,2),
+    conveyance numeric(12,2),
+    medical numeric(12,2),
+    bonuses numeric(12,2) DEFAULT 0,
+    other_benefits numeric(12,2) DEFAULT 0,
+    gross_salary numeric(12,2),
+    per_day_salary numeric(12,2),
+    earned_salary numeric(12,2),
+    pf numeric(12,2),
+    professional_tax numeric(12,2),
+    income_tax numeric(12,2) DEFAULT 0,
+    epf numeric(12,2),
+    esic numeric(12,2),
+    total_deductions numeric(12,2),
+    net_salary numeric(12,2),
+    details text,
+    generated_by character varying,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+ALTER TABLE public.generate_salary OWNER TO neondb_owner;
+
+-- Name: vendor_rates; Type: TABLE; Schema: public; Owner: neondb_owner
+
+CREATE TABLE public.vendor_rates (
+    id character varying DEFAULT gen_random_uuid() NOT NULL,
+    vendor_id character varying NOT NULL,
+    antenna_size character varying NOT NULL,
+    vendor_amount numeric(12,2) NOT NULL,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+ALTER TABLE public.vendor_rates OWNER TO neondb_owner;
+
+-- Name: leave_allotments; Type: TABLE; Schema: public; Owner: neondb_owner
+
+CREATE TABLE public.leave_allotments (
+    id character varying DEFAULT gen_random_uuid() NOT NULL,
+    employee_id character varying NOT NULL,
+    year integer NOT NULL,
+    medical_leave integer NOT NULL DEFAULT 0,
+    casual_leave integer NOT NULL DEFAULT 0,
+    earned_leave integer NOT NULL DEFAULT 0,
+    sick_leave integer NOT NULL DEFAULT 0,
+    personal_leave integer NOT NULL DEFAULT 0,
+    unpaid_leave integer NOT NULL DEFAULT 0,
+    leave_without_pay integer NOT NULL DEFAULT 0,
+    carry_forward boolean NOT NULL DEFAULT false,
+    carry_forward_earned boolean NOT NULL DEFAULT false,
+    carry_forward_personal boolean NOT NULL DEFAULT false,
+    used_medical_leave integer NOT NULL DEFAULT 0,
+    used_casual_leave integer NOT NULL DEFAULT 0,
+    used_earned_leave integer NOT NULL DEFAULT 0,
+    used_sick_leave integer NOT NULL DEFAULT 0,
+    used_personal_leave integer NOT NULL DEFAULT 0,
+    used_unpaid_leave integer NOT NULL DEFAULT 0,
+    used_leave_without_pay integer NOT NULL DEFAULT 0,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now(),
+    UNIQUE (employee_id, year)
+);
+
+ALTER TABLE public.leave_allotments OWNER TO neondb_owner;
+
+-- Name: leave_requests; Type: TABLE; Schema: public; Owner: neondb_owner
+
+CREATE TABLE public.leave_requests (
+    id character varying DEFAULT gen_random_uuid() NOT NULL,
+    employee_id character varying NOT NULL,
+    leave_type character varying NOT NULL,
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    days integer NOT NULL DEFAULT 1,
+    status character varying NOT NULL DEFAULT 'pending',
+    applied_by character varying NOT NULL,
+    applied_at timestamp without time zone DEFAULT now(),
+    approved_by character varying,
+    approved_at timestamp without time zone,
+    approval_history text,
+    rejection_reason character varying,
+    remark text,
+    approver_remark text,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+ALTER TABLE public.leave_requests OWNER TO neondb_owner;
+
+-- Name: leave_allotment_override_audits; Type: TABLE; Schema: public; Owner: neondb_owner
+
+CREATE TABLE public.leave_allotment_override_audits (
+    id character varying DEFAULT gen_random_uuid() NOT NULL,
+    allotment_id character varying,
+    employee_id character varying NOT NULL,
+    year integer NOT NULL,
+    operation character varying NOT NULL,
+    performed_by character varying,
+    previous_allotment jsonb,
+    new_allotment jsonb,
+    reason text,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+ALTER TABLE public.leave_allotment_override_audits OWNER TO neondb_owner;
+
+-- Name: holidays; Type: TABLE; Schema: public; Owner: neondb_owner
+
+CREATE TABLE public.holidays (
+    id character varying DEFAULT gen_random_uuid() NOT NULL,
+    name character varying(255) NOT NULL,
+    date date NOT NULL,
+    state character varying(100),
+    type character varying(50) DEFAULT 'public',
+    description text,
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+ALTER TABLE public.holidays OWNER TO neondb_owner;
+
+COMMENT ON TABLE public.holidays IS 'Stores holiday information for attendance calculation';
+COMMENT ON COLUMN public.holidays.state IS 'State-specific holidays, NULL for national holidays';
+COMMENT ON COLUMN public.holidays.type IS 'Holiday type: public, optional, or restricted';
+
+CREATE INDEX idx_holiday_date ON public.holidays USING btree (date);
+CREATE INDEX idx_holiday_state ON public.holidays USING btree (state);
+
 --
 -- Data for Name: app_settings; Type: TABLE DATA; Schema: public; Owner: neondb_owner
 --
@@ -511,13 +693,38 @@ ca621540-e585-4858-9537-3f38a34f9881	Junior Engineer	2025-11-28 20:22:34.082175	
 -- Data for Name: employees; Type: TABLE DATA; Schema: public; Owner: neondb_owner
 --
 
-COPY public.employees (id, name, dob, father_name, mobile, alternate_no, address, city, state, country, doj, aadhar, pan, blood_group, marital_status, nominee, ppe_kit, kit_no, created_at, updated_at, status, email, password, department_id, designation_id, role) FROM stdin;
+COPY public.employees (id, name, dob, father_name, mobile, alternate_no, address, city, state, country, doj, aadhar, pan, emp_code, blood_group, marital_status, nominee, ppe_kit, kit_no, created_at, updated_at, status, email, password, department_id, designation_id, role) FROM stdin;
 18132d05-6c18-4d96-aeba-dee2c633e44a	Aryan	\N	AJHGAJG	8888888888		kjhjghj			India	2025-01-01				Single	Not Specified	f		2025-11-29 06:23:13.45659	2025-11-29 06:23:13.45659	Active	aryan@gmail.com	$2b$10$m/dWzxTDEH.oXpnqxWL60O7ichX2Yi1BWLjvvbA3bHZVXaUzMyu8K	b6e60192-c8af-4ab9-b81c-512a70ca3a53	6b9eb7b0-d253-4cb7-bdb3-8faf3e34e6a8	user
 e61583d1-b735-4359-b5f3-545003ac0403	Ramesh	\N	HHHH	7777777777		jhjhgjhj			India	2025-11-20				Single	Not Specified	t	876786767678	2025-11-29 08:14:16.715081	2025-11-29 08:14:16.715081	Active	ramesh@gmail.com	$2b$10$mBmVYHwRhghwlH2l37GWruN4GHWYLWz1lViNw61t3teUnHz7Ooz8G	bd38bc03-5af3-45ff-bab7-019b9d29c150	58dc1a4c-273d-459e-bf61-430dd99a8c6d	user
-2278fbcb-5dd4-4608-9fa7-f2410f86dd7a	System Administrator	\N	System	9999999999	9999999998	System Location	Not Specified	Not Specified	India	2025-01-01			O+	Single	System	f		2025-11-29 07:23:46.066921	2025-11-29 07:23:46.066921	Active	superadmin@ems.local	$2b$10$pQmz0XnOeYHG1uJv68zDrO73cUjj9hIO7hzzD/AgKh34wGD6s1alq	\N	\N	superadmin
+2278fbcb-5dd4-4608-9fa7-f2410f86dd7a	System Administrator	\N	System	9999999999	9999999998	System Location	Not Specified	Not Specified	India	2025-01-01			O+	Single	System	f		2025-11-29 07:23:46.066921	2025-11-29 07:23:46.066921	Active	superadmin@ems.local	$2b$10$mq0wkAD7AW454mF1.9.tVO15WrQ3.HDqa.gC8NiU.FWYqjucCAeVq	\N	\N	superadmin
 ffa78016-7969-44b7-bbad-5ff3981d3cde	Mohit Gupta	\N	ADFGH	9878987898		ASDDGGGG			India	2025-01-01				Single	Not Specified	f		2025-11-29 06:13:07.737313	2025-11-29 06:13:07.737313	Active	ermohit1189@gmail.com	$2b$10$M0/dLV.yAkm09MXfOm9.q.efi4G/s0f6QbcKVLv3SCfHTPd8u1UEi	87836024-ae0c-43e8-b481-54ac6f4ede4f	9a2f8d0b-4ffb-4183-8789-7d567e0c8065	admin
 \.
 
+
+-- Ensure employee emp_code exists, backfill missing values, and set the empcode sequence
+DO $$
+BEGIN
+  -- Create sequence if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = 'empcode_seq') THEN
+    CREATE SEQUENCE public.empcode_seq START WITH 1;
+  END IF;
+
+  -- Backfill emp_code for employees without one. Use created_at then id for deterministic ordering.
+  UPDATE employees e
+  SET emp_code = 'EMP' || lpad(t.seq::text, 5, '0')
+  FROM (
+    SELECT id, row_number() OVER (ORDER BY created_at NULLS LAST, id) AS seq
+    FROM employees
+    WHERE emp_code IS NULL
+  ) t
+  WHERE e.id = t.id;
+
+  -- Set sequence to max(emp_code numeric part) + 1
+  PERFORM setval('public.empcode_seq', (
+    SELECT COALESCE( (max((regexp_replace(emp_code, '[^0-9]', '', 'g'))::int) ), 0) + 1 FROM employees
+  ), false);
+END
+$$;
 
 --
 -- Data for Name: export_headers; Type: TABLE DATA; Schema: public; Owner: neondb_owner
@@ -643,6 +850,15 @@ ALTER TABLE ONLY public.app_settings
 ALTER TABLE ONLY public.attendances
     ADD CONSTRAINT attendances_pkey PRIMARY KEY (id);
 
+-- Name: attendances unique_employee_month_year; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.attendances
+    ADD CONSTRAINT unique_employee_month_year UNIQUE (employee_id, month, year);
+
+COMMENT ON COLUMN public.attendances.locked IS 'Whether attendance is locked (month-end or report generated)';
+COMMENT ON COLUMN public.attendances.locked_at IS 'Timestamp when attendance was locked';
+COMMENT ON COLUMN public.attendances.locked_by IS 'Employee ID who locked it';
+
 
 --
 -- Name: daily_allowances daily_allowances_employee_id_date_key; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
@@ -658,6 +874,8 @@ ALTER TABLE ONLY public.daily_allowances
 
 ALTER TABLE ONLY public.daily_allowances
     ADD CONSTRAINT daily_allowances_pkey PRIMARY KEY (id);
+
+COMMENT ON COLUMN public.daily_allowances.approval_history IS 'JSON array of approval records: [{approverId, approverName, approverLevel, remark, editedData, timestamp}]';
 
 
 --
@@ -722,6 +940,11 @@ ALTER TABLE ONLY public.employees
 
 ALTER TABLE ONLY public.employees
     ADD CONSTRAINT employees_pkey PRIMARY KEY (id);
+
+-- Name: employees employees_emp_code_key; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.employees
+    ADD CONSTRAINT employees_emp_code_key UNIQUE (emp_code);
 
 
 --
@@ -875,6 +1098,51 @@ ALTER TABLE ONLY public.zones
 ALTER TABLE ONLY public.zones
     ADD CONSTRAINT zones_short_name_unique UNIQUE (short_name);
 
+-- Name: leave_allotments leave_allotments_employee_year_key; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.leave_allotments
+    ADD CONSTRAINT leave_allotments_employee_year_key UNIQUE (employee_id, year);
+
+-- Name: leave_allotments leave_allotments_pkey; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.leave_allotments
+    ADD CONSTRAINT leave_allotments_pkey PRIMARY KEY (id);
+
+-- Name: leave_requests leave_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.leave_requests
+    ADD CONSTRAINT leave_requests_pkey PRIMARY KEY (id);
+
+-- Name: holidays holidays_pkey; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.holidays
+    ADD CONSTRAINT holidays_pkey PRIMARY KEY (id);
+
+-- Name: session session_pkey; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.session
+    ADD CONSTRAINT session_pkey PRIMARY KEY (sid);
+
+-- Name: generate_salary generate_salary_pkey; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.generate_salary
+    ADD CONSTRAINT generate_salary_pkey PRIMARY KEY (id);
+
+-- Name: vendor_rates vendor_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.vendor_rates
+    ADD CONSTRAINT vendor_rates_pkey PRIMARY KEY (id);
+
+-- Name: vendor_rates vendor_rates_vendor_antenna_unique; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.vendor_rates
+    ADD CONSTRAINT vendor_rates_vendor_antenna_unique UNIQUE (vendor_id, antenna_size);
+
+-- Name: leave_allotment_override_audits leave_allotment_override_audits_pkey; Type: CONSTRAINT; Schema: public; Owner: neondb_owner
+
+ALTER TABLE ONLY public.leave_allotment_override_audits
+    ADD CONSTRAINT leave_allotment_override_audits_pkey PRIMARY KEY (id);
+
 
 --
 -- Name: idx_approval_count; Type: INDEX; Schema: public; Owner: neondb_owner
@@ -971,6 +1239,11 @@ CREATE INDEX idx_invoice_vendor ON public.invoices USING btree (vendor_id);
 -- Name: idx_paid_status; Type: INDEX; Schema: public; Owner: neondb_owner
 --
 
+CREATE INDEX idx_session_expire ON public.session USING btree (expire);
+CREATE INDEX idx_session_sid ON public.session USING btree (sid);
+CREATE INDEX idx_generated_salary_employee_month ON public.generate_salary USING btree (employee_id, month, year);
+CREATE INDEX idx_vendor_rate_vendor ON public.vendor_rates USING btree (vendor_id);
+CREATE INDEX idx_leave_allotment_override_employee_year ON public.leave_allotment_override_audits USING btree (employee_id, year);
 CREATE INDEX idx_paid_status ON public.daily_allowances USING btree (paid_status);
 
 
@@ -1050,6 +1323,10 @@ CREATE INDEX idx_sites_vendor ON public.sites USING btree (vendor_id);
 
 CREATE INDEX idx_sites_zone ON public.sites USING btree (zone_id);
 
+CREATE INDEX idx_sites_state ON public.sites USING btree (state);
+CREATE INDEX idx_sites_state_created ON public.sites USING btree (state, created_at DESC);
+CREATE INDEX idx_sites_partner_code ON public.sites USING btree (partner_code);
+
 
 --
 -- Name: idx_team_id; Type: INDEX; Schema: public; Owner: neondb_owner
@@ -1091,6 +1368,10 @@ CREATE INDEX idx_team_members_rp3 ON public.team_members USING btree (reporting_
 --
 
 CREATE INDEX idx_team_members_team ON public.team_members USING btree (team_id);
+
+CREATE INDEX idx_leave_employee_year ON public.leave_allotments USING btree (employee_id, year);
+CREATE INDEX idx_leave_requests_employee ON public.leave_requests USING btree (employee_id);
+CREATE INDEX idx_leave_requests_status ON public.leave_requests USING btree (status);
 
 
 --
@@ -1234,8 +1515,23 @@ ALTER TABLE ONLY public.team_members
 ALTER TABLE ONLY public.team_members
     ADD CONSTRAINT team_members_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY public.vendor_rates
+    ADD CONSTRAINT vendor_rates_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES public.vendors(id);
+
+ALTER TABLE ONLY public.generate_salary
+    ADD CONSTRAINT generate_salary_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id);
+
+ALTER TABLE ONLY public.leave_allotment_override_audits
+    ADD CONSTRAINT leave_allotment_override_audits_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id);
+
 
 --
+ALTER TABLE ONLY public.leave_allotments
+    ADD CONSTRAINT leave_allotments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.leave_requests
+    ADD CONSTRAINT leave_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id);
+
 -- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: cloud_admin
 --
 

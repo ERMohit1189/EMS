@@ -145,11 +145,11 @@ export default function SiteEdit() {
       try {
         // Fetch zones and vendors first
         const baseUrl = getApiBaseUrl();
-        const [zonesRes, vendorsRes] = await Promise.all([
-          fetch(`${baseUrl}${getApiBaseUrl()}/api/zones?pageSize=10000`),
-          fetch(`${baseUrl}${getApiBaseUrl()}/api/vendors?pageSize=10000`),
-        ]);
-        
+        const zonesResP = fetch(`${baseUrl}/api/zones?pageSize=500`);
+        const vendorsP = import('@/lib/api').then(m => m.fetchAllVendors(true, 500));
+
+        const [zonesRes, vendorsData] = await Promise.all([zonesResP, vendorsP]);
+
         let loadedZones: any[] = [];
         let loadedVendors: any[] = [];
 
@@ -158,9 +158,8 @@ export default function SiteEdit() {
           loadedZones = data.data || [];
           setZones(loadedZones);
         }
-        if (vendorsRes.ok) {
-          const data = await vendorsRes.json();
-          loadedVendors = data.data || [];
+        if (Array.isArray(vendorsData)) {
+          loadedVendors = vendorsData;
           setVendors(loadedVendors);
         }
         

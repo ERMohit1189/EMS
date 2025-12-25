@@ -85,7 +85,7 @@ export default function ApiConfig() {
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">
-              Enter your Replit backend URL (e.g., https://my-ems.replit.dev)
+              Enter your Replit backend URL (e.g., https://my-eoms.replit.dev)
             </p>
           </div>
 

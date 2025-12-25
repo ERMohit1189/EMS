@@ -15,6 +15,8 @@ export default function Settings() {
   const [procurementEmail, setProcurementEmail] = useState('');
   const [dpoEmail, setDpoEmail] = useState('');
   const [approvalsRequired, setApprovalsRequired] = useState('1');
+  const [poGenerationDate, setPoGenerationDate] = useState('1');
+  const [invoiceGenerationDate, setInvoiceGenerationDate] = useState('1');
   const [loadingSaveApprovals, setLoadingSaveApprovals] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allowanceCaps, setAllowanceCaps] = useState({
@@ -58,6 +60,8 @@ export default function Settings() {
       if (response.ok) {
         const data = await response.json();
         setApprovalsRequired(data.approvalsRequiredForAllowance?.toString() || '1');
+        setPoGenerationDate(data.poGenerationDate?.toString() || '1');
+        setInvoiceGenerationDate(data.invoiceGenerationDate?.toString() || '1');
       }
     } catch (error) {
       console.error('Error fetching app settings:', error);
@@ -74,18 +78,20 @@ export default function Settings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           approvalsRequiredForAllowance: parseInt(approvalsRequired, 10),
+          poGenerationDate: parseInt(poGenerationDate, 10),
+          invoiceGenerationDate: parseInt(invoiceGenerationDate, 10),
         }),
       });
 
       if (response.ok) {
         toast({
           title: 'Success',
-          description: `Allowance approvals required updated to ${approvalsRequired}`,
+          description: 'Application settings updated successfully',
         });
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to save approval settings',
+          description: 'Failed to save settings',
           variant: 'destructive',
         });
       }
@@ -93,7 +99,7 @@ export default function Settings() {
       console.error('Error saving app settings:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save approval settings',
+        description: 'Failed to save settings',
         variant: 'destructive',
       });
     } finally {
@@ -186,6 +192,71 @@ export default function Settings() {
               Set how many approvals are needed before an allowance is approved (1-5)
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Vendor Generation Dates</CardTitle>
+          <CardDescription>Configure dates when vendors can generate POs and Invoices (Admins can generate anytime)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="mt-4">
+            <a href="/admin/email-settings" className="text-sm text-blue-600 hover:text-blue-800 font-semibold">Configure Email Settings (Superadmin only)</a>
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-2 block">PO Generation Date (Day of Month)</label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min="1"
+                max="31"
+                value={poGenerationDate}
+                onChange={(e) => setPoGenerationDate(e.target.value)}
+                placeholder="1"
+                data-testid="input-po-generation-date"
+                className="flex-1"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Day of month (1-31) when vendors can generate Purchase Orders
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Invoice Generation Date (Day of Month)</label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min="1"
+                max="31"
+                value={invoiceGenerationDate}
+                onChange={(e) => setInvoiceGenerationDate(e.target.value)}
+                placeholder="1"
+                data-testid="input-invoice-generation-date"
+                className="flex-1"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Day of month (1-31) when vendors can generate Invoices
+            </p>
+          </div>
+
+          <Button
+            onClick={handleSaveApprovals}
+            disabled={loadingSaveApprovals}
+            className="w-full bg-green-600 hover:bg-green-700"
+            data-testid="button-save-generation-dates"
+          >
+            {loadingSaveApprovals ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Saving...
+              </>
+            ) : (
+              'Save All Settings'
+            )}
+          </Button>
         </CardContent>
       </Card>
 

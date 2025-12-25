@@ -136,21 +136,20 @@ export default function SiteRegistration() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [zonesRes, vendorsRes] = await Promise.all([
-          fetch('/api/zones?pageSize=10000'),
-          fetch('/api/vendors?pageSize=10000'),
-        ]);
-        
+        const zonesResP = fetch('/api/zones?pageSize=500');
+        const vendorsP = import('@/lib/api').then(m => m.fetchAllVendors(true, 500));
+
+        const [zonesRes, vendorsData] = await Promise.all([zonesResP, vendorsP]);
+
         if (zonesRes.ok) {
           const data = await zonesRes.json();
           setZones(data.data || []);
         }
-        if (vendorsRes.ok) {
-          const data = await vendorsRes.json();
-          setVendors(data.data || []);
+        if (Array.isArray(vendorsData)) {
+          setVendors(vendorsData || []);
         }
       } catch (error) {
-        console.error('Failed to load zones or vendors');
+        console.error('Failed to load zones or vendors', error);
       }
     };
     fetchData();
