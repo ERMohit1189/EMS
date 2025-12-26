@@ -350,7 +350,9 @@ export default function AllowanceApproval() {
             };
 
             try {
-              allowanceObj = JSON.parse(allowance.allowanceData);
+              allowanceObj = typeof allowance.allowanceData === 'string'
+                ? JSON.parse(allowance.allowanceData)
+                : allowance.allowanceData;
             } catch (e) {
               console.error('Failed to parse allowance data:', e);
             }
@@ -462,7 +464,7 @@ export default function AllowanceApproval() {
             setSelectedAllowance(null);
           }}
           onSubmit={handleModalSubmit}
-          allowanceData={JSON.parse(selectedAllowance.allowanceData)}
+          allowanceData={typeof selectedAllowance.allowanceData === 'string' ? JSON.parse(selectedAllowance.allowanceData) : selectedAllowance.allowanceData}
           employeeName={selectedAllowance.employeeName}
           date={selectedAllowance.date}
           isLoading={approving === selectedAllowance.id}
