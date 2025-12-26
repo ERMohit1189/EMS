@@ -56,7 +56,7 @@ export default function VendorList() {
 
       const url = `${getApiBaseUrl()}/api/vendors?${params.toString()}`;
       const response = await fetch(url, {
-        credentials: 'include',
+        credentials: 'include'
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: response.statusText }));
@@ -93,6 +93,7 @@ export default function VendorList() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to update status');
       fetchVendors();
@@ -116,9 +117,12 @@ export default function VendorList() {
 
     try {
       const url = `${getApiBaseUrl()}/api/vendors/${id}`;
-      const response = await fetchWithLoader(url, { method: 'DELETE' });
+      const response = await fetchWithLoader(url, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Failed to delete vendor');
-      
+
       setVendors(vendors.filter(v => v.id !== id));
       toast({
         title: 'Success',

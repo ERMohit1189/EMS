@@ -1,0 +1,24 @@
+*** Begin Patch
+*** Update File: node_modules/xlsx/xlsx.js
+@@
+-	return nbfs ? function(buf, enc) { return (enc) ? new Buffer(buf, enc) : new Buffer(buf); } : Buffer.from.bind(Buffer);
++	return nbfs ? function(buf, enc) { return (enc) ? Buffer.from(buf, enc) : Buffer.from(buf); } : Buffer.from.bind(Buffer);
+@@
+-	/* jshint -W056 */
+-	if(has_buf) return Buffer.alloc ? Buffer.alloc(len) : new Buffer(len);
+-	return typeof Uint8Array != "undefined" ? new Uint8Array(len) : new Array(len);
+-	/* jshint +W056 */
++	/* jshint -W056 */
++	if(has_buf) return Buffer.alloc ? Buffer.alloc(len) : Buffer.from(new Uint8Array(len));
++	return typeof Uint8Array != "undefined" ? new Uint8Array(len) : new Array(len);
++	/* jshint +W056 */
+@@
+-	/* jshint -W056 */
+-	if(has_buf) return Buffer.allocUnsafe ? Buffer.allocUnsafe(len) : new Buffer(len);
+-	return typeof Uint8Array != "undefined" ? new Uint8Array(len) : new Array(len);
+-	/* jshint +W056 */
++	/* jshint -W056 */
++	if(has_buf) return Buffer.allocUnsafe ? Buffer.allocUnsafe(len) : Buffer.from(new Uint8Array(len));
++	return typeof Uint8Array != "undefined" ? new Uint8Array(len) : new Array(len);
++	/* jshint +W056 */
+*** End Patch

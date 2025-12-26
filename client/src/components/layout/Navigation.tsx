@@ -76,8 +76,10 @@ export function QuickAccessMenu() {
     { label: '🏪 Vendors', href: '/vendor/list' },
   ];
   
-  const quickLinks = isEmployee
-    ? (isSuperAdmin ? employeeQuickLinks.filter(l => l.href !== '/employee/dashboard') : employeeQuickLinks)
+  const quickLinks = isSuperAdmin
+    ? adminQuickLinks
+    : isEmployee
+    ? employeeQuickLinks
     : isVendor
     ? vendorQuickLinks
     : adminQuickLinks;

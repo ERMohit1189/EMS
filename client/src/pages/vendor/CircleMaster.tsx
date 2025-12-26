@@ -36,7 +36,9 @@ export default function CircleMaster() {
   const fetchZones = async () => {
     try {
       setLoading(true); // Always show loader instantly
-      const response = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=500`);
+      const response = await fetch(`${getApiBaseUrl()}/api/circles?pageSize=500`, {
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setZones(result.data || []);
@@ -56,13 +58,14 @@ export default function CircleMaster() {
     setSaving(true);
     try {
       const baseUrl = getApiBaseUrl();
-      const url = editing ? `${baseUrl}/api/zones/${editing.id}` : `${baseUrl}/api/zones`;
+      const url = editing ? `${baseUrl}/api/circles/${editing.id}` : `${baseUrl}/api/circles`;
       const method = editing ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newZone),
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -100,7 +103,10 @@ export default function CircleMaster() {
     if (!confirm("Are you sure you want to delete this circle?")) return;
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/zones/${id}`, { method: "DELETE" });
+      const response = await fetch(`${getApiBaseUrl()}/api/circles/${id}`, {
+        method: "DELETE",
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error("Failed to delete");
 
       toast({ title: "Success", description: "Circle deleted successfully" });

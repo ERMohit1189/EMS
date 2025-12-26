@@ -1558,7 +1558,7 @@ async getSavedPOsByVendorWithLines(vendorId: string): Promise<any[]> {
     const result = await db
       .select({ id: invoices.id })
       .from(invoices)
-      .where(sql`${invoices.poIds} @> ARRAY[${poId}]::text[]`)
+      .where(sql`${invoices.poIds}::text[] @> ARRAY[${poId}]::text[]`)
       .limit(1);
 
     return result.length > 0;
@@ -1893,7 +1893,7 @@ async getSavedPOsByVendorWithLines(vendorId: string): Promise<any[]> {
   }
 
   async getInvoicesByPO(poId: string): Promise<Invoice[]> {
-    return await db.select().from(invoices).where(sql`${invoices.poIds} @> ARRAY[${poId}]::text[]`);
+    return await db.select().from(invoices).where(sql`${invoices.poIds}::text[] @> ARRAY[${poId}]::text[]`);
   }
 
   async updateInvoice(

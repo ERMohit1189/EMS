@@ -48,10 +48,10 @@ export default function EmployeeLogin() {
     console.log('='.repeat(60));
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/employees/login`;
+      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
       console.log('[EmployeeLogin] Login attempt to:', apiUrl);
       console.log('[EmployeeLogin] Email:', email);
-      
+
       const fetchStartTime = performance.now();
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -65,12 +65,12 @@ export default function EmployeeLogin() {
       console.log(`[LOGIN TIMER] ⏱️  API call completed in: ${fetchDuration} seconds`);
       console.log('[EmployeeLogin] Response status:', response.status);
       console.log('[EmployeeLogin] Response ok:', response.ok);
-      
+
       const data = await response.json();
       console.log('[EmployeeLogin] Response data:', data);
 
       if (!response.ok || !data.success) {
-        const errorMsg = data.error || `Login failed: ${response.status} ${response.statusText}`;
+        const errorMsg = data.message || data.error || `Login failed: ${response.status} ${response.statusText}`;
         console.error('[EmployeeLogin] Error:', errorMsg);
         toast({
           title: "Login Failed",
@@ -79,19 +79,19 @@ export default function EmployeeLogin() {
         });
         return;
       }
-      
-      if (!data.employee) {
-        console.error('[EmployeeLogin] No employee data in response');
+
+      if (!data.user) {
+        console.error('[EmployeeLogin] No user data in response');
         toast({
           title: "Login Failed",
-          description: "No employee data received from server",
+          description: "No user data received from server",
           variant: "destructive",
         });
         return;
       }
 
-      console.log('Employee data:', data.employee);
-      console.log('[EmployeeLogin] isReportingPerson from API:', data.employee.isReportingPerson);
+      console.log('User data:', data.user);
+      console.log('[EmployeeLogin] Role from API:', data.user.role);
 
       // Clear ANY and ALL vendor-related data from previous sessions to prevent conflicts
       console.log('[EmployeeLogin] Clearing all vendor data from localStorage...');
@@ -106,16 +106,16 @@ export default function EmployeeLogin() {
       console.log('[EmployeeLogin] ✅ All vendor data cleared');
 
       // Normalize role to lowercase to prevent case-sensitivity issues
-      const normalizedRole = (data.employee.role || "user").toLowerCase().trim();
+      const normalizedRole = (data.user.role || "user").toLowerCase().trim();
 
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("employeeId", data.employee.id);
-      localStorage.setItem("employeeEmail", data.employee.email);
-      localStorage.setItem("employeeName", data.employee.name);
-      localStorage.setItem("employeeCode", data.employee.emp_code || data.employee.id);
+      localStorage.setItem("employeeId", data.user.id);
+      localStorage.setItem("employeeEmail", data.user.email);
+      localStorage.setItem("employeeName", data.user.name);
+      localStorage.setItem("employeeCode", data.user.empCode || data.user.id);
       localStorage.setItem("employeeRole", normalizedRole);
-      localStorage.setItem("employeeDepartment", data.employee.department || "Not Assigned");
-      localStorage.setItem("employeeDesignation", data.employee.designation || "Not Specified");
+      localStorage.setItem("employeeDepartment", data.user.department || "Not Assigned");
+      localStorage.setItem("employeeDesignation", data.user.designation || "Not Specified");
       // Cache-bust the photo URL so the header reflects updated uploads immediately
       const addCacheBuster = (url: string) => {
         if (!url) return '';
@@ -128,12 +128,12 @@ export default function EmployeeLogin() {
           return `${url}${sep}v=${Date.now()}`;
         }
       };
-      localStorage.setItem("employeePhoto", addCacheBuster(data.employee.photo || ""));
-      const isRPValue = data.employee.isReportingPerson ? "true" : "false";
+      localStorage.setItem("employeePhoto", addCacheBuster(data.user.photo || ""));
+      const isRPValue = data.user.isReportingPerson ? "true" : "false";
       localStorage.setItem("isReportingPerson", isRPValue);
       // Also store reporting team ids for client-side convenience
       try {
-        localStorage.setItem('reportingTeamIds', JSON.stringify(data.employee.reportingTeamIds || []));
+        localStorage.setItem('reportingTeamIds', JSON.stringify(data.user.reportingTeamIds || []));
       } catch (e) {
         console.warn('Failed to store reportingTeamIds in localStorage', e);
       }
@@ -147,7 +147,7 @@ export default function EmployeeLogin() {
       sessionStorage.setItem('browserSessionId', browserSessionId);
       console.log('[EmployeeLogin] Browser session ID set:', browserSessionId);
 
-      console.log('[EmployeeLogin] Raw role from API:', data.employee.role);
+      console.log('[EmployeeLogin] Raw role from API:', data.user.role);
       console.log('[EmployeeLogin] Normalized and stored employeeRole:', normalizedRole);
       console.log('[EmployeeLogin] Stored isReportingPerson:', isRPValue);
       console.log('[EmployeeLogin] localStorage.getItem("isReportingPerson"):', localStorage.getItem("isReportingPerson"));

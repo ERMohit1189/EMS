@@ -3735,12 +3735,29 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/purchase-orders/:id", async (req, res) => {
+  app.delete("/api/purchase-orders/:id", requireAuth, async (req, res) => {
     try {
-      await storage.deletePO(req.params.id);
-      res.json({ success: true });
+      const poId = req.params.id;
+
+      // Get PO to verify ownership if vendor
+      const po = await storage.getPurchaseOrder(poId);
+      if (!po) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+
+      // Check vendor ownership
+      if (req.session?.vendorId && String(po.vendorId) !== String(req.session.vendorId)) {
+        return res.status(403).json({ error: "You can only delete your own purchase orders" });
+      }
+
+      await storage.deletePO(poId);
+      res.json({ success: true, message: "Purchase order deleted successfully" });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      // Check if it's a business logic error (invoiced PO)
+      if (error.message && error.message.includes('invoiced')) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message || "Failed to delete purchase order" });
     }
   });
 

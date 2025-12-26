@@ -1,0 +1,2 @@
+# Placeholder file to ensure folder is uploaded to hosting
+# Make sure this folder is writable by the IIS application identity (IIS_IUSRS or app pool user).

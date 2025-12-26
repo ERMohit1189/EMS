@@ -46,7 +46,22 @@
       "Bash(find:*)",
       "Bash(sqlite3:*)",
       "Bash(timeout 30 bash:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git push:*)",
+      "Bash(python:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(sqlcmd:*)",
+      "Bash(timeout 30 dotnet run:*)",
+      "Bash(echo \"Waiting 15 seconds for API to fully initialize...\" for i in {1..15})",
+      "Bash(do if netstat -ano)",
+      "Bash(then echo \"✅ API is listening on port 56184!\" break fi echo \"Waiting... \\($i/15\\)\" powershell -Command \"Start-Sleep -Seconds 1\" done echo \"\" echo \"Final status:\" netstat -ano)",
+      "Bash(timeout:*)",
+      "Bash(for controller in Attendance Employees Vendors Invoices Sites Reports Auth)",
+      "Bash(ls -la \"D:\\\\VendorRegistrationForm\\\\backend-dotnet\\\\Models\"\" | grep -i \"rate|vendor \")",
+      "Bash(xargs basename:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(xargs cat:*)"
     ],
     "deny": [],
     "ask": []

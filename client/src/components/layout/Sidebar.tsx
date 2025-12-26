@@ -676,7 +676,8 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   );
   const [sessionInfo, setSessionInfo] = useState<any | null>(null);
 
-  // Check if user is logged in as employee or vendor (prefers server session when available)
+  // Check if user is logged in as employee or vendor (use localStorage directly)
+  // Note: Frontend stores auth state in localStorage after login, so we trust localStorage over /api/session
   const storedIsEmployee =
     typeof window !== "undefined" && localStorage.getItem("employeeId") !== null;
   const storedIsVendor =
@@ -684,8 +685,10 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
   const storedEmployeeRole =
     typeof window !== "undefined" ? localStorage.getItem("employeeRole") : null;
 
-  let isEmployee = sessionInfo?.isEmployee ?? storedIsEmployee;
-  let isVendor = sessionInfo?.isVendor ?? storedIsVendor;
+  // For superadmin, admin, and user roles: ALL are employees
+  // Use localStorage directly since it's source of truth after login
+  let isEmployee = storedIsEmployee;
+  let isVendor = storedIsVendor;
 
   // IMPORTANT: Employee and Vendor should be mutually exclusive
   // If both are true (due to session/localStorage conflict), prioritize employee
@@ -694,7 +697,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
     isVendor = false;  // Force vendor to false when there's a conflict
   }
 
-  const employeeRole = (sessionInfo?.employeeRole ?? storedEmployeeRole)?.toLowerCase()?.trim();
+  const employeeRole = (storedEmployeeRole || "")?.toLowerCase()?.trim();
 
   // Debug logging
   console.log('[Sidebar] Role Debug:', {
@@ -1156,8 +1159,8 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
 
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-2 px-2">
-          {/* Employee Dashboard Link - Only for Logged In Employees */}
-          {isEmployee && !isVendor && !isSuperAdmin && (
+          {/* Employee Dashboard Link - Only for Regular Employees (not superadmin or admin) */}
+          {isUserEmployee && (
             <div className="mb-4 pb-4 border-b border-sidebar-border">
               <Link href="/employee/dashboard">
                 <div

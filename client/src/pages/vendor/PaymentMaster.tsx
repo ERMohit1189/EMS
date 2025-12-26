@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import SmartSearchTextbox, { Suggestion } from "@/components/SmartSearchTextbox";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader } from "lucide-react";
 import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 
 export default function PaymentMaster() {
@@ -50,8 +50,8 @@ export default function PaymentMaster() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const mastersResP = fetch(`${getApiBaseUrl()}/api/payment-masters`);
-      const vendorsP = fetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`).then(r => r.json()).then(j => j.data || []);
+      const mastersResP = fetch(`${getApiBaseUrl()}/api/payment-masters`, { credentials: 'include' });
+      const vendorsP = fetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`, { credentials: 'include' }).then(r => r.json()).then(j => j.data || []);
 
       const [mastersRes, vendorsDataList] = await Promise.all([mastersResP, vendorsP]);
 
@@ -389,37 +389,54 @@ export default function PaymentMaster() {
 
       if (editing && editing.id) {
         const payload = {
-          siteId: selectedSite?.id || editing.siteId,
-          planId: selectedSite?.planId || editing.planId || "",
-          vendorId: selectedVendor || editing.vendorId,
           antennaSize: formData.antennaSize,
           siteAmount: formData.siteAmount ? parseFloat(formData.siteAmount) : null,
           vendorAmount: parseFloat(formData.vendorAmount),
         };
-        const response = await fetch(`${baseUrl}/api/payment-masters/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const response = await fetch(`${baseUrl}/api/payment-masters/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload) });
         if (!response.ok) throw new Error('Failed to update');
         toast({ title: 'Success', description: 'Payment master updated' });
       } else if (selectedSites.size > 0) {
-        let successCount = 0;
-        const errors: string[] = [];
+        // Batch create - send all records in one shot
+        const payloads = [];
         for (const sid of Array.from(selectedSites)) {
           const site = vendorSites.find(s => s.id === sid) || allSites.find(s => s.id === sid);
-          if (!site) { errors.push(`Site ${sid} not found`); continue; }
+          if (!site) continue;
           const amt = siteAmounts[sid] || { siteAmount: '', vendorAmount: '' };
           const vendorAmount = amt.vendorAmount || formData.vendorAmount || vendorRatesMap[formData.antennaSize || ''] || '';
-          const siteAmount = amt.siteAmount || formData.siteAmount || ''; // site amount optional — do NOT fallback to vendor amount
-          if (!vendorAmount) { errors.push(`Vendor amount missing for site ${site.id || sid}`); continue; }
+          const siteAmount = amt.siteAmount || formData.siteAmount || '';
+          if (!vendorAmount) continue;
 
-          try {
-            const response = await fetch(`${baseUrl}/api/payment-masters`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: site.id, planId: site.planId || '', vendorId: selectedVendor, antennaSize: formData.antennaSize, siteAmount: siteAmount ? parseFloat(siteAmount) : null, vendorAmount: parseFloat(vendorAmount) }) });
-            if (!response.ok) { const errJson = await response.json().catch(() => ({})); errors.push(errJson.message || `Failed for site ${site.id || sid}`); }
-            else successCount++;
-          } catch (e) {
-            errors.push(`Network error for site ${site.id || sid}`);
-          }
+          payloads.push({
+            siteId: site.id,
+            planId: site.planId || '',
+            vendorId: selectedVendor,
+            antennaSize: formData.antennaSize,
+            siteAmount: siteAmount ? parseFloat(siteAmount) : null,
+            vendorAmount: parseFloat(vendorAmount)
+          });
         }
-        toast({ title: 'Result', description: `${successCount} created, ${errors.length} errors` });
-        if (errors.length) console.warn('[PaymentMaster] bulk errors:', errors.slice(0,10));
+
+        if (payloads.length === 0) {
+          toast({ title: 'Error', description: 'No valid payment masters to save', variant: 'destructive' });
+          setSaving(false);
+          return;
+        }
+
+        const response = await fetch(`${baseUrl}/api/payment-masters/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payloads)
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to save payment masters');
+
+        toast({ title: 'Success', description: `${result.created} payment masters created` });
+        if (result.errors && result.errors.length > 0) {
+          console.warn('[PaymentMaster] batch errors:', result.errors.slice(0, 10));
+        }
       } else {
         // Single create
         const site = selectedSite as Site;
@@ -434,7 +451,7 @@ export default function PaymentMaster() {
           siteAmount: siteAmountSingle ? parseFloat(siteAmountSingle) : null,
           vendorAmount: parseFloat(vendorAmountSingle),
         };
-        const response = await fetch(`${baseUrl}/api/payment-masters`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const response = await fetch(`${baseUrl}/api/payment-masters`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload) });
         if (!response.ok) throw new Error('Failed to save');
         toast({ title: 'Success', description: 'Payment master created' });
       }
@@ -462,6 +479,7 @@ export default function PaymentMaster() {
         `${getApiBaseUrl()}/api/payment-masters/${id}`,
         {
           method: "DELETE",
+          credentials: 'include'
         }
       );
 
@@ -671,11 +689,18 @@ export default function PaymentMaster() {
                   <Button
                     size="sm"
                     onClick={async () => { await handleSave(); }}
-                    disabled={selectedSites.size === 0 || !formData.antennaSize}
-                    className={`ml-auto px-3 ${(selectedSites.size > 0 && formData.antennaSize) ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-600 cursor-not-allowed'}`}
-                    title={!formData.antennaSize ? 'Select antenna size for bulk create' : (selectedSites.size === 0 ? 'Select at least one site to enable' : `Save ${selectedSites.size} selected site(s)`) }
+                    disabled={selectedSites.size === 0 || !formData.antennaSize || saving}
+                    className={`ml-auto px-3 ${(selectedSites.size > 0 && formData.antennaSize && !saving) ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-600 cursor-not-allowed'}`}
+                    title={saving ? 'Saving...' : (!formData.antennaSize ? 'Select antenna size for bulk create' : (selectedSites.size === 0 ? 'Select at least one site to enable' : `Save ${selectedSites.size} selected site(s)`))}
                   >
-                    Save
+                    {saving ? (
+                      <div className="flex items-center gap-2">
+                        <Loader className="h-4 w-4 animate-spin" />
+                        <span>Saving...</span>
+                      </div>
+                    ) : (
+                      'Save'
+                    )}
                   </Button>
                 </div>
 

@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import fs from "fs";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { metaImagesPlugin } from "./vite-plugin-meta-images";
 
@@ -41,7 +42,18 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: "0.0.0.0",
+    // Only use HTTPS in development if certificates exist
+    ...(fs.existsSync(path.resolve(import.meta.dirname, '.cert/cert.pem')) && fs.existsSync(path.resolve(import.meta.dirname, '.cert/key.pem'))
+      ? {
+          https: {
+            key: fs.readFileSync(path.resolve(import.meta.dirname, '.cert/key.pem')),
+            cert: fs.readFileSync(path.resolve(import.meta.dirname, '.cert/cert.pem')),
+          },
+        }
+      : {}),
+    host: "localhost",
+    port: 7000,
+    strictPort: false,
     allowedHosts: true,
     fs: {
       strict: true,

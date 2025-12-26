@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "backend-dotnet": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:56184;http://localhost:56185"
+    }
+  }
+}

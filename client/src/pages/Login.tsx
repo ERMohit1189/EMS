@@ -73,7 +73,7 @@ export default function Login() {
         setLoading(false);
         return;
       }
-      const apiUrl = `${getApiBaseUrl()}/api/admin/login`;
+      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
       console.log("[superadmin] Login attempt to:", apiUrl);
       console.log("[superadmin] Email:", email);
       // Call backend admin login API - validates credentials against database
@@ -87,11 +87,11 @@ export default function Login() {
       const data = await response.json();
       console.log("[Login] API Response:", data);
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         console.log("[Login] Login failed - response not ok");
         toast({
           title: "Error",
-          description: data.error || "Login failed",
+          description: data.message || data.error || "Login failed",
           variant: "destructive",
         });
         setLoading(false);
@@ -115,23 +115,23 @@ export default function Login() {
           }
         };
 
-        const photoUrl = addCacheBuster(data.employee.photo || '');
+        const photoUrl = addCacheBuster(data.user.photo || '');
 
         const userData = {
-          email: data.employee.email,
-          name: data.employee.name,
-          role: data.employee.role,
+          email: data.user.email,
+          name: data.user.name,
+          role: data.user.role,
           photo: photoUrl
         };
         console.log("[Login] Storing userData:", userData);
 
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("employeeRole", data.employee.role);
-        localStorage.setItem("employeeId", data.employee.id);
-        localStorage.setItem("employeeEmail", data.employee.email);
-        localStorage.setItem("employeeName", data.employee.name);
-        localStorage.setItem("employeeCode", data.employee.emp_code || data.employee.id);
+        localStorage.setItem("employeeRole", data.user.role);
+        localStorage.setItem("employeeId", data.user.id);
+        localStorage.setItem("employeeEmail", data.user.email);
+        localStorage.setItem("employeeName", data.user.name);
+        localStorage.setItem("employeeCode", data.user.empCode || data.user.id);
         localStorage.setItem("employeePhoto", photoUrl);
 
         // Store last login type for session expiry redirect

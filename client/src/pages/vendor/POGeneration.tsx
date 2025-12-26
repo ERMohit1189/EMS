@@ -787,7 +787,8 @@ export default function POGeneration() {
     }
 
     try {
-      const response = await fetch(`/api/purchase-orders/${poId}`, {
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/api/purchase-orders/${poId}`, {
         method: "DELETE",
         credentials: 'include',
       });

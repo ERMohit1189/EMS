@@ -42,9 +42,9 @@ export default function VendorLogin() {
     setLoading(true);
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/vendors/login`;
+      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
       console.log('Login attempt to:', apiUrl);
-      
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,8 +54,8 @@ export default function VendorLogin() {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        const errorMsg = data.error || `API Error: ${response.status} ${response.statusText}`;
+      if (!response.ok || !data.success) {
+        const errorMsg = data.message || data.error || `API Error: ${response.status} ${response.statusText}`;
         console.error('Login error:', errorMsg);
         toast({
           title: "Login Failed",
@@ -72,9 +72,9 @@ export default function VendorLogin() {
       localStorage.removeItem("employeeRole");
 
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("vendorId", data.vendor.id);
-      localStorage.setItem("vendorEmail", data.vendor.email);
-      localStorage.setItem("vendorName", `${data.vendor.name} (${data.vendor.vendorCode || 'N/A'})`);
+      localStorage.setItem("vendorId", data.user.id);
+      localStorage.setItem("vendorEmail", data.user.email);
+      localStorage.setItem("vendorName", data.user.name);
 
       // Store last login type for session expiry redirect
       localStorage.setItem("lastLoginType", "vendor");
