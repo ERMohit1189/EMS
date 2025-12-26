@@ -55,7 +55,9 @@ namespace VendorRegistrationBackend.Controllers
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role ?? "user"),
                 // Keep legacy claim name for compatibility
-                new Claim("Role", user.Role ?? "user")
+                new Claim("Role", user.Role ?? "user"),
+                // Add UserType claim for session validation
+                new Claim("UserType", "employee")
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, "Cookies");
@@ -140,7 +142,7 @@ namespace VendorRegistrationBackend.Controllers
 
         [HttpGet("session")]
         [AllowAnonymous]
-        public IActionResult GetSession()
+        public async Task<IActionResult> GetSession()
         {
             try
             {
@@ -154,6 +156,14 @@ namespace VendorRegistrationBackend.Controllers
 
                 var userType = role.ToLower() == "vendor" ? "vendor" : "employee";
 
+                // Check if user is a reporting person by checking TeamMembers table
+                bool isReportingPerson = false;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    isReportingPerson = await _context.TeamMembers
+                        .AnyAsync(tm => tm.ReportingPerson1 == userId || tm.ReportingPerson2 == userId || tm.ReportingPerson3 == userId);
+                }
+
                 return Ok(new {
                     authenticated = true,
                     userType,
@@ -161,7 +171,7 @@ namespace VendorRegistrationBackend.Controllers
                     employeeEmail = email,
                     employeeName = name,
                     employeeRole = role,
-                    isReportingPerson = false
+                    isReportingPerson
                 });
             }
             catch (Exception ex)
