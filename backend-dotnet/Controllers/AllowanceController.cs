@@ -19,7 +19,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // POST /api/allowances - Create or update allowance
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> CreateAllowance([FromBody] CreateAllowanceRequestDto request)
         {
             try
@@ -46,7 +46,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // POST /api/allowances/bulk - Bulk submit allowances for multiple employees
         [HttpPost("bulk")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> BulkCreateAllowance([FromBody] BulkAllowanceRequestDto request)
         {
             try
@@ -82,7 +82,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // GET /api/allowances/pending - Get pending allowances for approval
         [HttpGet("pending")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetPendingAllowances([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         {
             try
@@ -126,7 +126,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // GET /api/allowances/team/all - Get all team members' allowances
         [HttpGet("team/all")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetTeamAllowances([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             try
@@ -144,7 +144,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // GET /api/allowances/:employeeId - Get allowances for a specific employee
         [HttpGet("{employeeId}")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetAllowancesByEmployee(string employeeId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             try
@@ -170,7 +170,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // PUT /api/allowances/:id/approve - Approve an allowance
         [HttpPut("{id}/approve")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> ApproveAllowance(string id, [FromBody] ApproveAllowanceRequestDto request)
         {
             try
@@ -197,7 +197,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // PUT /api/allowances/:id/reject - Reject an allowance
         [HttpPut("{id}/reject")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> RejectAllowance(string id, [FromBody] RejectAllowanceRequestDto request)
         {
             try
