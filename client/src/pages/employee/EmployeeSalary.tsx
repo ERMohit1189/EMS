@@ -29,14 +29,16 @@ interface SalaryStructure {
   wantDeduction: boolean;
 }
 
+interface EmployeeInfo {
+  id: string;
+  empCode: string;
+  name: string;
+  designation?: string;
+  department?: string;
+}
+
 interface SalaryWithEmployee extends SalaryStructure {
-  employee?: {
-    id: string;
-    empCode: string;
-    name: string;
-    designation?: string;
-    department?: string;
-  };
+  employee?: EmployeeInfo;
 }
 
 const formatValue = (value: number | string): string => {

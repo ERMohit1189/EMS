@@ -26,7 +26,7 @@ namespace VendorRegistrationBackend.Controllers
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var salaryStructures = await _salaryService.GetAllSalaryStructuresAsync();
+            var salaryStructures = await _salaryService.GetAllSalaryStructuresAsResponseAsync();
             var total = salaryStructures.Count;
             var data = salaryStructures.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
@@ -43,7 +43,7 @@ namespace VendorRegistrationBackend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetSalaryStructure(string id)
         {
-            var salaryStructure = await _salaryService.GetSalaryStructureByIdAsync(id);
+            var salaryStructure = await _salaryService.GetSalaryStructureByIdAsResponseAsync(id);
             if (salaryStructure == null)
                 return NotFound(new { message = "Salary structure not found" });
 
@@ -55,7 +55,7 @@ namespace VendorRegistrationBackend.Controllers
         [Route("/api/employees/{employeeId}/salary")]
         public async Task<IActionResult> GetEmployeeSalaryStructure(string employeeId)
         {
-            var salaryStructure = await _salaryService.GetSalaryStructureByEmployeeAsync(employeeId);
+            var salaryStructure = await _salaryService.GetSalaryStructureByEmployeeAsResponseAsync(employeeId);
             if (salaryStructure == null)
                 return NotFound(new { message = "Salary structure not found for employee" });
 

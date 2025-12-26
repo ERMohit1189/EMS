@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VendorRegistrationBackend.Data;
+using VendorRegistrationBackend.DTOs;
 using VendorRegistrationBackend.Models;
 
 namespace VendorRegistrationBackend.Services
@@ -545,6 +546,75 @@ namespace VendorRegistrationBackend.Services
             if (value is string s && decimal.TryParse(s, out decimal result)) return result;
             if (decimal.TryParse(value.ToString(), out decimal d)) return d;
             return 0m;
+        }
+
+        public async Task<SalaryStructureResponseDto?> GetSalaryStructureByIdAsResponseAsync(string id)
+        {
+            var salary = await _context.SalaryStructures
+                .Include(ss => ss.Employee)
+                .ThenInclude(e => e.Department)
+                .Include(ss => ss.Employee)
+                .ThenInclude(e => e.Designation)
+                .FirstOrDefaultAsync(ss => ss.Id == id);
+
+            return salary != null ? MapToResponseDto(salary) : null;
+        }
+
+        public async Task<SalaryStructureResponseDto?> GetSalaryStructureByEmployeeAsResponseAsync(string employeeId)
+        {
+            var salary = await _context.SalaryStructures
+                .Include(ss => ss.Employee)
+                .ThenInclude(e => e.Department)
+                .Include(ss => ss.Employee)
+                .ThenInclude(e => e.Designation)
+                .FirstOrDefaultAsync(ss => ss.EmployeeId == employeeId);
+
+            return salary != null ? MapToResponseDto(salary) : null;
+        }
+
+        public async Task<List<SalaryStructureResponseDto>> GetAllSalaryStructuresAsResponseAsync()
+        {
+            var salaries = await _context.SalaryStructures
+                .Include(ss => ss.Employee)
+                .ThenInclude(e => e.Department)
+                .Include(ss => ss.Employee)
+                .ThenInclude(e => e.Designation)
+                .ToListAsync();
+
+            return salaries.Select(MapToResponseDto).ToList();
+        }
+
+        private SalaryStructureResponseDto MapToResponseDto(SalaryStructure salary)
+        {
+            return new SalaryStructureResponseDto
+            {
+                Id = salary.Id,
+                EmployeeId = salary.EmployeeId,
+                Month = salary.Month,
+                Year = salary.Year,
+                BasicSalary = salary.BasicSalary,
+                HRA = salary.HRA,
+                DA = salary.DA,
+                LTA = salary.LTA,
+                Conveyance = salary.Conveyance,
+                Medical = salary.Medical,
+                Bonuses = salary.Bonuses,
+                OtherBenefits = salary.OtherBenefits,
+                PF = salary.PF,
+                ProfessionalTax = salary.ProfessionalTax,
+                IncomeTax = salary.IncomeTax,
+                EPF = salary.EPF,
+                ESIC = salary.ESIC,
+                WantDeduction = salary.WantDeduction,
+                Employee = salary.Employee != null ? new EmployeeInfoDto
+                {
+                    Id = salary.Employee.Id,
+                    EmpCode = salary.Employee.EmpCode,
+                    Name = salary.Employee.Name,
+                    Designation = salary.Employee.Designation?.Name,
+                    Department = salary.Employee.Department?.Name
+                } : null
+            };
         }
     }
 }

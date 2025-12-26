@@ -1,3 +1,4 @@
+using VendorRegistrationBackend.DTOs;
 using VendorRegistrationBackend.Models;
 
 namespace VendorRegistrationBackend.Services
@@ -8,6 +9,9 @@ namespace VendorRegistrationBackend.Services
         Task<SalaryStructure?> GetSalaryStructureByIdAsync(string id);
         Task<SalaryStructure?> GetSalaryStructureByEmployeeAsync(string employeeId);
         Task<List<SalaryStructure>> GetAllSalaryStructuresAsync();
+        Task<SalaryStructureResponseDto?> GetSalaryStructureByIdAsResponseAsync(string id);
+        Task<SalaryStructureResponseDto?> GetSalaryStructureByEmployeeAsResponseAsync(string employeeId);
+        Task<List<SalaryStructureResponseDto>> GetAllSalaryStructuresAsResponseAsync();
         Task<SalaryStructure> CreateSalaryStructureAsync(SalaryStructure salaryStructure);
         Task<SalaryStructure?> UpdateSalaryStructureAsync(string id, SalaryStructure salaryStructure);
         Task<bool> DeleteSalaryStructureAsync(string id);
