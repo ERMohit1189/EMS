@@ -53,9 +53,12 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("my-reporting-teams")]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetMyReportingTeams()
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? string.Empty;
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                         User.FindFirst("sub")?.Value ??
+                         User.FindFirst("id")?.Value ?? string.Empty;
             if (string.IsNullOrEmpty(userId)) return Unauthorized(new { error = "Not authenticated" });
 
             var teams = await _context.TeamMembers
@@ -146,7 +149,7 @@ namespace VendorRegistrationBackend.Controllers
             {
                 var total = await query.CountAsync();
                 var items = await query.Skip((page.Value - 1) * pageSize.Value).Take(pageSize.Value).ToListAsync();
-                return Ok(new { totalCount = total, data = items });
+                return Ok(new { members = items, total = total });
             }
 
             var members = await query.ToListAsync();

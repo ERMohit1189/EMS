@@ -119,7 +119,9 @@ namespace VendorRegistrationBackend.Controllers
                     return BadRequest(new { error = "Invalid attendanceData format", details = ex.Message });
                 }
 
-                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var performedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                                 User.FindFirst("sub")?.Value ??
+                                 User.FindFirst("id")?.Value ?? null;
                 try
                 {
                     var (attendance, skippedDays) = await _attendanceService.UpsertAttendanceAsync(employeeId, month, year, dataDict, performedBy);
@@ -171,18 +173,36 @@ namespace VendorRegistrationBackend.Controllers
                 string? mode = payload.Mode;
                 int? day = payload.Day;
 
-                Dictionary<string, object> dataDict;
+                // Convert JsonElement to proper Dictionary structure
+                Dictionary<string, object> dataDict = new Dictionary<string, object>();
                 try
                 {
-                    var json = System.Text.Json.JsonSerializer.Serialize(attendanceData);
-                    dataDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
+                    // The attendanceData should be a JsonElement containing employee data
+                    // Convert it properly to handle nested objects
+                    if (attendanceData.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    {
+                        foreach (var property in attendanceData.EnumerateObject())
+                        {
+                            // Each property is an employeeId with its attendance data
+                            var employeeAttendanceJson = System.Text.Json.JsonSerializer.Serialize(property.Value);
+                            var employeeAttendanceDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(employeeAttendanceJson);
+                            dataDict[property.Name] = employeeAttendanceDict ?? new Dictionary<string, object>();
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     return BadRequest(new { error = "Invalid attendanceData format", details = ex.Message });
                 }
 
-                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                if (dataDict.Count == 0)
+                {
+                    return BadRequest(new { error = "No attendance data provided" });
+                }
+
+                var performedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                                 User.FindFirst("sub")?.Value ??
+                                 User.FindFirst("id")?.Value ?? null;
                 bool lockAfterSave = payload.LockAfterSave;
                 var res = await _attendanceService.BulkUpsertAttendanceAsync(employeeIds, month, year, dataDict, mode, day, lockAfterSave, performedBy);
                 return Ok(new { success = true, results = new { success = res.Success, failed = res.Failed, skipped = res.Skipped }, summary = new { total = res.Total, successful = res.Success.Count, failed = res.Failed.Count }, lockedCount = res.LockedCount });
@@ -205,7 +225,9 @@ namespace VendorRegistrationBackend.Controllers
                 int month = payload.Month;
                 int year = payload.Year;
                 bool lockAll = payload.LockAll;
-                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var performedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                                 User.FindFirst("sub")?.Value ??
+                                 User.FindFirst("id")?.Value ?? null;
 
                 int count = await _attendanceService.LockAttendanceMonthAsync(month, year, lockAll, performedBy);
                 return Ok(new { success = true, count, message = $"Locked attendance for {count} employees" });
