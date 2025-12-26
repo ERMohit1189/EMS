@@ -51,8 +51,23 @@ namespace VendorRegistrationBackend.Controllers
         {
             try
             {
-                if (request == null || request.SelectedEmployeeIds == null || request.SelectedEmployeeIds.Count == 0)
+                if (request == null)
+                    return BadRequest(new { error = "Request body is required" });
+
+                // Handle both selectedEmployeeIds and employeeIds field names
+                var employeeIds = request.SelectedEmployeeIds ?? request.EmployeeIds ?? new List<string>();
+
+                if (employeeIds.Count == 0)
                     return BadRequest(new { error = "SelectedEmployeeIds are required" });
+
+                if (string.IsNullOrEmpty(request.Date))
+                    return BadRequest(new { error = "Date is required" });
+
+                if (string.IsNullOrEmpty(request.AllowanceData))
+                    return BadRequest(new { error = "AllowanceData is required" });
+
+                // Set the converted employee IDs
+                request.SelectedEmployeeIds = employeeIds;
 
                 var loggedInEmployeeId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
                 var results = await _allowanceService.BulkCreateAllowanceAsync(request, loggedInEmployeeId);

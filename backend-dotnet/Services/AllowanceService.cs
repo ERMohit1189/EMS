@@ -318,17 +318,29 @@ namespace VendorRegistrationBackend.Services
                 var results = new List<DailyAllowanceResponseDto>();
                 var requiredApprovals = request.RequiredApprovals ?? 1;
 
+                // Parse the date if it's a string
+                DateTime parsedDate = string.IsNullOrEmpty(request.Date)
+                    ? DateTime.UtcNow
+                    : DateTime.Parse(request.Date);
+
+                // Handle allowanceData - could be string or already serialized
+                string allowanceDataJson = string.IsNullOrEmpty(request.AllowanceData)
+                    ? JsonSerializer.Serialize(new { }, _jsonOptions)
+                    : request.AllowanceData.StartsWith("{")
+                        ? request.AllowanceData
+                        : JsonSerializer.Serialize(request.AllowanceData, _jsonOptions);
+
                 foreach (var employeeId in request.SelectedEmployeeIds)
                 {
                     // Check if allowance already exists
                     var existing = await _context.DailyAllowances
-                        .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date.Date == request.Date.Date);
+                        .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date.Date == parsedDate.Date);
 
                     if (existing != null)
                     {
                         if (existing.ApprovalStatus == "pending")
                         {
-                            existing.AllowanceData = JsonSerializer.Serialize(request.AllowanceData, _jsonOptions);
+                            existing.AllowanceData = allowanceDataJson;
                             existing.UpdatedAt = DateTime.UtcNow;
                             _context.DailyAllowances.Update(existing);
                         }
@@ -340,8 +352,8 @@ namespace VendorRegistrationBackend.Services
                             Id = Guid.NewGuid().ToString(),
                             EmployeeId = employeeId,
                             TeamId = request.TeamId,
-                            Date = request.Date,
-                            AllowanceData = JsonSerializer.Serialize(request.AllowanceData, _jsonOptions),
+                            Date = parsedDate,
+                            AllowanceData = allowanceDataJson,
                             SelectedEmployeeIds = JsonSerializer.Serialize(request.SelectedEmployeeIds, _jsonOptions),
                             ApprovalStatus = "pending",
                             ApprovalCount = 0,
@@ -363,7 +375,7 @@ namespace VendorRegistrationBackend.Services
                 {
                     var allowance = await _context.DailyAllowances
                         .Include(a => a.Employee)
-                        .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date.Date == request.Date.Date);
+                        .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date.Date == parsedDate.Date);
 
                     if (allowance != null)
                     {
