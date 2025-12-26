@@ -49,6 +49,13 @@ namespace VendorRegistrationBackend.DTOs
         public string? DesignationId { get; set; }
         public string? Mobile { get; set; }
         public string? City { get; set; }
+        public string? Address { get; set; }
         public string Status { get; set; } = string.Empty;
+        // Father's name
+        public string? FatherName { get; set; }
+        // Date of joining (yyyy-MM-dd)
+        public string? Doj { get; set; }
+        // Role (admin, superadmin, user) - included so frontends can make role-based UI decisions
+        public string Role { get; set; } = "user";
     }
 }

@@ -10,5 +10,6 @@ namespace VendorRegistrationBackend.Services
         Task<Invoice> CreateInvoiceAsync(Invoice invoice);
         Task<Invoice?> UpdateInvoiceAsync(string id, Invoice invoice);
         Task<bool> DeleteInvoiceAsync(string id);
+        Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(string id);
     }
 }

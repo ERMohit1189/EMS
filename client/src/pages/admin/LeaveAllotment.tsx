@@ -204,7 +204,7 @@ export default function LeaveAllotment() {
 
   const fetchAllotments = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments?year=${selectedYear}`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments?year=${selectedYear}`, {
         credentials: 'include',
       });
       if (response.ok) {
@@ -252,7 +252,7 @@ export default function LeaveAllotment() {
         payload.forceReason = forceReason || 'Forced by admin';
       }
       console.log('[LeaveAllotment] Submitting individual allotment payload:', payload);
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -294,7 +294,7 @@ export default function LeaveAllotment() {
         payload.forceReason = bulkForceReason || 'Forced by admin';
       }
       console.log('[LeaveAllotment] Submitting bulk allotment payload:', payload);
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/bulk`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -412,8 +412,8 @@ export default function LeaveAllotment() {
         payload.forceReason = editForceReason || 'Forced by admin';
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments`, {
-        method: 'POST',
+      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/${editingId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload),
@@ -478,7 +478,7 @@ export default function LeaveAllotment() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });

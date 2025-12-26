@@ -267,6 +267,28 @@ export default function EmployeeEdit() {
     }
   }, [employee, form]);
 
+  // Ensure department select value is applied after departments load
+  useEffect(() => {
+    if (!employee) return;
+    if (departments && departments.length > 0) {
+      const deptId = employee.departmentId || "";
+      if (deptId) {
+        form.setValue("departmentId", deptId, { shouldValidate: false });
+      }
+    }
+  }, [departments, employee, form]);
+
+  // Ensure designation select value is applied after designations load
+  useEffect(() => {
+    if (!employee) return;
+    if (designations && designations.length > 0) {
+      const desigId = employee.designationId || "";
+      if (desigId) {
+        form.setValue("designationId", desigId, { shouldValidate: false });
+      }
+    }
+  }, [designations, employee, form]);
+
   const calculateAge = (dob: string) => {
     if (!dob) {
       setAge(null);
@@ -797,7 +819,7 @@ export default function EmployeeEdit() {
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={employee?.role || "user"}
+                      value={field.value || "user"}
                     >
                       <FormControl>
                         <SelectTrigger data-testid="select-role">
@@ -807,6 +829,9 @@ export default function EmployeeEdit() {
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="user">User</SelectItem>
+                        {employeeRole === 'superadmin' && (
+                          <SelectItem value="superadmin">Super Admin</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -821,7 +846,7 @@ export default function EmployeeEdit() {
                     <FormLabel>Department</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={employee?.departmentId || ""}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger data-testid="select-department">
@@ -850,7 +875,7 @@ export default function EmployeeEdit() {
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={employee?.designationId || ""}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger data-testid="select-designation">

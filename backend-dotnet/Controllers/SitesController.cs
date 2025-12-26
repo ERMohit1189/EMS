@@ -130,6 +130,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> CreateSite([FromBody] Site site)
         {
             if (!ModelState.IsValid)
@@ -147,6 +148,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPut("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> UpdateSite(string id, [FromBody] UpdateSiteDto dto)
         {
             if (!ModelState.IsValid)
@@ -160,6 +162,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpDelete("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> DeleteSite(string id)
         {
             var success = await _siteService.DeleteSiteAsync(id);
@@ -188,6 +191,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost("bulk-update-status-by-plan")]
+        [AllowAnonymous]
         public async Task<IActionResult> BulkUpdateStatusByPlan([FromBody] BulkUpdateStatusDto request)
         {
             try

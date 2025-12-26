@@ -10,13 +10,37 @@ public class AuthService : IAuthService {
     public AuthService(AppDbContext db) { _db = db; }
 
     public async Task<Employee?> AuthenticateAsync(string email, string password) {
-        var emp = await _db.Employees
-            .Include(e => e.Department)
-            .Include(e => e.Designation)
-            .FirstOrDefaultAsync(e => e.Email == email);
-        if (emp == null) return null;
-        if (!BCrypt.Net.BCrypt.Verify(password, emp.PasswordHash)) return null;
-        return emp;
+        try {
+            var emailNorm = email?.Trim().ToLowerInvariant() ?? string.Empty;
+            var emp = await _db.Employees
+                .Include(e => e.Department)
+                .Include(e => e.Designation)
+                .FirstOrDefaultAsync(e => (e.Email ?? "").ToLower() == emailNorm);
+
+            if (emp == null) {
+                Serilog.Log.Information("[AuthService] Authenticate failed: user not found for email {Email}", emailNorm);
+                return null;
+            }
+
+            var verified = false;
+            try {
+                verified = BCrypt.Net.BCrypt.Verify(password, emp.PasswordHash);
+            } catch (Exception ex) {
+                Serilog.Log.Warning(ex, "[AuthService] BCrypt.Verify threw for user {Email}", emailNorm);
+                return null;
+            }
+
+            if (!verified) {
+                Serilog.Log.Information("[AuthService] Authenticate failed: invalid password for user {Email}", emailNorm);
+                return null;
+            }
+
+            Serilog.Log.Information("[AuthService] Authenticate success for user {Email}", emailNorm);
+            return emp;
+        } catch (Exception ex) {
+            Serilog.Log.Error(ex, "[AuthService] Authenticate exception for email {Email}", email);
+            return null;
+        }
     }
 
     public async Task<string> CreateSessionAsync(Employee employee) {

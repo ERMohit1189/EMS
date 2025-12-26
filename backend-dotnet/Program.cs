@@ -51,7 +51,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddAuthentication("Cookies")
     .AddCookie("Cookies", options =>
     {
-        options.Cookie.Name = "sid";
+        // Use a distinct cookie name for authentication ticket to avoid colliding with server session id cookie
+        options.Cookie.Name = ".eoms_auth";
         options.Cookie.HttpOnly = true;
         // Use SameSite=None for CORS with credentials to work
         options.Cookie.SameSite = SameSiteMode.None;
@@ -194,6 +195,68 @@ app.Use(async (context, next) =>
 
 app.UseRouting();
 app.UseAuthentication();
+
+// Compatibility middleware: if request contains a server session id cookie (`sid`) but no authenticated user,
+// try to restore the user from the Sessions table to support Node-style session cookies.
+app.Use(async (context, next) =>
+{
+    if (!(context.User?.Identity?.IsAuthenticated ?? false))
+    {
+        if (context.Request.Cookies.TryGetValue("sid", out var sid) && !string.IsNullOrEmpty(sid))
+        {
+            try
+            {
+                var db = context.RequestServices.GetRequiredService<AppDbContext>();
+                var row = await db.Sessions.FindAsync(sid);
+                if (row != null && (row.ExpiresAt == null || row.ExpiresAt > DateTime.UtcNow))
+                {
+                    // Attempt to read employeeId from session data (stored as simple JSON)
+                    string employeeId = string.Empty;
+                    try
+                    {
+                        var json = System.Text.Json.JsonDocument.Parse(row.Data);
+                        if (json.RootElement.TryGetProperty("employeeId", out var eId)) employeeId = eId.GetString() ?? string.Empty;
+                        if (string.IsNullOrEmpty(employeeId) && json.RootElement.TryGetProperty("employeeEmail", out var eEmail))
+                        {
+                            // fallback: try to resolve employee by email
+                            var email = eEmail.GetString();
+                            if (!string.IsNullOrEmpty(email))
+                            {
+                                var emp = await db.Employees.FirstOrDefaultAsync(e => e.Email == email);
+                                if (emp != null) employeeId = emp.Id;
+                            }
+                        }
+                    }
+                    catch { /* ignore parse errors */ }
+
+                    if (!string.IsNullOrEmpty(employeeId))
+                    {
+                        var employee = await db.Employees.FindAsync(employeeId);
+                        if (employee != null)
+                        {
+                            var claims = new[] {
+                                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, employee.Id),
+                                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, employee.Name ?? ""),
+                                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, employee.Email ?? ""),
+                                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, employee.Role ?? "user"),
+                            };
+                            var identity = new System.Security.Claims.ClaimsIdentity(claims, "sid");
+                            context.User = new System.Security.Claims.ClaimsPrincipal(identity);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Don't fail the request for session restore errors
+                Serilog.Log.Warning(ex, "Session restore failed for sid {Sid}", sid);
+            }
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllers();

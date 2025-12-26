@@ -43,16 +43,18 @@ namespace VendorRegistrationBackend.Controllers
             var user = await _authService.AuthenticateAsync(request.Email, request.Password);
 
             if (user == null)
-                return Unauthorized(new { message = "Invalid credentials" });
+                return Unauthorized(new { success = false, message = "Invalid credentials" });
 
-            // Create session
+            // Create session (persistent server-side session id)
             var sessionId = await _authService.CreateSessionAsync(user);
 
-            // Set authentication cookie
+            // Set authentication cookie (ASP.NET cookies for ClaimsPrincipal)
             var claims = new[] {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "user"),
+                // Keep legacy claim name for compatibility
                 new Claim("Role", user.Role ?? "user")
             };
 
@@ -60,6 +62,17 @@ namespace VendorRegistrationBackend.Controllers
             var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
             await HttpContext.SignInAsync("Cookies", claimsPrincipal);
+
+            // Also set a server session id cookie (sid) so client and DB rows can be correlated
+            var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
+                Secure = Request.IsHttps,
+                Path = "/",
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("sid", sessionId, cookieOptions);
 
             return Ok(new LoginResponseDto
             {
@@ -85,10 +98,19 @@ namespace VendorRegistrationBackend.Controllers
         [Authorize]
         public async Task<IActionResult> Logout()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(userId))
+            // Destroy server session row if sid cookie present
+            var sid = Request.Cookies.ContainsKey("sid") ? Request.Cookies["sid"] : null;
+            if (!string.IsNullOrEmpty(sid))
             {
-                await _authService.DestroySessionAsync(userId);
+                await _authService.DestroySessionAsync(sid);
+                // Remove the sid cookie from client
+                Response.Cookies.Delete("sid", new Microsoft.AspNetCore.Http.CookieOptions
+                {
+                    HttpOnly = true,
+                    SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
+                    Secure = Request.IsHttps,
+                    Path = "/"
+                });
             }
 
             await HttpContext.SignOutAsync("Cookies");
@@ -114,6 +136,38 @@ namespace VendorRegistrationBackend.Controllers
                 Email = email ?? "",
                 Role = role ?? ""
             });
+        }
+
+        [HttpGet("session")]
+        [AllowAnonymous]
+        public IActionResult GetSession()
+        {
+            try
+            {
+                var isAuthenticated = User?.Identity?.IsAuthenticated ?? false;
+                if (!isAuthenticated) return Ok(new { authenticated = false });
+
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var name = User.FindFirst(ClaimTypes.Name)?.Value;
+                var email = User.FindFirst(ClaimTypes.Email)?.Value;
+                var role = User.FindFirst("Role")?.Value ?? string.Empty;
+
+                var userType = role.ToLower() == "vendor" ? "vendor" : "employee";
+
+                return Ok(new {
+                    authenticated = true,
+                    userType,
+                    employeeId = userId,
+                    employeeEmail = email,
+                    employeeName = name,
+                    employeeRole = role,
+                    isReportingPerson = false
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
     }
 }

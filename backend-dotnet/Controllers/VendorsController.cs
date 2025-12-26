@@ -411,7 +411,9 @@ namespace VendorRegistrationBackend.Controllers
                             l.Quantity,
                             l.UnitPrice,
                             l.TotalAmount,
-                            SiteName = l.Site?.Name ?? string.Empty
+                            SiteName = l.Site?.Name ?? string.Empty,
+                            SitePlanId = l.Site?.PlanId ?? string.Empty,
+                            SiteHopAB = l.Site?.HopAB ?? string.Empty
                         }).ToList() ?? new List<object>()
                     })
                     .ToList();

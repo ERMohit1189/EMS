@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { getApiBaseUrl } from "@/lib/api";
+import { getApiBaseUrl } from '@/lib/api';
 import { Mail, Lock, HardHat } from "lucide-react";
 
 export default function EmployeeLogin() {
@@ -48,11 +48,11 @@ export default function EmployeeLogin() {
     console.log('='.repeat(60));
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
-      console.log('[EmployeeLogin] Login attempt to:', apiUrl);
+      console.log('[EmployeeLogin] Login attempt to: /api/auth/login');
       console.log('[EmployeeLogin] Email:', email);
 
       const fetchStartTime = performance.now();
+      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

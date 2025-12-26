@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { getApiBaseUrl } from "@/lib/api";
+import { getApiBaseUrl } from '@/lib/api';
 import { Mail, Lock, Building2 } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 
@@ -42,9 +42,9 @@ export default function VendorLogin() {
     setLoading(true);
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
-      console.log('Login attempt to:', apiUrl);
+      console.log('Login attempt to: /api/auth/login');
 
+      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

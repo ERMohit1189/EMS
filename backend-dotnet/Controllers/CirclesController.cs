@@ -40,7 +40,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> CreateCircle([FromBody] Circle circle)
         {
             if (string.IsNullOrEmpty(circle.Name))
@@ -58,7 +58,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> UpdateCircle(string id, [FromBody] Circle circle)
         {
             if (string.IsNullOrEmpty(circle.Name))

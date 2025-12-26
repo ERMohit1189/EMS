@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using VendorRegistrationBackend.Data;
 using VendorRegistrationBackend.Models;
 using VendorRegistrationBackend.Services;
 
@@ -11,10 +13,12 @@ namespace VendorRegistrationBackend.Controllers
     public class PurchaseOrdersController : ControllerBase
     {
         private readonly IPurchaseOrderService _purchaseOrderService;
+        private readonly AppDbContext _context;
 
-        public PurchaseOrdersController(IPurchaseOrderService purchaseOrderService)
+        public PurchaseOrdersController(IPurchaseOrderService purchaseOrderService, AppDbContext context)
         {
             _purchaseOrderService = purchaseOrderService;
+            _context = context;
         }
 
         [HttpGet("{id}")]
@@ -43,7 +47,9 @@ namespace VendorRegistrationBackend.Controllers
                                 line.Quantity,
                                 line.UnitPrice,
                                 line.TotalAmount,
-                                SiteName = line.Site?.Name ?? string.Empty
+                                SiteName = line.Site?.Name ?? string.Empty,
+                                SitePlanId = line.Site?.PlanId ?? string.Empty,
+                                SiteHopAB = line.Site?.HopAB ?? string.Empty
                             });
                         }
                     }
@@ -87,7 +93,7 @@ namespace VendorRegistrationBackend.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllPurchaseOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        public async Task<IActionResult> GetAllPurchaseOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] bool withDetails = false, [FromQuery] bool availableOnly = false)
         {
             try
             {
@@ -96,6 +102,40 @@ namespace VendorRegistrationBackend.Controllers
                 if (pageSize > 500) pageSize = 500;
 
                 var purchaseOrders = await _purchaseOrderService.GetAllPurchaseOrdersAsync();
+
+                // Filter out POs that are already invoiced if availableOnly is true
+                if (availableOnly)
+                {
+                    // Get all invoiced PO IDs from invoices
+                    var invoicedPOIds = new HashSet<string>();
+                    var invoices = await _context.Invoices.ToListAsync();
+                    foreach (var invoice in invoices)
+                    {
+                        if (!string.IsNullOrEmpty(invoice.PoIds))
+                        {
+                            try
+                            {
+                                List<string> poIds;
+                                if (invoice.PoIds.StartsWith("["))
+                                {
+                                    poIds = System.Text.Json.JsonSerializer.Deserialize<List<string>>(invoice.PoIds) ?? new List<string>();
+                                }
+                                else
+                                {
+                                    poIds = invoice.PoIds.Split(',').Select(id => id.Trim()).ToList();
+                                }
+                                foreach (var poId in poIds)
+                                {
+                                    invoicedPOIds.Add(poId);
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
+                    purchaseOrders = purchaseOrders.Where(po => !invoicedPOIds.Contains(po.Id)).ToList();
+                }
+
                 var totalCount = purchaseOrders.Count;
 
                 var data = purchaseOrders
@@ -114,7 +154,16 @@ namespace VendorRegistrationBackend.Controllers
                         po.PODate,
                         po.DueDate,
                         VendorName = po.Vendor?.Name ?? string.Empty,
+                        VendorCode = po.Vendor?.VendorCode ?? string.Empty,
+                        VendorEmail = po.Vendor?.Email ?? string.Empty,
                         LineCount = po.Lines?.Count ?? 0,
+                        // Add site-related fields for displaying in invoice generation UI
+                        SiteName = po.Lines?.FirstOrDefault()?.Site?.Name ?? string.Empty,
+                        SiteId2 = po.Lines?.FirstOrDefault()?.Site?.PlanId ?? string.Empty,
+                        MaxAntennaSize = po.Lines?.FirstOrDefault()?.Site?.MaxAntSize ?? string.Empty,
+                        CGSTAmount = po.CGSTAmount,
+                        SGSTAmount = po.SGSTAmount,
+                        IGSTAmount = po.IGSTAmount,
                         Lines = po.Lines?.Select(l => (object)new
                         {
                             l.Id,
@@ -124,7 +173,9 @@ namespace VendorRegistrationBackend.Controllers
                             l.Quantity,
                             l.UnitPrice,
                             l.TotalAmount,
-                            SiteName = l.Site?.Name ?? string.Empty
+                            SiteName = l.Site?.Name ?? string.Empty,
+                            SitePlanId = l.Site?.PlanId ?? string.Empty,
+                            SiteHopAB = l.Site?.HopAB ?? string.Empty
                         }).ToList() ?? new List<object>()
                     })
                     .ToList();
@@ -145,7 +196,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost("generate")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> GenerateGroupedPurchaseOrders([FromBody] GenerateGroupedPOsRequest request)
         {
             try
@@ -215,7 +266,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> CreatePurchaseOrder([FromBody] CreatePurchaseOrderDto dto)
         {
             if (!ModelState.IsValid)
@@ -261,7 +312,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> UpdatePurchaseOrder(string id, [FromBody] PurchaseOrder purchaseOrder)
         {
             if (!ModelState.IsValid)
@@ -275,7 +326,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> DeletePurchaseOrder(string id)
         {
             try
@@ -333,7 +384,9 @@ namespace VendorRegistrationBackend.Controllers
                             l.Quantity,
                             l.UnitPrice,
                             l.TotalAmount,
-                            SiteName = l.Site?.Name ?? string.Empty
+                            SiteName = l.Site?.Name ?? string.Empty,
+                            SitePlanId = l.Site?.PlanId ?? string.Empty,
+                            SiteHopAB = l.Site?.HopAB ?? string.Empty
                         }).ToList() ?? new List<object>()
                     })
                     .ToList();

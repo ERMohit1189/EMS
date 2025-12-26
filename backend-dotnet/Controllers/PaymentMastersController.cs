@@ -61,7 +61,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> CreatePaymentMaster([FromBody] CreatePaymentMasterDto dto)
         {
             try
@@ -105,7 +105,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost("batch")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> BatchCreatePaymentMasters([FromBody] List<CreatePaymentMasterDto> dtos)
         {
             try

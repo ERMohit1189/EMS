@@ -647,7 +647,7 @@ const LeaveApprovals: React.FC = () => {
                             }
 
                             setEditSaving(true);
-                            const res = await fetch(`${getApiBaseUrl()}/api/leaves/${p.id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startDate: editStart, endDate: editEnd, approverRemark: editRemark }) });
+                            const res = await fetch(`${getApiBaseUrl()}/api/leaves/${p.id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startDate: editStart, endDate: editEnd, approverRemark: editRemark }) });
                             if (res.ok) {
                               const updatedJson = await res.json();
                               // Merge server response with local object to preserve display-only fields like appliedByEmail/name

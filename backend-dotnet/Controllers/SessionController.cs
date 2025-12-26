@@ -22,20 +22,20 @@ namespace VendorRegistrationBackend.Controllers
                     return Ok(new { isReportingPerson = false, authenticated = false });
                 }
 
-                // Get user info from claims
+                // Get user info from claims - be resilient to different claim names
                 var email = User?.FindFirst(ClaimTypes.Email)?.Value;
-                var role = User?.FindFirst(ClaimTypes.Role)?.Value;
-                var userId = User?.FindFirst("userId")?.Value;
+                var role = User?.FindFirst("Role")?.Value ?? User?.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+                var userId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var name = User?.FindFirst(ClaimTypes.Name)?.Value;
 
-                // For now, return basic session info
-                // In future, can query database for isReportingPerson flag
                 return Ok(new
                 {
-                    isReportingPerson = false, // Default: can be set based on user role/database
+                    isReportingPerson = false,
                     authenticated = true,
-                    email,
-                    role,
-                    userId
+                    employeeId = userId,
+                    employeeEmail = email,
+                    employeeName = name,
+                    employeeRole = role
                 });
             }
             catch (Exception ex)

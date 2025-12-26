@@ -85,6 +85,15 @@ namespace VendorRegistrationBackend.Services
             return true;
         }
 
+        public async Task<PurchaseOrder?> GetPurchaseOrderByIdAsync(string id)
+        {
+            return await _context.PurchaseOrders
+                .Include(po => po.Vendor)
+                .Include(po => po.Lines)
+                .ThenInclude(line => line.Site)
+                .FirstOrDefaultAsync(po => po.Id == id);
+        }
+
         private string GenerateInvoiceNumber()
         {
             var lastInvoice = _context.Invoices

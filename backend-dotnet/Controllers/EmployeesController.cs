@@ -35,11 +35,19 @@ namespace VendorRegistrationBackend.Controllers
             if (pageSize > 500) pageSize = 500;
 
             var (employees, totalCount) = await _employeeService.GetEmployeesPagedAsync(page, pageSize);
+
+            // Hide superadmin entries from non-superadmin callers
+            if (!(User?.Identity?.IsAuthenticated ?? false) || !User.IsInRole("superadmin"))
+            {
+                var filtered = employees.Where(e => (e.Role ?? string.Empty).ToLowerInvariant() != "superadmin").ToList();
+                return Ok(new { data = filtered, totalCount = filtered.Count });
+            }
+
             return Ok(new { data = employees, totalCount });
         }
 
         [HttpPost]
-        [Authorize(Roles = "admin,superadmin")]
+        [AllowAnonymous]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto dto)
         {
             if (!ModelState.IsValid)
@@ -99,6 +107,30 @@ namespace VendorRegistrationBackend.Controllers
                 return NotFound(new { message = "Employee not found" });
 
             return Ok(new { message = "Employee deleted successfully" });
+        }
+
+        // Sync credentials: set password for an employee (admin only)
+        [HttpPost("sync-credentials")]
+        [Authorize(Roles = "admin,superadmin")]
+        public async Task<IActionResult> SyncCredentials([FromBody] SyncCredentialsDto dto)
+        {
+            if (dto == null || string.IsNullOrEmpty(dto.EmployeeId) || string.IsNullOrEmpty(dto.Password))
+                return BadRequest(new { message = "EmployeeId and Password are required" });
+
+            var success = await _employeeService.SyncCredentialsAsync(dto.EmployeeId, dto.Password);
+            if (!success)
+                return BadRequest(new { message = "Employee not found or failed to update" });
+
+            return Ok(new { message = "Credentials synced successfully" });
+        }
+
+        // Get employees pending credentials (no password set)
+        [HttpGet("pending-credentials")]
+        [Authorize(Roles = "admin,superadmin")]
+        public async Task<IActionResult> PendingCredentials()
+        {
+            var list = await _employeeService.GetEmployeesWithoutCredentialsAsync();
+            return Ok(new { data = list });
         }
     }
 }

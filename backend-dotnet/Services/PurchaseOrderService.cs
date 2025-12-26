@@ -25,7 +25,9 @@ namespace VendorRegistrationBackend.Services
         public async Task<List<PurchaseOrder>> GetPurchaseOrdersByVendorAsync(string vendorId)
         {
             return await _context.PurchaseOrders
+                .Include(po => po.Vendor)
                 .Include(po => po.Lines)
+                .ThenInclude(pol => pol.Site)
                 .Where(po => po.VendorId == vendorId)
                 .ToListAsync();
         }
@@ -35,6 +37,7 @@ namespace VendorRegistrationBackend.Services
             return await _context.PurchaseOrders
                 .Include(po => po.Vendor)
                 .Include(po => po.Lines)
+                .ThenInclude(pol => pol.Site)
                 .ToListAsync();
         }
 

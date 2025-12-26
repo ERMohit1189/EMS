@@ -75,7 +75,6 @@ namespace VendorRegistrationBackend.Services
             // Basic Info
             if (!string.IsNullOrEmpty(dto.PlanId)) existing.PlanId = dto.PlanId;
             if (!string.IsNullOrEmpty(dto.Name)) existing.Name = dto.Name;
-            if (!string.IsNullOrEmpty(dto.SiteId)) existing.SiteId = dto.SiteId;
             if (dto.Sno.HasValue) existing.Sno = dto.Sno;
             if (!string.IsNullOrEmpty(dto.Address)) existing.Address = dto.Address;
             if (!string.IsNullOrEmpty(dto.City)) existing.City = dto.City;

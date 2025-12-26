@@ -276,7 +276,8 @@ export default function MonthlyAttendance() {
 
       // Fetch holidays from Holiday Master
       const holidaysResponse = await fetch(
-        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`
+        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`,
+        { credentials: 'include' }
       );
       const holidaysData = holidaysResponse.ok ? await holidaysResponse.json() : [];
       
@@ -298,7 +299,8 @@ export default function MonthlyAttendance() {
       }
 
       const response = await fetch(
-        `${getApiBaseUrl()}/api/attendance/${selectedEmployee}/${month}/${year}`
+        `${getApiBaseUrl()}/api/attendance/${selectedEmployee}/${month}/${year}`,
+        { credentials: 'include' }
       );
       
       if (response.ok) {
@@ -410,12 +412,31 @@ export default function MonthlyAttendance() {
         `${getApiBaseUrl()}/api/leave-allotments/employee/${selectedEmployee}/${year}`,
         { credentials: 'include' }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
-        const types = data.leaveTypes || [];
-        leaveAllotmentsCache.current[cacheKey] = Array.isArray(types) ? types : [];
-        setLeaveTypes(Array.isArray(types) ? types : []);
+        // Transform backend response into LeaveType array
+        const leaveTypeMap: Record<string, { code: string; name: string }> = {
+          medicalLeave: { code: 'ML', name: 'Medical Leave' },
+          casualLeave: { code: 'CL', name: 'Casual Leave' },
+          earnedLeave: { code: 'EL', name: 'Earned Leave' },
+          sickLeave: { code: 'SL', name: 'Sick Leave' },
+          personalLeave: { code: 'PL', name: 'Personal Leave' },
+          unpaidLeave: { code: 'UL', name: 'Unpaid Leave' },
+          leaveWithoutPay: { code: 'LWP', name: 'Leave Without Pay' },
+        };
+
+        const types: LeaveType[] = Object.entries(leaveTypeMap).map(([key, { code, name }]) => ({
+          code,
+          name,
+          allocated: data[key] || 0,
+          used: leaveDetails[code] || 0,
+          remaining: (data[key] || 0) - (leaveDetails[code] || 0),
+          disabled: (data[key] || 0) === 0,
+        }));
+
+        leaveAllotmentsCache.current[cacheKey] = types;
+        setLeaveTypes(types);
       }
     } catch (error) {
       console.error('Error fetching leave allotments:', error);
@@ -622,6 +643,7 @@ export default function MonthlyAttendance() {
       const response = await fetch(`${getApiBaseUrl()}/api/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           employeeId: selectedEmployee,
           month,

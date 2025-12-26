@@ -73,10 +73,10 @@ export default function Login() {
         setLoading(false);
         return;
       }
-      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
-      console.log("[superadmin] Login attempt to:", apiUrl);
+      console.log("[superadmin] Login attempt to: /api/auth/login");
       console.log("[superadmin] Email:", email);
       // Call backend admin login API - validates credentials against database
+      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

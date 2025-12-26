@@ -31,4 +31,29 @@ namespace VendorRegistrationBackend.DTOs
         public DateTime? AppliedAt { get; set; }
         public DateTime? ApprovedAt { get; set; }
     }
+
+    public class ApproveLeaveRequestDto
+    {
+        public string? ApproverRemark { get; set; }
+    }
+
+    public class RejectLeaveRequestDto
+    {
+        public string? ApproverRemark { get; set; }
+    }
+
+    public class ApplyLeaveDto
+    {
+        public string EmployeeId { get; set; } = string.Empty;
+        public string LeaveType { get; set; } = string.Empty;
+        public string StartDate { get; set; } = string.Empty;
+        public string EndDate { get; set; } = string.Empty;
+        public string? Remark { get; set; }
+    }
+
+    public class ValidateDatesDto
+    {
+        public string StartDate { get; set; } = string.Empty;
+        public string EndDate { get; set; } = string.Empty;
+    }
 }

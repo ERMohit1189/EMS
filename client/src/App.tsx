@@ -111,51 +111,15 @@ function App() {
         const isNewBrowserSession = !browserSessionId;
 
         if (isNewBrowserSession) {
-          // New browser session detected - generate new session ID
+          // New browser session detected - generate new session ID and continue to validate server session
           const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           sessionStorage.setItem('browserSessionId', newSessionId);
           console.log('[App] New browser session detected. SessionID:', newSessionId);
-
-          // Clear client-side session data but preserve Remember Me, lastLoginType, and Quick Guide flag
-          const rememberEmail = localStorage.getItem('rememberMe_email');
-          const rememberPassword = localStorage.getItem('rememberMe_password');
-          const vendorRememberEmail = localStorage.getItem('vendorRememberMe_email');
-          const vendorRememberPassword = localStorage.getItem('vendorRememberMe_password');
-          const lastLoginType = localStorage.getItem('lastLoginType');
-          const seenQuickGuide = localStorage.getItem('seenQuickGuide');
-
-          localStorage.clear();
-
-          // Restore Remember Me credentials, lastLoginType, and Quick Guide flag
-          if (rememberEmail) localStorage.setItem('rememberMe_email', rememberEmail);
-          if (rememberPassword) localStorage.setItem('rememberMe_password', rememberPassword);
-          if (vendorRememberEmail) localStorage.setItem('vendorRememberMe_email', vendorRememberEmail);
-          if (vendorRememberPassword) localStorage.setItem('vendorRememberMe_password', vendorRememberPassword);
-          if (lastLoginType) localStorage.setItem('lastLoginType', lastLoginType);
-          if (seenQuickGuide) localStorage.setItem('seenQuickGuide', seenQuickGuide);
-
-          // Force logout - clear server session
-          try {
-            await fetch('/api/auth/logout', {
-              method: 'POST',
-              credentials: 'include'
-            });
-          } catch (e) {
-            console.log('[App] Logout call failed (expected if no session):', e);
-          }
-
-          // Set states to logged out
-          setIsLoggedIn(false);
-          setIsEmployee(false);
-          setIsSuperadmin(false);
-          setLoading(false);
-          return;
+          // Do NOT forcefully clear server session on a new browser session — just continue to check the server session
         }
 
         // Existing browser session - check if server session is still valid
-        const response = await fetch('/api/auth/session', {
-          credentials: 'include'
-        });
+        const response = await fetch('/api/auth/session', { credentials: 'include' });
         const data = await response.json();
 
         console.log('[App] Session check result:', data);

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VendorRegistrationBackend.Models;
 using VendorRegistrationBackend.Services;
+using VendorRegistrationBackend.DTOs;
 
 namespace VendorRegistrationBackend.Controllers
 {
@@ -52,6 +53,15 @@ namespace VendorRegistrationBackend.Controllers
             return Ok(leaveRequests);
         }
 
+        [HttpGet("allotments")]
+        [Authorize(Roles = "admin,superadmin")]
+        public async Task<IActionResult> GetLeaveAllotments([FromQuery] int? year)
+        {
+            var selectedYear = year ?? DateTime.UtcNow.Year;
+            var data = await _leaveService.GetLeaveAllotmentsForYearAsync(selectedYear);
+            return Ok(data);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateLeaveRequest([FromBody] LeaveRequest leaveRequest)
         {
@@ -89,9 +99,9 @@ namespace VendorRegistrationBackend.Controllers
 
         [HttpPost("{id}/approve")]
         [Authorize(Roles = "admin,superadmin")]
-        public async Task<IActionResult> ApproveLeaveRequest(string id, [FromBody] dynamic request)
+        public async Task<IActionResult> ApproveLeaveRequest(string id, [FromBody] ApproveLeaveRequestDto request)
         {
-            string approverRemark = request?.approverRemark ?? "";
+            string approverRemark = request?.ApproverRemark ?? "";
             var approverId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? "";
 
             var success = await _leaveService.ApproveLeaveRequestAsync(id, approverRemark, approverId);
@@ -103,9 +113,9 @@ namespace VendorRegistrationBackend.Controllers
 
         [HttpPost("{id}/reject")]
         [Authorize(Roles = "admin,superadmin")]
-        public async Task<IActionResult> RejectLeaveRequest(string id, [FromBody] dynamic request)
+        public async Task<IActionResult> RejectLeaveRequest(string id, [FromBody] RejectLeaveRequestDto request)
         {
-            string approverRemark = request?.approverRemark ?? "";
+            string approverRemark = request?.ApproverRemark ?? "";
             var approverId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? "";
 
             var success = await _leaveService.RejectLeaveRequestAsync(id, approverRemark, approverId);
@@ -143,64 +153,138 @@ namespace VendorRegistrationBackend.Controllers
             if (allotment == null)
                 return NotFound(new { message = "Leave allotment not found" });
 
-            return Ok(allotment);
+            // Map to DTO to avoid circular references with Employee navigation property
+            var dto = new EmployeeLeaveAllotmentDto
+            {
+                Id = allotment.Id,
+                Year = allotment.Year,
+                MedicalLeave = allotment.MedicalLeave,
+                CasualLeave = allotment.CasualLeave,
+                EarnedLeave = allotment.EarnedLeave,
+                SickLeave = allotment.SickLeave,
+                PersonalLeave = allotment.PersonalLeave,
+                UnpaidLeave = allotment.UnpaidLeave,
+                LeaveWithoutPay = allotment.LeaveWithoutPay,
+                CarryForwardEarned = allotment.CarryForwardEarned,
+                CarryForwardPersonal = allotment.CarryForwardPersonal
+            };
+
+            return Ok(dto);
         }
 
-        [HttpGet("allotments")]
+        [HttpGet("employee/{employeeId}/{year}/exists")]
         [Authorize(Roles = "admin,superadmin")]
-        public async Task<IActionResult> GetAllLeaveAllotments()
+        public async Task<IActionResult> LeaveAllotmentExists(string employeeId, int year)
         {
-            var allotments = await _leaveService.GetAllLeaveAllotmentsAsync();
-            return Ok(allotments);
+            var exists = await _leaveService.LeaveAllotmentExistsAsync(employeeId, year);
+            return Ok(new { exists });
         }
+
 
         [HttpPost("allotments")]
         [Authorize(Roles = "admin,superadmin")]
-        public async Task<IActionResult> CreateLeaveAllotment([FromBody] LeaveAllotment allotment)
+        public async Task<IActionResult> CreateLeaveAllotment([FromBody] CreateLeaveAllotmentDto payload)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             try
             {
-                var createdAllotment = await _leaveService.CreateLeaveAllotmentAsync(allotment);
-                return Created($"/api/leave/allotments/{createdAllotment.Id}", new
+                if (payload == null) return BadRequest(new { error = "Invalid payload" });
+
+                // Convert DTO to LeaveAllotment model
+                var allotment = new LeaveAllotment
                 {
-                    id = createdAllotment.Id,
-                    employeeId = createdAllotment.EmployeeId
-                });
+                    EmployeeId = payload.EmployeeId,
+                    Year = payload.Year,
+                    MedicalLeave = payload.MedicalLeave,
+                    CasualLeave = payload.CasualLeave,
+                    EarnedLeave = payload.EarnedLeave,
+                    SickLeave = payload.SickLeave,
+                    PersonalLeave = payload.PersonalLeave,
+                    UnpaidLeave = payload.UnpaidLeave,
+                    LeaveWithoutPay = payload.LeaveWithoutPay,
+                    CarryForwardEarned = payload.CarryForwardEarned,
+                    CarryForwardPersonal = payload.CarryForwardPersonal
+                };
+
+                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var res = await _leaveService.UpsertLeaveAllotmentAsync(allotment, payload.ForceOverride, payload.ForceReason, performedBy);
+                return Ok(new { data = res.allotment, isUpdated = res.isUpdated });
+            }
+            catch (InvalidOperationException ex)
+            {
+                var msg = ex.Message ?? "Invalid operation";
+                if (msg.Contains("next-year")) return StatusCode(403, new { error = msg });
+                return BadRequest(new { error = msg });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { error = ex.Message });
             }
         }
 
         [HttpPut("allotments/{id}")]
         [Authorize(Roles = "admin,superadmin")]
-        public async Task<IActionResult> UpdateLeaveAllotment(string id, [FromBody] LeaveAllotment allotment)
+        public async Task<IActionResult> UpdateLeaveAllotment(string id, [FromBody] UpdateLeaveAllotmentDto payload)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            try
+            {
+                if (payload == null) return BadRequest(new { error = "Invalid payload" });
 
-            var updatedAllotment = await _leaveService.UpdateLeaveAllotmentAsync(id, allotment);
-            if (updatedAllotment == null)
-                return NotFound(new { message = "Leave allotment not found" });
+                // Convert DTO to LeaveAllotment model
+                var allotment = new LeaveAllotment
+                {
+                    EmployeeId = payload.EmployeeId ?? string.Empty,
+                    Year = payload.Year,
+                    MedicalLeave = payload.MedicalLeave,
+                    CasualLeave = payload.CasualLeave,
+                    EarnedLeave = payload.EarnedLeave,
+                    SickLeave = payload.SickLeave,
+                    PersonalLeave = payload.PersonalLeave,
+                    UnpaidLeave = payload.UnpaidLeave,
+                    LeaveWithoutPay = payload.LeaveWithoutPay,
+                    CarryForwardEarned = payload.CarryForwardEarned,
+                    CarryForwardPersonal = payload.CarryForwardPersonal
+                };
 
-            return Ok(new { message = "Leave allotment updated successfully" });
+                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+
+                // If force override is needed, use UpsertLeaveAllotmentAsync instead
+                if (payload.ForceOverride)
+                {
+                    var res = await _leaveService.UpsertLeaveAllotmentAsync(allotment, true, payload.ForceReason, performedBy);
+                    return Ok(new { data = res.allotment, isUpdated = res.isUpdated, message = "Leave allotment updated successfully" });
+                }
+
+                var updatedAllotment = await _leaveService.UpdateLeaveAllotmentAsync(id, allotment);
+                if (updatedAllotment == null)
+                    return NotFound(new { error = "Leave allotment not found" });
+
+                return Ok(new { data = updatedAllotment, message = "Leave allotment updated successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                var msg = ex.Message ?? "Invalid operation";
+                if (msg.Contains("next-year")) return StatusCode(403, new { error = msg });
+                return BadRequest(new { error = msg });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpPost("apply")]
         [Authorize]
-        public async Task<IActionResult> ApplyLeave([FromBody] dynamic request)
+        public async Task<IActionResult> ApplyLeave([FromBody] ApplyLeaveDto request)
         {
             try
             {
-                string employeeId = request.employeeId;
-                string leaveType = request.leaveType;
-                string startDate = request.startDate;
-                string endDate = request.endDate;
-                string remark = request.remark ?? "";
+                if (request == null) return BadRequest(new { error = "Invalid payload" });
+
+                string employeeId = request.EmployeeId;
+                string leaveType = request.LeaveType;
+                string startDate = request.StartDate;
+                string endDate = request.EndDate;
+                string remark = request.Remark ?? "";
 
                 if (string.IsNullOrEmpty(employeeId) || string.IsNullOrEmpty(leaveType) ||
                     string.IsNullOrEmpty(startDate) || string.IsNullOrEmpty(endDate))
@@ -228,12 +312,14 @@ namespace VendorRegistrationBackend.Controllers
 
         [HttpPost("validate-dates")]
         [Authorize]
-        public async Task<IActionResult> ValidateDates([FromBody] dynamic request)
+        public async Task<IActionResult> ValidateDates([FromBody] ValidateDatesDto request)
         {
             try
             {
-                string startDate = request.startDate;
-                string endDate = request.endDate;
+                if (request == null) return BadRequest(new { error = "Invalid payload" });
+
+                string startDate = request.StartDate;
+                string endDate = request.EndDate;
 
                 if (string.IsNullOrEmpty(startDate) || string.IsNullOrEmpty(endDate))
                     return BadRequest(new { error = "Start date and end date are required" });
@@ -290,19 +376,66 @@ namespace VendorRegistrationBackend.Controllers
             return Ok(leaveRequests);
         }
 
-        [HttpGet("allotments/years/{employeeId}")]
+        [HttpGet("employee/{employeeId}/years")]
         [Authorize]
         public async Task<IActionResult> GetLeaveAllotmentYears(string employeeId)
         {
-            var allotments = await _leaveService.GetAllLeaveAllotmentsAsync();
-            var yearsForEmployee = allotments
-                .Where(la => la.EmployeeId == employeeId)
-                .Select(la => la.Year)
-                .Distinct()
-                .OrderByDescending(y => y)
-                .ToList();
+            var years = await _leaveService.GetLeaveAllotmentYearsAsync(employeeId);
+            return Ok(new { years });
+        }
 
-            return Ok(new { years = yearsForEmployee });
+        [HttpPost("allotments/bulk")]
+        [Authorize(Roles = "admin,superadmin")]
+        public async Task<IActionResult> BulkUpsertAllotments([FromBody] BulkLeaveAllotmentDto payload)
+        {
+            try
+            {
+                if (payload == null) return BadRequest(new { error = "Invalid payload" });
+
+                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var res = await _leaveService.BulkUpsertLeaveAllotmentsAsync(
+                    payload.Year,
+                    payload.MedicalLeave,
+                    payload.CasualLeave,
+                    payload.EarnedLeave,
+                    payload.SickLeave,
+                    payload.PersonalLeave,
+                    payload.UnpaidLeave,
+                    payload.LeaveWithoutPay,
+                    payload.CarryForwardEarned,
+                    payload.CarryForwardPersonal,
+                    payload.ForceOverride,
+                    payload.ForceReason,
+                    performedBy
+                );
+
+                return Ok(new { success = true, count = res.count, message = $"Leave allotted to {res.count} employees", skipped = res.skipped });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("allotments/{id}")]
+        [Authorize(Roles = "admin,superadmin")]
+        public async Task<IActionResult> DeleteLeaveAllotment(string id)
+        {
+            try
+            {
+                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var success = await _leaveService.DeleteLeaveAllotmentWithChecksAsync(id, performedBy);
+                if (!success) return NotFound(new { error = "Leave allotment not found" });
+                return Ok(new { success = true, message = "Leave allotment deleted successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(403, new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
     }
 }

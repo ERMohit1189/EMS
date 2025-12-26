@@ -198,9 +198,9 @@ const LeaveApply: React.FC = () => {
 
       const res = await fetch(`${getApiBaseUrl()}/api/leaves/apply`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employeeId, leaveType: selectedType, startDate, endDate, days, remark }),
-        credentials: 'include',
       });
       if (res.ok) {
         alert('Leave applied successfully');

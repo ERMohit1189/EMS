@@ -38,6 +38,10 @@ namespace VendorRegistrationBackend.Data
         public DbSet<PaymentMaster> PaymentMasters { get; set; } = null!;
         public DbSet<Holiday> Holidays { get; set; } = null!;
 
+        // Teams
+        public DbSet<Team> Teams { get; set; } = null!;
+        public DbSet<TeamMember> TeamMembers { get; set; } = null!;
+
         // Note: PaymentMaster also accessible via Set<PaymentMaster>()
 
         // Session Management
@@ -198,6 +202,17 @@ namespace VendorRegistrationBackend.Data
             modelBuilder.Entity<PurchaseOrder>()
                 .HasIndex(po => po.PoNumber)
                 .IsUnique();
+
+            // Team relationships
+            modelBuilder.Entity<TeamMember>()
+                .HasOne(tm => tm.Team)
+                .WithMany(t => t.Members)
+                .HasForeignKey(tm => tm.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Team>()
+                .HasIndex(t => t.Name);
+
 
             modelBuilder.Entity<Invoice>()
                 .HasIndex(i => i.InvoiceNumber)

@@ -32,7 +32,12 @@ namespace VendorRegistrationBackend.Services
                 DepartmentId = employee.DepartmentId,
                 DesignationId = employee.DesignationId,
                 Mobile = employee.Mobile,
-                Status = employee.Status
+                City = employee.City,
+                Address = employee.Address,
+                Status = employee.Status,
+                FatherName = employee.FatherName,
+                Doj = employee.DateOfJoining?.ToString("yyyy-MM-dd"),
+                Role = employee.Role
             };
         }
 
@@ -52,7 +57,12 @@ namespace VendorRegistrationBackend.Services
                 DepartmentId = e.DepartmentId,
                 DesignationId = e.DesignationId,
                 Mobile = e.Mobile,
-                Status = e.Status
+                City = e.City,
+                Address = e.Address,
+                Status = e.Status,
+                FatherName = e.FatherName,
+                Doj = e.DateOfJoining != null ? e.DateOfJoining.Value.ToString("yyyy-MM-dd") : null,
+                Role = e.Role
             }).ToList();
         }
 
@@ -79,7 +89,8 @@ namespace VendorRegistrationBackend.Services
                 DesignationId = e.DesignationId,
                 Mobile = e.Mobile,
                 City = e.City,
-                Status = e.Status
+                Status = e.Status,
+                Role = e.Role
             }).ToList();
 
             return (employeeDtos, totalCount);
@@ -164,6 +175,39 @@ namespace VendorRegistrationBackend.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> SyncCredentialsAsync(string employeeId, string password)
+        {
+            var employee = await _context.Employees.FindAsync(employeeId);
+            if (employee == null) return false;
+
+            employee.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+            _context.Employees.Update(employee);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<EmployeeDto>> GetEmployeesWithoutCredentialsAsync()
+        {
+            var employees = await _context.Employees
+                .Where(e => string.IsNullOrEmpty(e.PasswordHash))
+                .Take(1000)
+                .ToListAsync();
+
+            return employees.Select(e => new EmployeeDto
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Email = e.Email,
+                EmpCode = e.EmpCode,
+                DepartmentId = e.DepartmentId,
+                DesignationId = e.DesignationId,
+                Mobile = e.Mobile,
+                Status = e.Status
+            }).ToList();
+        }
+
+
 
         private string GenerateEmpCode()
         {

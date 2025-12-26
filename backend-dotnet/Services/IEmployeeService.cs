@@ -12,5 +12,9 @@ namespace VendorRegistrationBackend.Services
         Task<Employee?> UpdateEmployeeAsync(string id, UpdateEmployeeDto dto);
         Task<bool> DeleteEmployeeAsync(string id);
         Task<bool> ChangePasswordAsync(string id, string oldPassword, string newPassword);
+        Task<bool> SyncCredentialsAsync(string employeeId, string password);
+        Task<List<EmployeeDto>> GetEmployeesWithoutCredentialsAsync();
+        // Create a minimal test employee (development only)
+
     }
 }

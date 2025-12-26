@@ -63,7 +63,7 @@ export default function Teams() {
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams`);
+      const response = await fetch(`${getApiBaseUrl()}/api/teams`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setTeams(data);
@@ -75,11 +75,13 @@ export default function Teams() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees?limit=1000`);
+      const response = await fetch(`${getApiBaseUrl()}/api/employees?limit=1000`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
-        console.log('[Teams] Fetched employees:', data.data || []);
-        setEmployees(data.data || []);
+        // Filter out superadmin role just in case server returns it
+        const list = (data.data || []).filter((emp: any) => emp.role !== 'superadmin');
+        console.log('[Teams] Fetched employees:', list);
+        setEmployees(list);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -88,7 +90,7 @@ export default function Teams() {
 
   const fetchTeamMembers = async (teamId: string) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}/members`);
+      const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}/members`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         console.log('[Teams] Fetched team members:', data);
@@ -117,6 +119,7 @@ export default function Teams() {
       console.log('[Teams] Creating team:', formData.name);
       const response = await fetch(`${getApiBaseUrl()}/api/teams`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
@@ -178,6 +181,7 @@ export default function Teams() {
       const promises = newEmployeeIds.map((employeeId) =>
         fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             employeeId,
@@ -225,6 +229,7 @@ export default function Teams() {
       setLoadingRemoveMember(memberId);
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members/${memberId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -260,6 +265,7 @@ export default function Teams() {
         console.log('[Teams] Updating member:', otherMember.id, 'with:', updates);
         const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${otherMember.id}/reporting`, {
           method: 'PUT',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         });
@@ -323,6 +329,7 @@ export default function Teams() {
         
         const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${member.id}/reporting`, {
           method: 'PUT',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         });
@@ -350,6 +357,7 @@ export default function Teams() {
       console.log('[Teams] Clearing RP', level, 'from all employees');
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/reporting/${level}`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -391,6 +399,7 @@ export default function Teams() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -507,6 +516,7 @@ export default function Teams() {
                               className={`text-xs flex-1 ${isAlreadyMember ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                               <div className="font-medium text-xs">{emp.name} - {emp.designation}</div>
+                              <div className="text-xs font-mono text-muted-foreground">{emp.emp_code || emp.empCode || emp.employeeCode || emp.id}</div>
                               <div className={`text-xs ${isAlreadyMember ? 'text-green-600' : 'text-muted-foreground'}`}>
                                 {emp.department} {isAlreadyMember && '(Already member)'}
                               </div>
@@ -606,8 +616,8 @@ export default function Teams() {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-xs truncate">{member.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                        <p className="text-xs text-muted-foreground truncate">{member.designation}</p>
-                        <p className="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded mt-0.5 truncate">{member.employeeId}</p>
+                        <p className="text-xs text-muted-foreground truncate">{member.designationName || member.designation || ''}</p>
+                        <p className="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded mt-0.5 truncate">{member.employeeCode || member.emp_code || ''}</p>
                       </div>
                       <Button
                         variant="outline"

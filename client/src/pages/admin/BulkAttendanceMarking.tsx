@@ -422,7 +422,8 @@ export default function BulkAttendanceMarking() {
   const fetchHolidays = async () => {
     try {
       const holidaysResponse = await fetch(
-        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`
+        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`,
+        { credentials: 'include' }
       );
       const holidaysData = holidaysResponse.ok ? await holidaysResponse.json() : [];
 

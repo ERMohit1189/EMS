@@ -183,12 +183,13 @@ export default function EmployeeCredentials() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/sync-credentials`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employeeId, password: generatedPassword }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}: Failed to sync password`);
       }
 
