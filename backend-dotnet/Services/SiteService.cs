@@ -318,7 +318,6 @@ namespace VendorRegistrationBackend.Services
                             // Basic Info
                             existing.PlanId = site.PlanId;
                             existing.Name = site.Name;
-                            existing.SiteId = site.SiteId;
                             existing.Sno = site.Sno;
                             existing.Address = site.Address;
                             existing.City = site.City;
@@ -591,7 +590,6 @@ namespace VendorRegistrationBackend.Services
                 Id = Guid.NewGuid().ToString(),
                 PlanId = GetDynamicProperty(siteData, "planId")?.ToString(),
                 Name = GetDynamicProperty(siteData, "name")?.ToString() ?? GetDynamicProperty(siteData, "siteName")?.ToString() ?? GetDynamicProperty(siteData, "hopAB")?.ToString() ?? Guid.NewGuid().ToString(),
-                SiteId = GetDynamicProperty(siteData, "siteId")?.ToString(),
                 Sno = TryParseInt(GetDynamicProperty(siteData, "sno")),
                 Address = GetDynamicProperty(siteData, "address")?.ToString(),
                 City = GetDynamicProperty(siteData, "city")?.ToString(),

@@ -67,7 +67,6 @@ namespace VendorRegistrationBackend.Controllers
                             (s.PlanId != null && s.PlanId.ToLower().Contains(searchLower)) ||
                             (s.Circle != null && s.Circle.ToLower().Contains(searchLower)) ||
                             (s.District != null && s.District.ToLower().Contains(searchLower)) ||
-                            (s.SiteId != null && s.SiteId.ToLower().Contains(searchLower)) ||
                             (s.Name != null && s.Name.ToLower().Contains(searchLower))
                         )
                         .ToList();
@@ -225,7 +224,6 @@ namespace VendorRegistrationBackend.Controllers
                     var siteObj = new {
                         site.Id,
                         site.Name,
-                        site.SiteId,
                         site.Address,
                         site.City,
                         site.State,

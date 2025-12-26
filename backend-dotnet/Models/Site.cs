@@ -11,8 +11,6 @@ namespace VendorRegistrationBackend.Models
         public string? PlanId { get; set; }
         [Column("name")]
         public string Name { get; set; } = string.Empty;
-        [Column("site_id")]
-        public string? SiteId { get; set; }
         [Column("sno")]
         public int? Sno { get; set; }
         [Column("address")]
