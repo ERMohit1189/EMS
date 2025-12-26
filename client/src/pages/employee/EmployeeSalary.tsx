@@ -32,6 +32,7 @@ interface SalaryStructure {
 interface SalaryWithEmployee extends SalaryStructure {
   employee?: {
     id: string;
+    empCode: string;
     name: string;
     designation?: string;
     department?: string;
@@ -538,6 +539,7 @@ export default function EmployeeSalary() {
               <SelectContent>
                 {allSalaries.map((s) => (
                   <SelectItem key={s.employeeId} value={s.employeeId}>
+                    {s.employee?.empCode && <span>{s.employee.empCode} - </span>}
                     {s.employee?.name || 'Employee'}
                   </SelectItem>
                 ))}
@@ -560,7 +562,11 @@ export default function EmployeeSalary() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Employee Code</p>
-              <p className="font-medium">{localStorage.getItem('employeeCode') || (selectedEmployeeId || employeeId)}</p>
+              <p className="font-medium">
+                {isSuperAdmin
+                  ? (allSalaries.find(s => s.employeeId === selectedEmployeeId)?.employee?.empCode || 'N/A')
+                  : (localStorage.getItem('employeeCode') || 'N/A')}
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Department</p>
