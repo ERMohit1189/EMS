@@ -292,37 +292,73 @@ namespace VendorRegistrationBackend.Controllers
                 }
             }
 
-            // Map to DTO
-            var dto = new EmployeeLeaveAllotmentDto
+            // Build leaveTypes array with calculated remaining days
+            var leaveTypes = new List<dynamic>
             {
-                Id = allotment.Id,
-                Year = allotment.Year,
-                MedicalLeave = allotment.MedicalLeave,
-                CasualLeave = allotment.CasualLeave,
-                EarnedLeave = allotment.EarnedLeave,
-                SickLeave = allotment.SickLeave,
-                PersonalLeave = allotment.PersonalLeave,
-                UnpaidLeave = allotment.UnpaidLeave,
-                LeaveWithoutPay = allotment.LeaveWithoutPay,
-                CarryForwardEarned = allotment.CarryForwardEarned,
-                CarryForwardPersonal = allotment.CarryForwardPersonal,
-                UsedMedicalLeave = usedByType.ContainsKey("ML") ? usedByType["ML"] : 0,
-                UsedCasualLeave = usedByType.ContainsKey("CL") ? usedByType["CL"] : 0,
-                UsedEarnedLeave = usedByType.ContainsKey("EL") ? usedByType["EL"] : 0,
-                UsedSickLeave = usedByType.ContainsKey("SL") ? usedByType["SL"] : 0,
-                UsedPersonalLeave = usedByType.ContainsKey("PL") ? usedByType["PL"] : 0,
-                UsedUnpaidLeave = usedByType.ContainsKey("UL") ? usedByType["UL"] : 0,
-                UsedLeaveWithoutPay = usedByType.ContainsKey("LWP") ? usedByType["LWP"] : 0,
-                CarriedMedicalLeave = carriedMedicalLeave,
-                CarriedCasualLeave = carriedCasualLeave,
-                CarriedEarnedLeave = carriedEarnedLeave,
-                CarriedSickLeave = carriedSickLeave,
-                CarriedPersonalLeave = carriedPersonalLeave,
-                CarriedUnpaidLeave = carriedUnpaidLeave,
-                CarriedLeaveWithoutPay = carriedLeaveWithoutPay
+                new {
+                    code = "ML",
+                    name = "Medical Leave",
+                    allocated = allotment.MedicalLeave,
+                    used = usedByType.ContainsKey("ML") ? usedByType["ML"] : 0,
+                    carried = carriedMedicalLeave,
+                    remaining = allotment.MedicalLeave + carriedMedicalLeave - (usedByType.ContainsKey("ML") ? usedByType["ML"] : 0)
+                },
+                new {
+                    code = "CL",
+                    name = "Casual Leave",
+                    allocated = allotment.CasualLeave,
+                    used = usedByType.ContainsKey("CL") ? usedByType["CL"] : 0,
+                    carried = carriedCasualLeave,
+                    remaining = allotment.CasualLeave + carriedCasualLeave - (usedByType.ContainsKey("CL") ? usedByType["CL"] : 0)
+                },
+                new {
+                    code = "EL",
+                    name = "Earned Leave",
+                    allocated = allotment.EarnedLeave,
+                    used = usedByType.ContainsKey("EL") ? usedByType["EL"] : 0,
+                    carried = carriedEarnedLeave,
+                    remaining = allotment.EarnedLeave + carriedEarnedLeave - (usedByType.ContainsKey("EL") ? usedByType["EL"] : 0)
+                },
+                new {
+                    code = "SL",
+                    name = "Sick Leave",
+                    allocated = allotment.SickLeave,
+                    used = usedByType.ContainsKey("SL") ? usedByType["SL"] : 0,
+                    carried = carriedSickLeave,
+                    remaining = allotment.SickLeave + carriedSickLeave - (usedByType.ContainsKey("SL") ? usedByType["SL"] : 0)
+                },
+                new {
+                    code = "PL",
+                    name = "Personal Leave",
+                    allocated = allotment.PersonalLeave,
+                    used = usedByType.ContainsKey("PL") ? usedByType["PL"] : 0,
+                    carried = carriedPersonalLeave,
+                    remaining = allotment.PersonalLeave + carriedPersonalLeave - (usedByType.ContainsKey("PL") ? usedByType["PL"] : 0)
+                },
+                new {
+                    code = "UL",
+                    name = "Unpaid Leave",
+                    allocated = allotment.UnpaidLeave,
+                    used = usedByType.ContainsKey("UL") ? usedByType["UL"] : 0,
+                    carried = carriedUnpaidLeave,
+                    remaining = allotment.UnpaidLeave + carriedUnpaidLeave - (usedByType.ContainsKey("UL") ? usedByType["UL"] : 0)
+                },
+                new {
+                    code = "LWP",
+                    name = "Leave Without Pay",
+                    allocated = allotment.LeaveWithoutPay,
+                    used = usedByType.ContainsKey("LWP") ? usedByType["LWP"] : 0,
+                    carried = carriedLeaveWithoutPay,
+                    remaining = allotment.LeaveWithoutPay + carriedLeaveWithoutPay - (usedByType.ContainsKey("LWP") ? usedByType["LWP"] : 0)
+                }
             };
 
-            return Ok(dto);
+            return Ok(new
+            {
+                leaveTypes = leaveTypes,
+                carryForwardApplied = allotment.CarryForwardEarned || allotment.CarryForwardPersonal,
+                carryFromYear = (object)null
+            });
         }
 
         [HttpGet("employee/{employeeId}/{year}/exists")]
