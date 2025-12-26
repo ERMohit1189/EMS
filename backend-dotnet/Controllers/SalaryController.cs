@@ -381,5 +381,49 @@ namespace VendorRegistrationBackend.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        // GET /api/salary-history - Get all salary history for logged-in employee
+        [HttpGet]
+        [Route("/api/salary-history")]
+        [Authorize(Roles = "admin,user,superadmin")]
+        public async Task<IActionResult> GetEmployeeSalaryHistory()
+        {
+            try
+            {
+                var loggedInEmployeeId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(loggedInEmployeeId))
+                    return Unauthorized(new { error = "Employee ID not found in token" });
+
+                // Get all salary records for this employee, sorted by year and month descending
+                // We'll fetch all records by querying multiple years to get complete history
+                var allSalaries = new List<dynamic>();
+                var currentYear = DateTime.UtcNow.Year;
+
+                // Check salary records for current year and previous years (up to 5 years back)
+                for (int year = currentYear; year >= currentYear - 5; year--)
+                {
+                    for (int month = 12; month >= 1; month--)
+                    {
+                        var salaries = await _salaryService.GetGeneratedSalariesAsync(year, month, 1, 1, loggedInEmployeeId);
+                        if (salaries != null && salaries.Count > 0)
+                        {
+                            allSalaries.AddRange(salaries);
+                        }
+                    }
+                }
+
+                // Return as array sorted by year and month descending
+                var sortedSalaries = allSalaries
+                    .OrderByDescending(s => s.year)
+                    .ThenByDescending(s => s.month)
+                    .ToList();
+
+                return Ok(sortedSalaries);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }
