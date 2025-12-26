@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using VendorRegistrationBackend.Data;
 using VendorRegistrationBackend.Models;
 using VendorRegistrationBackend.Services;
 using VendorRegistrationBackend.DTOs;
@@ -14,13 +16,16 @@ namespace VendorRegistrationBackend.Controllers
     public class LeaveController : ControllerBase
     {
         private readonly ILeaveService _leaveService;
+        private readonly AppDbContext _context;
 
-        public LeaveController(ILeaveService leaveService)
+        public LeaveController(ILeaveService leaveService, AppDbContext context)
         {
             _leaveService = leaveService;
+            _context = context;
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetLeaveRequest(string id)
         {
             var leaveRequest = await _leaveService.GetLeaveRequestByIdAsync(id);
@@ -31,6 +36,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("employee/{employeeId}")]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetEmployeeLeaveRequests(string employeeId)
         {
             var leaveRequests = await _leaveService.GetLeaveRequestsByEmployeeAsync(employeeId);
@@ -63,6 +69,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> CreateLeaveRequest([FromBody] LeaveRequest leaveRequest)
         {
             if (!ModelState.IsValid)
@@ -85,6 +92,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> UpdateLeaveRequest(string id, [FromBody] LeaveRequest leaveRequest)
         {
             if (!ModelState.IsValid)
@@ -137,6 +145,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("allotments/{employeeId}/{year}")]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetLeaveAllotment(string employeeId, int year)
         {
             var allotment = await _leaveService.GetLeaveAllotmentAsync(employeeId, year);
@@ -147,13 +156,139 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("employee/{employeeId}/{year}")]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetLeaveAllotmentByEmployee(string employeeId, int year)
         {
             var allotment = await _leaveService.GetLeaveAllotmentAsync(employeeId, year);
             if (allotment == null)
                 return NotFound(new { message = "Leave allotment not found" });
 
-            // Map to DTO to avoid circular references with Employee navigation property
+            // Count 1: Approved leave requests for the given year
+            var approvedLeaves = await _context.LeaveRequests
+                .Where(lr => lr.EmployeeId == employeeId &&
+                             lr.Status == "approved" &&
+                             lr.ApprovedAt.HasValue &&
+                             lr.ApprovedAt.Value.Year == year)
+                .ToListAsync();
+
+            var usedByType = approvedLeaves
+                .GroupBy(lr => lr.LeaveType)
+                .ToDictionary(g => g.Key, g => g.Sum(lr => lr.Days));
+
+            // Count 2: Attendance-marked leaves for the given year
+            var attendanceRecords = await _context.Attendances
+                .Where(a => a.EmployeeId == employeeId && a.Year == year)
+                .ToListAsync();
+
+            foreach (var attendance in attendanceRecords)
+            {
+                if (string.IsNullOrEmpty(attendance.AttendanceData)) continue;
+
+                try
+                {
+                    var attendanceDataJson = System.Text.Json.JsonDocument.Parse(attendance.AttendanceData);
+                    var root = attendanceDataJson.RootElement;
+
+                    foreach (var property in root.EnumerateObject())
+                    {
+                        var dayData = property.Value;
+                        if (dayData.TryGetProperty("status", out var statusEl) &&
+                            statusEl.GetString() == "leave" &&
+                            dayData.TryGetProperty("leaveType", out var leaveTypeEl))
+                        {
+                            var leaveType = leaveTypeEl.GetString() ?? string.Empty;
+                            if (!string.IsNullOrEmpty(leaveType))
+                            {
+                                if (usedByType.ContainsKey(leaveType))
+                                    usedByType[leaveType]++;
+                                else
+                                    usedByType[leaveType] = 1;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Skip if JSON parsing fails
+                }
+            }
+
+            // Calculate carried forward leaves from previous year if applicable
+            int carriedMedicalLeave = 0;
+            int carriedCasualLeave = 0;
+            int carriedEarnedLeave = 0;
+            int carriedSickLeave = 0;
+            int carriedPersonalLeave = 0;
+            int carriedUnpaidLeave = 0;
+            int carriedLeaveWithoutPay = 0;
+
+            // Fetch previous year's allotment to calculate carry forward
+            var previousYearAllotment = await _leaveService.GetLeaveAllotmentAsync(employeeId, year - 1);
+            if (previousYearAllotment != null)
+            {
+                // Calculate used leaves from previous year (same logic)
+                var prevYearApprovedLeaves = await _context.LeaveRequests
+                    .Where(lr => lr.EmployeeId == employeeId &&
+                                 lr.Status == "approved" &&
+                                 lr.ApprovedAt.HasValue &&
+                                 lr.ApprovedAt.Value.Year == year - 1)
+                    .ToListAsync();
+
+                var prevYearUsedByType = prevYearApprovedLeaves
+                    .GroupBy(lr => lr.LeaveType)
+                    .ToDictionary(g => g.Key, g => g.Sum(lr => lr.Days));
+
+                // Count attendance-marked leaves from previous year
+                var prevYearAttendanceRecords = await _context.Attendances
+                    .Where(a => a.EmployeeId == employeeId && a.Year == year - 1)
+                    .ToListAsync();
+
+                foreach (var attendance in prevYearAttendanceRecords)
+                {
+                    if (string.IsNullOrEmpty(attendance.AttendanceData)) continue;
+                    try
+                    {
+                        var attendanceDataJson = System.Text.Json.JsonDocument.Parse(attendance.AttendanceData);
+                        var root = attendanceDataJson.RootElement;
+                        foreach (var property in root.EnumerateObject())
+                        {
+                            var dayData = property.Value;
+                            if (dayData.TryGetProperty("status", out var statusEl) &&
+                                statusEl.GetString() == "leave" &&
+                                dayData.TryGetProperty("leaveType", out var leaveTypeEl))
+                            {
+                                var leaveType = leaveTypeEl.GetString() ?? string.Empty;
+                                if (!string.IsNullOrEmpty(leaveType))
+                                {
+                                    if (prevYearUsedByType.ContainsKey(leaveType))
+                                        prevYearUsedByType[leaveType]++;
+                                    else
+                                        prevYearUsedByType[leaveType] = 1;
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                // Calculate remaining from previous year and carry forward if applicable
+                int prevYearUsedEarned = prevYearUsedByType.ContainsKey("EL") ? prevYearUsedByType["EL"] : 0;
+                int prevYearUsedPersonal = prevYearUsedByType.ContainsKey("PL") ? prevYearUsedByType["PL"] : 0;
+
+                if (allotment.CarryForwardEarned)
+                {
+                    carriedEarnedLeave = previousYearAllotment.EarnedLeave - prevYearUsedEarned;
+                    if (carriedEarnedLeave < 0) carriedEarnedLeave = 0;
+                }
+
+                if (allotment.CarryForwardPersonal)
+                {
+                    carriedPersonalLeave = previousYearAllotment.PersonalLeave - prevYearUsedPersonal;
+                    if (carriedPersonalLeave < 0) carriedPersonalLeave = 0;
+                }
+            }
+
+            // Map to DTO
             var dto = new EmployeeLeaveAllotmentDto
             {
                 Id = allotment.Id,
@@ -166,7 +301,21 @@ namespace VendorRegistrationBackend.Controllers
                 UnpaidLeave = allotment.UnpaidLeave,
                 LeaveWithoutPay = allotment.LeaveWithoutPay,
                 CarryForwardEarned = allotment.CarryForwardEarned,
-                CarryForwardPersonal = allotment.CarryForwardPersonal
+                CarryForwardPersonal = allotment.CarryForwardPersonal,
+                UsedMedicalLeave = usedByType.ContainsKey("ML") ? usedByType["ML"] : 0,
+                UsedCasualLeave = usedByType.ContainsKey("CL") ? usedByType["CL"] : 0,
+                UsedEarnedLeave = usedByType.ContainsKey("EL") ? usedByType["EL"] : 0,
+                UsedSickLeave = usedByType.ContainsKey("SL") ? usedByType["SL"] : 0,
+                UsedPersonalLeave = usedByType.ContainsKey("PL") ? usedByType["PL"] : 0,
+                UsedUnpaidLeave = usedByType.ContainsKey("UL") ? usedByType["UL"] : 0,
+                UsedLeaveWithoutPay = usedByType.ContainsKey("LWP") ? usedByType["LWP"] : 0,
+                CarriedMedicalLeave = carriedMedicalLeave,
+                CarriedCasualLeave = carriedCasualLeave,
+                CarriedEarnedLeave = carriedEarnedLeave,
+                CarriedSickLeave = carriedSickLeave,
+                CarriedPersonalLeave = carriedPersonalLeave,
+                CarriedUnpaidLeave = carriedUnpaidLeave,
+                CarriedLeaveWithoutPay = carriedLeaveWithoutPay
             };
 
             return Ok(dto);
@@ -180,6 +329,37 @@ namespace VendorRegistrationBackend.Controllers
             return Ok(new { exists });
         }
 
+        [HttpGet("employee/{employeeId}/{year}/{month}/approved-dates")]
+        [Authorize(Roles = "admin,user,superadmin")]
+        public async Task<IActionResult> GetApprovedLeaveDates(string employeeId, int year, int month)
+        {
+            // Get all approved leave requests for the employee in the given year
+            var approvedLeaves = await _context.LeaveRequests
+                .Where(lr => lr.EmployeeId == employeeId &&
+                             lr.Status == "approved" &&
+                             lr.ApprovedAt.HasValue &&
+                             lr.ApprovedAt.Value.Year == year)
+                .ToListAsync();
+
+            // Convert to dictionary of day => leave details for quick lookup on frontend
+            var approvedDays = new Dictionary<int, string>();
+
+            foreach (var leave in approvedLeaves)
+            {
+                // Generate all days in the leave period
+                for (var date = leave.StartDate; date <= leave.EndDate; date = date.AddDays(1))
+                {
+                    // Only include days in the requested month and year
+                    if (date.Year == year && date.Month == month)
+                    {
+                        int day = date.Day;
+                        approvedDays[day] = leave.LeaveType; // Map day to leave type
+                    }
+                }
+            }
+
+            return Ok(approvedDays);
+        }
 
         [HttpPost("allotments")]
         [Authorize(Roles = "admin,superadmin")]
@@ -273,7 +453,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost("apply")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> ApplyLeave([FromBody] ApplyLeaveDto request)
         {
             try
@@ -311,7 +491,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost("validate-dates")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> ValidateDates([FromBody] ValidateDatesDto request)
         {
             try
@@ -350,7 +530,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("my")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetMyLeaves()
         {
             var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? "";
@@ -362,7 +542,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("pending")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetPendingLeaves([FromQuery] string teamId = "", [FromQuery] string employeeId = "")
         {
             var leaveRequests = await _leaveService.GetLeaveRequestsByStatusAsync("pending");
@@ -377,7 +557,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("employee/{employeeId}/years")]
-        [Authorize]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetLeaveAllotmentYears(string employeeId)
         {
             var years = await _leaveService.GetLeaveAllotmentYearsAsync(employeeId);
