@@ -211,7 +211,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost]
-        [AllowAnonymous]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceDto dto)
         {
             try

@@ -60,13 +60,13 @@ export default function EmployeeList() {
         params.append('page', String(currentPage));
         params.append('pageSize', String(pageSize));
 
-        const empResponse = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`, { cache: 'no-store' });
+        const empResponse = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`, { cache: 'no-store', credentials: 'include' });
         if (!empResponse.ok) throw new Error('Failed to fetch employees');
         const { data, totalCount } = await empResponse.json();
         const employees_data = data || [];
 
         // Fetch designations once
-        const desigResponse = await fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' });
+        const desigResponse = await fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store', credentials: 'include' });
         const designations = desigResponse.ok ? await desigResponse.json() : [];
         const designationMap: { [key: string]: string } = {};
         designations.forEach((d: any) => { designationMap[d.id] = d.name; });
@@ -95,6 +95,7 @@ export default function EmployeeList() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       if (response.ok) {
         setEmployees(employees.filter(e => e.id !== id));

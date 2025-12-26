@@ -17,6 +17,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> GetEmployee(string id)
         {
             var employee = await _employeeService.GetEmployeeByIdAsync(id);
@@ -70,6 +71,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdateEmployee(string id, [FromBody] UpdateEmployeeDto dto)
         {
             if (!ModelState.IsValid)
@@ -83,6 +85,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost("{id}/change-password")]
+        [Authorize]
         public async Task<IActionResult> ChangePassword(string id, [FromBody] dynamic request)
         {
             string oldPassword = request.oldPassword;

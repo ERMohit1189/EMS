@@ -49,6 +49,16 @@ export default function AllowanceApproval() {
   const [approving, setApproving] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [currentRequiredApprovals, setCurrentRequiredApprovals] = useState<number>(1);
+  const [maxValues, setMaxValues] = useState({
+    travelMax: undefined,
+    foodMax: undefined,
+    accommodationMax: undefined,
+    mobileMax: undefined,
+    internetMax: undefined,
+    utilitiesMax: undefined,
+    parkingMax: undefined,
+    miscMax: undefined,
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedAllowance, setSelectedAllowance] = useState<AllowanceForApproval | null>(null);
 
@@ -59,10 +69,24 @@ export default function AllowanceApproval() {
 
   const fetchAppSettings = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`);
+      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setCurrentRequiredApprovals(data.approvalsRequiredForAllowance || 1);
+
+        // Extract max values from app settings
+        setMaxValues({
+          travelMax: data.travelMax,
+          foodMax: data.foodMax,
+          accommodationMax: data.accommodationMax,
+          mobileMax: data.mobileMax,
+          internetMax: data.internetMax,
+          utilitiesMax: data.utilitiesMax,
+          parkingMax: data.parkingMax,
+          miscMax: data.miscMax,
+        });
       }
     } catch (error) {
       console.error('Error fetching app settings:', error);
@@ -84,8 +108,10 @@ export default function AllowanceApproval() {
         : `${getApiBaseUrl()}/api/allowances/pending`;
       
       console.log('[AllowanceApproval] fetchPendingAllowances - URL:', url);
-      
-      const response = await fetch(url);
+
+      const response = await fetch(url, {
+        credentials: 'include'
+      });
       const data = await response.json();
       console.log('[AllowanceApproval] fetchPendingAllowances - Response:', data);
       
@@ -440,6 +466,7 @@ export default function AllowanceApproval() {
           employeeName={selectedAllowance.employeeName}
           date={selectedAllowance.date}
           isLoading={approving === selectedAllowance.id}
+          maxValues={maxValues}
         />
       )}
     </div>

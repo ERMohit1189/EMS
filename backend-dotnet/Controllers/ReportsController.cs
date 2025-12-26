@@ -16,8 +16,8 @@ namespace VendorRegistrationBackend.Controllers
             _reportsService = reportsService;
         }
 
-        [HttpGet("attendance/{month}/{year}")]
-        public async Task<IActionResult> GetAttendanceReport(int month, int year)
+        [HttpGet("attendance")]
+        public async Task<IActionResult> GetAttendanceReport([FromQuery] int month, [FromQuery] int year)
         {
             if (month < 1 || month > 12)
                 return BadRequest(new { message = "Month must be between 1 and 12" });
@@ -122,37 +122,6 @@ namespace VendorRegistrationBackend.Controllers
             {
                 var report = await _reportsService.GetEmployeeSummaryAsync();
                 return Ok(report);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        [HttpGet("salary-generated")]
-        public async Task<IActionResult> GetSalaryGeneratedSummaries()
-        {
-            try
-            {
-                var summaries = await _reportsService.GetSalaryGeneratedSummariesAsync();
-                return Ok(summaries);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        [HttpGet("salary-generated/{year}/{month}")]
-        public async Task<IActionResult> GetSalaryGeneratedDetails(int year, int month)
-        {
-            if (month < 1 || month > 12)
-                return BadRequest(new { message = "Month must be between 1 and 12" });
-
-            try
-            {
-                var details = await _reportsService.GetSalaryGeneratedDetailsAsync(year, month);
-                return Ok(details);
             }
             catch (Exception ex)
             {

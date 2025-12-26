@@ -37,7 +37,7 @@ export default function DesignationMaster() {
 
   const loadDesignations = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/designations`);
+      const response = await fetch(`${getApiBaseUrl()}/api/designations`, { credentials: 'include' });
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setDesignations(Array.isArray(data) ? data : []);
@@ -60,6 +60,7 @@ export default function DesignationMaster() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/designations`, {
         method: "POST",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName }),
       });
@@ -77,7 +78,7 @@ export default function DesignationMaster() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`${getApiBaseUrl()}/api/designations/${id}`, { method: "DELETE" });
+      await fetch(`${getApiBaseUrl()}/api/designations/${id}`, { method: "DELETE", credentials: 'include' });
       await loadDesignations();
       toast({ title: "Success", description: "Designation deleted" });
     } catch (error) {

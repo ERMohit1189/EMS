@@ -72,7 +72,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> DeleteCircle(string id)
         {
             var success = await _circleService.DeleteCircleAsync(id);

@@ -145,7 +145,7 @@ export default function Allowances() {
     }
     try {
       const url = `${getApiBaseUrl()}/api/teams/employee/${employeeId}`;
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         return data || [];
@@ -164,7 +164,7 @@ export default function Allowances() {
     setLoadingMembers(true);
     try {
       const url = `${getApiBaseUrl()}/api/teams/${teamId}/members`;
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setTeamMembers(data || []);
@@ -208,7 +208,7 @@ export default function Allowances() {
 
       // Fetch allowances and teams in parallel
       const [allowancesResponse, teamsData] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`),
+        fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`, { credentials: 'include' }),
         fetchTeams()
       ]);
 
@@ -243,7 +243,7 @@ export default function Allowances() {
   const fetchCaps = async () => {
     if (!employeeId) return;
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/caps/${employeeId}`);
+      const response = await fetch(`${getApiBaseUrl()}/api/allowances/caps/${employeeId}`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setCaps(data);
@@ -272,7 +272,7 @@ export default function Allowances() {
 
   const fetchAppSettings = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`);
+      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setRequiredApprovals(data.approvalsRequiredForAllowance || 1);
@@ -392,6 +392,7 @@ export default function Allowances() {
 
       const response = await fetch(`${getApiBaseUrl()}/api/allowances/bulk`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -484,6 +485,7 @@ export default function Allowances() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/allowances/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       if (response.ok) {
         toast({

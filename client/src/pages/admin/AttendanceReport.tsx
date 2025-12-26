@@ -22,6 +22,8 @@ interface AttendanceData {
   absent: number;
   leave: number;
   holiday: number;
+  sunday: number;
+  formattedCount?: string;
   total: number;
   locked?: boolean;
 }
@@ -182,6 +184,7 @@ export default function AttendanceReport() {
         'Absent': emp.absent,
         'Leave': emp.leave,
         'Holiday': emp.holiday,
+        'Sunday': emp.sunday,
         'Total Days': emp.total,
       }))
     );
@@ -217,11 +220,12 @@ export default function AttendanceReport() {
       emp.absent.toString(),
       emp.leave.toString(),
       emp.holiday.toString(),
+      emp.sunday.toString(),
       emp.total.toString(),
     ]);
 
     autoTable(doc, {
-      head: [['Employee Code', 'Employee', 'Department', 'Designation', 'P', '1H', '2H', 'A', 'L', 'H', 'Total']],
+      head: [['Employee Code', 'Employee', 'Department', 'Designation', 'P', '1H', '2H', 'A', 'L', 'H', 'S', 'Total']],
       body: tableData,
       startY: 35,
       styles: { fontSize: 8 },
@@ -282,9 +286,10 @@ export default function AttendanceReport() {
       absent: acc.absent + emp.absent,
       leave: acc.leave + emp.leave,
       holiday: acc.holiday + emp.holiday,
+      sunday: acc.sunday + emp.sunday,
       total: acc.total + emp.total,
     }),
-    { present: 0, firstHalf: 0, secondHalf: 0, absent: 0, leave: 0, holiday: 0, total: 0 }
+    { present: 0, firstHalf: 0, secondHalf: 0, absent: 0, leave: 0, holiday: 0, sunday: 0, total: 0 }
   );
 
   if (loading) {
@@ -409,6 +414,9 @@ export default function AttendanceReport() {
                       Holiday
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">
+                      Sunday
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">
                       Total Days
                     </th>
                   </tr>
@@ -495,6 +503,9 @@ export default function AttendanceReport() {
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-purple-600 font-medium">
                             {emp.holiday}
                           </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-orange-600 font-medium">
+                            {emp.sunday}
+                          </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-center font-bold text-gray-900">
                             {emp.total}
                           </td>
@@ -523,6 +534,9 @@ export default function AttendanceReport() {
                         <td className="px-4 py-3 text-sm text-center text-purple-700">
                           {totals.holiday}
                         </td>
+                        <td className="px-4 py-3 text-sm text-center text-orange-700">
+                          {totals.sunday}
+                        </td>
                         <td className="px-4 py-3 text-sm text-center font-bold">
                           {totals.total}
                         </td>
@@ -536,7 +550,7 @@ export default function AttendanceReport() {
 
           {/* Summary */}
           {attendanceData.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-2 mt-4">
               <div className="bg-green-50 p-3 rounded border border-green-200">
                 <p className="text-xs text-green-600 font-medium">Total Present</p>
                 <p className="text-xl font-bold text-green-700">{totals.present}</p>
@@ -560,6 +574,10 @@ export default function AttendanceReport() {
               <div className="bg-purple-50 p-3 rounded border border-purple-200">
                 <p className="text-xs text-purple-600 font-medium">Total Holiday</p>
                 <p className="text-xl font-bold text-purple-700">{totals.holiday}</p>
+              </div>
+              <div className="bg-orange-50 p-3 rounded border border-orange-200">
+                <p className="text-xs text-orange-600 font-medium">Total Sunday</p>
+                <p className="text-xl font-bold text-orange-700">{totals.sunday}</p>
               </div>
             </div>
           )}

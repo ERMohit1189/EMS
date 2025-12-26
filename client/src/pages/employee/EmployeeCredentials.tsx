@@ -72,7 +72,7 @@ export default function EmployeeCredentials() {
         params.append('page', String(currentPage));
         params.append('pageSize', String(pageSize));
 
-        const response = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`);
+        const response = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           const empList = data.data || [];

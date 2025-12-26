@@ -82,7 +82,9 @@ export default function SalaryReport() {
   const fetchSalaryReport = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/salary-report`);
+      const response = await fetch(`${getApiBaseUrl()}/api/salary-report`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setSalaryData(data);

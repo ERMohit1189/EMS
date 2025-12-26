@@ -134,14 +134,17 @@ export default function EmployeeEdit() {
         () =>
           fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, {
             cache: "no-store",
+            credentials: 'include',
           }).then((r) => (r.ok ? r.json() : null)),
         () =>
           fetch(`${getApiBaseUrl()}/api/departments`, {
             cache: "no-store",
+            credentials: 'include',
           }).then((r) => (r.ok ? r.json() : [])),
         () =>
           fetch(`${getApiBaseUrl()}/api/designations`, {
             cache: "no-store",
+            credentials: 'include',
           }).then((r) => (r.ok ? r.json() : [])),
       ])
         .then(([emp, depts, desigs]) => {
@@ -379,6 +382,7 @@ export default function EmployeeEdit() {
         `${getApiBaseUrl()}/api/employees/${employeeId}`,
         {
           method: "PUT",
+          credentials: 'include',
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         },

@@ -67,11 +67,16 @@ export default function MyProfile() {
   const [cities, setCities] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Debug: log cities whenever they change
+  useEffect(() => {
+    console.log('Cities state updated:', cities.length, 'cities available');
+  }, [cities]);
+
   const fetchEmployeeDataParallel = async () => {
     if (!employeeId) return;
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`);
+      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         // Get department and designation from localStorage (saved during login), fall back to API
@@ -91,6 +96,12 @@ export default function MyProfile() {
           console.warn('MyProfile: missing role/status from API for', req.params?.id || employeeId, data.role, data.status);
         }
 
+        console.log('Employee data loaded:', {
+          state: employeeWithNames.state,
+          city: employeeWithNames.city,
+          hasState: !!employeeWithNames.state,
+          hasCity: !!employeeWithNames.city,
+        });
         setEmployee(employeeWithNames);
         if (data.photo) {
           // Append cache-busting query param so browsers load the replaced file immediately
@@ -158,103 +169,64 @@ export default function MyProfile() {
 
   useEffect(() => {
     if (employee) {
-      // preload cities for the employee's state first so Select has options
-      const initialCities = getCitiesByState(employee.state || "");
+      // Normalize state and city values
+      const employeeState = employee.state?.trim() || "";
+      const employeeCity = employee.city?.trim() || "";
+
+      // Preload cities for the employee's state
+      const initialCities = getCitiesByState(employeeState);
+
+      // Ensure city is in the list (in case of case sensitivity issues)
+      if (employeeCity && !initialCities.includes(employeeCity)) {
+        console.warn(`City "${employeeCity}" not found in state "${employeeState}" cities list. Available cities:`, initialCities.slice(0, 5));
+      }
+
       setCities(initialCities);
 
-      // Now reset the form values (state & city will match available options)
+      // Reset form with all employee data
       form.reset({
-        name: employee.name,
-        fatherName: employee.fatherName,
-        mobile: employee.mobile,
+        name: employee.name || "",
+        fatherName: employee.fatherName || "",
+        mobile: employee.mobile || "",
         alternateNo: employee.alternateNo || "",
-        address: employee.address,
-        city: employee.city,
-        state: employee.state,
+        address: employee.address || "",
+        city: employeeCity,
+        state: employeeState,
         dob: employee.dob || "",
         bloodGroup: employee.bloodGroup || "",
         aadhar: employee.aadhar || "",
         pan: employee.pan || "",
       });
-
-      // Force set state and city so controlled Selects bind reliably
-      console.log('MyProfile: setting state immediate ->', employee.state || '');
-      form.setValue("state", employee.state || "", { shouldValidate: false });
-      setTimeout(() => {
-        console.log('MyProfile: setting state microtask ->', employee.state || '');
-        form.setValue("state", employee.state || "", { shouldValidate: false });
-      }, 0);
-
-      // Try immediate set and also a microtask fallback to avoid timing issues with Select components
-      if (employee.city && initialCities.includes(employee.city)) {
-        console.log('MyProfile: setting city immediate ->', employee.city);
-        form.setValue("city", employee.city, { shouldValidate: false });
-        setTimeout(() => {
-          console.log('MyProfile: setting city microtask ->', employee.city);
-          form.setValue("city", employee.city, { shouldValidate: false });
-        }, 0);
-      } else {
-        console.log('MyProfile: clearing city immediate');
-        form.setValue("city", "", { shouldValidate: false });
-        setTimeout(() => {
-          console.log('MyProfile: clearing city microtask');
-          form.setValue("city", "", { shouldValidate: false });
-        }, 0);
-      }
-
-      // Debug: log employee state and form values after reset and after microtask to verify binding
-      try {
-        console.log('MyProfile: employee.state', employee.state);
-        console.log('MyProfile: initialCities includes city?', initialCities.includes(employee.city || ''));
-        console.log('MyProfile: form values after reset (immediate)', form.getValues());
-        setTimeout(() => {
-          console.log('MyProfile: form values after reset (microtask)', form.getValues());
-        }, 0);
-
-        // Force final set after a short delay to override any later clears
-        setTimeout(() => {
-          console.log('MyProfile: forcing final state/city set ->', employee.state, employee.city);
-          form.setValue("state", employee.state || "", { shouldValidate: false });
-          const finalCities = getCitiesByState(employee.state || "");
-          if (employee.city && finalCities.includes(employee.city)) {
-            form.setValue("city", employee.city, { shouldValidate: false });
-          } else {
-            form.setValue("city", "", { shouldValidate: false });
-          }
-          console.log('MyProfile: form values after forced set', form.getValues());
-        }, 50);
-      } catch (e) {
-        console.warn('MyProfile: failed to get form values after reset', e);
-      }
     }
   }, [employee, form]);
 
   // Watch state changes and update city options
   const watchedState = form.watch("state");
-  const initializingRef = useRef(true);
+  const initialStateRef = useRef<string | null>(null);
 
   useEffect(() => {
-    console.log('MyProfile: watchedState changed ->', watchedState);
+    // Set initial state on first load
+    if (initialStateRef.current === null && employee?.state) {
+      initialStateRef.current = employee.state;
+    }
+  }, [employee?.state]);
+
+  useEffect(() => {
     if (watchedState) {
-      setCities(getCitiesByState(watchedState));
-      // Only clear city when state is changed by the user (not during initial form population)
-      if (!initializingRef.current && watchedState !== employee?.state) {
-        form.setValue("city", "", { shouldValidate: false });
+      const newCities = getCitiesByState(watchedState);
+      setCities(newCities);
+
+      // Only clear city if state changed by user (not initial load)
+      if (watchedState !== initialStateRef.current) {
+        const currentCity = form.getValues("city");
+        if (!newCities.includes(currentCity)) {
+          form.setValue("city", "", { shouldValidate: false });
+        }
       }
     } else {
       setCities([]);
-      if (!initializingRef.current) {
-        form.setValue("city", "", { shouldValidate: false });
-      }
     }
-  }, [watchedState, form, employee?.state]);
-
-  // After initial population complete, clear the init flag
-  useEffect(() => {
-    // Run in microtask so this runs after initial setValue calls
-    const t = setTimeout(() => { initializingRef.current = false; }, 0);
-    return () => clearTimeout(t);
-  }, []);
+  }, [watchedState, form]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -296,6 +268,7 @@ export default function MyProfile() {
 
       const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/profile`, {
         method: 'PUT',
+        credentials: 'include',
         body: formData,
       });
 
@@ -538,67 +511,83 @@ export default function MyProfile() {
                 <FormField
                   control={form.control}
                   name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City *</FormLabel>
-                      <FormControl>
-                        <Select value={field.value || ""} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {cities.map((c) => (
-                              <SelectItem key={c} value={c}>
-                                {c}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    console.log('City field render - value:', field.value, 'cities length:', cities.length);
+                    return (
+                      <FormItem>
+                        <FormLabel>City *</FormLabel>
+                        <FormControl>
+                          <Select value={field.value || ""} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select City" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-48 overflow-y-auto">
+                              {cities && cities.length > 0 ? (
+                                cities.map((c) => (
+                                  <SelectItem key={c} value={c}>
+                                    {c}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="p-2 text-amber-600">
+                                  {watchedState ? "No cities available for this state" : "Select a state first"}
+                                </div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
                   control={form.control}
                   name="state"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State *</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value || ""}
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            const newCities = getCitiesByState(val);
-                            setCities(newCities);
-                            // clear city only if it doesn't belong to the new state's cities
-                            const currentCity = form.getValues("city");
-                            if (!newCities.includes(currentCity)) {
-                              form.setValue("city", "", { shouldValidate: false });
-                            }
-                          }}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {IndianStates.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    console.log('State field render - value:', field.value, 'IndianStates length:', IndianStates.length);
+                    return (
+                      <FormItem>
+                        <FormLabel>State *</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              const newCities = getCitiesByState(val);
+                              setCities(newCities);
+                              // clear city only if it doesn't belong to the new state's cities
+                              const currentCity = form.getValues("city");
+                              if (!newCities.includes(currentCity)) {
+                                form.setValue("city", "", { shouldValidate: false });
+                              }
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select State" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-56 overflow-y-auto">
+                              {IndianStates && IndianStates.length > 0 ? (
+                                IndianStates.map((s) => (
+                                  <SelectItem key={s} value={s}>
+                                    {s}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="p-2 text-red-500">No states available</div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 

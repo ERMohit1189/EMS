@@ -139,6 +139,10 @@ builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IDesignationService, DesignationService>();
 builder.Services.AddScoped<IZoneService, ZoneService>();
 builder.Services.AddScoped<ICircleService, CircleService>();
+builder.Services.AddScoped<IAllowanceService, AllowanceService>();
+builder.Services.AddScoped<IExportHeaderService, ExportHeaderService>();
+builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Add support for JSON serialization options
 builder.Services.AddControllers()
@@ -239,6 +243,8 @@ app.Use(async (context, next) =>
                                 new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, employee.Name ?? ""),
                                 new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, employee.Email ?? ""),
                                 new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, employee.Role ?? "user"),
+                                new System.Security.Claims.Claim("Role", employee.Role ?? "user"),
+                                new System.Security.Claims.Claim("UserType", "employee"),
                             };
                             var identity = new System.Security.Claims.ClaimsIdentity(claims, "sid");
                             context.User = new System.Security.Claims.ClaimsPrincipal(identity);

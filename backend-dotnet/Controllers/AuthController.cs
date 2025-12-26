@@ -5,6 +5,7 @@ using VendorRegistrationBackend.Data;
 using VendorRegistrationBackend.DTOs;
 using VendorRegistrationBackend.Services;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace VendorRegistrationBackend.Controllers
 {

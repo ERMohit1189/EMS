@@ -61,7 +61,9 @@
       "Bash(ls -la \"D:\\\\VendorRegistrationForm\\\\backend-dotnet\\\\Models\"\" | grep -i \"rate|vendor \")",
       "Bash(xargs basename:*)",
       "Bash(dotnet clean:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(ls:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Allow admin and user roles to access leave endpoints\n\nAdded explicit role authorization \\(admin,user,superadmin\\) to all leave API endpoints \nto fix 401 Unauthorized errors for these roles:\n- GET /api/leaves/my\n- GET /api/leaves/pending\n- POST /api/leaves/apply\n- POST /api/leaves/validate-dates\n- GET /api/leaves/{id}\n- GET /api/leaves/employee/{employeeId}\n- GET /api/leaves/employee/{employeeId}/{year}\n- GET /api/leaves/allotments/{employeeId}/{year}\n- GET /api/leaves/employee/{employeeId}/{year}/{month}/approved-dates\n- GET /api/leaves/employee/{employeeId}/years\n- POST /api/leaves \\(create\\)\n- PUT /api/leaves/{id} \\(update\\)\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []

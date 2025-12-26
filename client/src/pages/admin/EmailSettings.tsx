@@ -3,19 +3,42 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useLocation } from 'wouter';
+import { getApiBaseUrl } from '@/lib/api';
 
 export default function EmailSettings() {
+  const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<any>({});
   const [testEmail, setTestEmail] = useState('');
   const [testResult, setTestResult] = useState<any>(null);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const { toast } = useToast();
 
+  // Check if user is superadmin
   useEffect(() => {
+    const role = localStorage.getItem('employeeRole');
+    const normalizedRole = role ? role.toLowerCase() : '';
+    if (normalizedRole !== 'superadmin') {
+      setIsUnauthorized(true);
+      toast({
+        title: 'Unauthorized',
+        description: 'Only superadmin can access email settings',
+        variant: 'destructive'
+      });
+      // Redirect after showing toast
+      setTimeout(() => setLocation('/'), 1000);
+    }
+  }, [setLocation, toast]);
+
+  useEffect(() => {
+    // Don't fetch if user is not authorized
+    if (isUnauthorized) return;
+
     (async () => {
       try {
         setLoading(true);
-        const resp = await fetch('/api/admin/email-settings', { credentials: 'include' });
+        const resp = await fetch(`${getApiBaseUrl()}/api/admin/email-settings`, { credentials: 'include' });
         const raw = await resp.text();
         let js: any = null;
         try { js = raw ? JSON.parse(raw) : null; } catch (e) { /* invalid json, proceed with raw */ }
@@ -26,13 +49,13 @@ export default function EmailSettings() {
         toast({ title: 'Error', description: err.message || 'Failed to load settings', variant: 'destructive' });
       } finally { setLoading(false); }
     })();
-  }, []);
+  }, [isUnauthorized, toast]);
 
   const handleSave = async () => {
     try {
       setLoading(true);
       const body = { ...settings };
-      const resp = await fetch('/api/admin/email-settings', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const resp = await fetch(`${getApiBaseUrl()}/api/admin/email-settings`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const raw = await resp.text();
       let js: any = null;
       try { js = raw ? JSON.parse(raw) : null; } catch (e) { /* ignore parse error */ }
@@ -49,7 +72,7 @@ export default function EmailSettings() {
     try {
       if (!testEmail) return toast({ title: 'Error', description: 'Enter recipient email', variant: 'destructive' });
       setLoading(true);
-      const resp = await fetch('/api/admin/email-settings/test', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: testEmail }) });
+      const resp = await fetch(`${getApiBaseUrl()}/api/admin/email-settings/test`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: testEmail }) });
       const raw = await resp.text();
       let js: any = null;
       try { js = raw ? JSON.parse(raw) : null; } catch (e) { /* ignore parse error */ }
@@ -63,7 +86,14 @@ export default function EmailSettings() {
     } finally { setLoading(false); }
   };
 
-
+  // Don't render content if user is not superadmin
+  if (isUnauthorized) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <p className="text-muted-foreground">Redirecting...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 max-w-2xl">

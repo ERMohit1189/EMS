@@ -17,7 +17,7 @@ export interface ExportHeader {
  */
 export const fetchExportHeader = async (): Promise<ExportHeader> => {
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+    const response = await fetch(`${getApiBaseUrl()}/api/export-headers`, { credentials: 'include' });
     if (response.ok) {
       const data = await response.json();
       return data;
@@ -34,7 +34,7 @@ export const fetchExportHeader = async (): Promise<ExportHeader> => {
  */
 export const fetchTemplateColumns = async (): Promise<string[] | null> => {
   try {
-    const res = await fetch(`${getApiBaseUrl()}/api/export/template-columns`);
+    const res = await fetch(`${getApiBaseUrl()}/api/export/template-columns`, { credentials: 'include' });
     if (!res.ok) return null;
     const { columns } = await res.json();
     if (!columns || !Array.isArray(columns)) return null;
@@ -54,6 +54,7 @@ export const uploadTemplate = async (file: File): Promise<string[] | null> => {
     fd.append('template', file);
     const res = await fetch(`${getApiBaseUrl()}/api/export/upload-template`, {
       method: 'POST',
+      credentials: 'include',
       body: fd,
     });
     if (!res.ok) {

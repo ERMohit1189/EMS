@@ -136,7 +136,9 @@ export default function SalaryStructure() {
 
   const fetchEmployeesParallel = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
+      const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.data || []);
@@ -153,7 +155,9 @@ export default function SalaryStructure() {
 
   const fetchConfiguredCountParallel = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/salary-structures/count`);
+      const response = await fetch(`${getApiBaseUrl()}/api/salary-structures/count`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setConfiguredCount(typeof data.count === 'number' ? data.count : 0);
@@ -168,7 +172,9 @@ export default function SalaryStructure() {
 
   const fetchExportHeaderParallel = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setExportHeader(data);
@@ -295,7 +301,9 @@ export default function SalaryStructure() {
     setGrossInput("");
     setNetInput("");
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`);
+      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         // Convert all string numeric values to numbers and round to 2 decimals to fix precision issues
@@ -484,6 +492,7 @@ export default function SalaryStructure() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(salaryData),
+        credentials: 'include',
       });
 
       if (!response.ok) {

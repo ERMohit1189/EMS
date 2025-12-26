@@ -151,8 +151,8 @@ export default function EmployeeRegistration() {
     const loadData = async () => {
       try {
         const [deptRes, desigRes] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/departments`),
-          fetch(`${getApiBaseUrl()}/api/designations`),
+          fetch(`${getApiBaseUrl()}/api/departments`, { credentials: 'include' }),
+          fetch(`${getApiBaseUrl()}/api/designations`, { credentials: 'include' }),
         ]);
         if (deptRes.ok) setDepartments(await deptRes.json());
         if (desigRes.ok) setDesignations(await desigRes.json());
@@ -229,6 +229,7 @@ export default function EmployeeRegistration() {
 
       const response = await fetch(`${getApiBaseUrl()}/api/employees`, {
         method: "POST",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });

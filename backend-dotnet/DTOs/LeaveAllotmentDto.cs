@@ -68,6 +68,21 @@ namespace VendorRegistrationBackend.DTOs
         public int LeaveWithoutPay { get; set; }
         public bool CarryForwardEarned { get; set; }
         public bool CarryForwardPersonal { get; set; }
+        public int UsedMedicalLeave { get; set; } = 0;
+        public int UsedCasualLeave { get; set; } = 0;
+        public int UsedEarnedLeave { get; set; } = 0;
+        public int UsedSickLeave { get; set; } = 0;
+        public int UsedPersonalLeave { get; set; } = 0;
+        public int UsedUnpaidLeave { get; set; } = 0;
+        public int UsedLeaveWithoutPay { get; set; } = 0;
+        // Carried forward amounts from previous year
+        public int CarriedMedicalLeave { get; set; } = 0;
+        public int CarriedCasualLeave { get; set; } = 0;
+        public int CarriedEarnedLeave { get; set; } = 0;
+        public int CarriedSickLeave { get; set; } = 0;
+        public int CarriedPersonalLeave { get; set; } = 0;
+        public int CarriedUnpaidLeave { get; set; } = 0;
+        public int CarriedLeaveWithoutPay { get; set; } = 0;
     }
 
     public class BulkLeaveAllotmentDto

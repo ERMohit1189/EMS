@@ -60,6 +60,7 @@ interface LeaveType {
   used?: number;
   remaining?: number;
   disabled?: boolean;
+  carried?: number;
 }
 
 export default function BulkAttendanceMarking() {
@@ -332,6 +333,17 @@ export default function BulkAttendanceMarking() {
       const salaryResp = await fetch(`${getApiBaseUrl()}/api/salary/check/${employeeId}/${month}/${year}`, { credentials: 'include' });
       const salaryExists = salaryResp.ok && (await salaryResp.json())?.exists;
 
+      // Fetch approved leave dates for the employee in this month/year
+      let approvedLeaves: Record<number, string> = {};
+      try {
+        const approvedResp = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}/${month}/approved-dates`, { credentials: 'include' });
+        if (approvedResp.ok) {
+          approvedLeaves = await approvedResp.json();
+        }
+      } catch (e) {
+        console.warn('Failed to fetch approved leave dates:', e);
+      }
+
       const resp = await fetch(`${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`, { credentials: 'include' });
       if (resp.ok) {
         const data = await resp.json();
@@ -353,11 +365,26 @@ export default function BulkAttendanceMarking() {
 
         if (data) {
           // data.attendanceData may be a JSON string
-          const parsed = typeof data.attendanceData === 'string' ? JSON.parse(data.attendanceData) : (data.attendanceData || {});
+          let parsed = typeof data.attendanceData === 'string' ? JSON.parse(data.attendanceData) : (data.attendanceData || {});
+
+          // Mark approved leave days as immutable so they can't be edited
+          Object.keys(approvedLeaves).forEach((dayStr) => {
+            const day = parseInt(dayStr);
+            if (!parsed[day]) {
+              parsed[day] = { status: 'leave', leaveType: approvedLeaves[day], immutable: true };
+            } else if (parsed[day].status === 'leave' || !parsed[day].status) {
+              parsed[day] = { ...parsed[day], status: 'leave', leaveType: approvedLeaves[day], immutable: true };
+            }
+          });
+
           setAttendanceByEmployee((prev) => ({ ...prev, [key]: parsed }));
         } else {
-          // No attendance found - initialize
+          // No attendance found - initialize and add approved leaves
           const initial = createInitialAttendance();
+          Object.keys(approvedLeaves).forEach((dayStr) => {
+            const day = parseInt(dayStr);
+            initial[day] = { status: 'leave', leaveType: approvedLeaves[day], immutable: true };
+          });
           setAttendanceByEmployee((prev) => ({ ...prev, [key]: initial }));
         }
 
@@ -366,8 +393,12 @@ export default function BulkAttendanceMarking() {
           setSelectedEmployees((prev) => (prev.includes(key) ? prev : [...prev, key]));
         }
       } else {
-        // initialize empty
+        // initialize empty but with approved leaves
         const initial = createInitialAttendance();
+        Object.keys(approvedLeaves).forEach((dayStr) => {
+          const day = parseInt(dayStr);
+          initial[day] = { status: 'leave', leaveType: approvedLeaves[day], immutable: true };
+        });
         setAttendanceByEmployee((prev) => ({ ...prev, [key]: initial }));
       }
     } catch (error) {
@@ -488,10 +519,54 @@ export default function BulkAttendanceMarking() {
       });
       if (response.ok) {
         const data = await response.json();
-        // The API returns { leaveTypes: [...] }
-        const types = data.leaveTypes || data || [];
-        leaveAllotmentsCache.current[cacheKey] = Array.isArray(types) ? types : [];
-        setLeaveTypes(Array.isArray(types) ? types : []);
+        // Transform backend response into LeaveType array
+        const leaveTypeMap: Record<string, { code: string; name: string }> = {
+          medicalLeave: { code: 'ML', name: 'Medical Leave' },
+          casualLeave: { code: 'CL', name: 'Casual Leave' },
+          earnedLeave: { code: 'EL', name: 'Earned Leave' },
+          sickLeave: { code: 'SL', name: 'Sick Leave' },
+          personalLeave: { code: 'PL', name: 'Personal Leave' },
+          unpaidLeave: { code: 'UL', name: 'Unpaid Leave' },
+          leaveWithoutPay: { code: 'LWP', name: 'Leave Without Pay' },
+        };
+
+        const usedMapKeys: Record<string, string> = {
+          medicalLeave: 'usedMedicalLeave',
+          casualLeave: 'usedCasualLeave',
+          earnedLeave: 'usedEarnedLeave',
+          sickLeave: 'usedSickLeave',
+          personalLeave: 'usedPersonalLeave',
+          unpaidLeave: 'usedUnpaidLeave',
+          leaveWithoutPay: 'usedLeaveWithoutPay',
+        };
+
+        const carriedMapKeys: Record<string, string> = {
+          medicalLeave: 'carriedMedicalLeave',
+          casualLeave: 'carriedCasualLeave',
+          earnedLeave: 'carriedEarnedLeave',
+          sickLeave: 'carriedSickLeave',
+          personalLeave: 'carriedPersonalLeave',
+          unpaidLeave: 'carriedUnpaidLeave',
+          leaveWithoutPay: 'carriedLeaveWithoutPay',
+        };
+
+        const types: LeaveType[] = Object.entries(leaveTypeMap).map(([key, { code, name }]) => {
+          const allocated = data[key] || 0;
+          const used = data[usedMapKeys[key]] || 0;
+          const carried = data[carriedMapKeys[key]] || 0;
+          return {
+            code,
+            name,
+            allocated,
+            used,
+            remaining: allocated + carried - used,
+            disabled: allocated === 0 && carried === 0,
+            carried,
+          };
+        });
+
+        leaveAllotmentsCache.current[cacheKey] = types;
+        setLeaveTypes(types);
       } else {
         setLeaveTypes([]);
       }

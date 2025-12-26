@@ -58,7 +58,9 @@ export default function EmployeeSalaryHistory() {
   const fetchSalaryHistory = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/salary-history`);
+      const response = await fetch(`${getApiBaseUrl()}/api/salary-history`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
         // Try to read text for HTML error page
         const text = await response.text();

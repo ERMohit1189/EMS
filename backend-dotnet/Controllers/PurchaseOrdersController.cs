@@ -22,6 +22,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> GetPurchaseOrder(string id, [FromQuery] bool withLines = false)
         {
             try
@@ -189,6 +190,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("vendor/{vendorId}")]
+        [Authorize]
         public async Task<IActionResult> GetPurchaseOrdersByVendor(string vendorId)
         {
             var purchaseOrders = await _purchaseOrderService.GetPurchaseOrdersByVendorAsync(vendorId);
@@ -196,7 +198,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPost("generate")]
-        [AllowAnonymous]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> GenerateGroupedPurchaseOrders([FromBody] GenerateGroupedPOsRequest request)
         {
             try

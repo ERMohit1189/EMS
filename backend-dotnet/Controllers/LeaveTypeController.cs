@@ -24,5 +24,13 @@ namespace VendorRegistrationBackend.Controllers
 
             return Ok(leaveTypes);
         }
+
+        // Support hyphenated route used by frontend: GET /api/leave-types
+        [HttpGet]
+        [Route("/api/leave-types")]
+        public IActionResult GetLeaveTypesHyphen()
+        {
+            return GetLeaveTypes();
+        }
     }
 }

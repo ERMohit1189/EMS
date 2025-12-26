@@ -113,7 +113,8 @@ export default function Attendance() {
       }
       
       const response = await fetch(
-        `${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`
+        `${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`,
+        { credentials: 'include' }
       );
       if (response.ok) {
         const data = await response.json();
@@ -250,6 +251,7 @@ export default function Attendance() {
       
       const response = await fetch(`${getApiBaseUrl()}/api/attendance`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId,

@@ -35,8 +35,12 @@ namespace VendorRegistrationBackend.Data
 
         // Salary & Payroll
         public DbSet<SalaryStructure> SalaryStructures { get; set; } = null!;
+        public DbSet<GeneratedSalary> GeneratedSalaries { get; set; } = null!;
         public DbSet<PaymentMaster> PaymentMasters { get; set; } = null!;
         public DbSet<Holiday> Holidays { get; set; } = null!;
+
+        // Allowances
+        public DbSet<DailyAllowance> DailyAllowances { get; set; } = null!;
 
         // Teams
         public DbSet<Team> Teams { get; set; } = null!;
@@ -46,6 +50,12 @@ namespace VendorRegistrationBackend.Data
 
         // Session Management
         public DbSet<SessionRow> Sessions { get; set; } = null!;
+
+        // Export Settings
+        public DbSet<ExportHeader> ExportHeaders { get; set; } = null!;
+
+        // Application Settings
+        public DbSet<AppSettings> AppSettings { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -220,6 +230,77 @@ namespace VendorRegistrationBackend.Data
 
             modelBuilder.Entity<Site>()
                 .HasIndex(s => new { s.VendorId, s.Name });
+
+            // Configure DailyAllowance relationships
+            modelBuilder.Entity<DailyAllowance>()
+                .HasOne(da => da.Employee)
+                .WithMany(e => e.DailyAllowances)
+                .HasForeignKey(da => da.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DailyAllowance>()
+                .HasOne(da => da.Team)
+                .WithMany(t => t.DailyAllowances)
+                .HasForeignKey(da => da.TeamId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Create indexes for DailyAllowance
+            modelBuilder.Entity<DailyAllowance>()
+                .HasIndex(da => da.ApprovalStatus);
+
+            modelBuilder.Entity<DailyAllowance>()
+                .HasIndex(da => da.TeamId);
+
+            modelBuilder.Entity<DailyAllowance>()
+                .HasIndex(da => da.ApprovalCount);
+
+            modelBuilder.Entity<DailyAllowance>()
+                .HasIndex(da => da.PaidStatus);
+
+            // Configure ExportHeader table mapping with column names
+            var exportHeaderBuilder = modelBuilder.Entity<ExportHeader>()
+                .ToTable("export_headers");
+
+            exportHeaderBuilder.Property(e => e.Id).HasColumnName("id");
+            exportHeaderBuilder.Property(e => e.CompanyName).HasColumnName("company_name");
+            exportHeaderBuilder.Property(e => e.ReportTitle).HasColumnName("report_title");
+            exportHeaderBuilder.Property(e => e.FooterText).HasColumnName("footer_text");
+            exportHeaderBuilder.Property(e => e.ContactPhone).HasColumnName("contact_phone");
+            exportHeaderBuilder.Property(e => e.ContactEmail).HasColumnName("contact_email");
+            exportHeaderBuilder.Property(e => e.Website).HasColumnName("website");
+            exportHeaderBuilder.Property(e => e.Gstin).HasColumnName("gstin");
+            exportHeaderBuilder.Property(e => e.Address).HasColumnName("address");
+            exportHeaderBuilder.Property(e => e.State).HasColumnName("state");
+            exportHeaderBuilder.Property(e => e.City).HasColumnName("city");
+            exportHeaderBuilder.Property(e => e.ShowGeneratedDate).HasColumnName("show_generated_date");
+            exportHeaderBuilder.Property(e => e.CreatedAt).HasColumnName("created_at");
+            exportHeaderBuilder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            // Configure UpdatedAt to be automatically set on updates
+            exportHeaderBuilder.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate();
+
+            // Configure AppSettings table mapping with column names
+            var appSettingsBuilder = modelBuilder.Entity<AppSettings>()
+                .ToTable("app_settings");
+
+            appSettingsBuilder.Property(a => a.Id).HasColumnName("id");
+            appSettingsBuilder.Property(a => a.ApprovalsRequiredForAllowance).HasColumnName("approvals_required_for_allowance");
+            appSettingsBuilder.Property(a => a.PoGenerationDate).HasColumnName("po_generation_date");
+            appSettingsBuilder.Property(a => a.InvoiceGenerationDate).HasColumnName("invoice_generation_date");
+            appSettingsBuilder.Property(a => a.SmtpHost).HasColumnName("smtp_host");
+            appSettingsBuilder.Property(a => a.SmtpPort).HasColumnName("smtp_port");
+            appSettingsBuilder.Property(a => a.SmtpUser).HasColumnName("smtp_user");
+            appSettingsBuilder.Property(a => a.SmtpPass).HasColumnName("smtp_pass");
+            appSettingsBuilder.Property(a => a.SmtpSecure).HasColumnName("smtp_secure");
+            appSettingsBuilder.Property(a => a.FromEmail).HasColumnName("from_email");
+            appSettingsBuilder.Property(a => a.FromName).HasColumnName("from_name");
+            appSettingsBuilder.Property(a => a.CreatedAt).HasColumnName("created_at");
+            appSettingsBuilder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
+
+            // Configure UpdatedAt to be automatically set on updates
+            appSettingsBuilder.Property(a => a.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate();
         }
     }
 

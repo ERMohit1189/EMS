@@ -24,7 +24,10 @@ interface EmployeeSalaryData {
   halfDays: number;
   absentDays: number;
   leaveDays: number;
+  sundays: number;
+  holidays?: number;
   workingDays: number;
+  salaryDays?: number;
   basicSalary: number;
   hra: number;
   da: number;
@@ -41,6 +44,8 @@ interface EmployeeSalaryData {
   incomeTax: number;
   epf: number;
   esic: number;
+  fixedDeductions: number;
+  absentDaysDeduction: number;
   totalDeductions: number;
   netSalary: number;
 }
@@ -55,6 +60,7 @@ export default function SalaryGeneration() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [printLoading, setPrintLoading] = useState(false);
   const [attendanceModal, setAttendanceModal] = useState<{ open: boolean; employee?: EmployeeSalaryData; days?: any[] }>({ open: false });
+  const [deductionModal, setDeductionModal] = useState<{ open: boolean; employee?: EmployeeSalaryData }>({ open: false });
   const [tokenLoadingMap, setTokenLoadingMap] = useState<Record<string, boolean>>({});
 
   const monthNames = [
@@ -111,14 +117,23 @@ export default function SalaryGeneration() {
 
       if (response.ok) {
         const data = await response.json();
-        // Handle missing-only response shape
-        if (onlyMissing && data && data.generated) {
-          setSalaryData(data.generated || []);
-          toast({ title: 'Success', description: `Generated ${data.generatedCount || data.generated?.length || 0} salaries. Skipped ${data.skippedCount || 0}.` });
+        // Handle both response formats
+        let salaries: any[] = [];
+        if (data && data.generated && Array.isArray(data.generated)) {
+          // Response format: { generated: [...], generatedCount, skippedCount }
+          salaries = data.generated;
+          toast({ title: 'Success', description: `Generated ${data.generatedCount || salaries.length || 0} salaries. Skipped ${data.skippedCount || 0}.` });
+        } else if (Array.isArray(data)) {
+          // Response format: [...]
+          salaries = data;
+          toast({ title: 'Success', description: `Generated salary for ${salaries.length} employees` });
         } else {
-          setSalaryData(data);
-          toast({ title: 'Success', description: `Generated salary for ${Array.isArray(data) ? data.length : 0} employees` });
+          // Handle unexpected response format
+          console.warn('Unexpected response format:', data);
+          salaries = [];
+          toast({ title: 'Warning', description: 'Unexpected response format from server' });
         }
+        setSalaryData(salaries);
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Failed to generate salaries');
@@ -144,6 +159,7 @@ export default function SalaryGeneration() {
         'Absent': emp.absentDays,
         'Leave': emp.leaveDays,
         'Working Days': emp.workingDays,
+        'Salary Days': emp.salaryDays || emp.workingDays,
         'Basic Salary': emp.basicSalary,
         'HRA': emp.hra,
         'DA': emp.da,
@@ -153,7 +169,7 @@ export default function SalaryGeneration() {
         'Bonuses': emp.bonuses,
         'Other Benefits': emp.otherBenefits,
         'Gross Salary': emp.grossSalary,
-        'Per Day Salary': emp.perDaySalary.toFixed(2),
+        'Per Day Salary': (emp.perDaySalary || 0).toFixed(2),
         'Earned Salary': emp.earnedSalary,
         'PF': emp.pf,
         'Professional Tax': emp.professionalTax,
@@ -199,10 +215,10 @@ export default function SalaryGeneration() {
         emp.employeeName,
         emp.department,
         emp.workingDays,
-        emp.grossSalary.toFixed(2),
-        emp.earnedSalary.toFixed(2),
-        emp.totalDeductions.toFixed(2),
-        emp.netSalary.toFixed(2),
+        (emp.grossSalary || 0).toFixed(2),
+        (emp.earnedSalary || 0).toFixed(2),
+        (emp.totalDeductions || 0).toFixed(2),
+        (emp.netSalary || 0).toFixed(2),
       ]);
 
       autoTable(doc, {
@@ -243,10 +259,10 @@ export default function SalaryGeneration() {
           <td>${emp.department}</td>
           <td>${emp.designation}</td>
           <td>${emp.workingDays}</td>
-          <td>Rs ${emp.grossSalary.toFixed(2)}</td>
-          <td>Rs ${emp.earnedSalary.toFixed(2)}</td>
-          <td>Rs ${emp.totalDeductions.toFixed(2)}</td>
-          <td>Rs ${emp.netSalary.toFixed(2)}</td>
+          <td>Rs ${(emp.grossSalary || 0).toFixed(2)}</td>
+          <td>Rs ${(emp.earnedSalary || 0).toFixed(2)}</td>
+          <td>Rs ${(emp.totalDeductions || 0).toFixed(2)}</td>
+          <td>Rs ${(emp.netSalary || 0).toFixed(2)}</td>
         </tr>
       `).join('');
 
@@ -329,15 +345,15 @@ export default function SalaryGeneration() {
     }
   };
 
-  const totals = salaryData.reduce(
+  const totals = Array.isArray(salaryData) ? salaryData.reduce(
     (acc, emp) => ({
-      grossSalary: acc.grossSalary + emp.grossSalary,
-      earnedSalary: acc.earnedSalary + emp.earnedSalary,
-      totalDeductions: acc.totalDeductions + emp.totalDeductions,
-      netSalary: acc.netSalary + emp.netSalary,
+      grossSalary: acc.grossSalary + (emp.grossSalary || 0),
+      earnedSalary: acc.earnedSalary + (emp.earnedSalary || 0),
+      totalDeductions: acc.totalDeductions + (emp.totalDeductions || 0),
+      netSalary: acc.netSalary + (emp.netSalary || 0),
     }),
     { grossSalary: 0, earnedSalary: 0, totalDeductions: 0, netSalary: 0 }
-  );
+  ) : { grossSalary: 0, earnedSalary: 0, totalDeductions: 0, netSalary: 0 };
 
   //--- Generated salaries (saved) listing with paging & search ---
   const [generatedData, setGeneratedData] = useState<any[]>([]);
@@ -531,6 +547,7 @@ export default function SalaryGeneration() {
                       <th className="border p-2 text-left">Employee</th>
                       <th className="border p-2 text-left">Department</th>
                       <th className="border p-2 text-center">Working Days</th>
+                      <th className="border p-2 text-center">Salary Days</th>
                       <th className="border p-2 text-right">Gross Salary</th>
                       <th className="border p-2 text-right">Earned Salary</th>
                       <th className="border p-2 text-right">Deductions</th>
@@ -573,20 +590,29 @@ export default function SalaryGeneration() {
                             {emp.workingDays}
                           </button>
                         </td>
-                        <td className="border p-2 text-right">Rs {emp.grossSalary.toFixed(2)}</td>
-                        <td className="border p-2 text-right">Rs {emp.earnedSalary.toFixed(2)}</td>
-                        <td className="border p-2 text-right">Rs {emp.totalDeductions.toFixed(2)}</td>
-                        <td className="border p-2 text-right font-semibold">Rs {emp.netSalary.toFixed(2)}</td>
+                        <td className="border p-2 text-center font-semibold text-green-700">
+                          {emp.salaryDays || emp.workingDays}
+                        </td>
+                        <td className="border p-2 text-right">Rs {(emp.grossSalary || 0).toFixed(2)}</td>
+                        <td className="border p-2 text-right">Rs {(emp.earnedSalary || 0).toFixed(2)}</td>
+                        <td
+                          className="border p-2 text-right cursor-pointer hover:bg-blue-100 transition"
+                          onClick={() => setDeductionModal({ open: true, employee: emp })}
+                          title="Click to view deduction breakdown"
+                        >
+                          Rs {(emp.totalDeductions || 0).toFixed(2)}
+                        </td>
+                        <td className="border p-2 text-right font-semibold">Rs {(emp.netSalary || 0).toFixed(2)}</td>
                       </tr>
                     ))}
 
                     {/* Totals row */}
                     <tr className="bg-gray-100 font-bold">
                       <td colSpan={5} className="border p-2 text-right">Total:</td>
-                      <td className="border p-2 text-right">Rs {totals.grossSalary.toFixed(2)}</td>
-                      <td className="border p-2 text-right">Rs {totals.earnedSalary.toFixed(2)}</td>
-                      <td className="border p-2 text-right">Rs {totals.totalDeductions.toFixed(2)}</td>
-                      <td className="border p-2 text-right">Rs {totals.netSalary.toFixed(2)}</td>
+                      <td className="border p-2 text-right">Rs {(totals.grossSalary || 0).toFixed(2)}</td>
+                      <td className="border p-2 text-right">Rs {(totals.earnedSalary || 0).toFixed(2)}</td>
+                      <td className="border p-2 text-right">Rs {(totals.totalDeductions || 0).toFixed(2)}</td>
+                      <td className="border p-2 text-right">Rs {(totals.netSalary || 0).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -599,25 +625,25 @@ export default function SalaryGeneration() {
                 <Card className="bg-green-50 border-green-200">
                   <CardContent className="p-4">
                     <p className="text-sm text-green-600 font-medium">Total Gross Salary</p>
-                    <p className="text-2xl font-bold text-green-700">Rs {totals.grossSalary.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-700">Rs {(totals.grossSalary || 0).toFixed(2)}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
                     <p className="text-sm text-blue-600 font-medium">Total Earned Salary</p>
-                    <p className="text-2xl font-bold text-blue-700">Rs {totals.earnedSalary.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-blue-700">Rs {(totals.earnedSalary || 0).toFixed(2)}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-orange-50 border-orange-200">
                   <CardContent className="p-4">
                     <p className="text-sm text-orange-600 font-medium">Total Deductions</p>
-                    <p className="text-2xl font-bold text-orange-700">Rs {totals.totalDeductions.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-orange-700">Rs {(totals.totalDeductions || 0).toFixed(2)}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-purple-50 border-purple-200">
                   <CardContent className="p-4">
                     <p className="text-sm text-purple-600 font-medium">Total Net Salary</p>
-                    <p className="text-2xl font-bold text-purple-700">Rs {totals.netSalary.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-purple-700">Rs {(totals.netSalary || 0).toFixed(2)}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -692,9 +718,9 @@ export default function SalaryGeneration() {
                         <td className="p-2 border">{(genPage - 1) * genPageSize + idx + 1}</td>
                         <td className="p-2 border font-semibold">{row.employeeCode}</td>
                         <td className="p-2 border">{row.employeeName}</td>
-                        <td className="p-2 border text-right">Rs {Number(row.grossSalary).toFixed(2)}</td>
-                        <td className="p-2 border text-right">Rs {Number(row.netSalary).toFixed(2)}</td>
-                        <td className="p-2 border text-right">Rs {Number(row.totalDeductions).toFixed(2)}</td>
+                        <td className="p-2 border text-right">Rs {(Number(row.grossSalary) || 0).toFixed(2)}</td>
+                        <td className="p-2 border text-right">Rs {(Number(row.netSalary) || 0).toFixed(2)}</td>
+                        <td className="p-2 border text-right">Rs {(Number(row.totalDeductions) || 0).toFixed(2)}</td>
                         <td className="p-2 border">{new Date(row.createdAt).toLocaleString()}</td>
                         <td className="p-2 border text-center flex items-center justify-center gap-2">
                           <Button size="sm" variant="outline" onClick={async () => {
@@ -823,6 +849,170 @@ export default function SalaryGeneration() {
               </tbody>
             </table>
           </div>
+          <DialogClose asChild>
+            <Button variant="outline" className="mt-4 w-full">Close</Button>
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deduction Breakdown Modal */}
+      <Dialog open={deductionModal.open} onOpenChange={(open) => setDeductionModal({ ...deductionModal, open })}>
+        <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Deduction Breakdown - {deductionModal.employee?.employeeName}</DialogTitle>
+          </DialogHeader>
+
+          {deductionModal.employee && (
+            <div className="space-y-4">
+              {/* Absent Days Deduction */}
+              <div className="border rounded p-4 bg-orange-50">
+                <h3 className="font-semibold text-orange-800 mb-2">Absent Days Deduction</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Absent Days:</span>
+                    <span className="font-semibold">{deductionModal.employee.absentDays}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Per Day Salary:</span>
+                    <span className="font-semibold">Rs {(deductionModal.employee.perDaySalary || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t pt-2 mt-2 flex justify-between bg-orange-100 px-2 py-2 rounded">
+                    <span className="font-semibold">Absent Days Deduction:</span>
+                    <span className="font-bold text-orange-700">Rs {(deductionModal.employee.absentDaysDeduction || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fixed Deductions */}
+              <div className="border rounded p-4 bg-red-50">
+                <h3 className="font-semibold text-red-800 mb-2">Fixed Deductions</h3>
+                <div className="space-y-1 text-sm">
+                  {deductionModal.employee.pf > 0 && (
+                    <div className="flex justify-between">
+                      <span>PF (Provident Fund):</span>
+                      <span>Rs {(deductionModal.employee.pf || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {deductionModal.employee.professionalTax > 0 && (
+                    <div className="flex justify-between">
+                      <span>Professional Tax:</span>
+                      <span>Rs {(deductionModal.employee.professionalTax || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {deductionModal.employee.incomeTax > 0 && (
+                    <div className="flex justify-between">
+                      <span>Income Tax:</span>
+                      <span>Rs {(deductionModal.employee.incomeTax || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {deductionModal.employee.epf > 0 && (
+                    <div className="flex justify-between">
+                      <span>EPF (Employee Provident Fund):</span>
+                      <span>Rs {(deductionModal.employee.epf || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {deductionModal.employee.esic > 0 && (
+                    <div className="flex justify-between">
+                      <span>ESIC (Employee State Insurance):</span>
+                      <span>Rs {(deductionModal.employee.esic || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-2 mt-2 flex justify-between bg-red-100 px-2 py-2 rounded">
+                    <span className="font-semibold">Total Fixed Deductions:</span>
+                    <span className="font-bold text-red-700">Rs {(deductionModal.employee.fixedDeductions || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Deductions Summary */}
+              <div className="border-2 border-gray-800 rounded p-4 bg-gray-100">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Absent Days Deduction:</span>
+                    <span>Rs {(deductionModal.employee.absentDaysDeduction || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Fixed Deductions:</span>
+                    <span>Rs {(deductionModal.employee.fixedDeductions || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t-2 pt-2 flex justify-between text-lg font-bold">
+                    <span>Total Deductions:</span>
+                    <span className="text-red-700">Rs {(deductionModal.employee.totalDeductions || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Salary Calculation Breakdown */}
+              <div className="border rounded p-4 bg-green-50">
+                <h3 className="font-semibold text-green-800 mb-3">Final Salary Calculation</h3>
+                <div className="space-y-3">
+                  {/* Salary Days Calculation */}
+                  <div className="bg-white p-3 rounded border-l-4 border-blue-600">
+                    <div className="text-xs text-gray-600 mb-3 font-semibold">Salary Days Breakdown:</div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Working Days (Present + Half + Leave):</span>
+                        <span className="font-semibold">{deductionModal.employee.workingDays}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Sundays (Paid Days):</span>
+                        <span className="font-semibold">+ {deductionModal.employee.sundays}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Holidays (Paid Days):</span>
+                        <span className="font-semibold">+ {deductionModal.employee.holidays || 0}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between bg-blue-50 px-2 py-2 rounded">
+                        <span className="font-bold text-blue-700">Total Salary Days:</span>
+                        <span className="font-bold text-blue-700">{deductionModal.employee.salaryDays || deductionModal.employee.workingDays}</span>
+                      </div>
+                    </div>
+
+                    {/* Earned Salary Calculation */}
+                    <div className="mt-3 border-t pt-3">
+                      <div className="text-xs text-gray-600 mb-2 font-semibold">Earned Salary Calculation:</div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Gross Salary:</span>
+                        <span className="font-semibold">Rs {(deductionModal.employee.grossSalary || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <span className="text-xs">Per Day: Rs {(deductionModal.employee.perDaySalary || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="text-xs text-gray-600 mb-2">
+                        × {deductionModal.employee.salaryDays || deductionModal.employee.workingDays} salary days
+                      </div>
+                      <div className="border-t pt-2 flex justify-between bg-blue-100 px-2 py-2 rounded">
+                        <span className="font-semibold">Earned Salary:</span>
+                        <span className="font-bold text-blue-600">Rs {(deductionModal.employee.earnedSalary || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Final Calculation */}
+                  <div className="border-2 border-green-600 bg-white p-3 rounded">
+                    <div className="flex justify-between text-sm font-semibold mb-3">
+                      <span>Earned Salary:</span>
+                      <span className="text-blue-600">Rs {(deductionModal.employee.earnedSalary || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-semibold text-red-600 mb-3">
+                      <span>Minus: Total Deductions:</span>
+                      <span>Rs {(deductionModal.employee.totalDeductions || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="border-t-2 border-green-600 pt-3 flex justify-between">
+                      <span className="text-lg font-bold text-green-700">Net Salary:</span>
+                      <span className="text-lg font-bold text-green-700">Rs {(deductionModal.employee.netSalary || 0).toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="bg-blue-50 p-2 rounded text-xs text-blue-800">
+                    <p>💡 <strong>Note:</strong> Deductions are calculated on Earned Salary (after accounting for working days, absences, and leaves)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <DialogClose asChild>
             <Button variant="outline" className="mt-4 w-full">Close</Button>
           </DialogClose>

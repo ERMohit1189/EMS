@@ -37,7 +37,7 @@ export default function DepartmentMaster() {
 
   const loadDepartments = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/departments`);
+      const response = await fetch(`${getApiBaseUrl()}/api/departments`, { credentials: 'include' });
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setDepartments(Array.isArray(data) ? data : []);
@@ -60,6 +60,7 @@ export default function DepartmentMaster() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/departments`, {
         method: "POST",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName }),
       });
@@ -77,7 +78,7 @@ export default function DepartmentMaster() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`${getApiBaseUrl()}/api/departments/${id}`, { method: "DELETE" });
+      await fetch(`${getApiBaseUrl()}/api/departments/${id}`, { method: "DELETE", credentials: 'include' });
       await loadDepartments();
       toast({ title: "Success", description: "Department deleted" });
     } catch (error) {

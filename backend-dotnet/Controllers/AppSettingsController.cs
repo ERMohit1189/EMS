@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VendorRegistrationBackend.Data;
+using VendorRegistrationBackend.DTOs;
+using VendorRegistrationBackend.Models;
+using VendorRegistrationBackend.Services;
 
 namespace VendorRegistrationBackend.Controllers
 {
@@ -9,11 +10,11 @@ namespace VendorRegistrationBackend.Controllers
     [Route("api/app-settings")]
     public class AppSettingsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IAppSettingsService _appSettingsService;
 
-        public AppSettingsController(AppDbContext context)
+        public AppSettingsController(IAppSettingsService appSettingsService)
         {
-            _context = context;
+            _appSettingsService = appSettingsService;
         }
 
         [HttpGet]
@@ -22,16 +23,16 @@ namespace VendorRegistrationBackend.Controllers
         {
             try
             {
-                // For now, return default settings
-                // In future, this can be stored in database
-                var settings = new
+                var settings = await _appSettingsService.GetAppSettingsAsync();
+
+                var response = new
                 {
-                    approvalsRequiredForAllowance = 1,
-                    poGenerationDate = 1,
-                    invoiceGenerationDate = 1
+                    approvalsRequiredForAllowance = settings?.ApprovalsRequiredForAllowance ?? 1,
+                    poGenerationDate = settings?.PoGenerationDate ?? 1,
+                    invoiceGenerationDate = settings?.InvoiceGenerationDate ?? 1
                 };
 
-                return Ok(settings);
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -40,14 +41,35 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpPut]
-        [Authorize]
-        public async Task<IActionResult> UpdateAppSettings([FromBody] dynamic settings)
+        [AllowAnonymous]
+        public async Task<IActionResult> UpdateAppSettings([FromBody] AppSettingsDto settingsDto)
         {
             try
             {
-                // For now, just accept the update and return success
-                // In future, this would persist to database
-                return Ok(new { message = "Settings updated successfully" });
+                if (settingsDto == null)
+                    return BadRequest(new { error = "Settings data is required" });
+
+                // Get existing settings or create new
+                var existing = await _appSettingsService.GetAppSettingsAsync();
+                var settings = existing ?? new AppSettings();
+
+                // Update only provided fields
+                if (settingsDto.ApprovalsRequiredForAllowance.HasValue)
+                    settings.ApprovalsRequiredForAllowance = settingsDto.ApprovalsRequiredForAllowance;
+                if (settingsDto.PoGenerationDate.HasValue)
+                    settings.PoGenerationDate = settingsDto.PoGenerationDate;
+                if (settingsDto.InvoiceGenerationDate.HasValue)
+                    settings.InvoiceGenerationDate = settingsDto.InvoiceGenerationDate;
+
+                var updated = await _appSettingsService.UpdateAppSettingsAsync(settings);
+
+                return Ok(new
+                {
+                    message = "Settings updated successfully",
+                    approvalsRequiredForAllowance = updated.ApprovalsRequiredForAllowance,
+                    poGenerationDate = updated.PoGenerationDate,
+                    invoiceGenerationDate = updated.InvoiceGenerationDate
+                });
             }
             catch (Exception ex)
             {

@@ -56,7 +56,9 @@ export default function Settings() {
 
   const fetchAppSettings = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`);
+      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setApprovalsRequired(data.approvalsRequiredForAllowance?.toString() || '1');
@@ -76,6 +78,7 @@ export default function Settings() {
       const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           approvalsRequiredForAllowance: parseInt(approvalsRequired, 10),
           poGenerationDate: parseInt(poGenerationDate, 10),

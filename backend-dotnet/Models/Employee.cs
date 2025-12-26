@@ -49,5 +49,6 @@ namespace VendorRegistrationBackend.Models
         public ICollection<LeaveRequest> LeaveRequests { get; set; } = new List<LeaveRequest>();
         public ICollection<LeaveAllotment> LeaveAllotments { get; set; } = new List<LeaveAllotment>();
         public ICollection<SalaryStructure> SalaryStructures { get; set; } = new List<SalaryStructure>();
+        public ICollection<DailyAllowance> DailyAllowances { get; set; } = new List<DailyAllowance>();
     }
 }

@@ -6,14 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 interface AllowanceData {
-  travelAllowance: number;
-  foodAllowance: number;
-  accommodationAllowance: number;
-  mobileAllowance: number;
-  internetAllowance: number;
-  utilitiesAllowance: number;
-  parkingAllowance: number;
-  miscAllowance: number;
+  travel: number;
+  food: number;
+  accommodation: number;
+  mobile: number;
+  internet: number;
+  utilities: number;
+  parking: number;
+  misc: number;
   notes?: string;
 }
 
@@ -25,6 +25,16 @@ interface AllowanceApprovalModalProps {
   employeeName: string;
   date: string;
   isLoading?: boolean;
+  maxValues?: {
+    travelMax?: number;
+    foodMax?: number;
+    accommodationMax?: number;
+    mobileMax?: number;
+    internetMax?: number;
+    utilitiesMax?: number;
+    parkingMax?: number;
+    miscMax?: number;
+  };
 }
 
 export function AllowanceApprovalModal({
@@ -35,6 +45,7 @@ export function AllowanceApprovalModal({
   employeeName,
   date,
   isLoading = false,
+  maxValues = {},
 }: AllowanceApprovalModalProps) {
   const [editedData, setEditedData] = useState<AllowanceData>(allowanceData);
   const [remark, setRemark] = useState('');
@@ -54,14 +65,14 @@ export function AllowanceApprovalModal({
 
   const calculateTotal = () => {
     return (
-      (editedData.travelAllowance || 0) +
-      (editedData.foodAllowance || 0) +
-      (editedData.accommodationAllowance || 0) +
-      (editedData.mobileAllowance || 0) +
-      (editedData.internetAllowance || 0) +
-      (editedData.utilitiesAllowance || 0) +
-      (editedData.parkingAllowance || 0) +
-      (editedData.miscAllowance || 0)
+      (editedData.travel || 0) +
+      (editedData.food || 0) +
+      (editedData.accommodation || 0) +
+      (editedData.mobile || 0) +
+      (editedData.internet || 0) +
+      (editedData.utilities || 0) +
+      (editedData.parking || 0) +
+      (editedData.misc || 0)
     );
   };
 
@@ -83,113 +94,145 @@ export function AllowanceApprovalModal({
           <div className="grid grid-cols-2 gap-4">
             {/* Travel Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="travelAllowance">Travel Allowance (Rs)</Label>
+              <Label htmlFor="travel">
+                Travel {maxValues.travelMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.travelMax})</span>}
+              </Label>
               <Input
-                id="travelAllowance"
+                id="travel"
                 type="number"
                 min="0"
+                max={maxValues.travelMax}
                 step="0.01"
-                value={editedData.travelAllowance}
-                onChange={(e) => handleFieldChange('travelAllowance', e.target.value)}
+                value={editedData.travel}
+                onChange={(e) => handleFieldChange('travel', e.target.value)}
                 disabled={isLoading}
+                className={editedData.travel > (maxValues.travelMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
             {/* Food Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="foodAllowance">Food Allowance (Rs)</Label>
+              <Label htmlFor="food">
+                Food {maxValues.foodMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.foodMax})</span>}
+              </Label>
               <Input
-                id="foodAllowance"
+                id="food"
                 type="number"
                 min="0"
+                max={maxValues.foodMax}
                 step="0.01"
-                value={editedData.foodAllowance}
-                onChange={(e) => handleFieldChange('foodAllowance', e.target.value)}
+                value={editedData.food}
+                onChange={(e) => handleFieldChange('food', e.target.value)}
                 disabled={isLoading}
+                className={editedData.food > (maxValues.foodMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
             {/* Accommodation Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="accommodationAllowance">Accommodation (Rs)</Label>
+              <Label htmlFor="accommodation">
+                Accommodation {maxValues.accommodationMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.accommodationMax})</span>}
+              </Label>
               <Input
-                id="accommodationAllowance"
+                id="accommodation"
                 type="number"
                 min="0"
+                max={maxValues.accommodationMax}
                 step="0.01"
-                value={editedData.accommodationAllowance}
-                onChange={(e) => handleFieldChange('accommodationAllowance', e.target.value)}
+                value={editedData.accommodation}
+                onChange={(e) => handleFieldChange('accommodation', e.target.value)}
                 disabled={isLoading}
+                className={editedData.accommodation > (maxValues.accommodationMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
             {/* Mobile Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="mobileAllowance">Mobile Allowance (Rs)</Label>
+              <Label htmlFor="mobile">
+                Mobile {maxValues.mobileMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.mobileMax})</span>}
+              </Label>
               <Input
-                id="mobileAllowance"
+                id="mobile"
                 type="number"
                 min="0"
+                max={maxValues.mobileMax}
                 step="0.01"
-                value={editedData.mobileAllowance}
-                onChange={(e) => handleFieldChange('mobileAllowance', e.target.value)}
+                value={editedData.mobile}
+                onChange={(e) => handleFieldChange('mobile', e.target.value)}
                 disabled={isLoading}
+                className={editedData.mobile > (maxValues.mobileMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
             {/* Internet Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="internetAllowance">Internet Allowance (Rs)</Label>
+              <Label htmlFor="internet">
+                Internet {maxValues.internetMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.internetMax})</span>}
+              </Label>
               <Input
-                id="internetAllowance"
+                id="internet"
                 type="number"
                 min="0"
+                max={maxValues.internetMax}
                 step="0.01"
-                value={editedData.internetAllowance}
-                onChange={(e) => handleFieldChange('internetAllowance', e.target.value)}
+                value={editedData.internet}
+                onChange={(e) => handleFieldChange('internet', e.target.value)}
                 disabled={isLoading}
+                className={editedData.internet > (maxValues.internetMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
             {/* Utilities Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="utilitiesAllowance">Utilities Allowance (Rs)</Label>
+              <Label htmlFor="utilities">
+                Utilities {maxValues.utilitiesMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.utilitiesMax})</span>}
+              </Label>
               <Input
-                id="utilitiesAllowance"
+                id="utilities"
                 type="number"
                 min="0"
+                max={maxValues.utilitiesMax}
                 step="0.01"
-                value={editedData.utilitiesAllowance}
-                onChange={(e) => handleFieldChange('utilitiesAllowance', e.target.value)}
+                value={editedData.utilities}
+                onChange={(e) => handleFieldChange('utilities', e.target.value)}
                 disabled={isLoading}
+                className={editedData.utilities > (maxValues.utilitiesMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
             {/* Parking Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="parkingAllowance">Parking Allowance (Rs)</Label>
+              <Label htmlFor="parking">
+                Parking {maxValues.parkingMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.parkingMax})</span>}
+              </Label>
               <Input
-                id="parkingAllowance"
+                id="parking"
                 type="number"
                 min="0"
+                max={maxValues.parkingMax}
                 step="0.01"
-                value={editedData.parkingAllowance}
-                onChange={(e) => handleFieldChange('parkingAllowance', e.target.value)}
+                value={editedData.parking}
+                onChange={(e) => handleFieldChange('parking', e.target.value)}
                 disabled={isLoading}
+                className={editedData.parking > (maxValues.parkingMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
             {/* Miscellaneous Allowance */}
             <div className="space-y-2">
-              <Label htmlFor="miscAllowance">Miscellaneous (Rs)</Label>
+              <Label htmlFor="misc">
+                Miscellaneous {maxValues.miscMax && <span className="text-gray-500 text-sm">(Max: Rs {maxValues.miscMax})</span>}
+              </Label>
               <Input
-                id="miscAllowance"
+                id="misc"
                 type="number"
                 min="0"
+                max={maxValues.miscMax}
                 step="0.01"
-                value={editedData.miscAllowance}
-                onChange={(e) => handleFieldChange('miscAllowance', e.target.value)}
+                value={editedData.misc}
+                onChange={(e) => handleFieldChange('misc', e.target.value)}
                 disabled={isLoading}
+                className={editedData.misc > (maxValues.miscMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
           </div>

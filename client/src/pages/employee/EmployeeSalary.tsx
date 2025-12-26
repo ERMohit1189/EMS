@@ -88,7 +88,9 @@ export default function EmployeeSalary() {
       
       if (isSuperAdmin) {
         // For superadmin: fetch all salary structures
-        const response = await fetch(`${getApiBaseUrl()}/api/salary-structures?page=1&pageSize=500`);
+        const response = await fetch(`${getApiBaseUrl()}/api/salary-structures?page=1&pageSize=500`, {
+          credentials: 'include'
+        });
         if (response.ok) {
           const result = await response.json();
           const salaries = result.data || [];
@@ -108,8 +110,8 @@ export default function EmployeeSalary() {
       } else {
         // For employee: fetch their own salary
         const [salaryResponse, empResponse] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`),
-          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`)
+          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`, { credentials: 'include' }),
+          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { credentials: 'include' })
         ]);
 
         if (salaryResponse.ok) {

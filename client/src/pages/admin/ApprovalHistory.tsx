@@ -121,7 +121,7 @@ export default function ApprovalHistory() {
   useEffect(() => {
     const fetchAppSettings = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/app-settings`);
+        const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setRequiredApprovals(data.approvalsRequiredForAllowance || 1);
@@ -152,7 +152,7 @@ export default function ApprovalHistory() {
         // Admin can see ALL employees in the system
         try {
           console.log('[ApprovalHistory] Fetching all employees from API');
-          const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`);
+          const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`, { credentials: 'include' });
           if (response.ok) {
             const data = await response.json();
             console.log('[ApprovalHistory] All employees from API:', data);
@@ -173,7 +173,7 @@ export default function ApprovalHistory() {
         try {
           console.log('[ApprovalHistory] Fetching team members for non-admin user');
           const url = `${getApiBaseUrl()}/api/allowances/pending?employeeId=${storedEmployeeId}`;
-          const response = await fetch(url);
+          const response = await fetch(url, { credentials: 'include' });
           if (response.ok) {
             const data = await response.json();
             const teamRecords = data.data || [];
@@ -219,7 +219,7 @@ export default function ApprovalHistory() {
         return;
       }
       
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         const allRecords = data.data || [];
@@ -249,7 +249,7 @@ export default function ApprovalHistory() {
   // Fetch approver names from IDs
   const fetchApproverNames = async (approverIds: string[]) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`);
+      const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         const allEmployees = data.data || [];

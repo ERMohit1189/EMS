@@ -12,5 +12,6 @@ namespace VendorRegistrationBackend.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
+        public ICollection<DailyAllowance> DailyAllowances { get; set; } = new List<DailyAllowance>();
     }
 }

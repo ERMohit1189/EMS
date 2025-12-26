@@ -1,0 +1,185 @@
+using System.Text.Json.Serialization;
+
+namespace VendorRegistrationBackend.DTOs
+{
+    // Allowance data structure for individual fields
+    public class AllowanceDataDto
+    {
+        [JsonPropertyName("travel")]
+        public decimal Travel { get; set; }
+
+        [JsonPropertyName("food")]
+        public decimal Food { get; set; }
+
+        [JsonPropertyName("accommodation")]
+        public decimal Accommodation { get; set; }
+
+        [JsonPropertyName("mobile")]
+        public decimal Mobile { get; set; }
+
+        [JsonPropertyName("internet")]
+        public decimal Internet { get; set; }
+
+        [JsonPropertyName("utilities")]
+        public decimal Utilities { get; set; }
+
+        [JsonPropertyName("parking")]
+        public decimal Parking { get; set; }
+
+        [JsonPropertyName("misc")]
+        public decimal Misc { get; set; }
+
+        public decimal GetTotal()
+        {
+            return Travel + Food + Accommodation + Mobile + Internet + Utilities + Parking + Misc;
+        }
+    }
+
+    // Create/Update allowance request
+    public class CreateAllowanceRequestDto
+    {
+        [JsonPropertyName("employeeId")]
+        public string EmployeeId { get; set; } = string.Empty;
+
+        [JsonPropertyName("teamId")]
+        public string? TeamId { get; set; }
+
+        [JsonPropertyName("date")]
+        public DateTime Date { get; set; }
+
+        [JsonPropertyName("allowanceData")]
+        public AllowanceDataDto AllowanceData { get; set; } = new();
+
+        [JsonPropertyName("requiredApprovals")]
+        public int? RequiredApprovals { get; set; }
+    }
+
+    // Bulk allowance submission
+    public class BulkAllowanceRequestDto
+    {
+        [JsonPropertyName("date")]
+        public DateTime Date { get; set; }
+
+        [JsonPropertyName("teamId")]
+        public string? TeamId { get; set; }
+
+        [JsonPropertyName("selectedEmployeeIds")]
+        public List<string> SelectedEmployeeIds { get; set; } = new();
+
+        [JsonPropertyName("allowanceData")]
+        public AllowanceDataDto AllowanceData { get; set; } = new();
+
+        [JsonPropertyName("requiredApprovals")]
+        public int? RequiredApprovals { get; set; }
+    }
+
+    // Approve allowance request
+    public class ApproveAllowanceRequestDto
+    {
+        [JsonPropertyName("editedData")]
+        public AllowanceDataDto? EditedData { get; set; }
+
+        [JsonPropertyName("remark")]
+        public string? Remark { get; set; }
+    }
+
+    // Reject allowance request
+    public class RejectAllowanceRequestDto
+    {
+        [JsonPropertyName("rejectionReason")]
+        public string RejectionReason { get; set; } = string.Empty;
+    }
+
+    // Approval history record
+    public class ApprovalHistoryDto
+    {
+        [JsonPropertyName("approverId")]
+        public string ApproverId { get; set; } = string.Empty;
+
+        [JsonPropertyName("approverName")]
+        public string ApproverName { get; set; } = string.Empty;
+
+        [JsonPropertyName("level")]
+        public string Level { get; set; } = string.Empty;
+
+        [JsonPropertyName("remark")]
+        public string? Remark { get; set; }
+
+        [JsonPropertyName("editedData")]
+        public AllowanceDataDto? EditedData { get; set; }
+
+        [JsonPropertyName("timestamp")]
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+
+    // Daily allowance response
+    public class DailyAllowanceResponseDto
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("employeeId")]
+        public string EmployeeId { get; set; } = string.Empty;
+
+        [JsonPropertyName("employeeName")]
+        public string? EmployeeName { get; set; }
+
+        [JsonPropertyName("teamId")]
+        public string? TeamId { get; set; }
+
+        [JsonPropertyName("date")]
+        public DateTime Date { get; set; }
+
+        [JsonPropertyName("allowanceData")]
+        public AllowanceDataDto AllowanceData { get; set; } = new();
+
+        [JsonPropertyName("approvalStatus")]
+        public string ApprovalStatus { get; set; } = "pending";
+
+        [JsonPropertyName("approvalCount")]
+        public int ApprovalCount { get; set; }
+
+        [JsonPropertyName("requiredApprovals")]
+        public int? RequiredApprovals { get; set; }
+
+        [JsonPropertyName("paidStatus")]
+        public string PaidStatus { get; set; } = "unpaid";
+
+        [JsonPropertyName("approvedBy")]
+        public List<string>? ApprovedBy { get; set; }
+
+        [JsonPropertyName("approvalHistory")]
+        public List<ApprovalHistoryDto>? ApprovalHistory { get; set; }
+
+        [JsonPropertyName("rejectionReason")]
+        public string? RejectionReason { get; set; }
+
+        [JsonPropertyName("approvedAt")]
+        public DateTime? ApprovedAt { get; set; }
+
+        [JsonPropertyName("submittedAt")]
+        public DateTime SubmittedAt { get; set; }
+
+        [JsonPropertyName("createdAt")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("updatedAt")]
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    // Pagination response
+    public class PaginatedAllowanceResponseDto
+    {
+        [JsonPropertyName("data")]
+        public List<DailyAllowanceResponseDto> Data { get; set; } = new();
+
+        [JsonPropertyName("page")]
+        public int Page { get; set; }
+
+        [JsonPropertyName("pageSize")]
+        public int PageSize { get; set; }
+
+        [JsonPropertyName("total")]
+        public int Total { get; set; }
+    }
+}

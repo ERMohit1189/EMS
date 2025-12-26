@@ -260,10 +260,10 @@ export default function VendorDashboard() {
     setLoading(true);
     try {
       const [vendorRes, posRes, invoicesRes, sitesRes] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}`),
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`),
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/invoices`),
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/sites`),
+        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}`, { credentials: 'include' }),
+        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`, { credentials: 'include' }),
+        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/invoices`, { credentials: 'include' }),
+        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/sites`, { credentials: 'include' }),
       ]);
 
       if (vendorRes.ok) {

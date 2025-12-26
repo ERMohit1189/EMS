@@ -119,7 +119,8 @@ function App() {
         }
 
         // Existing browser session - check if server session is still valid
-        const response = await fetch('/api/auth/session', { credentials: 'include' });
+        const { getApiBaseUrl } = await import('@/lib/api');
+        const response = await fetch(`${getApiBaseUrl()}/api/session`, { credentials: 'include' });
         const data = await response.json();
 
         console.log('[App] Session check result:', data);
@@ -368,7 +369,6 @@ function App() {
           <Route path="/employee-login" component={EmployeeLogin} />
           <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
           <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
-          <Route path="/admin/email-settings" component={EmailSettings} />
           <Route component={EmployeeLogin} />
         </Switch>
         <Toaster />

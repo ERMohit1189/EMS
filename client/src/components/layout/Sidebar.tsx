@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { getApiBaseUrl } from "@/lib/api";
 
 // Check if employee management is hidden in production
 const isDev = import.meta.env.DEV;
@@ -841,8 +842,7 @@ export function Sidebar({ isLoggedIn, setIsLoggedIn }: SidebarProps) {
         // Only fetch pending approvals for employees who are reporting persons or admins
         if (!isEmployee || !(isReportingPerson || isEmployeeAdmin)) return;
 
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const res = await fetch(`${baseUrl}/api/leaves/pending`, { credentials: 'include' });
+        const res = await fetch(`${getApiBaseUrl()}/api/leaves/pending`, { credentials: 'include' });
 
         // If unauthenticated or server returned HTML (login page/error), avoid parsing as JSON
         if (!res.ok) {
