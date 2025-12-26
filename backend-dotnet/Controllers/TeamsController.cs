@@ -32,7 +32,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetTeams()
         {
             var teams = await _context.Teams
@@ -42,7 +42,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("employee/{employeeId}")]
-        [AllowAnonymous]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetTeamsForEmployee(string employeeId)
         {
             var teams = await _context.TeamMembers
@@ -71,7 +71,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("{id}")]
-        [AllowAnonymous]
+        [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetTeam(string id)
         {
             var team = await _context.Teams.FindAsync(id);
