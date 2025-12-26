@@ -156,12 +156,24 @@ namespace VendorRegistrationBackend.Controllers
 
                 var userType = role.ToLower() == "vendor" ? "vendor" : "employee";
 
-                // Check if user is a reporting person by checking TeamMembers table
+                // Check if user is a reporting person by first getting all employee teams, then checking if employee is reporting person in any of them
                 bool isReportingPerson = false;
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    isReportingPerson = await _context.TeamMembers
-                        .AnyAsync(tm => tm.ReportingPerson1 == userId || tm.ReportingPerson2 == userId || tm.ReportingPerson3 == userId);
+                    // Get all teams of the employee
+                    var employeeTeams = await _context.TeamMembers
+                        .Where(tm => tm.EmployeeId == userId)
+                        .Select(tm => tm.TeamId)
+                        .ToListAsync();
+
+                    // Check if employee is a reporting person in any of those teams
+                    if (employeeTeams.Count > 0)
+                    {
+                        isReportingPerson = await _context.TeamMembers
+                            .Where(tm => employeeTeams.Contains(tm.TeamId) &&
+                                        (tm.ReportingPerson1 == userId || tm.ReportingPerson2 == userId || tm.ReportingPerson3 == userId))
+                            .AnyAsync();
+                    }
                 }
 
                 return Ok(new {
