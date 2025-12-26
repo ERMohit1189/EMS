@@ -166,9 +166,10 @@ namespace VendorRegistrationBackend.Controllers
                             continue;
                         }
 
+                        var poId = Guid.NewGuid().ToString();
                         var po = new PurchaseOrder
                         {
-                            Id = Guid.NewGuid().ToString(),
+                            Id = poId,
                             VendorId = poPayload.VendorId,
                             PoNumber = poPayload.PoNumber ?? $"PO-{DateTime.UtcNow.Ticks}",
                             PODate = !string.IsNullOrEmpty(poPayload.PoDate) ? DateTime.Parse(poPayload.PoDate) : DateTime.UtcNow,
@@ -180,7 +181,7 @@ namespace VendorRegistrationBackend.Controllers
                             Lines = poPayload.Lines?.Select(line => new PurchaseOrderLine
                             {
                                 Id = Guid.NewGuid().ToString(),
-                                PoId = po.Id,
+                                PoId = poId,
                                 SiteId = line.SiteId,
                                 Description = line.Description,
                                 Quantity = line.Quantity ?? 1,
