@@ -110,7 +110,9 @@ namespace VendorRegistrationBackend.Controllers
         public async Task<IActionResult> ApproveLeaveRequest(string id, [FromBody] ApproveLeaveRequestDto request)
         {
             string approverRemark = request?.ApproverRemark ?? "";
-            var approverId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? "";
+            var approverId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                             User.FindFirst("sub")?.Value ??
+                             User.FindFirst("id")?.Value ?? "";
 
             var success = await _leaveService.ApproveLeaveRequestAsync(id, approverRemark, approverId);
             if (!success)
@@ -124,7 +126,9 @@ namespace VendorRegistrationBackend.Controllers
         public async Task<IActionResult> RejectLeaveRequest(string id, [FromBody] RejectLeaveRequestDto request)
         {
             string approverRemark = request?.ApproverRemark ?? "";
-            var approverId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? "";
+            var approverId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                             User.FindFirst("sub")?.Value ??
+                             User.FindFirst("id")?.Value ?? "";
 
             var success = await _leaveService.RejectLeaveRequestAsync(id, approverRemark, approverId);
             if (!success)
@@ -385,7 +389,9 @@ namespace VendorRegistrationBackend.Controllers
                     CarryForwardPersonal = payload.CarryForwardPersonal
                 };
 
-                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var performedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                                 User.FindFirst("sub")?.Value ??
+                                 User.FindFirst("id")?.Value ?? null;
                 var res = await _leaveService.UpsertLeaveAllotmentAsync(allotment, payload.ForceOverride, payload.ForceReason, performedBy);
                 return Ok(new { data = res.allotment, isUpdated = res.isUpdated });
             }
@@ -425,7 +431,9 @@ namespace VendorRegistrationBackend.Controllers
                     CarryForwardPersonal = payload.CarryForwardPersonal
                 };
 
-                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var performedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                                 User.FindFirst("sub")?.Value ??
+                                 User.FindFirst("id")?.Value ?? null;
 
                 // If force override is needed, use UpsertLeaveAllotmentAsync instead
                 if (payload.ForceOverride)
@@ -533,7 +541,9 @@ namespace VendorRegistrationBackend.Controllers
         [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetMyLeaves()
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? "";
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                         User.FindFirst("sub")?.Value ??
+                         User.FindFirst("id")?.Value ?? "";
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "User not authenticated" });
 
@@ -572,7 +582,9 @@ namespace VendorRegistrationBackend.Controllers
             {
                 if (payload == null) return BadRequest(new { error = "Invalid payload" });
 
-                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var performedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                                 User.FindFirst("sub")?.Value ??
+                                 User.FindFirst("id")?.Value ?? null;
                 var res = await _leaveService.BulkUpsertLeaveAllotmentsAsync(
                     payload.Year,
                     payload.MedicalLeave,
@@ -603,7 +615,9 @@ namespace VendorRegistrationBackend.Controllers
         {
             try
             {
-                var performedBy = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value ?? null;
+                var performedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+                                 User.FindFirst("sub")?.Value ??
+                                 User.FindFirst("id")?.Value ?? null;
                 var success = await _leaveService.DeleteLeaveAllotmentWithChecksAsync(id, performedBy);
                 if (!success) return NotFound(new { error = "Leave allotment not found" });
                 return Ok(new { success = true, message = "Leave allotment deleted successfully" });
