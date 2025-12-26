@@ -584,7 +584,30 @@ namespace VendorRegistrationBackend.Controllers
                 return Unauthorized(new { message = "User not authenticated" });
 
             var leaveRequests = await _leaveService.GetLeaveRequestsByEmployeeAsync(userId);
-            return Ok(leaveRequests);
+
+            // Map to DTO to avoid circular reference serialization issues
+            var result = leaveRequests.Select(lr => new
+            {
+                id = lr.Id,
+                employeeId = lr.EmployeeId,
+                employeeName = lr.Employee?.Name ?? "Unknown",
+                leaveType = lr.LeaveType,
+                startDate = lr.StartDate,
+                endDate = lr.EndDate,
+                days = lr.Days,
+                remark = lr.Remark,
+                status = lr.Status,
+                appliedBy = lr.AppliedBy,
+                appliedAt = lr.AppliedAt,
+                approvedBy = lr.ApprovedBy,
+                approvedAt = lr.ApprovedAt,
+                rejectionReason = lr.RejectionReason,
+                approverRemark = lr.ApproverRemark,
+                createdAt = lr.CreatedAt,
+                updatedAt = lr.UpdatedAt
+            }).ToList();
+
+            return Ok(result);
         }
 
         [HttpGet("pending")]
@@ -599,7 +622,30 @@ namespace VendorRegistrationBackend.Controllers
                 leaveRequests = leaveRequests.Where(lr => lr.EmployeeId == employeeId).ToList();
             }
 
-            return Ok(leaveRequests);
+            // Map to DTO to avoid circular reference serialization issues
+            var result = leaveRequests.Select(lr => new
+            {
+                id = lr.Id,
+                employeeId = lr.EmployeeId,
+                employeeName = lr.Employee?.Name ?? "Unknown",
+                employeeEmail = lr.Employee?.Email,
+                leaveType = lr.LeaveType,
+                startDate = lr.StartDate,
+                endDate = lr.EndDate,
+                days = lr.Days,
+                remark = lr.Remark,
+                status = lr.Status,
+                appliedBy = lr.AppliedBy,
+                appliedAt = lr.AppliedAt,
+                approvedBy = lr.ApprovedBy,
+                approvedAt = lr.ApprovedAt,
+                rejectionReason = lr.RejectionReason,
+                approverRemark = lr.ApproverRemark,
+                createdAt = lr.CreatedAt,
+                updatedAt = lr.UpdatedAt
+            }).ToList();
+
+            return Ok(result);
         }
 
         [HttpGet("employee/{employeeId}/years")]
