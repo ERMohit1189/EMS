@@ -402,7 +402,7 @@ namespace VendorRegistrationBackend.Controllers
                         po.PODate,
                         po.DueDate,
                         LineCount = po.Lines?.Count ?? 0,
-                        Lines = po.Lines?.Select(l => new
+                        Lines = po.Lines?.Select(l => (object)new
                         {
                             l.Id,
                             l.PoId,

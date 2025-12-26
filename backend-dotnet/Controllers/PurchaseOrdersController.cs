@@ -115,7 +115,7 @@ namespace VendorRegistrationBackend.Controllers
                         po.DueDate,
                         VendorName = po.Vendor?.Name ?? string.Empty,
                         LineCount = po.Lines?.Count ?? 0,
-                        Lines = po.Lines?.Select(l => new
+                        Lines = po.Lines?.Select(l => (object)new
                         {
                             l.Id,
                             l.PoId,
@@ -313,7 +313,7 @@ namespace VendorRegistrationBackend.Controllers
                         po.DueDate,
                         VendorName = po.Vendor?.Name ?? string.Empty,
                         LineCount = po.Lines?.Count ?? 0,
-                        Lines = po.Lines?.Select(l => new
+                        Lines = po.Lines?.Select(l => (object)new
                         {
                             l.Id,
                             l.PoId,
