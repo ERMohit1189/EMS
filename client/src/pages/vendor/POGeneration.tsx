@@ -1364,7 +1364,7 @@ export default function POGeneration() {
                                 <span className="sr-only">Select all on page</span>
                               </label>
                             </div>
-                            <div className="col-span-3">Plan ID</div>
+                            <div className="col-span-3">Plan ID / Site Name</div>
                             <div className="col-span-4">Vendor</div>
                             <div className="col-span-1 text-center">Max Antenna</div>
                             <div className="col-span-2 text-right">Amount</div>
@@ -1398,8 +1398,8 @@ export default function POGeneration() {
                                     />
                                   </div>
                                   <div className="col-span-3">
-                                    <div className="font-mono font-semibold text-sm truncate">{truncateId(site.planId || '')}</div>
-                                    <div className="text-xs text-muted-foreground md:hidden truncate">{vendorFallback}{vendorCodeVisible ? ` (${vendorCodeVisible})` : ''}</div>
+                                    <div className="font-semibold text-sm truncate">{site.hopAB || site.name || site.siteName || '—'}</div>
+                                    <div className="text-xs text-muted-foreground truncate">Plan: {site.planId || '—'}</div>
                                   </div>
                                   <div className="col-span-4 text-xs truncate">{vendorFallback}{vendorCodeVisible ? ` (${vendorCodeVisible})` : ''}</div>
                                   <div className="col-span-1 text-center text-xs">{maxAntenna || '-'}</div>
@@ -1642,16 +1642,16 @@ export default function POGeneration() {
                             <button
                               onClick={() => { setModalSites(po.lines || []); setSitesModalOpen(true); }}
                               className="text-xs font-semibold text-slate-900 hover:underline"
-                              title={po.lines.map((l:any)=> (l.siteHopAB || l.siteId || l.sitePlanId)).join(', ')}
+                              title={po.lines.map((l:any)=> (l.siteHopAB || l.siteName || l.sitePlanId || '—')).join(', ')}
                             >
                               {po.lines.length} site{po.lines.length !== 1 ? 's' : ''}
                             </button>
                             {po.lines.length === 1 && (
-                              <div className="text-xs text-slate-600">{po.lines[0].siteHopAB || po.lines[0].siteId || po.siteName}</div>
+                              <div className="text-xs text-slate-600">{po.lines[0].siteHopAB || po.lines[0].siteName || po.siteName || '—'}</div>
                             )}
                           </div>
                         ) : (
-                          <p className="text-xs font-semibold text-slate-900 truncate">{po.siteName || po.siteId || "—"}</p>
+                          <p className="text-xs font-semibold text-slate-900 truncate">{po.siteName || "—"}</p>
                         )}
                       </div>
                       <div>
@@ -1736,7 +1736,7 @@ export default function POGeneration() {
               <div className="space-y-2">
                 {modalSites.map((s:any) => (
                   <div key={s.id || s.siteId || Math.random()} className="p-2 border rounded">
-                    <div className="font-semibold">{s.siteHopAB || s.siteName || s.siteId || '—'}</div>
+                    <div className="font-semibold">{s.siteHopAB || s.siteName || '—'}</div>
                     <div className="text-xs text-slate-600">Plan: {s.sitePlanId || s.planId || '—'}</div>
                   </div>
                 ))}
