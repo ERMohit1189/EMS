@@ -165,8 +165,18 @@ namespace VendorRegistrationBackend.Controllers
         public async Task<IActionResult> GetLeaveAllotmentByEmployee(string employeeId, int year)
         {
             var allotment = await _leaveService.GetLeaveAllotmentAsync(employeeId, year);
+
+            // If no allotment found, return default empty response instead of 404
+            // This allows leave history pages to show years with no data
             if (allotment == null)
-                return NotFound(new { message = "Leave allotment not found" });
+            {
+                return Ok(new
+                {
+                    leaveTypes = new List<dynamic>(),
+                    carryForwardApplied = false,
+                    carryFromYear = (object)null
+                });
+            }
 
             // Count 1: Approved leave requests for the given year
             var approvedLeaves = await _context.LeaveRequests
