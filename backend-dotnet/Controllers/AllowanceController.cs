@@ -232,5 +232,44 @@ namespace VendorRegistrationBackend.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        // GET /api/allowances/caps/:employeeId - Get allowance caps for employee
+        [HttpGet("caps/{employeeId}")]
+        [Authorize(Roles = "admin,user,superadmin")]
+        public async Task<IActionResult> GetAllowanceCaps(string employeeId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(employeeId))
+                    return BadRequest(new { error = "EmployeeId is required" });
+
+                var loggedInEmployeeId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var role = User?.FindFirst(ClaimTypes.Role)?.Value?.ToLower() ?? "";
+
+                // Employees can only view their own allowance caps
+                if (role != "admin" && role != "superadmin" && loggedInEmployeeId != employeeId)
+                    return Forbid();
+
+                // Return default allowance caps
+                // These are the maximum amounts an employee can claim for each allowance type
+                var caps = new
+                {
+                    travelAllowance = 5000m,
+                    foodAllowance = 3000m,
+                    accommodationAllowance = 8000m,
+                    mobileAllowance = 2000m,
+                    internetAllowance = 1500m,
+                    utilitiesAllowance = 2000m,
+                    parkingAllowance = 1000m,
+                    miscAllowance = 2500m
+                };
+
+                return Ok(caps);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }
