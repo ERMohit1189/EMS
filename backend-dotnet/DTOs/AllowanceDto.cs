@@ -5,33 +5,33 @@ namespace VendorRegistrationBackend.DTOs
     // Allowance data structure for individual fields
     public class AllowanceDataDto
     {
-        [JsonPropertyName("travel")]
-        public decimal Travel { get; set; }
+        [JsonPropertyName("travelAllowance")]
+        public decimal TravelAllowance { get; set; }
 
-        [JsonPropertyName("food")]
-        public decimal Food { get; set; }
+        [JsonPropertyName("foodAllowance")]
+        public decimal FoodAllowance { get; set; }
 
-        [JsonPropertyName("accommodation")]
-        public decimal Accommodation { get; set; }
+        [JsonPropertyName("accommodationAllowance")]
+        public decimal AccommodationAllowance { get; set; }
 
-        [JsonPropertyName("mobile")]
-        public decimal Mobile { get; set; }
+        [JsonPropertyName("mobileAllowance")]
+        public decimal MobileAllowance { get; set; }
 
-        [JsonPropertyName("internet")]
-        public decimal Internet { get; set; }
+        [JsonPropertyName("internetAllowance")]
+        public decimal InternetAllowance { get; set; }
 
-        [JsonPropertyName("utilities")]
-        public decimal Utilities { get; set; }
+        [JsonPropertyName("utilitiesAllowance")]
+        public decimal UtilitiesAllowance { get; set; }
 
-        [JsonPropertyName("parking")]
-        public decimal Parking { get; set; }
+        [JsonPropertyName("parkingAllowance")]
+        public decimal ParkingAllowance { get; set; }
 
-        [JsonPropertyName("misc")]
-        public decimal Misc { get; set; }
+        [JsonPropertyName("miscAllowance")]
+        public decimal MiscAllowance { get; set; }
 
         public decimal GetTotal()
         {
-            return Travel + Food + Accommodation + Mobile + Internet + Utilities + Parking + Misc;
+            return TravelAllowance + FoodAllowance + AccommodationAllowance + MobileAllowance + InternetAllowance + UtilitiesAllowance + ParkingAllowance + MiscAllowance;
         }
     }
 
