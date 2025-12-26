@@ -176,7 +176,17 @@ namespace VendorRegistrationBackend.Controllers
                             TotalAmount = poPayload.TotalAmount ?? 0,
                             GSTType = poPayload.GstType ?? "cgstsgst",
                             GSTApply = poPayload.GstApply ?? false,
-                            Status = "Draft"
+                            Status = "Draft",
+                            Lines = poPayload.Lines?.Select(line => new PurchaseOrderLine
+                            {
+                                Id = Guid.NewGuid().ToString(),
+                                PoId = po.Id,
+                                SiteId = line.SiteId,
+                                Description = line.Description,
+                                Quantity = line.Quantity ?? 1,
+                                UnitPrice = string.IsNullOrEmpty(line.UnitPrice) ? 0 : decimal.Parse(line.UnitPrice),
+                                TotalAmount = string.IsNullOrEmpty(line.TotalAmount) ? 0 : decimal.Parse(line.TotalAmount)
+                            }).ToList() ?? new List<PurchaseOrderLine>()
                         };
 
                         var createdPo = await _purchaseOrderService.CreatePurchaseOrderAsync(po);
