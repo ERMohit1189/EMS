@@ -10,8 +10,9 @@ import { Mail, Lock, Building2 } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 
 export default function VendorLogin() {
-  const [email, setEmail] = useState("10018cd4e5@vendor.local");
-  const [password, setPassword] = useState("2Tpvzlv1C0kC");
+  // Start with empty credentials; Remember Me will populate from localStorage if available
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
