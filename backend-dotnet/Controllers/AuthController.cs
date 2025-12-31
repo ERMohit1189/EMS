@@ -154,8 +154,8 @@ namespace VendorRegistrationBackend.Controllers
             {
                 await _auditService.LogAuthAttemptAsync(HttpContext, "Vendor", request.Email, "Failed", "NotApproved");
                 var errMsg = string.IsNullOrWhiteSpace(vendorStatus)
-                    ? "Your account is not approved and cannot log in."
-                    : $"Your account status is '{vendorStatus}' and cannot log in.";
+                    ? "Your account is not approved and cannot log in. Please contact the administrator."
+                    : $"Your account status is '{vendorStatus}' and cannot log in. Please contact the administrator.";
                 return Unauthorized(new { success = false, message = errMsg });
             }
 
