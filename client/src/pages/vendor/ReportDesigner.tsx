@@ -1198,7 +1198,7 @@ export default function ReportDesigner({
 
         // Remove DECLARE statements and replace parameters with values
         // Remove lines starting with "Declare"
-        query = query.split('\n').filter(line => !line.trim().toLowerCase().startsWith('declare')).join('\n');
+        query = query.split('\n').filter((line: string) => !line.trim().toLowerCase().startsWith('declare')).join('\n');
 
         // Replace parameters in query with quoted values
         Object.keys(parameters).forEach((param) => {
@@ -2800,6 +2800,32 @@ export default function ReportDesigner({
                   />
                 )}
 
+                {/* Multi-select bounding box for selected elements */}
+                {design.selectedIds.length > 1 && (() => {
+                  const selectedEls = design.elements.filter(el => design.selectedIds.includes(el.id));
+                  if (selectedEls.length === 0) return null;
+                  const minX = Math.min(...selectedEls.map(e => e.x));
+                  const minY = Math.min(...selectedEls.map(e => e.y));
+                  const maxX = Math.max(...selectedEls.map(e => e.x + e.width));
+                  const maxY = Math.max(...selectedEls.map(e => e.y + e.height));
+                  return (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${minX}px`,
+                        top: `${minY}px`,
+                        width: `${maxX - minX}px`,
+                        height: `${maxY - minY}px`,
+                        border: '2px dashed #3b82f6',
+                        background: 'rgba(59,130,246,0.03)',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <div style={{ position: 'absolute', left: 4, top: -20 }} className="text-xs text-blue-600 bg-white px-2 rounded">{selectedEls.length} selected</div>
+                    </div>
+                  );
+                })()}
+
                 {/* Alignment Guides */}
                 {alignmentGuides && (
                   <>
@@ -3000,6 +3026,18 @@ export default function ReportDesigner({
                         src={el.imageUrl}
                         alt="Embedded"
                         className="h-full w-full object-cover"
+                      />
+                    )}
+
+                    {/* Selection overlay (visible for any selected element) */}
+                    {isSelected && (
+                      <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          border: '2px solid #3b82f6',
+                          boxSizing: 'border-box',
+                          borderRadius: '2px',
+                        }}
                       />
                     )}
 
