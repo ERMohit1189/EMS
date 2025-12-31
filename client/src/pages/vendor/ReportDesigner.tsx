@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,23 +132,70 @@ export default function ReportDesigner({
   // Print settings modal visibility
   const [showPrintSettings, setShowPrintSettings] = useState(false);
 
-  // When opening the modal, populate tempMargins from saved template margins (if present) or defaults
+  // Default margins for print settings modal
+  const DEFAULT_MARGINS = { left: 40, right: 40, top: 40, bottom: 40 };
+
+  // Temp margins state for modal editing
+  const [tempMargins, setTempMargins] = useState<{ left: number; right: number; top: number; bottom: number }>(
+    initialMargins ?? DEFAULT_MARGINS
+  );
+
+  // Export margins (persisted, used for print/export). This is separate from layout margins which trigger reflow.
+  const [exportMargins, setExportMargins] = useState<{ left: number; right: number; top: number; bottom: number }>(initialMargins ?? DEFAULT_MARGINS);
+
+  // If initialMargins prop changes (e.g., loaded from DB), sync exportMargins
+  useEffect(() => {
+    setExportMargins(initialMargins ?? DEFAULT_MARGINS);
+  }, [initialMargins]);
+
+  // Page size / orientation state for export and applied viewer
+  const [exportPageSize, setExportPageSize] = useState<string>('A4');
+  const [exportOrientation, setExportOrientation] = useState<'portrait'|'landscape'>('portrait');
+  const [exportAutoFixOverlaps, setExportAutoFixOverlaps] = useState<boolean>(false);
+
+  const [appliedPageSize, setAppliedPageSize] = useState<string>('A4');
+  const [appliedOrientation, setAppliedOrientation] = useState<'portrait'|'landscape'>('portrait');
+
+  // Modal temp page settings
+  const [tempPageSize, setTempPageSize] = useState<string>(exportPageSize);
+  const [tempOrientation, setTempOrientation] = useState<'portrait'|'landscape'>(exportOrientation);
+  const [tempAutoFixOverlaps, setTempAutoFixOverlaps] = useState<boolean>(exportAutoFixOverlaps);
+
+  // When opening the modal, populate tempMargins from saved export margins (if present) or defaults
   useEffect(() => {
     if (showPrintSettings) {
-      const saved = (templateId && initialMargins) ? initialMargins : DEFAULT_MARGINS;
+      const saved = exportMargins ?? (initialMargins ?? DEFAULT_MARGINS);
       setTempMargins({
         left: saved.left ?? DEFAULT_MARGINS.left,
         right: saved.right ?? DEFAULT_MARGINS.right,
         top: saved.top ?? DEFAULT_MARGINS.top,
         bottom: saved.bottom ?? DEFAULT_MARGINS.bottom,
       });
+      // Load temp page settings from saved exports
+      setTempPageSize(exportPageSize ?? 'A4');
+      setTempOrientation(exportOrientation ?? 'portrait');
+      setTempAutoFixOverlaps(exportAutoFixOverlaps ?? false);
     }
-  }, [showPrintSettings, templateId, initialMargins]);
+  }, [showPrintSettings, templateId, initialMargins, exportMargins, exportPageSize, exportOrientation, exportAutoFixOverlaps]);
   const [toolbarDragStart, setToolbarDragStart] = useState({ x: 0, y: 0 });
 
-  // A4 dimensions in pixels (at 96 DPI): 210mm × 297mm
-  const A4_WIDTH = 794;
-  const A4_HEIGHT = 1123;
+  // DPI used for conversions between px and inches (96 is common)
+  const DPI = 96;
+  const mmToPx = (mm: number) => Math.round((mm / 25.4) * DPI);
+  const PAGE_DEFINITIONS: Record<string, { wMm: number; hMm: number }> = {
+    A3: { wMm: 420, hMm: 297 },
+    A4: { wMm: 210, hMm: 297 },
+    Letter: { wMm: 216, hMm: 279 },
+  };
+
+  const pxToIn = (px: number) => Math.round((px / DPI) * 100) / 100;
+  const inToPx = (inch: number) => Math.round(inch * DPI);
+
+  const getPagePx = (pageSizeStr: string, orientationStr: 'portrait'|'landscape') => {
+    const def = PAGE_DEFINITIONS[pageSizeStr] ?? PAGE_DEFINITIONS['A4'];
+    if (orientationStr === 'portrait') return { w: mmToPx(def.wMm), h: mmToPx(def.hMm) };
+    return { w: mmToPx(def.hMm), h: mmToPx(def.wMm) };
+  };
 
   // Helper function to constrain element position within margins
   const constrainElementPosition = (
@@ -159,8 +206,8 @@ export default function ReportDesigner({
     margins: { left: number; right: number; top: number; bottom: number }
   ) => {
     // Use actual canvas dimensions when available so right/bottom margins are respected correctly
-    const canvasWidth = canvasRef.current?.clientWidth ?? A4_WIDTH;
-    const canvasHeight = canvasRef.current?.clientHeight ?? A4_HEIGHT;
+    const canvasWidth = canvasRef.current?.clientWidth ?? getPagePx(appliedPageSize, appliedOrientation).w;
+    const canvasHeight = canvasRef.current?.clientHeight ?? getPagePx(appliedPageSize, appliedOrientation).h;
 
     const maxX = Math.max(margins.left, canvasWidth - margins.right - width);
     const maxY = Math.max(margins.top, canvasHeight - margins.bottom - height);
@@ -379,8 +426,8 @@ export default function ReportDesigner({
 
     // If any margin changed, adjust element positions and ensure they remain within new margins
     if (leftDelta !== 0 || rightDelta !== 0 || topDelta !== 0 || bottomDelta !== 0) {
-      const canvasWidth = canvasRef.current?.clientWidth ?? A4_WIDTH;
-      const canvasHeight = canvasRef.current?.clientHeight ?? A4_HEIGHT;
+      const canvasWidth = canvasRef.current?.clientWidth ?? getPagePx(appliedPageSize, appliedOrientation).w;
+      const canvasHeight = canvasRef.current?.clientHeight ?? getPagePx(appliedPageSize, appliedOrientation).h;
 
       const prevLeft = prevMarginsRef.current.left;
       const prevRight = prevMarginsRef.current.right;
@@ -392,39 +439,141 @@ export default function ReportDesigner({
       const oldContentHeight = Math.max(1, canvasHeight - prevTop - prevBottom);
       const newContentHeight = Math.max(1, canvasHeight - topMargin - bottomMargin);
 
-      const updatedElements = design.elements.map((el) => {
-        // Use element center to calculate proportional mapping so decreasing margins expand elements outward correctly
-        const elCenterX = el.x + el.width / 2;
-        const elCenterY = el.y + el.height / 2;
+      const changedX = leftDelta !== 0 || rightDelta !== 0;
+      const changedY = topDelta !== 0 || bottomDelta !== 0;
 
-        const relCenterX = (elCenterX - prevLeft) / oldContentWidth;
-        const relCenterY = (elCenterY - prevTop) / oldContentHeight;
+      // Map elements: only adjust axes that actually changed
+      let updatedElements = design.elements.map((el) => {
+        let newX = el.x;
+        let newY = el.y;
+        let newW = el.width;
+        let newH = el.height;
 
-        const newCenterX = leftMargin + relCenterX * newContentWidth;
-        const newCenterY = topMargin + relCenterY * newContentHeight;
+        if (changedX) {
+          const relLeft = (el.x - prevLeft) / oldContentWidth;
+          const scaleX = newContentWidth / oldContentWidth;
 
-        let newX = newCenterX - el.width / 2;
-        let newY = newCenterY - el.height / 2;
+          // Scale width proportionally to horizontal content change
+          newW = Math.max(30, Math.round(el.width * scaleX));
 
-        // If element is larger than new content area, pin to left/top margin
-        if (el.width >= newContentWidth) {
-          newX = leftMargin;
+          // Map left position proportionally
+          newX = leftMargin + relLeft * newContentWidth;
+
+          // Ensure within content area horizontally
+          if (newW >= newContentWidth) {
+            newW = newContentWidth;
+            newX = leftMargin;
+          } else if (newX + newW > leftMargin + newContentWidth) {
+            newX = leftMargin + newContentWidth - newW;
+          }
         }
-        if (el.height >= newContentHeight) {
-          newY = topMargin;
+
+        if (changedY) {
+          const relTop = (el.y - prevTop) / oldContentHeight;
+          const scaleY = newContentHeight / oldContentHeight;
+
+          // Scale height proportionally to vertical content change
+          newH = Math.max(30, Math.round(el.height * scaleY));
+
+          // Map top position proportionally
+          newY = topMargin + relTop * newContentHeight;
+
+          if (newH >= newContentHeight) {
+            newH = newContentHeight;
+            newY = topMargin;
+          } else if (newY + newH > topMargin + newContentHeight) {
+            newY = topMargin + newContentHeight - newH;
+          }
         }
 
-        const constrained = constrainElementPosition(
-          newX,
-          newY,
-          el.width,
-          el.height,
-          { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin }
-        );
-        return { ...el, x: constrained.x, y: constrained.y };
+        // If axis didn't change, just clamp to new margins
+        if (!changedX) {
+          const c = constrainElementPosition(newX, newY, newW, newH, { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin });
+          newX = c.x;
+        }
+        if (!changedY) {
+          const c = constrainElementPosition(newX, newY, newW, newH, { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin });
+          newY = c.y;
+        }
+
+        return { ...el, x: newX, y: newY, width: newW, height: newH } as ReportElement;
       });
 
-      // Clear redo stack because this is an action that changes layout
+      // Overlap resolution: only along axes that changed
+      const GAP = 4;
+      const rectsOverlap = (a: ReportElement, b: ReportElement) => {
+        return !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
+      };
+
+      if (changedY) {
+        // Existing vertical overlap resolver (nudges down)
+        const sorted = [...updatedElements].sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+        for (let pass = 0; pass < 3; pass++) {
+          let changed = false;
+          for (let i = 0; i < sorted.length; i++) {
+            const a = sorted[i];
+            for (let j = 0; j < i; j++) {
+              const b = sorted[j];
+              if (rectsOverlap(a, b)) {
+                const desiredY = b.y + b.height + GAP;
+                const maxY = topMargin + newContentHeight - a.height;
+                if (desiredY <= maxY) {
+                  a.y = desiredY;
+                } else {
+                  const upY = b.y - a.height - GAP;
+                  const minY = topMargin;
+                  if (upY >= minY) {
+                    b.y = upY;
+                  } else {
+                    a.y = Math.min(Math.max(a.y, topMargin), maxY);
+                  }
+                }
+                const clamped = constrainElementPosition(a.x, a.y, a.width, a.height, { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin });
+                if (clamped.y !== a.y) a.y = clamped.y;
+                changed = true;
+              }
+            }
+          }
+          if (!changed) break;
+        }
+        updatedElements = sorted;
+      } else if (changedX) {
+        // Horizontal overlap resolver (nudges right)
+        const sorted = [...updatedElements].sort((a, b) => (a.x === b.x ? a.y - b.y : a.x - b.x));
+        for (let pass = 0; pass < 3; pass++) {
+          let changed = false;
+          for (let i = 0; i < sorted.length; i++) {
+            const a = sorted[i];
+            for (let j = 0; j < i; j++) {
+              const b = sorted[j];
+              // Only consider overlap if vertical ranges intersect (same row)
+              const verticalOverlap = !(a.y + a.height <= b.y || b.y + b.height <= a.y);
+              if (verticalOverlap && a.x < b.x + b.width && a.x + a.width > b.x) {
+                const desiredX = b.x + b.width + GAP;
+                const maxX = leftMargin + newContentWidth - a.width;
+                if (desiredX <= maxX) {
+                  a.x = desiredX;
+                } else {
+                  const leftX = b.x - a.width - GAP;
+                  const minX = leftMargin;
+                  if (leftX >= minX) {
+                    b.x = leftX;
+                  } else {
+                    a.x = Math.min(Math.max(a.x, leftMargin), maxX);
+                  }
+                }
+                const clamped = constrainElementPosition(a.x, a.y, a.width, a.height, { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin });
+                if (clamped.x !== a.x) a.x = clamped.x;
+                changed = true;
+              }
+            }
+          }
+          if (!changed) break;
+        }
+        updatedElements = sorted;
+      }
+
+      // Clear redo stack because this is a layout change effected by user action
       redoStackRef.current = [];
 
       setDesign((prev) => ({
@@ -552,7 +701,7 @@ export default function ReportDesigner({
     // Handle header border dragging
     if (isDraggingHeaderBorder && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
-      const newHeaderHeight = Math.max(50, Math.min(A4_HEIGHT - 200, e.clientY - rect.top));
+      const newHeaderHeight = Math.max(50, Math.min(getPagePx(appliedPageSize, appliedOrientation).h - 200, e.clientY - rect.top));
       setHeaderHeight(newHeaderHeight);
       return;
     }
@@ -560,7 +709,7 @@ export default function ReportDesigner({
     // Handle footer border dragging
     if (isDraggingFooterBorder && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
-      const newFooterHeight = Math.max(50, Math.min(A4_HEIGHT - 200, rect.bottom - e.clientY));
+      const newFooterHeight = Math.max(50, Math.min(getPagePx(appliedPageSize, appliedOrientation).h - 200, rect.bottom - e.clientY));
       setFooterHeight(newFooterHeight);
       return;
     }
@@ -1205,8 +1354,8 @@ export default function ReportDesigner({
       const newElement: ReportElement = {
         id: `elem-${Date.now()}`,
         type: "image",
-        x: A4_WIDTH / 2 - 75,
-        y: A4_HEIGHT / 2 - 75,
+        x: getPagePx(appliedPageSize, appliedOrientation).w / 2 - 75,
+        y: getPagePx(appliedPageSize, appliedOrientation).h / 2 - 75,
         width: 150,
         height: 150,
         imageUrl,
@@ -1435,16 +1584,35 @@ export default function ReportDesigner({
       }
 
       // Build CSS for all elements - clean styling for print (no borders, no backgrounds)
-      // Use margins from template (database), not from component state adjustments
-      const printLeftMargin = initialMargins?.left ?? 0;
-      const printTopMargin = initialMargins?.top ?? 0;
+      // Use export margins (persisted via Save) for printing
+      const printLeftMargin = exportMargins?.left ?? 0;
+      const printTopMargin = exportMargins?.top ?? 0;
+      const printRightMargin = exportMargins?.right ?? 0;
+      const printBottomMargin = exportMargins?.bottom ?? 0;
+      // Detect whether margins are already applied to element coordinates (Apply & Save)
+      const minX = Math.min(...(design.elements.map(e => e.x)));
+      const minY = Math.min(...(design.elements.map(e => e.y)));
+      const marginsAlreadyAppliedHoriz = minX >= printLeftMargin;
+      const marginsAlreadyAppliedVert = minY >= printTopMargin;
+
+      // When margins aren't applied to layout, apply them as padding on the container (to avoid double-offsetting)
+      const containerPaddingLeft = marginsAlreadyAppliedHoriz ? 0 : printLeftMargin;
+      const containerPaddingTop = marginsAlreadyAppliedVert ? 0 : printTopMargin;
+      const containerPaddingRight = marginsAlreadyAppliedHoriz ? 0 : printRightMargin;
+      const containerPaddingBottom = marginsAlreadyAppliedVert ? 0 : printBottomMargin;
+
+      // Convert padding to inches for printing CSS
+      const padLeftIn = (containerPaddingLeft / DPI).toFixed(3);
+      const padRightIn = (containerPaddingRight / DPI).toFixed(3);
+      const padTopIn = (containerPaddingTop / DPI).toFixed(3);
+      const padBottomIn = (containerPaddingBottom / DPI).toFixed(3);
 
       let elementStyles = "";
       design.elements.forEach((el) => {
         const elemClass = `elem-${el.id}`;
-        // Adjust element position by margins from template
-        const adjustedX = el.x + printLeftMargin;
-        const adjustedY = el.y + printTopMargin;
+        // Elements are positioned relative to the content area (do not add margin offsets here)
+        const adjustedX = el.x;
+        const adjustedY = el.y;
         let cssClass = `.${elemClass} { position: absolute; left: ${adjustedX}px; top: ${adjustedY}px; width: ${el.width}px; height: ${el.height}px; `;
         cssClass += `display: flex; align-items: center; justify-content: flex-start; `;
         cssClass += `border: none; background-color: transparent; transform: rotate(${el.rotation || 0}deg); transform-origin: center; `; // Remove all borders and backgrounds
@@ -1545,16 +1713,16 @@ export default function ReportDesigner({
               background: white;
             }
             @page {
-              margin: 0.5in;
-              size: A4;
+              margin: 0; /* use explicit padding on container instead of page margin to avoid double-offset */
+              size: ${getPagePx(exportPageSize, exportOrientation).w / DPI * 25.4}mm ${getPagePx(exportPageSize, exportOrientation).h / DPI * 25.4}mm;
             }
             .canvas-container {
-              width: 210mm;
-              height: 297mm;
+              width: ${getPagePx(exportPageSize, exportOrientation).w / DPI * 25.4}mm;
+              height: ${getPagePx(exportPageSize, exportOrientation).h / DPI * 25.4}mm;
               background: white;
               position: relative;
               margin: 0;
-              padding: 0;
+              padding: ${padTopIn}in ${padRightIn}in ${padBottomIn}in ${padLeftIn}in;
               page-break-after: always;
               overflow: hidden;
               box-sizing: border-box;
@@ -1620,10 +1788,13 @@ export default function ReportDesigner({
         parameters: dataToUse || sampleData,
         designJson: JSON.stringify(design.elements),
         queriesJson: sectionQueries ? JSON.stringify(sectionQueries) : undefined,
-        leftMargin: 0,
-        rightMargin: 0,
-        topMargin: 0,
-        bottomMargin: 0,
+        leftMargin: exportMargins?.left ?? 0,
+        rightMargin: exportMargins?.right ?? 0,
+        topMargin: exportMargins?.top ?? 0,
+        bottomMargin: exportMargins?.bottom ?? 0,
+        pageSize: exportPageSize,
+        orientation: exportOrientation,
+        autoFixOverlaps: exportAutoFixOverlaps,
       };
 
       console.log("Frontend request body:", requestBody);
@@ -1655,7 +1826,8 @@ export default function ReportDesigner({
       element.innerHTML = html;
       element.style.position = "absolute";
       element.style.left = "-9999px";
-      element.style.width = "794px";
+      const pagePx = getPagePx(exportPageSize, exportOrientation);
+      element.style.width = `${pagePx.w}px`;
       element.style.background = "white";
       element.style.visibility = "visible";
       document.body.appendChild(element);
@@ -1676,13 +1848,15 @@ export default function ReportDesigner({
         console.log("Canvas created, dimensions:", canvas.width, "x", canvas.height);
 
         // Create PDF from canvas using jsPDF
+        const jsPdfFormat = exportPageSize.toLowerCase();
         const pdf = new jsPDF({
-          orientation: "portrait",
+          orientation: exportOrientation,
           unit: "mm",
-          format: "a4",
+          format: jsPdfFormat as any,
         });
 
-        const imgWidth = 210; // A4 width in mm
+        const pagePx = getPagePx(exportPageSize, exportOrientation);
+        const imgWidth = (pagePx.w / DPI) * 25.4; // width in mm based on selected page
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         const imgData = canvas.toDataURL("image/jpeg", 0.98);
 
@@ -1825,6 +1999,14 @@ export default function ReportDesigner({
             Print Settings
           </Button>
 
+          {/* Badge showing current export margins */}
+          <div
+            title={`Export: ${exportPageSize} ${exportOrientation} — Margins L${exportMargins.left}px (${pxToIn(exportMargins.left)}in) R${exportMargins.right}px (${pxToIn(exportMargins.right)}in) T${exportMargins.top}px (${pxToIn(exportMargins.top)}in) B${exportMargins.bottom}px (${pxToIn(exportMargins.bottom)}in)`}
+            className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded"
+          >
+            M: L{pxToIn(exportMargins.left)}in R{pxToIn(exportMargins.right)}in T{pxToIn(exportMargins.top)}in B{pxToIn(exportMargins.bottom)}in
+          </div>
+
           <Button
             onClick={() => {
               // Ungroup if a group is selected
@@ -1879,44 +2061,154 @@ export default function ReportDesigner({
               <div className="bg-white p-4 rounded shadow-lg w-[440px]">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-semibold">Print Settings</h3>
-                  <div className="text-sm text-gray-500">A4 preview</div>
+                  <div className="text-sm text-gray-500">{tempPageSize} {tempOrientation === 'portrait' ? 'preview' : 'preview (landscape)'}</div>
                 </div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3 items-center">
-                    <Label>Left margin</Label>
+                    <Label>Page Size</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={tempMargins.left} onChange={(e)=>setTempMargins(prev=>({ ...prev, left: parseInt(e.target.value)}))} />
-                      <Input value={tempMargins.left} onChange={(e)=>setTempMargins(prev=>({ ...prev, left: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
+                      <select className="form-select" value={tempPageSize} onChange={(e) => setTempPageSize(e.target.value)}>
+                        {Object.keys(PAGE_DEFINITIONS).map((k) => (
+                          <option key={k} value={k}>{k}</option>
+                        ))}
+                      </select>
                     </div>
-                    <Label>Right margin</Label>
+                    <Label>Orientation</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={tempMargins.right} onChange={(e)=>setTempMargins(prev=>({ ...prev, right: parseInt(e.target.value)}))} />
-                      <Input value={tempMargins.right} onChange={(e)=>setTempMargins(prev=>({ ...prev, right: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
+                      <select className="form-select" value={tempOrientation} onChange={(e) => setTempOrientation(e.target.value as 'portrait'|'landscape')}>
+                        <option value="portrait">Portrait</option>
+                        <option value="landscape">Landscape</option>
+                      </select>
                     </div>
-                    <Label>Top margin</Label>
+
+                    <Label>Left margin (in)</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={tempMargins.top} onChange={(e)=>setTempMargins(prev=>({ ...prev, top: parseInt(e.target.value)}))} />
-                      <Input value={tempMargins.top} onChange={(e)=>setTempMargins(prev=>({ ...prev, top: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
+                      <input
+                        type="range"
+                        min={0}
+                        step={0.01}
+                        max={Math.max(1, getPagePx(tempPageSize, tempOrientation).w) / DPI / 2}
+                        value={pxToIn(tempMargins.left)}
+                        onChange={(e) => setTempMargins((prev) => ({ ...prev, left: inToPx(parseFloat(e.target.value || '0')) }))}
+                      />
+                      <Input
+                        value={pxToIn(tempMargins.left)}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value || '0');
+                          setTempMargins((prev) => ({ ...prev, left: inToPx(isNaN(v) ? 0 : v) }));
+                        }}
+                        type="number"
+                        step="0.01"
+                        className="mt-1"
+                      />
                     </div>
-                    <Label>Bottom margin</Label>
+                    <Label>Right margin (in)</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={tempMargins.bottom} onChange={(e)=>setTempMargins(prev=>({ ...prev, bottom: parseInt(e.target.value)}))} />
-                      <Input value={tempMargins.bottom} onChange={(e)=>setTempMargins(prev=>({ ...prev, bottom: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
+                      <input
+                        type="range"
+                        min={0}
+                        step={0.01}
+                        max={Math.max(1, getPagePx(tempPageSize, tempOrientation).w) / DPI / 2}
+                        value={pxToIn(tempMargins.right)}
+                        onChange={(e) => setTempMargins((prev) => ({ ...prev, right: inToPx(parseFloat(e.target.value || '0')) }))}
+                      />
+                      <Input
+                        value={pxToIn(tempMargins.right)}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value || '0');
+                          setTempMargins((prev) => ({ ...prev, right: inToPx(isNaN(v) ? 0 : v) }));
+                        }}
+                        type="number"
+                        step="0.01"
+                        className="mt-1"
+                      />
+                    </div>
+                    <Label>Top margin (in)</Label>
+                    <div>
+                      <input
+                        type="range"
+                        min={0}
+                        step={0.01}
+                        max={Math.max(1, getPagePx(tempPageSize, tempOrientation).h) / DPI / 2}
+                        value={pxToIn(tempMargins.top)}
+                        onChange={(e) => setTempMargins((prev) => ({ ...prev, top: inToPx(parseFloat(e.target.value || '0')) }))}
+                      />
+                      <Input
+                        value={pxToIn(tempMargins.top)}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value || '0');
+                          setTempMargins((prev) => ({ ...prev, top: inToPx(isNaN(v) ? 0 : v) }));
+                        }}
+                        type="number"
+                        step="0.01"
+                        className="mt-1"
+                      />
+                    </div>
+                    <Label>Bottom margin (in)</Label>
+                    <div>
+                      <input
+                        type="range"
+                        min={0}
+                        step={0.01}
+                        max={Math.max(1, getPagePx(tempPageSize, tempOrientation).h) / DPI / 2}
+                        value={pxToIn(tempMargins.bottom)}
+                        onChange={(e) => setTempMargins((prev) => ({ ...prev, bottom: inToPx(parseFloat(e.target.value || '0')) }))}
+                      />
+                      <Input
+                        value={pxToIn(tempMargins.bottom)}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value || '0');
+                          setTempMargins((prev) => ({ ...prev, bottom: inToPx(isNaN(v) ? 0 : v) }));
+                        }}
+                        type="number"
+                        step="0.01"
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <Label>Auto-fix overlaps on export</Label>
+                    <div>
+                      <input type="checkbox" checked={tempAutoFixOverlaps} onChange={(e) => setTempAutoFixOverlaps(e.target.checked)} /> <span className="text-xs text-gray-500">(Off by default — enable to let exporter resolve overlapping elements)</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="ghost" onClick={()=>setShowPrintSettings(false)}>Cancel</Button>
-                  <Button onClick={() => { 
-                    // Apply temp margins to designer and save via onSave
-                    setLeftMargin(tempMargins.left); setRightMargin(tempMargins.right); setTopMargin(tempMargins.top); setBottomMargin(tempMargins.bottom);
-                    // Treat as user action and clear redo stack
-                    redoStackRef.current = [];
-                    // Persist - if parent handles create/save when no templateId, call onSave anyway
+
+                  {/* Save for export/printing only — does NOT reflow elements on canvas */}
+                  <Button onClick={() => {
+                    setExportMargins(tempMargins);
+                    setExportPageSize(tempPageSize);
+                    setExportOrientation(tempOrientation);
+                    setExportAutoFixOverlaps(tempAutoFixOverlaps);
+                    // Persist the export margins to backend (parent expects onSave)
                     onSave(design.elements, { left: tempMargins.left, right: tempMargins.right, top: tempMargins.top, bottom: tempMargins.bottom });
-                    toast({ title: 'Saved', description: 'Print settings saved' });
+                    toast({ title: 'Saved', description: `Export settings saved (${tempPageSize} ${tempOrientation})` });
                     setShowPrintSettings(false);
                   }}>Save</Button>
+
+                  {/* Apply & Save: apply margins to layout (triggers reposition/reflow) and persist */}
+                  <Button onClick={() => {
+                    // Apply margins to designer layout (this triggers the reflow useEffect)
+                    setLeftMargin(tempMargins.left); setRightMargin(tempMargins.right); setTopMargin(tempMargins.top); setBottomMargin(tempMargins.bottom);
+                    setExportMargins(tempMargins);
+                    setExportPageSize(tempPageSize);
+                    setExportOrientation(tempOrientation);
+                    setExportAutoFixOverlaps(tempAutoFixOverlaps);
+
+                    // Apply to on-screen viewer immediately
+                    setAppliedPageSize(tempPageSize);
+                    setAppliedOrientation(tempOrientation);
+
+                    // Treat as user action and clear redo stack
+                    redoStackRef.current = [];
+                    // Persist margins (parent persists to backend)
+                    onSave(design.elements, { left: tempMargins.left, right: tempMargins.right, top: tempMargins.top, bottom: tempMargins.bottom });
+                    toast({ title: 'Saved', description: `Print settings applied and saved (${tempPageSize} ${tempOrientation})` });
+                    setShowPrintSettings(false);
+                  }}>
+                    Apply & Save
+                  </Button>
                 </div>
               </div>
             </div>
@@ -2786,8 +3078,8 @@ export default function ReportDesigner({
             ref={canvasRef}
             className="relative bg-white border-2 border-gray-300 flex-shrink-0 shadow-lg"
             style={{
-              width: `${A4_WIDTH}px`,
-              height: `${A4_HEIGHT}px`,
+              width: `${getPagePx(appliedPageSize, appliedOrientation).w}px`,
+              height: `${getPagePx(appliedPageSize, appliedOrientation).h}px`,
               cursor: tool ? "crosshair" : "default",
             }}
             onMouseDown={handleCanvasMouseDown}
@@ -2939,6 +3231,32 @@ export default function ReportDesigner({
                         }}
                       />
                     )}
+                  </>
+                )}
+
+                {/* Print Settings preview overlay (shows while modal is open) */}
+                {showPrintSettings && canvasRef.current && (
+                  <>
+                    {/* Shaded outside margins */}
+                    <div className="absolute pointer-events-none" style={{ left: 0, top: 0, width: `${tempMargins.left}px`, height: "100%", background: "rgba(0,0,0,0.04)" }} />
+                    <div className="absolute pointer-events-none" style={{ right: 0, top: 0, width: `${tempMargins.right}px`, height: "100%", background: "rgba(0,0,0,0.04)" }} />
+                    <div className="absolute pointer-events-none" style={{ left: 0, top: 0, width: "100%", height: `${tempMargins.top}px`, background: "rgba(0,0,0,0.04)" }} />
+                    <div className="absolute pointer-events-none" style={{ left: 0, bottom: 0, width: "100%", height: `${tempMargins.bottom}px`, background: "rgba(0,0,0,0.04)" }} />
+
+                    {/* Content area outline */}
+                    <div className="absolute pointer-events-none" style={{
+                      left: `${tempMargins.left}px`,
+                      top: `${tempMargins.top}px`,
+                      width: `${(canvasRef.current?.clientWidth || getPagePx(appliedPageSize, appliedOrientation).w) - tempMargins.left - tempMargins.right}px`,
+                      height: `${(canvasRef.current?.clientHeight || getPagePx(appliedPageSize, appliedOrientation).h) - tempMargins.top - tempMargins.bottom}px`,
+                      border: '2px dashed #f97316',
+                      boxSizing: 'border-box'
+                    }}>
+                      <div style={{ position: 'absolute', left: 6, top: -20 }} className={`text-xs px-2 rounded ${JSON.stringify(tempMargins) !== JSON.stringify(exportMargins) ? 'text-blue-600 bg-white' : 'text-gray-600 bg-white'}`}>
+                        {JSON.stringify(tempMargins) !== JSON.stringify(exportMargins) ? 'Preview — export-only (Save)' : 'Preview — saved export margins'}
+                      </div>
+                      <div style={{ position: 'absolute', right: 6, top: -20 }} className="text-xs text-orange-600 bg-white px-2 rounded">Apply & Save will apply to layout</div>
+                    </div>
                   </>
                 )}
 

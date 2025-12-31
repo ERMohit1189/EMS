@@ -19,7 +19,7 @@ namespace VendorRegistrationBackend.Services
         /// Generates HTML from a report template with populated data
         /// This HTML can be converted to PDF on the frontend or using a service
         /// </summary>
-        public async Task<string> GenerateHtmlFromTemplateAsync(string templateId, Dictionary<string, object> parameters, string? designJson = null, string? queriesJson = null, int leftMargin = 0, int rightMargin = 0, int topMargin = 0, int bottomMargin = 0)
+        public async Task<string> GenerateHtmlFromTemplateAsync(string templateId, Dictionary<string, object> parameters, string? designJson = null, string? queriesJson = null, int leftMargin = 0, int rightMargin = 0, int topMargin = 0, int bottomMargin = 0, string pageSize = "A4", string orientation = "portrait", bool autoFixOverlaps = false)
         {
             // Fetch template
             var template = _context.ReportTemplates.FirstOrDefault(t => t.Id == templateId);
@@ -66,8 +66,8 @@ namespace VendorRegistrationBackend.Services
                     mergedData[kvp.Key] = kvp.Value?.ToString() ?? "";
             }
 
-            // Generate HTML
-            var html = GenerateHtml(designElements, mergedData, template.Name, leftMargin, rightMargin, topMargin, bottomMargin);
+            // Generate HTML (pass through page size, orientation and auto-fix flag)
+            var html = GenerateHtml(designElements, mergedData, template.Name, leftMargin, rightMargin, topMargin, bottomMargin, pageSize, orientation, autoFixOverlaps);
             Console.WriteLine($"[ReportPdfService] Generated HTML length: {html.Length}");
             Console.WriteLine($"[ReportPdfService] HTML preview (first 500 chars): {html.Substring(0, Math.Min(500, html.Length))}");
             return html;
@@ -138,7 +138,7 @@ namespace VendorRegistrationBackend.Services
             return result;
         }
 
-        private string GenerateHtml(List<DesignElement> elements, Dictionary<string, string> data, string templateName, int leftMargin = 0, int rightMargin = 0, int topMargin = 0, int bottomMargin = 0)
+        private string GenerateHtml(List<DesignElement> elements, Dictionary<string, string> data, string templateName, int leftMargin = 0, int rightMargin = 0, int topMargin = 0, int bottomMargin = 0, string pageSize = "A4", string orientation = "portrait", bool autoFixOverlaps = false)
         {
             var html = new System.Text.StringBuilder();
 
@@ -166,11 +166,244 @@ namespace VendorRegistrationBackend.Services
             html.AppendLine("<body>");
             html.AppendLine("  <div class=\"page\">");
 
-            // Render elements
+            // Detect whether margins have already been applied to saved element coordinates
+            // If saved element X/Y are already offset by the same margin, avoid adding it again
+            int minX = elements.Any() ? elements.Min(e => e.X) : 0;
+            int minY = elements.Any() ? elements.Min(e => e.Y) : 0;
+            bool marginsAlreadyAppliedHoriz = minX >= leftMargin;
+            bool marginsAlreadyAppliedVert = minY >= topMargin;
+            int effectiveLeft = marginsAlreadyAppliedHoriz ? 0 : leftMargin;
+            int effectiveTop = marginsAlreadyAppliedVert ? 0 : topMargin;
+
+            Console.WriteLine($"[ReportPdfService] marginsAlreadyAppliedHoriz={marginsAlreadyAppliedHoriz}, marginsAlreadyAppliedVert={marginsAlreadyAppliedVert}, effectiveLeft={effectiveLeft}, effectiveTop={effectiveTop}");
+
+            // Determine page dimensions from pageSize + orientation (mm -> px using 96 DPI)
+            (double pageWidthMm, double pageHeightMm) = pageSize switch
+            {
+                "A3" => (420.0, 297.0),
+                "A4" => (210.0, 297.0),
+                "Letter" => (216.0, 279.0),
+                _ => (210.0, 297.0) // default A4
+            };
+
+            if (orientation?.ToLower() == "landscape")
+            {
+                var tmp = pageWidthMm; pageWidthMm = pageHeightMm; pageHeightMm = tmp;
+            }
+
+            int PAGE_WIDTH_PX = (int)Math.Round(pageWidthMm / 25.4 * 96.0);
+            int PAGE_HEIGHT_PX = (int)Math.Round(pageHeightMm / 25.4 * 96.0);
+
+            Console.WriteLine($"[ReportPdfService] page size: {pageSize} {orientation} => {PAGE_WIDTH_PX}px x {PAGE_HEIGHT_PX}px");
+
+            // If margins are not already applied to element coordinates, show them as page padding
+            int paddingLeft = marginsAlreadyAppliedHoriz ? 0 : leftMargin;
+            int paddingRight = marginsAlreadyAppliedHoriz ? 0 : rightMargin;
+            int paddingTop = marginsAlreadyAppliedVert ? 0 : topMargin;
+            int paddingBottom = marginsAlreadyAppliedVert ? 0 : bottomMargin;
+
+            int contentLeft = paddingLeft;
+            int contentRightFinal = PAGE_WIDTH_PX - paddingRight;
+            int contentTop = paddingTop;
+            int contentBottomFinal = PAGE_HEIGHT_PX - paddingBottom;
+
+            Console.WriteLine($"[ReportPdfService] content area L={contentLeft} R={contentRightFinal} T={contentTop} B={contentBottomFinal}");
+
+            // Clone elements and apply clamping
+            var adjustedElements = new List<DesignElement>();
             foreach (var el in elements)
             {
+                var copy = new DesignElement
+                {
+                    Id = el.Id,
+                    Type = el.Type,
+                    X = el.X,
+                    Y = el.Y,
+                    Width = el.Width,
+                    Height = el.Height,
+                    Content = el.Content,
+                    FieldName = el.FieldName,
+                    FontSize = el.FontSize,
+                    FontColor = el.FontColor,
+                    FontWeight = el.FontWeight,
+                    FontStyle = el.FontStyle,
+                    TextDecoration = el.TextDecoration,
+                    BorderColor = el.BorderColor,
+                    BgColor = el.BgColor,
+                    BorderWidth = el.BorderWidth,
+                    ImageUrl = el.ImageUrl,
+                    Rows = el.Rows,
+                    Cols = el.Cols,
+                    Rotation = el.Rotation,
+                    Locked = el.Locked
+                };
+
+                // Horizontal clamping
+                int maxRight = contentRightFinal;
+                int originalX = copy.X;
+                int originalW = copy.Width;
+                if (copy.X < contentLeft) copy.X = contentLeft;
+                if (copy.X + copy.Width > maxRight)
+                {
+                    int available = maxRight - contentLeft;
+                    if (available <= 30)
+                    {
+                        // If nothing fits, clamp position and reduce width to minimum
+                        copy.X = contentLeft;
+                        copy.Width = Math.Max(30, available);
+                    }
+                    else if (copy.Width > available)
+                    {
+                        copy.Width = available;
+                        copy.X = contentLeft;
+                    }
+                    else
+                    {
+                        copy.X = Math.Max(contentLeft, maxRight - copy.Width);
+                    }
+                }
+                if (copy.X != originalX || copy.Width != originalW)
+                {
+                    Console.WriteLine($"[ReportPdfService] Adjusted element '{copy.Id}' horizontally: X {originalX} -> {copy.X}, W {originalW} -> {copy.Width}");
+                }
+
+                // Vertical clamping
+                int maxBottom = contentBottomFinal;
+                int originalY = copy.Y;
+                int originalH = copy.Height;
+                if (copy.Y < effectiveTop) copy.Y = effectiveTop;
+                if (copy.Y + copy.Height > maxBottom)
+                {
+                    int availableV = maxBottom - effectiveTop;
+                    if (availableV <= 30)
+                    {
+                        copy.Y = effectiveTop;
+                        copy.Height = Math.Max(30, availableV);
+                    }
+                    else if (copy.Height > availableV)
+                    {
+                        copy.Height = availableV;
+                        copy.Y = effectiveTop;
+                    }
+                    else
+                    {
+                        copy.Y = Math.Max(effectiveTop, maxBottom - copy.Height);
+                    }
+                }
+                if (copy.Y != originalY || copy.Height != originalH)
+                {
+                    Console.WriteLine($"[ReportPdfService] Adjusted element '{copy.Id}' vertically: Y {originalY} -> {copy.Y}, H {originalH} -> {copy.Height}");
+                }
+
+                adjustedElements.Add(copy);
+            }
+
+            // Resolve remaining overlaps with multiple passes (horizontal and vertical)
+            // Only run overlap fixes when autoFixOverlaps is true (Option1: default FALSE -> no fixes)
+            if (autoFixOverlaps)
+            {
+                const int GAP = 4;
+                bool RectsOverlap(DesignElement a, DesignElement b)
+                {
+                    return !(a.X + a.Width <= b.X || b.X + b.Width <= a.X || a.Y + a.Height <= b.Y || b.Y + b.Height <= a.Y);
+                }
+
+                // Horizontal resolution (same row)
+                for (int pass = 0; pass < 4; pass++)
+                {
+                    bool changed = false;
+                    var sorted = adjustedElements.OrderBy(e => e.X).ThenBy(e => e.Y).ToList();
+                    for (int i = 0; i < sorted.Count; i++)
+                    {
+                        var a = sorted[i];
+                        for (int j = 0; j < i; j++)
+                        {
+                            var b = sorted[j];
+                            // Only consider if vertical ranges intersect (same row)
+                            var verticalOverlap = !(a.Y + a.Height <= b.Y || b.Y + b.Height <= a.Y);
+                            if (verticalOverlap && a.X < b.X + b.Width && a.X + a.Width > b.X)
+                            {
+                                var desiredX = b.X + b.Width + GAP;
+                                var maxX = contentRightFinal - a.Width;
+                                if (desiredX <= maxX)
+                                {
+                                    if (a.X != desiredX) { a.X = desiredX; changed = true; }
+                                }
+                                else
+                                {
+                                    var leftX = b.X - a.Width - GAP;
+                                    var minBoundaryX = contentLeft;
+                                    if (leftX >= minBoundaryX)
+                                    {
+                                        if (b.X != leftX) { b.X = leftX; changed = true; }
+                                    }
+                                    else
+                                    {
+                                        var newAx = Math.Min(Math.Max(a.X, contentLeft), maxX);
+                                        if (a.X != newAx) { a.X = newAx; changed = true; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!changed) break;
+                    adjustedElements = sorted;
+                }
+
+                // Vertical resolution (same column)
+                for (int pass = 0; pass < 4; pass++)
+                {
+                    bool changed = false;
+                    var sorted = adjustedElements.OrderBy(e => e.Y).ThenBy(e => e.X).ToList();
+                    for (int i = 0; i < sorted.Count; i++)
+                    {
+                        var a = sorted[i];
+                        for (int j = 0; j < i; j++)
+                        {
+                            var b = sorted[j];
+                            if (RectsOverlap(a, b))
+                            {
+                                var desiredY = b.Y + b.Height + GAP;
+                                var maxY = contentBottomFinal - a.Height;
+                                if (desiredY <= maxY)
+                                {
+                                    if (a.Y != desiredY) { a.Y = desiredY; changed = true; }
+                                }
+                                else
+                                {
+                                    var upY = b.Y - a.Height - GAP;
+                                    var minBoundaryY = contentTop;
+                                    if (upY >= minBoundaryY)
+                                    {
+                                        if (b.Y != upY) { b.Y = upY; changed = true; }
+                                    }
+                                    else
+                                    {
+                                        var newAy = Math.Min(Math.Max(a.Y, contentTop), maxY);
+                                        if (a.Y != newAy) { a.Y = newAy; changed = true; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!changed) break;
+                    adjustedElements = sorted;
+                }
+            }
+
+            // Add page padding via inline CSS so elements' positions are relative to the content area
+            double leftIn = Math.Round((double)paddingLeft / 96.0, 3);
+            double rightIn = Math.Round((double)paddingRight / 96.0, 3);
+            double topIn = Math.Round((double)paddingTop / 96.0, 3);
+            double bottomIn = Math.Round((double)paddingBottom / 96.0, 3);
+
+            html.AppendLine($"  <style> .page {{ padding: {topIn}in {rightIn}in {bottomIn}in {leftIn}in; }} </style>");
+
+            // Render adjusted elements (positions are relative to page content area; do not add margins to each element)
+            foreach (var el in adjustedElements)
+            {
                 string content = RenderElementContent(el, data);
-                string style = BuildElementStyle(el, leftMargin, topMargin);
+                string style = BuildElementStyle(el, 0, 0);
 
                 html.AppendLine($"    <div class=\"element element-{el.Type}\" style=\"{style}\">");
                 html.AppendLine($"      {content}");

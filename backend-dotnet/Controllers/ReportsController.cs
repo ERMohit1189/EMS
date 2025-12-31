@@ -328,11 +328,13 @@ namespace VendorRegistrationBackend.Controllers
                 // Fetch template from database to get its margin values
                 var template = await _context.ReportTemplates.FirstOrDefaultAsync(t => t.Id == templateId);
 
-                // Use template's margins from database (default to 0 if not set)
-                int leftMargin = template?.LeftMargin ?? 0;
-                int rightMargin = template?.RightMargin ?? 0;
-                int topMargin = template?.TopMargin ?? 0;
-                int bottomMargin = template?.BottomMargin ?? 0;
+                // Prefer margins passed in the request (frontend export settings) — fallback to template values
+                int leftMargin = request.LeftMargin != 0 || template == null ? request.LeftMargin : template.LeftMargin;
+                int rightMargin = request.RightMargin != 0 || template == null ? request.RightMargin : template.RightMargin;
+                int topMargin = request.TopMargin != 0 || template == null ? request.TopMargin : template.TopMargin;
+                int bottomMargin = request.BottomMargin != 0 || template == null ? request.BottomMargin : template.BottomMargin;
+
+                Console.WriteLine($"[ReportsController] Export HTML margins used: L={leftMargin}, R={rightMargin}, T={topMargin}, B={bottomMargin} (request.Left={request.LeftMargin})");
 
                 var html = await _pdfService.GenerateHtmlFromTemplateAsync(
                     templateId,
@@ -342,7 +344,10 @@ namespace VendorRegistrationBackend.Controllers
                     leftMargin,
                     rightMargin,
                     topMargin,
-                    bottomMargin
+                    bottomMargin,
+                    request.PageSize,
+                    request.Orientation,
+                    request.AutoFixOverlaps
                 );
                 return Ok(new { html = html });
             }
@@ -361,11 +366,13 @@ namespace VendorRegistrationBackend.Controllers
                 // Fetch template from database to get its margin values
                 var template = await _context.ReportTemplates.FirstOrDefaultAsync(t => t.Id == templateId);
 
-                // Use template's margins from database (default to 0 if not set)
-                int leftMargin = template?.LeftMargin ?? 0;
-                int rightMargin = template?.RightMargin ?? 0;
-                int topMargin = template?.TopMargin ?? 0;
-                int bottomMargin = template?.BottomMargin ?? 0;
+                // Prefer margins passed in the request (frontend export settings) — fallback to template values
+                int leftMargin = request.LeftMargin != 0 || template == null ? request.LeftMargin : template.LeftMargin;
+                int rightMargin = request.RightMargin != 0 || template == null ? request.RightMargin : template.RightMargin;
+                int topMargin = request.TopMargin != 0 || template == null ? request.TopMargin : template.TopMargin;
+                int bottomMargin = request.BottomMargin != 0 || template == null ? request.BottomMargin : template.BottomMargin;
+
+                Console.WriteLine($"[ReportsController] Export PDF margins used: L={leftMargin}, R={rightMargin}, T={topMargin}, B={bottomMargin} (request.Left={request.LeftMargin})");
 
                 var html = await _pdfService.GenerateHtmlFromTemplateAsync(
                     templateId,
@@ -375,7 +382,10 @@ namespace VendorRegistrationBackend.Controllers
                     leftMargin,
                     rightMargin,
                     topMargin,
-                    bottomMargin
+                    bottomMargin,
+                    request.PageSize,
+                    request.Orientation,
+                    request.AutoFixOverlaps
                 );
                 return Ok(new {
                     html = html,
@@ -406,6 +416,11 @@ namespace VendorRegistrationBackend.Controllers
 
         [System.Text.Json.Serialization.JsonConverter(typeof(VendorRegistrationBackend.Models.IntJsonConverter))]
         public int BottomMargin { get; set; } = 0;
+
+        // New: page size and orientation from frontend
+        public string PageSize { get; set; } = "A4"; // e.g., A4, A3, Letter
+        public string Orientation { get; set; } = "portrait"; // portrait | landscape
+        public bool AutoFixOverlaps { get; set; } = false; // whether exporter should try to auto-fix overlaps
     }
 
     public class QueryTestRequest
