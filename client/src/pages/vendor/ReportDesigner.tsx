@@ -131,6 +131,19 @@ export default function ReportDesigner({
   const [isDraggingToolbar, setIsDraggingToolbar] = useState(false);
   // Print settings modal visibility
   const [showPrintSettings, setShowPrintSettings] = useState(false);
+
+  // When opening the modal, populate tempMargins from saved template margins (if present) or defaults
+  useEffect(() => {
+    if (showPrintSettings) {
+      const saved = (templateId && initialMargins) ? initialMargins : DEFAULT_MARGINS;
+      setTempMargins({
+        left: saved.left ?? DEFAULT_MARGINS.left,
+        right: saved.right ?? DEFAULT_MARGINS.right,
+        top: saved.top ?? DEFAULT_MARGINS.top,
+        bottom: saved.bottom ?? DEFAULT_MARGINS.bottom,
+      });
+    }
+  }, [showPrintSettings, templateId, initialMargins]);
   const [toolbarDragStart, setToolbarDragStart] = useState({ x: 0, y: 0 });
 
   // A4 dimensions in pixels (at 96 DPI): 210mm × 297mm
@@ -380,12 +393,26 @@ export default function ReportDesigner({
       const newContentHeight = Math.max(1, canvasHeight - topMargin - bottomMargin);
 
       const updatedElements = design.elements.map((el) => {
-        // Preserve relative position within the old content area, map to new content area
-        const relX = (el.x - prevLeft) / oldContentWidth;
-        const relY = (el.y - prevTop) / oldContentHeight;
+        // Use element center to calculate proportional mapping so decreasing margins expand elements outward correctly
+        const elCenterX = el.x + el.width / 2;
+        const elCenterY = el.y + el.height / 2;
 
-        const newX = leftMargin + relX * newContentWidth;
-        const newY = topMargin + relY * newContentHeight;
+        const relCenterX = (elCenterX - prevLeft) / oldContentWidth;
+        const relCenterY = (elCenterY - prevTop) / oldContentHeight;
+
+        const newCenterX = leftMargin + relCenterX * newContentWidth;
+        const newCenterY = topMargin + relCenterY * newContentHeight;
+
+        let newX = newCenterX - el.width / 2;
+        let newY = newCenterY - el.height / 2;
+
+        // If element is larger than new content area, pin to left/top margin
+        if (el.width >= newContentWidth) {
+          newX = leftMargin;
+        }
+        if (el.height >= newContentHeight) {
+          newY = topMargin;
+        }
 
         const constrained = constrainElementPosition(
           newX,
@@ -1858,29 +1885,38 @@ export default function ReportDesigner({
                   <div className="grid grid-cols-2 gap-3 items-center">
                     <Label>Left margin</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={leftMargin} onChange={(e)=>setLeftMargin(parseInt(e.target.value))} />
-                      <Input value={leftMargin} onChange={(e)=>setLeftMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={tempMargins.left} onChange={(e)=>setTempMargins(prev=>({ ...prev, left: parseInt(e.target.value)}))} />
+                      <Input value={tempMargins.left} onChange={(e)=>setTempMargins(prev=>({ ...prev, left: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
                     </div>
                     <Label>Right margin</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={rightMargin} onChange={(e)=>setRightMargin(parseInt(e.target.value))} />
-                      <Input value={rightMargin} onChange={(e)=>setRightMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={tempMargins.right} onChange={(e)=>setTempMargins(prev=>({ ...prev, right: parseInt(e.target.value)}))} />
+                      <Input value={tempMargins.right} onChange={(e)=>setTempMargins(prev=>({ ...prev, right: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
                     </div>
                     <Label>Top margin</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={topMargin} onChange={(e)=>setTopMargin(parseInt(e.target.value))} />
-                      <Input value={topMargin} onChange={(e)=>setTopMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={tempMargins.top} onChange={(e)=>setTempMargins(prev=>({ ...prev, top: parseInt(e.target.value)}))} />
+                      <Input value={tempMargins.top} onChange={(e)=>setTempMargins(prev=>({ ...prev, top: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
                     </div>
                     <Label>Bottom margin</Label>
                     <div>
-                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={bottomMargin} onChange={(e)=>setBottomMargin(parseInt(e.target.value))} />
-                      <Input value={bottomMargin} onChange={(e)=>setBottomMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={tempMargins.bottom} onChange={(e)=>setTempMargins(prev=>({ ...prev, bottom: parseInt(e.target.value)}))} />
+                      <Input value={tempMargins.bottom} onChange={(e)=>setTempMargins(prev=>({ ...prev, bottom: parseInt(e.target.value||'0')}))} type="number" className="mt-1" />
                     </div>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="ghost" onClick={()=>setShowPrintSettings(false)}>Cancel</Button>
-                  <Button onClick={() => { onSave(design.elements, { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin }); toast({ title: 'Saved', description: 'Print settings saved' }); setShowPrintSettings(false); }}>Save</Button>
+                  <Button onClick={() => { 
+                    // Apply temp margins to designer and save via onSave
+                    setLeftMargin(tempMargins.left); setRightMargin(tempMargins.right); setTopMargin(tempMargins.top); setBottomMargin(tempMargins.bottom);
+                    // Treat as user action and clear redo stack
+                    redoStackRef.current = [];
+                    // Persist - if parent handles create/save when no templateId, call onSave anyway
+                    onSave(design.elements, { left: tempMargins.left, right: tempMargins.right, top: tempMargins.top, bottom: tempMargins.bottom });
+                    toast({ title: 'Saved', description: 'Print settings saved' });
+                    setShowPrintSettings(false);
+                  }}>Save</Button>
                 </div>
               </div>
             </div>
