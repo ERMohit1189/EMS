@@ -148,11 +148,15 @@ namespace VendorRegistrationBackend.Controllers
                 return Unauthorized(new { success = false, message = "Invalid credentials" });
             }
 
-            // Do not allow vendors with pending approval to login
-            if (!string.IsNullOrWhiteSpace(vendor.Status) && vendor.Status.Trim().ToLower() == "pending")
+            // Only allow vendors with explicit 'approved' status to login
+            var vendorStatus = vendor.Status?.Trim() ?? string.Empty;
+            if (!vendorStatus.Equals("approved", StringComparison.OrdinalIgnoreCase))
             {
-                await _auditService.LogAuthAttemptAsync(HttpContext, "Vendor", request.Email, "Failed", "PendingApproval");
-                return Unauthorized(new { success = false, message = "Your account is pending approval and cannot log in yet" });
+                await _auditService.LogAuthAttemptAsync(HttpContext, "Vendor", request.Email, "Failed", "NotApproved");
+                var errMsg = string.IsNullOrWhiteSpace(vendorStatus)
+                    ? "Your account is not approved and cannot log in."
+                    : $"Your account status is '{vendorStatus}' and cannot log in.";
+                return Unauthorized(new { success = false, message = errMsg });
             }
 
             // Generate JWT token
