@@ -140,14 +140,15 @@ export default function ReportDesigner({
     height: number,
     margins: { left: number; right: number; top: number; bottom: number }
   ) => {
-    const constrainedX = Math.max(
-      margins.left,
-      Math.min(A4_WIDTH - margins.right - width, x)
-    );
-    const constrainedY = Math.max(
-      margins.top,
-      Math.min(A4_HEIGHT - margins.bottom - height, y)
-    );
+    // Use actual canvas dimensions when available so right/bottom margins are respected correctly
+    const canvasWidth = canvasRef.current?.clientWidth ?? A4_WIDTH;
+    const canvasHeight = canvasRef.current?.clientHeight ?? A4_HEIGHT;
+
+    const maxX = Math.max(margins.left, canvasWidth - margins.right - width);
+    const maxY = Math.max(margins.top, canvasHeight - margins.bottom - height);
+
+    const constrainedX = Math.max(margins.left, Math.min(maxX, x));
+    const constrainedY = Math.max(margins.top, Math.min(maxY, y));
     return { x: constrainedX, y: constrainedY };
   };
 
@@ -335,15 +336,25 @@ export default function ReportDesigner({
   useEffect(() => {
     // Calculate margin changes
     const leftDelta = leftMargin - prevMarginsRef.current.left;
+    const rightDelta = rightMargin - prevMarginsRef.current.right;
     const topDelta = topMargin - prevMarginsRef.current.top;
+    const bottomDelta = bottomMargin - prevMarginsRef.current.bottom;
 
-    // If margins have changed, adjust all element positions
-    if (leftDelta !== 0 || topDelta !== 0) {
-      const updatedElements = design.elements.map((el) => ({
-        ...el,
-        x: el.x + leftDelta,
-        y: el.y + topDelta,
-      }));
+    // If any margin changed, adjust element positions and ensure they remain within new margins
+    if (leftDelta !== 0 || rightDelta !== 0 || topDelta !== 0 || bottomDelta !== 0) {
+      const updatedElements = design.elements.map((el) => {
+        // Move elements relative to left/top changes, then clamp to the available area defined by margins
+        const tentativeX = el.x + leftDelta;
+        const tentativeY = el.y + topDelta;
+        const constrained = constrainElementPosition(
+          tentativeX,
+          tentativeY,
+          el.width,
+          el.height,
+          { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin }
+        );
+        return { ...el, x: constrained.x, y: constrained.y };
+      });
 
       setDesign((prev) => ({
         ...prev,
@@ -473,7 +484,8 @@ export default function ReportDesigner({
     // Handle left margin dragging
     if (isDraggingLeftMargin && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
-      const newLeftMargin = Math.max(0, Math.min(A4_WIDTH - 100, e.clientX - rect.left));
+      // Use rect.width so limits follow actual canvas width
+      const newLeftMargin = Math.max(0, Math.min(rect.width - 100, e.clientX - rect.left));
       setLeftMargin(newLeftMargin);
       return;
     }
@@ -481,7 +493,9 @@ export default function ReportDesigner({
     // Handle right margin dragging
     if (isDraggingRightMargin && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
-      const newRightMargin = Math.max(0, Math.min(A4_WIDTH - 100, rect.right - e.clientX));
+      // Distance from pointer to canvas right edge (rect.right - e.clientX)
+      // Clamp to rect.width - 100 so right margin cannot exceed canvas width
+      const newRightMargin = Math.max(0, Math.min(rect.width - 100, rect.right - e.clientX));
       setRightMargin(newRightMargin);
       return;
     }
