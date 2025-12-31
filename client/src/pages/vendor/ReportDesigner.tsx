@@ -159,15 +159,31 @@ export default function ReportDesigner({
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!design.selectedId) return;
-
-      const selected = design.elements.find((el) => el.id === design.selectedId);
-      if (!selected) return;
-
       const step = e.shiftKey ? 10 : 1; // Shift key for larger movements
 
       // Check for Ctrl/Cmd key combinations
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      // Undo / Redo (global)
+      if (isCtrlOrCmd && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+      if (isCtrlOrCmd && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      // The following shortcuts require a selection
+      if (!design.selectedId) return;
+      const selected = design.elements.find((el) => el.id === design.selectedId);
+      if (!selected) return;
 
       switch (e.key) {
         case "Delete":
@@ -336,6 +352,9 @@ export default function ReportDesigner({
   // Adjust elements when margins change
   // Store previous margins in a ref to calculate delta
   const prevMarginsRef = useRef({ left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin });
+
+  // Redo stack: store popped history snapshots for redo
+  const redoStackRef = useRef<ReportElement[][]>([]);
 
   useEffect(() => {
     // Calculate margin changes
@@ -854,6 +873,8 @@ export default function ReportDesigner({
   };
 
   const addElement = (element: ReportElement) => {
+    // Clear redo stack as this is a new action
+    redoStackRef.current = [];
     setDesign((prev) => ({
       ...prev,
       elements: [...prev.elements, element],
@@ -865,24 +886,28 @@ export default function ReportDesigner({
 
   const updateElement = (id: string, updates: Partial<ReportElement>) => {
     console.log("updateElement called with:", { id, updates });
+    // Clear redo stack on new change
+    redoStackRef.current = [];
     setDesign((prev) => {
-      const updated = {
+      const updatedElements = prev.elements.map((el) => (el.id === id ? { ...el, ...updates } : el));
+      // Push to history
+      const newHistory = [...prev.history, updatedElements];
+      return {
         ...prev,
-        elements: prev.elements.map((el) =>
-          el.id === id ? { ...el, ...updates } : el
-        ),
+        elements: updatedElements,
+        history: newHistory,
       };
-      const updatedEl = updated.elements.find((el) => el.id === id);
-      console.log("Updated element now has:", updatedEl);
-      return updated;
     });
   };
 
   const deleteElement = (id: string) => {
+    // Clear redo stack as this is a new action
+    redoStackRef.current = [];
     setDesign((prev) => ({
       ...prev,
       elements: prev.elements.filter((el) => el.id !== id),
       selectedId: undefined,
+      history: [...prev.history, prev.elements.filter((el) => el.id !== id)],
     }));
   };
 
@@ -1008,11 +1033,25 @@ export default function ReportDesigner({
 
   const undo = () => {
     if (design.history.length > 1) {
+      const current = design.history[design.history.length - 1];
       const newHistory = design.history.slice(0, -1);
+      // Push current to redo stack
+      redoStackRef.current.push(current);
       setDesign((prev) => ({
         ...prev,
         elements: newHistory[newHistory.length - 1],
         history: newHistory,
+      }));
+    }
+  };
+
+  const redo = () => {
+    const next = redoStackRef.current.pop();
+    if (next) {
+      setDesign((prev) => ({
+        ...prev,
+        elements: next,
+        history: [...prev.history, next],
       }));
     }
   };
@@ -1101,6 +1140,8 @@ export default function ReportDesigner({
         return el;
       });
 
+      // Clear redo stack for this user action
+      redoStackRef.current = [];
       setDesign((prev) => ({ ...prev, elements: updatedElements, history: [...prev.history, updatedElements] }));
       setResizeStart({ x: e.clientX, y: e.clientY });
       return;
@@ -1726,6 +1767,9 @@ export default function ReportDesigner({
                   children: ids,
                 };
 
+                // Clear redo stack as this is a new action
+                redoStackRef.current = [];
+
                 // Mark children with parentId
                 const updated = design.elements.map((el) =>
                   ids.includes(el.id) ? { ...el, parentId: groupId } : el
@@ -1757,6 +1801,8 @@ export default function ReportDesigner({
                 const el = design.elements.find((d) => d.id === design.selectedId);
                 if (el && el.type === 'group') {
                   const children = el.children || [];
+                  // Clear redo stack as this is a new action
+                  redoStackRef.current = [];
                   // Remove group element and clear parentId on children
                   const withoutGroup = design.elements.filter((e) => e.id !== el.id).map((e) => {
                     if (children.includes(e.id)) {
