@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { Building2, Mail, Phone, MapPin, User, ArrowLeft } from "lucide-react";
+import { getCitiesByState } from '@/assets/india-data';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
@@ -32,6 +33,7 @@ export default function VendorSignUp() {
   const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [cities, setCities] = useState<string[]>([]);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -69,6 +71,20 @@ export default function VendorSignUp() {
       checkEmailExists(formData.email);
     }
   };
+
+  // Update cities list when state changes
+  useEffect(() => {
+    if (formData.state) {
+      const list = getCitiesByState(formData.state);
+      setCities(list);
+      if (!list.includes(formData.city)) {
+        setFormData(prev => ({ ...prev, city: "" }));
+      }
+    } else {
+      setCities([]);
+      setFormData(prev => ({ ...prev, city: "" }));
+    }
+  }, [formData.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,17 +292,21 @@ export default function VendorSignUp() {
                   <Label htmlFor="city" className="text-xs font-semibold text-gray-700">
                     City <span className="text-red-500">*</span>
                   </Label>
-                  <Input
+                  <select
                     id="city"
                     name="city"
-                    placeholder="Enter city"
                     value={formData.city}
                     onChange={handleChange}
                     required
-                    disabled={loading}
-                    data-testid="input-city"
-                    className="h-9 text-sm"
-                  />
+                    disabled={loading || cities.length === 0}
+                    data-testid="select-city"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">{cities.length > 0 ? 'Select City' : (formData.state ? 'No cities available' : 'Select State first')}</option>
+                    {cities.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">
