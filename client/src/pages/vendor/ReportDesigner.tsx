@@ -119,8 +119,7 @@ export default function ReportDesigner({
   const [rightMargin, setRightMargin] = useState(initialMargins?.right ?? 0);
   const [topMargin, setTopMargin] = useState(initialMargins?.top ?? 0);
   const [bottomMargin, setBottomMargin] = useState(initialMargins?.bottom ?? 0);
-  const [isDraggingLeftMargin, setIsDraggingLeftMargin] = useState(false);
-  const [isDraggingRightMargin, setIsDraggingRightMargin] = useState(false);
+
   const [toolbarPos, setToolbarPos] = useState(() => {
     const saved = localStorage.getItem('toolbarPos');
     return saved ? JSON.parse(saved) : { x: 20, y: 80 };
@@ -130,6 +129,8 @@ export default function ReportDesigner({
     return saved ? saved : 'horizontal';
   });
   const [isDraggingToolbar, setIsDraggingToolbar] = useState(false);
+  // Print settings modal visibility
+  const [showPrintSettings, setShowPrintSettings] = useState(false);
   const [toolbarDragStart, setToolbarDragStart] = useState({ x: 0, y: 0 });
 
   // A4 dimensions in pixels (at 96 DPI): 210mm × 297mm
@@ -517,24 +518,7 @@ export default function ReportDesigner({
       return;
     }
 
-    // Handle left margin dragging
-    if (isDraggingLeftMargin && canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      // Use rect.width so limits follow actual canvas width
-      const newLeftMargin = Math.max(0, Math.min(rect.width - 100, e.clientX - rect.left));
-      setLeftMargin(newLeftMargin);
-      return;
-    }
 
-    // Handle right margin dragging
-    if (isDraggingRightMargin && canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      // Distance from pointer to canvas right edge (rect.right - e.clientX)
-      // Clamp to rect.width - 100 so right margin cannot exceed canvas width
-      const newRightMargin = Math.max(0, Math.min(rect.width - 100, rect.right - e.clientX));
-      setRightMargin(newRightMargin);
-      return;
-    }
 
     if (resizing) {
       handleMouseMove(e);
@@ -758,18 +742,6 @@ export default function ReportDesigner({
     // Stop footer border dragging
     if (isDraggingFooterBorder) {
       setIsDraggingFooterBorder(false);
-      return;
-    }
-
-    // Stop left margin dragging
-    if (isDraggingLeftMargin) {
-      setIsDraggingLeftMargin(false);
-      return;
-    }
-
-    // Stop right margin dragging
-    if (isDraggingRightMargin) {
-      setIsDraggingRightMargin(false);
       return;
     }
 
@@ -1794,6 +1766,18 @@ export default function ReportDesigner({
             Group
           </Button>
 
+          {/* Print settings button opens modal where margins are set and saved */}
+          <Button
+            onClick={() => setShowPrintSettings(true)}
+            variant="outline"
+            size="sm"
+            className="h-6 px-2"
+            title="Print Settings"
+          >
+            <Printer className="h-3 w-3 mr-1" />
+            Print Settings
+          </Button>
+
           <Button
             onClick={() => {
               // Ungroup if a group is selected
@@ -1830,7 +1814,7 @@ export default function ReportDesigner({
           >
             <Trash2 className="h-3 w-3" />
             Ungroup
-          </Button>
+          </Button> 
 
           <Button
             onClick={onClose}
@@ -1841,6 +1825,46 @@ export default function ReportDesigner({
           >
             Close
           </Button>
+
+          {/* Print Settings Modal */}
+          {showPrintSettings && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white p-4 rounded shadow-lg w-[440px]">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold">Print Settings</h3>
+                  <div className="text-sm text-gray-500">A4 preview</div>
+                </div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 items-center">
+                    <Label>Left margin</Label>
+                    <div>
+                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={leftMargin} onChange={(e)=>setLeftMargin(parseInt(e.target.value))} />
+                      <Input value={leftMargin} onChange={(e)=>setLeftMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                    </div>
+                    <Label>Right margin</Label>
+                    <div>
+                      <input type="range" min={0} max={(canvasRef.current?.clientWidth || A4_WIDTH) / 2} value={rightMargin} onChange={(e)=>setRightMargin(parseInt(e.target.value))} />
+                      <Input value={rightMargin} onChange={(e)=>setRightMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                    </div>
+                    <Label>Top margin</Label>
+                    <div>
+                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={topMargin} onChange={(e)=>setTopMargin(parseInt(e.target.value))} />
+                      <Input value={topMargin} onChange={(e)=>setTopMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                    </div>
+                    <Label>Bottom margin</Label>
+                    <div>
+                      <input type="range" min={0} max={(canvasRef.current?.clientHeight || A4_HEIGHT) / 2} value={bottomMargin} onChange={(e)=>setBottomMargin(parseInt(e.target.value))} />
+                      <Input value={bottomMargin} onChange={(e)=>setBottomMargin(parseInt(e.target.value||'0'))} type="number" className="mt-1" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="ghost" onClick={()=>setShowPrintSettings(false)}>Cancel</Button>
+                  <Button onClick={() => { onSave(design.elements, { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin }); toast({ title: 'Saved', description: 'Print settings saved' }); setShowPrintSettings(false); }}>Save</Button>
+                </div>
+              </div>
+            </div>
+          )} 
         </div>
       </div>
 
@@ -2774,47 +2798,9 @@ export default function ReportDesigner({
                   }}
                 ></div>
 
-                {/* LEFT MARGIN Separator */}
-                <div className="absolute top-2 left-2 pointer-events-none">
-                  <div className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">L({leftMargin}px)</div>
-                </div>
-                <div
-                  className="absolute cursor-ew-resize hover:bg-green-400"
-                  style={{
-                    left: `${leftMargin}px`,
-                    top: '0',
-                    bottom: '0',
-                    width: '4px',
-                    backgroundColor: '#86efac',
-                    opacity: 0.7,
-                    transform: 'translateX(-2px)'
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setIsDraggingLeftMargin(true);
-                  }}
-                ></div>
 
-                {/* RIGHT MARGIN Separator */}
-                <div className="absolute top-2 right-2 pointer-events-none">
-                  <div className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded">R({rightMargin}px)</div>
-                </div>
-                <div
-                  className="absolute cursor-ew-resize hover:bg-red-400"
-                  style={{
-                    right: `${rightMargin}px`,
-                    top: '0',
-                    bottom: '0',
-                    width: '4px',
-                    backgroundColor: '#fca5a5',
-                    opacity: 0.7,
-                    transform: 'translateX(2px)'
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setIsDraggingRightMargin(true);
-                  }}
-                ></div>
+
+
 
                 {/* Preview Rectangle - Show while drawing */}
                 {previewRect && (
