@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Trash2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 
-import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { fetchWithLoader, authenticatedFetch, authenticatedFetchJson } from "@/lib/fetchWithLoader";
 import { fetchExportHeader } from "@/lib/exportUtils";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import SmartSearchTextbox, { Suggestion } from "@/components/SmartSearchTextbox";
@@ -82,8 +82,8 @@ export default function InvoiceGeneration() {
   }, [availablePOs, selectedVendorFilter, pageSize, currentPage]);
   const [vendorSuggestions, setVendorSuggestions] = useState<Suggestion[]>([]);
   const [isVendor, setIsVendor] = useState(false);
-  const [invoiceGenerationDate, setInvoiceGenerationDate] = useState<number>(1);
-  const [groupByVendor, setGroupByVendor] = useState<boolean>(false);
+  const [invoiceGenerationDate, setInvoiceGenerationDate] = useState<number>(-1);
+  const [groupByVendor, setGroupByVendor] = useState<boolean>(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -99,8 +99,8 @@ export default function InvoiceGeneration() {
         // 1. Invoices with all details (PO, vendor, site) in one query - MUCH faster
         // 2. Settings for date restrictions
         const [invoicesRes, settingsRes] = await Promise.all([
-          fetch(`${baseUrl}/api/invoices?pageSize=10000&withDetails=true`, { credentials: 'include' }),
-          fetch(`${baseUrl}/api/app-settings`, { credentials: 'include' }),
+          authenticatedFetch(`${baseUrl}/api/invoices?pageSize=10000&withDetails=true`),
+          authenticatedFetch(`${baseUrl}/api/app-settings`),
         ]);
 
         if (!invoicesRes.ok || !settingsRes.ok) {
@@ -111,7 +111,7 @@ export default function InvoiceGeneration() {
         const settingsData = await settingsRes.json();
 
         // Set invoice generation date from settings
-        setInvoiceGenerationDate(settingsData.invoiceGenerationDate || 1);
+        setInvoiceGenerationDate(settingsData.invoiceGenerationDate || -1);
 
         const invoices = invoicesData.data || [];
 
@@ -179,7 +179,7 @@ export default function InvoiceGeneration() {
         // OPTIMIZED: Single query returns POs with vendor and site details pre-joined, no loops needed!
         setTimeout(async () => {
           try {
-            const posRes = await fetch(`${baseUrl}/api/purchase-orders?pageSize=10000&withDetails=true&availableOnly=true`, { credentials: 'include' });
+            const posRes = await authenticatedFetch(`${baseUrl}/api/purchase-orders?pageSize=10000&withDetails=true&availableOnly=true`);
 
             if (posRes.ok) {
               const posData = await posRes.json();
@@ -251,10 +251,9 @@ export default function InvoiceGeneration() {
     try {
       const apiUrl = `${getApiBaseUrl()}/api/invoices/${invoiceId}`;
       console.log(`[Frontend] Deleting invoice from: ${apiUrl}`);
-      const response = await fetch(apiUrl, {
+      const response = await authenticatedFetch(apiUrl, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
       });
 
       const responseData = await response.json();
@@ -267,9 +266,7 @@ export default function InvoiceGeneration() {
 
         // Refetch available POs to restore any POs that were in the deleted invoice
         try {
-          const posResponse = await fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000&withDetails=true&availableOnly=true`, {
-            credentials: 'include',
-          });
+          const posResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=10000&withDetails=true&availableOnly=true`);
           if (posResponse.ok) {
             const posData = await posResponse.json();
             // API returns { data: [...] } — normalize to an array for consistency
@@ -304,9 +301,8 @@ export default function InvoiceGeneration() {
     }
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/invoices`, {
         method: "DELETE",
-        credentials: 'include',
       });
 
       if (response.ok) {
@@ -688,8 +684,8 @@ export default function InvoiceGeneration() {
       return;
     }
 
-    // Check date restriction for vendors
-    if (isVendor) {
+    // Check date restriction for vendors (only if invoiceGenerationDate is not -1)
+    if (isVendor && invoiceGenerationDate !== -1) {
       const today = new Date().getDate();
       const startDate = invoiceGenerationDate;
       const endDate = startDate + 5; // 5-day window
@@ -697,7 +693,7 @@ export default function InvoiceGeneration() {
       if (today < startDate || today > endDate) {
         toast({
           title: "Access Restricted",
-          description: `Vendors can generate invoices from day ${startDate} to day ${endDate} of each month. Today is day ${today}.`,
+          description: `Invoice generation is only allowed from day ${startDate} to day ${endDate} of the month. Today is day ${today}. Contact admin to change this setting or disable restrictions.`,
           variant: "destructive"
         });
         return;
@@ -713,7 +709,7 @@ export default function InvoiceGeneration() {
       const poLinesMap: Record<string, string[]> = {};
       await Promise.all(selectedPOIds.map(async (id) => {
         try {
-          const r = await fetch(`${getApiBaseUrl()}/api/purchase-orders/${id}?withLines=true`, { credentials: 'include' });
+          const r = await authenticatedFetch(`${getApiBaseUrl()}/api/purchase-orders/${id}?withLines=true`);
           if (r.ok) {
             const parsed = await r.json(); // { po, lines: [...] }
             const lines = Array.isArray(parsed.lines) ? parsed.lines : [];
@@ -784,10 +780,9 @@ export default function InvoiceGeneration() {
             invoiceSites: uniqueSites.map(name => ({ siteName: name })),
           };
 
-          const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
+          const response = await authenticatedFetch(`${getApiBaseUrl()}/api/invoices`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: 'include',
             body: JSON.stringify({
               invoiceNumber: record.invoiceNumber,
               vendorId: firstPO.vendorId,
@@ -847,10 +842,9 @@ export default function InvoiceGeneration() {
           const record = records[i];
           const po = posData[i];
 
-          const response = await fetch(`${getApiBaseUrl()}/api/invoices`, {
+          const response = await authenticatedFetch(`${getApiBaseUrl()}/api/invoices`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: 'include',
             body: JSON.stringify({
               invoiceNumber: record.invoiceNumber,
               vendorId: po.vendorId,
@@ -1040,22 +1034,7 @@ export default function InvoiceGeneration() {
                     </div>
                   )}
 
-                  {/* Invoice Grouping Option */}
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <input
-                      type="checkbox"
-                      id="groupByVendor"
-                      checked={groupByVendor}
-                      onChange={(e) => setGroupByVendor(e.target.checked)}
-                      className="w-4 h-4 rounded cursor-pointer"
-                    />
-                    <label htmlFor="groupByVendor" className="text-sm font-medium text-slate-700 cursor-pointer flex-1">
-                      Generate Single Invoice for Each Vendor (Group Multiple POs)
-                    </label>
-                    <span className="text-xs text-slate-500">
-                      {groupByVendor ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
+                  {/* Invoice Grouping - Always enabled, hidden from UI */}
                 </div>
 
                 {/* Desktop grid layout (matching PO page style) */}

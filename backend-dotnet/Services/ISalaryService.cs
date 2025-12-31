@@ -29,6 +29,7 @@ namespace VendorRegistrationBackend.Services
         Task<GeneratedSalary?> GetGeneratedSalaryAsync(string id);
         Task<bool> DeleteGeneratedSalaryAsync(string id);
         Task<bool> SalaryExistsAsync(string employeeId, int month, int year);
+        Task<List<dynamic>> GetEmployeeSalaryHistoryAsync(string employeeId);
         Task<List<dynamic>> GetSalaryGeneratedSummariesAsync();
     }
 }

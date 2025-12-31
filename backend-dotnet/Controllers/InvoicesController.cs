@@ -207,11 +207,54 @@ namespace VendorRegistrationBackend.Controllers
         public async Task<IActionResult> GetInvoicesByVendor(string vendorId)
         {
             var invoices = await _invoiceService.GetInvoicesByVendorAsync(vendorId);
-            return Ok(invoices);
+
+            // Format invoices to parse PoIds properly
+            var formattedInvoices = invoices.Select(i => {
+                var poIds = new List<string>();
+                if (!string.IsNullOrEmpty(i.PoIds))
+                {
+                    try
+                    {
+                        // PoIds is stored as JSON string like ["id1","id2"]
+                        // Remove brackets and quotes, then split by comma
+                        var cleaned = i.PoIds
+                            .Replace("[", "")
+                            .Replace("]", "")
+                            .Replace("\"", "")
+                            .Split(',');
+
+                        poIds = cleaned
+                            .Select(id => id.Trim())
+                            .Where(id => !string.IsNullOrEmpty(id))
+                            .ToList();
+                    }
+                    catch
+                    {
+                        poIds = new List<string> { i.PoIds };
+                    }
+                }
+
+                return new
+                {
+                    i.Id,
+                    i.InvoiceNumber,
+                    i.VendorId,
+                    VendorName = i.Vendor?.Name ?? string.Empty,
+                    i.Amount,
+                    i.GST,
+                    i.TotalAmount,
+                    i.InvoiceDate,
+                    i.DueDate,
+                    i.Status,
+                    PoIds = poIds  // Return as parsed array instead of string
+                };
+            }).ToList();
+
+            return Ok(formattedInvoices);
         }
 
         [HttpPost]
-        [Authorize(Roles = "admin,superadmin")]
+        [Authorize]
         public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceDto dto)
         {
             try
@@ -427,6 +470,81 @@ namespace VendorRegistrationBackend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpGet("debug/{invoiceNumber}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DebugInvoice(string invoiceNumber)
+        {
+            try
+            {
+                var allInvoices = await _invoiceService.GetAllInvoicesAsync();
+                var invoice = allInvoices.FirstOrDefault(i => i.InvoiceNumber == invoiceNumber);
+
+                if (invoice == null)
+                    return NotFound(new { message = "Invoice not found" });
+
+                // Parse PoIds - stored as JSON string like ["id1","id2"]
+                var poIds = new List<string>();
+                if (!string.IsNullOrEmpty(invoice.PoIds))
+                {
+                    try
+                    {
+                        // Remove brackets and quotes, then split by comma
+                        var cleaned = invoice.PoIds
+                            .Replace("[", "")
+                            .Replace("]", "")
+                            .Replace("\"", "")
+                            .Split(',');
+
+                        poIds = cleaned
+                            .Select(id => id.Trim())
+                            .Where(id => !string.IsNullOrEmpty(id))
+                            .ToList();
+                    }
+                    catch
+                    {
+                        poIds = new List<string> { invoice.PoIds };
+                    }
+                }
+
+                // Get PO details
+                var poDetails = new List<dynamic>();
+                foreach (var poId in poIds)
+                {
+                    var po = await _invoiceService.GetPurchaseOrderByIdAsync(poId);
+                    if (po != null)
+                    {
+                        poDetails.Add(new
+                        {
+                            poId = po.Id,
+                            poNumber = po.PoNumber,
+                            poIdLength = po.Id.Length,
+                            poIdHex = System.BitConverter.ToString(System.Text.Encoding.UTF8.GetBytes(po.Id)),
+                            lineCount = po.Lines?.Count ?? 0,
+                            siteIds = po.Lines?.Select(l => l.SiteId).ToList() ?? new List<string>()
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    invoice = new
+                    {
+                        invoice.Id,
+                        invoice.InvoiceNumber,
+                        invoice.VendorId,
+                        poIdsRaw = invoice.PoIds,
+                        poIdsParsed = poIds,
+                        poIdsCount = poIds.Count,
+                        poDetails = poDetails
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
         }
     }

@@ -36,7 +36,7 @@ namespace VendorRegistrationBackend.Controllers
         public async Task<IActionResult> GetTeams()
         {
             var teams = await _context.Teams
-                .Select(t => new { id = t.Id, name = t.Name, description = t.Description })
+                .Select(t => new { id = t.Id, name = t.Name, description = t.Description, createdAt = t.CreatedAt, updatedAt = t.UpdatedAt })
                 .ToListAsync();
             return Ok(teams);
         }
@@ -47,7 +47,8 @@ namespace VendorRegistrationBackend.Controllers
         {
             var teams = await _context.TeamMembers
                 .Where(tm => tm.EmployeeId == employeeId)
-                .Join(_context.Teams, tm => tm.TeamId, t => t.Id, (tm, t) => new { id = t.Id, name = t.Name, description = t.Description })
+                .Join(_context.Teams, tm => tm.TeamId, t => t.Id, (tm, t) => new { id = t.Id, name = t.Name, description = t.Description, createdAt = t.CreatedAt, updatedAt = t.UpdatedAt })
+                .Distinct()
                 .ToListAsync();
             return Ok(teams);
         }
@@ -61,11 +62,47 @@ namespace VendorRegistrationBackend.Controllers
                          User.FindFirst("id")?.Value ?? string.Empty;
             if (string.IsNullOrEmpty(userId)) return Unauthorized(new { error = "Not authenticated" });
 
-            var teams = await _context.TeamMembers
-                .Where(tm => tm.ReportingPerson1 == userId || tm.ReportingPerson2 == userId || tm.ReportingPerson3 == userId)
-                .Join(_context.Teams, tm => tm.TeamId, t => t.Id, (tm, t) => new { id = t.Id, name = t.Name, description = t.Description })
-                .Distinct()
+            Console.WriteLine($"[TeamsController] GetMyReportingTeams - userId: {userId}");
+
+            // Get all team memberships for this employee
+            var employeeTeamMembers = await _context.TeamMembers
+                .Where(tm => tm.EmployeeId == userId)
                 .ToListAsync();
+
+            Console.WriteLine($"[TeamsController] Found {employeeTeamMembers.Count} team memberships for employee {userId}");
+            employeeTeamMembers.ForEach(tm => Console.WriteLine($"[TeamsController] - TeamMember ID: {tm.Id}, RP1: {tm.ReportingPerson1}, RP2: {tm.ReportingPerson2}, RP3: {tm.ReportingPerson3}"));
+
+            // Check which ones have self-referencing reportingPerson fields
+            var reportingTeamIds = employeeTeamMembers
+                .Where(tm => tm.ReportingPerson1 == tm.Id ||
+                            tm.ReportingPerson2 == tm.Id ||
+                            tm.ReportingPerson3 == tm.Id)
+                .Select(tm => tm.TeamId)
+                .Distinct()
+                .ToList();
+
+            Console.WriteLine($"[TeamsController] Found {reportingTeamIds.Count} teams where employee is a reporting person");
+
+            if (reportingTeamIds.Count == 0)
+            {
+                return Ok(new List<object>());
+            }
+
+            // Fetch the team details
+            var teams = await _context.Teams
+                .Where(t => reportingTeamIds.Contains(t.Id))
+                .Select(t => new
+                {
+                    id = t.Id,
+                    name = t.Name,
+                    description = t.Description,
+                    createdAt = t.CreatedAt,
+                    updatedAt = t.UpdatedAt
+                })
+                .ToListAsync();
+
+            Console.WriteLine($"[TeamsController] Returning {teams.Count} team details");
+            teams.ForEach(t => Console.WriteLine($"[TeamsController] - Team: {t.id} ({t.name})"));
 
             return Ok(teams);
         }
@@ -169,16 +206,38 @@ namespace VendorRegistrationBackend.Controllers
 
         [HttpPut("members/{memberId}/reporting")]
         [Authorize(Roles = "admin,superadmin")]
-        public async Task<IActionResult> UpdateReporting(string memberId, [FromBody] TeamMember input)
+        public async Task<IActionResult> UpdateReporting(string memberId, [FromBody] System.Text.Json.JsonElement input)
         {
             var member = await _context.TeamMembers.FindAsync(memberId);
             if (member == null) return NotFound(new { error = "Member not found" });
-            member.ReportingPerson1 = input.ReportingPerson1;
-            member.ReportingPerson2 = input.ReportingPerson2;
-            member.ReportingPerson3 = input.ReportingPerson3;
+
+            Console.WriteLine($"[TeamsController] UpdateReporting - memberId: {memberId}, input: {input}");
+
+            // Only update fields that are explicitly provided in the JSON request
+            // This prevents overwriting existing values with nulls
+            if (input.TryGetProperty("reportingPerson1", out var rp1))
+            {
+                member.ReportingPerson1 = rp1.ValueKind == System.Text.Json.JsonValueKind.Null ? null : rp1.GetString();
+                Console.WriteLine($"[TeamsController] Setting reportingPerson1 to: {member.ReportingPerson1}");
+            }
+
+            if (input.TryGetProperty("reportingPerson2", out var rp2))
+            {
+                member.ReportingPerson2 = rp2.ValueKind == System.Text.Json.JsonValueKind.Null ? null : rp2.GetString();
+                Console.WriteLine($"[TeamsController] Setting reportingPerson2 to: {member.ReportingPerson2}");
+            }
+
+            if (input.TryGetProperty("reportingPerson3", out var rp3))
+            {
+                member.ReportingPerson3 = rp3.ValueKind == System.Text.Json.JsonValueKind.Null ? null : rp3.GetString();
+                Console.WriteLine($"[TeamsController] Setting reportingPerson3 to: {member.ReportingPerson3}");
+            }
+
             member.UpdatedAt = DateTime.UtcNow;
             _context.TeamMembers.Update(member);
             await _context.SaveChangesAsync();
+
+            Console.WriteLine($"[TeamsController] Updated member: RP1={member.ReportingPerson1}, RP2={member.ReportingPerson2}, RP3={member.ReportingPerson3}");
             return Ok(member);
         }
 

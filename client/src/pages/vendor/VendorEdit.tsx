@@ -71,13 +71,14 @@ export default function VendorEdit() {
   const [cityHighlight, setCityHighlight] = useState(-1);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
-  
+  const isInitialLoadRef = useRef(true);
+
   // File upload states
   const [aadharFile, setAadharFile] = useState<File | null>(null);
   const [panFile, setPanFile] = useState<File | null>(null);
   const [gstinFile, setGstinFile] = useState<File | null>(null);
   const [moaFile, setMoaFile] = useState<File | null>(null);
-  
+
   // Existing uploaded documents from database
   const [existingAadharDoc, setExistingAadharDoc] = useState<string>('');
   const [existingPanDoc, setExistingPanDoc] = useState<string>('');
@@ -129,13 +130,14 @@ export default function VendorEdit() {
       });
       
       // Store existing uploaded documents
-      setExistingAadharDoc(vendor.aadharDoc || '');
-      setExistingPanDoc(vendor.panDoc || '');
-      setExistingGstinDoc(vendor.gstinDoc || '');
-      setExistingMoaDoc(vendor.moaDoc || '');
+      setExistingAadharDoc(vendor.AadharDoc || '');
+      setExistingPanDoc(vendor.PANDoc || '');
+      setExistingGstinDoc(vendor.GSTINDoc || '');
+      setExistingMoaDoc(vendor.MOADoc || '');
       
       setCities(getCitiesByState(vendor.state));
       setLoading(false);
+      isInitialLoadRef.current = false;
     } catch (error) {
       toast({
         title: 'Error',
@@ -143,6 +145,7 @@ export default function VendorEdit() {
         variant: 'destructive',
       });
       setLoading(false);
+      isInitialLoadRef.current = false;
     }
   };
 
@@ -150,8 +153,11 @@ export default function VendorEdit() {
   useEffect(() => {
     if (watchedState) {
       setCities(getCitiesByState(watchedState));
-      form.setValue('city', '', { shouldValidate: false });
-      setCitySearch('');
+      // Only clear city when user manually changes state (not on initial load)
+      if (!isInitialLoadRef.current) {
+        form.setValue('city', '', { shouldValidate: false });
+        setCitySearch('');
+      }
     }
   }, [watchedState, form]);
 
@@ -196,7 +202,9 @@ export default function VendorEdit() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update vendor');
+        // Use message field if available (has the most detailed error), otherwise use error field
+        const errorMessage = errorData.message || errorData.error || 'Failed to update vendor';
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -335,7 +343,14 @@ export default function VendorEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>State</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setStateSearch(''); }} defaultValue={field.value}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setStateSearch('');
+                        form.trigger('state');
+                      }}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select State" />
@@ -343,9 +358,9 @@ export default function VendorEdit() {
                       </FormControl>
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
                         <div className="p-2" onClick={(e) => e.stopPropagation()}>
-                          <Input 
+                          <Input
                             ref={stateInputRef}
-                            placeholder="Search states..." 
+                            placeholder="Search states..."
                             value={stateSearch}
                             onChange={(e) => setStateSearch(e.target.value)}
                             className="mb-2"
@@ -354,13 +369,9 @@ export default function VendorEdit() {
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredStates.length > 0 ? (
                             filteredStates.map((state) => (
-                              <SelectItem 
+                              <SelectItem
                                 key={state}
                                 value={state}
-                                onClick={() => {
-                                  field.onChange(state);
-                                  setStateSearch('');
-                                }}
                               >
                                 {state}
                               </SelectItem>
@@ -382,7 +393,14 @@ export default function VendorEdit() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>City</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); setCitySearch(''); }} defaultValue={field.value}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setCitySearch('');
+                        form.trigger('city');
+                      }}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select City" />
@@ -390,9 +408,9 @@ export default function VendorEdit() {
                       </FormControl>
                       <SelectContent className="max-h-[200px]" onCloseAutoFocus={(e) => e.preventDefault()}>
                         <div className="p-2" onClick={(e) => e.stopPropagation()}>
-                          <Input 
+                          <Input
                             ref={cityInputRef}
-                            placeholder="Search cities..." 
+                            placeholder="Search cities..."
                             value={citySearch}
                             onChange={(e) => setCitySearch(e.target.value)}
                             className="mb-2"
@@ -401,13 +419,9 @@ export default function VendorEdit() {
                         <div className="max-h-[150px] overflow-y-auto">
                           {filteredCities.length > 0 ? (
                             filteredCities.map((city) => (
-                              <SelectItem 
+                              <SelectItem
                                 key={city}
                                 value={city}
-                                onClick={() => {
-                                  field.onChange(city);
-                                  setCitySearch('');
-                                }}
                               >
                                 {city}
                               </SelectItem>

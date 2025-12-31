@@ -16,6 +16,8 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
   const [continuousRecognition, setContinuousRecognition] = useState<any>(null);
   const [lastWakeWordTime, setLastWakeWordTime] = useState(0);
   const [isWakeWordProcessing, setIsWakeWordProcessing] = useState(false);
+  const [currentCommand, setCurrentCommand] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<string>('');
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -127,13 +129,22 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
 
       continuousRecognitionInstance.onerror = (event: any) => {
         console.log('Continuous recognition error:', event.error);
+
+        // Handle permission-related errors
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'permission-denied') {
+          setIsContinuousMode(false);
+          const errorMsg = getErrorMessage(event.error);
+          toast({
+            title: errorMsg.title,
+            description: errorMsg.description,
+            variant: 'destructive',
+          });
+          return;
+        }
+
         // Don't restart on common errors - prevents flickering
         if (event.error === 'no-speech' || event.error === 'aborted') {
           return;
-        }
-        // Only stop on serious errors
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          setIsContinuousMode(false);
         }
       };
 
@@ -155,23 +166,20 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
       recognitionInstance.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript.toLowerCase();
         console.log('Voice command:', transcript);
-        
-        // Show processing state
+
+        // Show processing state (button will show loading animation)
         setIsListening(false);
+        setCurrentCommand(transcript);
         setIsProcessing(true);
-        
-        // Single toast for processing
-        toast({
-          title: '🔍 Processing',
-          description: `"${transcript}"`,
-        });
-        
-        // Wait 7 seconds before executing command
+
+        // Wait 7 seconds before executing command - NO intermediate toast
         setTimeout(() => {
           handleVoiceCommand(transcript);
           setIsProcessing(false);
           setIsWakeWordProcessing(false);
-          
+          setCurrentCommand('');
+          setCurrentPage('');
+
           // Restart continuous recognition if it was active - with longer delay
           if (continuousRecognition && isContinuousMode) {
             setTimeout(() => {
@@ -190,13 +198,19 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         setIsProcessing(false);
-        if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          toast({
-            title: 'Voice Recognition Error',
-            description: 'Could not recognize speech. Please try again.',
-            variant: 'destructive',
-          });
+
+        // Skip showing errors for common non-critical cases
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+          return;
         }
+
+        // Get and display specific error message
+        const errorMsg = getErrorMessage(event.error);
+        toast({
+          title: errorMsg.title,
+          description: errorMsg.description,
+          variant: 'destructive',
+        });
       };
 
       recognitionInstance.onend = () => {
@@ -239,27 +253,100 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
     }
   }, [continuousRecognition]);
 
+  const getErrorMessage = (errorCode: string): { title: string; description: string } => {
+    const errorMessages: Record<string, { title: string; description: string }> = {
+      'not-allowed': {
+        title: '🎤 Microphone Permission Denied',
+        description: 'You denied microphone access. To enable voice commands:\n\n📍 Chrome/Edge: Click the lock 🔒 icon → Site settings → Allow Microphone\n📍 Firefox: Click the lock 🔒 icon → Permissions → Allow Microphone\n📍 Safari: System Preferences → Security & Privacy → Microphone\n\nThen refresh this page and try again.',
+      },
+      'service-not-allowed': {
+        title: '🎤 Microphone Access Blocked',
+        description: 'Microphone is blocked at the system level. To fix:\n\n📍 Windows: Settings → Privacy → Microphone → Turn ON\n📍 Mac: System Preferences → Security & Privacy → Microphone\n📍 Linux: Check your audio settings\n\nAfter enabling, refresh this page and try again.',
+      },
+      'permission-denied': {
+        title: '🎤 Permission Required',
+        description: 'This website needs microphone access to use voice commands. When you click the microphone button, your browser will ask for permission.\n\n1️⃣ Look for the permission prompt from your browser\n2️⃣ Click "Allow" when asked\n3️⃣ Try the voice command again',
+      },
+      'no-microphone': {
+        title: '🎤 No Microphone Found',
+        description: 'Your device does not have a microphone or it is not connected.\n\n✓ Connect a USB microphone or headset with mic\n✓ For laptops: Check if built-in mic is enabled in device settings\n✓ Refresh this page after connecting\n\nThen try the voice command again.',
+      },
+      'no-speech': {
+        title: '🔇 No Speech Detected',
+        description: 'Microphone is working but no speech was detected.\n\n✓ Make sure your microphone is not muted\n✓ Speak clearly and louder\n✓ Check if another app is using the microphone\n\nTry again after solving the issue.',
+      },
+      'audio-capture': {
+        title: '🎤 Audio Capture Failed',
+        description: 'Could not capture audio from your microphone.\n\n✓ Check if another app is using the microphone\n✓ Restart your browser\n✓ Make sure microphone is not disabled in system settings\n✓ Try a different microphone if available\n\nThen try the voice command again.',
+      },
+      'network-error': {
+        title: '🌐 Network Error',
+        description: 'Voice recognition requires internet connection.\n\n✓ Check your internet connection\n✓ Try connecting to a stable Wi-Fi network\n✓ Wait a moment if the network is slow\n\nThen try the voice command again.',
+      },
+      'aborted': {
+        title: '⏹️ Voice Command Cancelled',
+        description: 'Voice command was cancelled or interrupted.\n\nSay "Activate Voice Command" or "OK Assistant" to start listening again.',
+      },
+      'service-unavailable': {
+        title: '⚠️ Voice Service Unavailable',
+        description: 'Speech recognition service is temporarily unavailable.\n\n✓ Check your internet connection\n✓ Wait a moment\n✓ Try refreshing the page\n\nThen try the voice command again.',
+      },
+      'bad-grammar': {
+        title: '⚠️ Invalid Command',
+        description: 'Could not understand the command. Try saying:\n\n✓ "Open vendor list"\n✓ "Dashboard"\n✓ "Show employees"\n✓ "Generate invoice"\n\nSpeak clearly and wait for the beep.',
+      },
+      'default': {
+        title: '❌ Voice Recognition Error',
+        description: 'An unexpected error occurred.\n\n✓ Check if your microphone is working\n✓ Verify microphone has permission\n✓ Try refreshing the page\n✓ Check your internet connection\n\nThen try the voice command again.',
+      },
+    };
+
+    return errorMessages[errorCode] || errorMessages['default'];
+  };
+
   const handleVoiceCommand = (command: string) => {
+    // Detect user type from localStorage for context-aware routing
+    const isVendor = typeof window !== 'undefined' && localStorage.getItem('vendorId') !== null;
+    const isEmployee = typeof window !== 'undefined' && localStorage.getItem('employeeId') !== null;
+
+    // Build context-aware routes
     const routes: Record<string, string> = {
-      // Dashboard
-      'dashboard': '/admin/dashboard',
-      'open dashboard': '/admin/dashboard',
-      'go to dashboard': '/admin/dashboard',
+      // Admin Dashboard
+      'admin dashboard': '/admin/dashboard',
+      'dashboard': isVendor ? '/vendor/dashboard' : isEmployee ? '/employee/dashboard' : '/',
+      'open dashboard': isVendor ? '/vendor/dashboard' : isEmployee ? '/employee/dashboard' : '/',
+      'go to dashboard': isVendor ? '/vendor/dashboard' : isEmployee ? '/employee/dashboard' : '/',
+
+      // Vendor Dashboard
+      'vendor dashboard': '/vendor/dashboard',
+
+      // Employee Dashboard/Profile
+      'employee dashboard': '/employee/dashboard',
+
+      // My Profile & Settings (All User Types - Context Aware)
+      'my profile': isVendor ? '/vendor/profile' : '/employee/my-profile',
+      'profile': isVendor ? '/vendor/profile' : '/employee/my-profile',
+      'vendor profile': '/vendor/profile',
+      'change password': isVendor ? '/vendor/change-password' : '/employee/change-password',
+      'vendor change password': '/vendor/change-password',
 
       // Vendor Management
       'vendor list': '/vendor/list',
       'vendors': '/vendor/list',
       'open vendor list': '/vendor/list',
+      'all vendors': '/vendor/list',
       'add vendor': '/vendor/register',
       'new vendor': '/vendor/register',
       'register vendor': '/vendor/register',
       'vendor registration': '/vendor/register',
       'vendor credentials': '/vendor/credentials',
+      'vendor rates': '/vendor/rates',
 
       // Employee Management
       'employee list': '/employee/list',
       'employees': '/employee/list',
       'open employee list': '/employee/list',
+      'all employees': '/employee/list',
       'add employee': '/employee/register',
       'new employee': '/employee/register',
       'register employee': '/employee/register',
@@ -270,6 +357,7 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
       'site list': '/vendor/sites',
       'sites': '/vendor/sites',
       'open site list': '/vendor/sites',
+      'all sites': '/vendor/sites',
       'add site': '/vendor/site/register',
       'new site': '/vendor/site/register',
       'register site': '/vendor/site/register',
@@ -283,6 +371,8 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
       'generate po': '/vendor/po',
       'create po': '/vendor/po',
       'new purchase order': '/vendor/po',
+      'po report': '/reports/vendor-po',
+      'vendor po report': '/reports/vendor-po',
 
       // Invoices
       'invoices': '/vendor/invoices',
@@ -290,31 +380,63 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
       'generate invoice': '/vendor/invoices',
       'create invoice': '/vendor/invoices',
       'new invoice': '/vendor/invoices',
+      'invoice report': '/reports/vendor-invoice',
+      'vendor invoice report': '/reports/vendor-invoice',
 
       // Payment
       'payment master': '/vendor/payment-master',
       'payments': '/vendor/payment-master',
       'new payment': '/vendor/payment-master',
 
-      // Allowances
-      'allowances': '/employee/allowances',
-      'allowance approval': '/admin/allowance-approval',
-      'approve allowances': '/admin/allowance-approval',
+      // Reports (All Types)
+      'vendor site report': '/reports/vendor-site',
+      'site report': '/reports/vendor-site',
+      'reports': '/admin/reports',
+      'reports dashboard': '/admin/reports',
 
-      // Attendance
+      // Attendance & Leave (Employee)
       'attendance': '/employee/attendance',
       'mark attendance': '/employee/attendance',
+      'apply leave': '/employee/leave-apply',
+      'leave apply': '/employee/leave-apply',
+      'request leave': '/employee/leave-apply',
+      'my leave history': '/employee/leave-history',
+      'leave history': '/employee/leave-history',
       'monthly attendance': '/employee/monthly-attendance',
-      'bulk attendance': '/employee/monthly-attendance',
+      'my monthly attendance': '/employee/monthly-attendance',
+      'bulk attendance': '/admin/bulk-attendance',
+      'attendance report': '/admin/attendance-report',
 
-      // Salary
+      // Approvals
+      'leave approvals': '/employee/leave-approvals',
+      'approve leaves': '/employee/leave-approvals',
+      'allowance approvals': '/admin/allowance-approvals',
+      'allowance approval': '/admin/allowance-approvals',
+      'approve allowances': '/admin/allowance-approvals',
+      'approval history': '/admin/approval-history',
+
+      // Allowances
+      'allowances': '/employee/allowances',
+      'my allowances': '/employee/allowances',
+
+      // Salary & Payroll
       'salary structure': '/employee/salary-structure',
+      'my salary structure': '/employee/salary-structure',
       'employee salary': '/employee/salary',
       'salary report': '/employee/salary-report',
+      'employee salary report': '/employee/salary-report',
+      'my salary report': '/employee/salary-report',
+      'salary history': '/employee/salary-history',
+      'my salary history': '/employee/salary-history',
+      'generate salaries': '/admin/salary-generation',
+      'salary generation': '/admin/salary-generation',
+      'month wise salary report': '/admin/salary-reports',
+      'salary reports': '/admin/salary-reports',
 
       // Masters
       'holiday master': '/admin/holiday-master',
       'holidays': '/admin/holiday-master',
+      'leave allotment': '/admin/leave-allotment',
       'department master': '/employee/department-master',
       'departments': '/employee/department-master',
       'designation master': '/employee/designation-master',
@@ -326,54 +448,64 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
       'teams': '/admin/teams',
       'team management': '/admin/teams',
 
-      // Reports
-      'reports': '/admin/reports',
-      'reports dashboard': '/admin/reports',
-      'approval history': '/admin/approval-history',
-      'vendor po report': '/reports/vendor-po',
-      'vendor invoice report': '/reports/vendor-invoice',
-      'vendor site report': '/reports/vendor-site',
-
-      // Settings
-      'settings': '/admin/settings',
+      // Settings & Configuration
+      'settings': '/settings',
+      'app settings': '/settings',
       'export headers': '/vendor/export-headers',
-      'my profile': '/employee/my-profile',
-      'change password': '/employee/change-password',
+      'export settings': '/export-settings',
+      'email settings': '/admin/email-settings',
 
       // Excel Import
       'excel import': '/vendor/excel-import',
       'import excel': '/vendor/excel-import',
       'bulk upload': '/vendor/excel-import',
+
+      // Help & Docs
+      'help center': '/help',
+      'help': '/help',
     };
 
-    // Find matching route
+    // Find matching route - match longer keys first to avoid partial matches
     let matchedRoute: string | null = null;
-    for (const [key, value] of Object.entries(routes)) {
+    let matchedKey: string | null = null;
+
+    const sortedEntries = Object.entries(routes).sort((a, b) => b[0].length - a[0].length);
+
+    for (const [key, value] of sortedEntries) {
       if (command.includes(key)) {
         matchedRoute = value;
+        matchedKey = key;
         break;
       }
     }
 
     if (matchedRoute) {
+      // Extract page name from route for display
+      const pageName = matchedKey
+        ? matchedKey.charAt(0).toUpperCase() + matchedKey.slice(1)
+        : command;
+
+      setCurrentPage(pageName);
       setLocation(matchedRoute);
+
       toast({
         title: '✅ Command Executed',
-        description: `Navigating to ${command}`,
+        description: `Opening ${pageName}...`,
       });
     } else {
       toast({
         title: '❌ Command Not Recognized',
-        description: `Could not find a match for "${command}". Try commands like "open vendor list", "add employee", "holiday master", etc.`,
+        description: `Could not find "${command}". Try: "dashboard", "vendor list", "my profile", "salary report", etc.`,
         variant: 'destructive',
       });
+      setCurrentPage('Not found');
     }
   };
 
   const toggleListening = () => {
     if (!recognition) {
       toast({
-        title: 'Not Supported',
+        title: '❌ Not Supported',
         description: 'Voice recognition is not supported in this browser. Please use Chrome, Edge, or Safari.',
         variant: 'destructive',
       });
@@ -384,19 +516,38 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
       recognition.stop();
       setIsListening(false);
     } else {
-      recognition.start();
-      setIsListening(true);
-      toast({
-        title: '🎤 Listening...',
-        description: 'Speak your command (e.g., "open vendor list", "add employee", "holiday master")',
-      });
+      try {
+        recognition.start();
+        setIsListening(true);
+        toast({
+          title: '🎤 Listening...',
+          description: 'Speak your command (e.g., "open vendor list", "add employee", "holiday master")',
+        });
+      } catch (error: any) {
+        // Handle permission errors when starting recognition
+        if (error.message?.includes('permission') || error.name === 'NotAllowedError') {
+          const errorMsg = getErrorMessage('not-allowed');
+          toast({
+            title: errorMsg.title,
+            description: errorMsg.description,
+            variant: 'destructive',
+          });
+        } else {
+          const errorMsg = getErrorMessage('default');
+          toast({
+            title: errorMsg.title,
+            description: errorMsg.description,
+            variant: 'destructive',
+          });
+        }
+      }
     }
   };
 
   const toggleContinuousMode = () => {
     if (!continuousRecognition) {
       toast({
-        title: 'Not Supported',
+        title: '❌ Not Supported',
         description: 'Voice recognition is not supported in this browser. Please use Chrome, Edge, or Safari.',
         variant: 'destructive',
       });
@@ -418,12 +569,30 @@ export function VoiceCommand({ className = '' }: VoiceCommandProps) {
           title: '🔔 Wake Word Activated',
           description: 'Say "Activate Voice Command" or "OK Assistant" to start listening. Say "Deactivate Voice Command" to turn off.',
         });
-      } catch (e) {
-        toast({
-          title: 'Error',
-          description: 'Could not start continuous listening',
-          variant: 'destructive',
-        });
+      } catch (error: any) {
+        // Handle permission errors when starting continuous recognition
+        if (error.message?.includes('permission') || error.name === 'NotAllowedError') {
+          const errorMsg = getErrorMessage('not-allowed');
+          toast({
+            title: errorMsg.title,
+            description: errorMsg.description,
+            variant: 'destructive',
+          });
+        } else if (error.name === 'NotFoundError') {
+          const errorMsg = getErrorMessage('no-microphone');
+          toast({
+            title: errorMsg.title,
+            description: errorMsg.description,
+            variant: 'destructive',
+          });
+        } else {
+          const errorMsg = getErrorMessage('default');
+          toast({
+            title: errorMsg.title,
+            description: errorMsg.description,
+            variant: 'destructive',
+          });
+        }
       }
     }
   };

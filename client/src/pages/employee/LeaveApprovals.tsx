@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import {
   Select,
   SelectContent,
@@ -75,7 +76,7 @@ const LeaveApprovals: React.FC = () => {
       if (teamId) params.push(`teamId=${encodeURIComponent(teamId)}`);
       if (employeeId) params.push(`employeeId=${encodeURIComponent(employeeId)}`);
       if (params.length > 0) url = `${url}?${params.join('&')}`;
-      const res = await fetch(url, { credentials: 'include' });
+      const res = await authenticatedFetch(url);
       if (res.status === 401 || res.status === 403) {
         setError('Not authorized to view approvals');
         setPending([]);
@@ -102,7 +103,7 @@ const LeaveApprovals: React.FC = () => {
         if (idsToFetch.length > 0) {
           await Promise.all(idsToFetch.map(async (id) => {
             try {
-              const er = await fetch(`${getApiBaseUrl()}/api/employees/${encodeURIComponent(id)}`, { credentials: 'include' });
+              const er = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/${encodeURIComponent(id)}`);
               if (er.ok) {
                 const emp = await er.json();
                 list.forEach((r: any) => {
@@ -160,7 +161,7 @@ const LeaveApprovals: React.FC = () => {
 
     await Promise.all(toFetch.map(async (id) => {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${encodeURIComponent(id)}/${year}`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${encodeURIComponent(id)}/${year}`);
         if (res.ok) {
           const d = await res.json();
           const map: Record<string, { remaining: number; allocated?: number; used?: number }> = {};
@@ -191,7 +192,7 @@ const LeaveApprovals: React.FC = () => {
     const year = new Date().getFullYear();
     setBalancesLoading(prev => { const s = new Set(prev); s.add(employeeId); return s; });
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${encodeURIComponent(employeeId)}/${year}`, { credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${encodeURIComponent(employeeId)}/${year}`);
       if (!res.ok) return;
       const d = await res.json();
       const found = (d.leaveTypes || []).find((lt: any) => lt && lt.code === code);
@@ -211,7 +212,7 @@ const LeaveApprovals: React.FC = () => {
     // Also fetch session info to determine approver status and load reporting teams
     (async () => {
       try {
-        const s = await fetch(`${getApiBaseUrl()}/api/session`, { credentials: 'include' });
+        const s = await authenticatedFetch(`${getApiBaseUrl()}/api/session`);
         if (s.ok) {
           const data = await s.json();
           const approverFlag = Boolean(data?.isReportingPerson) || data?.employeeRole === 'admin';
@@ -226,7 +227,7 @@ const LeaveApprovals: React.FC = () => {
             try {
               if (data?.employeeRole === 'superadmin') {
                 // superadmin gets full team list
-                const t = await fetch(`${getApiBaseUrl()}/api/teams`, { credentials: 'include' });
+                const t = await authenticatedFetch(`${getApiBaseUrl()}/api/teams`);
                 if (t.ok) {
                   const all = await t.json();
                   setTeams(Array.isArray(all) ? all : []);
@@ -234,14 +235,14 @@ const LeaveApprovals: React.FC = () => {
                   setTeams([]);
                 }
                 // also load all employees for convenience
-                const e = await fetch(`${getApiBaseUrl()}/api/employees`, { credentials: 'include' });
+                const e = await authenticatedFetch(`${getApiBaseUrl()}/api/employees`);
                 if (e.ok) {
                   const allEmp = await e.json();
                   setEmployees(Array.isArray(allEmp) ? allEmp : []);
                 }
               } else {
                 // Use the same endpoint as MonthlyAttendance for reporting teams
-                const t = await fetch(`${getApiBaseUrl()}/api/teams/my-reporting-teams`, { credentials: 'include' });
+                const t = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/my-reporting-teams`);
                 if (t.ok) {
                   const myTeams = await t.json();
                   // teams from this endpoint are full team objects
@@ -276,18 +277,18 @@ const LeaveApprovals: React.FC = () => {
       try {
         if (isSuperAdmin) {
           if (selectedTeam === 'all') {
-            const res = await fetch(`${getApiBaseUrl()}/api/employees`, { credentials: 'include' });
+            const res = await authenticatedFetch(`${getApiBaseUrl()}/api/employees`);
             if (res.ok) setEmployees(await res.json());
             else setEmployees([]);
           } else {
-            const res = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members`, { credentials: 'include' });
+            const res = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members`);
             if (res.ok) setEmployees(await res.json());
             else setEmployees([]);
           }
         } else {
           // For non-superadmins, fetch members from the teams API (matches MonthlyAttendance)
           try {
-            const res = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members`, { credentials: 'include' });
+            const res = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members`);
             if (res.ok) {
               const data = await res.json();
               const list = Array.isArray(data) ? data : [];
@@ -339,7 +340,7 @@ const LeaveApprovals: React.FC = () => {
     if (!confirm('Approve this leave?')) return;
     setApproving(id, true);
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/leaves/${id}/approve`, { method: 'POST', credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/${id}/approve`, { method: 'POST' });
       if (res.ok) {
         toast({ title: 'Approved', description: 'Leave approved successfully' });
         setPending(p => p.filter(x => x.id !== id));
@@ -364,7 +365,7 @@ const LeaveApprovals: React.FC = () => {
     if (reason === null) return;
     setRejecting(id, true);
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/leaves/${id}/reject`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/${id}/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
       if (res.ok) {
         toast({ title: 'Rejected', description: 'Leave rejected' });
         setPending(p => p.filter(x => x.id !== id));
@@ -388,7 +389,7 @@ const LeaveApprovals: React.FC = () => {
     // mark loading
     setFetchingDetails(prev => { const s = new Set(prev); s.add(id); return s; });
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/employees/${encodeURIComponent(id)}`, { credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/${encodeURIComponent(id)}`);
       if (res.ok) {
         const emp = await res.json();
         setPending(prev => prev.map(r => r.employeeId === id ? ({ ...r, employeeName: r.employeeName || emp.name || id, employeeDepartment: emp.department || r.employeeDepartment, employeeDesignation: emp.designation || r.employeeDesignation }) : r));
@@ -627,7 +628,7 @@ const LeaveApprovals: React.FC = () => {
                           try {
                             // Validate dates against Sundays/holidays before patching
                             try {
-                              const vres = await fetch(`${getApiBaseUrl()}/api/leaves/validate-dates`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startDate: editStart, endDate: editEnd }) });
+                              const vres = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/validate-dates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startDate: editStart, endDate: editEnd }) });
                               if (vres.ok) {
                                 const vd = await vres.json();
                                 if (!vd.valid && Array.isArray(vd.invalidDates) && vd.invalidDates.length > 0) {
@@ -647,7 +648,7 @@ const LeaveApprovals: React.FC = () => {
                             }
 
                             setEditSaving(true);
-                            const res = await fetch(`${getApiBaseUrl()}/api/leaves/${p.id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startDate: editStart, endDate: editEnd, approverRemark: editRemark }) });
+                            const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ startDate: editStart, endDate: editEnd, approverRemark: editRemark }) });
                             if (res.ok) {
                               const updatedJson = await res.json();
                               // Merge server response with local object to preserve display-only fields like appliedByEmail/name

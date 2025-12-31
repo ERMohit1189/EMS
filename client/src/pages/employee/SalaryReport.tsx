@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, createProfessionalSalaryExcel, type ExportHeader } from '@/lib/exportUtils';
@@ -82,9 +83,7 @@ export default function SalaryReport() {
   const fetchSalaryReport = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/salary-report`, {
-        credentials: 'include'
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/salary-report`);
       if (response.ok) {
         const data = await response.json();
         setSalaryData(data);

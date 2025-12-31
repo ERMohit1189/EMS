@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetchJson } from "@/lib/fetchWithLoader";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,11 +135,8 @@ export default function ExportHeaders() {
 
   const loadHeader = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`);
-      if (response.ok) {
-        const data = await response.json();
-        setHeader(data || { id: '', companyName: '', reportTitle: '', footerText: '', contactPhone: '', contactEmail: '', website: '', gstin: '', address: '', state: '', city: '', showGeneratedDate: true });
-      }
+      const data = await authenticatedFetchJson(`${getApiBaseUrl()}/api/export-headers`);
+      setHeader(data || { id: '', companyName: '', reportTitle: '', footerText: '', contactPhone: '', contactEmail: '', website: '', gstin: '', address: '', state: '', city: '', showGeneratedDate: true });
     } catch (error) {
       console.error('Failed to load header settings:', error);
     } finally {
@@ -149,7 +147,7 @@ export default function ExportHeaders() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`, {
+      await authenticatedFetchJson(`${getApiBaseUrl()}/api/export-headers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -167,14 +165,8 @@ export default function ExportHeaders() {
         }),
       });
 
-      if (response.ok) {
-        toast({ title: 'Success', description: 'Export header settings saved', variant: 'default' });
-        setErrors({});
-      } else {
-        const errorData = await response.json();
-        const errorMessage = errorData.error || 'Failed to save settings';
-        toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
-      }
+      toast({ title: 'Success', description: 'Export header settings saved', variant: 'default' });
+      setErrors({});
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to save settings';
       toast({ title: 'Error', description: errorMessage, variant: 'destructive' });

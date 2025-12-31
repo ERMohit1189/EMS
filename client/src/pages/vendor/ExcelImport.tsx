@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, Download, CheckCircle, AlertCircle, Trash2, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchJsonWithLoader, fetchWithLoader } from '@/lib/fetchWithLoader';
+import { fetchJsonWithLoader, fetchWithLoader, authenticatedFetch, authenticatedFetchJson } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 interface RawRowData {
@@ -28,6 +28,7 @@ export default function ExcelImport() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [estimatedTime, setEstimatedTime] = useState<{ minutes: number; seconds: number; totalSeconds: number }>({ minutes: 0, seconds: 0, totalSeconds: 0 });
   const [elapsedTime, setElapsedTime] = useState(0); // Track elapsed seconds
+  const [sitesWithExistingPOs, setSitesWithExistingPOs] = useState<any[]>([]); // Sites that already have POs
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -72,9 +73,9 @@ export default function ExcelImport() {
   };
 
   const calculateEstimatedTime = () => {
-    // Fast estimate based on high-throughput runs (56s per 1000 rows)
+    // Fast estimate based on high-throughput runs (76s per 1000 rows)
     // Use a faster estimate derived from the 500-row measurement.
-    const SECONDS_PER_THOUSAND = 56; // fast measured value (s per 1000 rows)
+    const SECONDS_PER_THOUSAND = 76; // fast measured value (s per 1000 rows)
     const BASELINE_SECONDS = 5;
 
     const totalSeconds = Math.ceil((importedData.length * SECONDS_PER_THOUSAND) / 1000 + BASELINE_SECONDS);
@@ -157,23 +158,23 @@ export default function ExcelImport() {
       return;
     }
 
-    // Check for blank Partner Code values
-    const blankPartnerCodeRows: any[] = [];
-    for (let idx = 0; idx < importedData.length; idx++) {
-      const row = importedData[idx];
-      const partnerCode = String(row['PARTNER CODE'] || '').trim();
-
-      if (!partnerCode) {
-        const planId = toString(row['PLAN ID']) || '-';
-        const partnerName = toString(row['PARTNER NAME']) || '-';
-        blankPartnerCodeRows.push({
-          rowNum: idx + 2,
-          planId,
-          partnerName,
-          error: 'PARTNER CODE is required and cannot be blank'
-        });
-      }
-    }
+    // Check for blank Partner Code values using filter (single pass)
+    const blankPartnerCodeRows: any[] = importedData
+      .map((row, idx) => {
+        const partnerCode = String(row['PARTNER CODE'] || '').trim();
+        return {
+          row,
+          idx,
+          partnerCode
+        };
+      })
+      .filter(({ partnerCode }) => !partnerCode)
+      .map(({ row, idx }) => ({
+        rowNum: idx + 2,
+        planId: toString(row['PLAN ID']) || '-',
+        partnerName: toString(row['PARTNER NAME']) || '-',
+        error: 'PARTNER CODE is required and cannot be blank'
+      }));
 
     // If there are blank Partner Codes, stop and show errors
     if (blankPartnerCodeRows.length > 0) {
@@ -199,7 +200,7 @@ export default function ExcelImport() {
     // Fetch all zones for matching Circle column
     let zonesMap: { [key: string]: string } = {};
     try {
-      const zonesRes = await fetch(`${getApiBaseUrl()}/api/zones?pageSize=500`);
+      const zonesRes = await authenticatedFetch(`${getApiBaseUrl()}/api/zones?pageSize=500`);
       if (zonesRes.ok) {
         const zonesData = await zonesRes.json();
         zonesMap = (zonesData.data || []).reduce((acc: any, zone: any) => {
@@ -341,6 +342,13 @@ export default function ExcelImport() {
           const generatedSiteId = siteIdValue || `SITE-${idx}`;
           const generatedPlanId = planIdValue || `PLAN-${idx}`;
 
+          // Normalize attestation statuses
+          const normalizedSoftAtStatus = normalizeAtStatus(row['SOFT-AT STATUS']);
+          const normalizedPhyAtStatus = normalizeAtStatus(row['PHY-AT STATUS']);
+
+          // Auto-approve status if both soft and phy statuses are approved
+          const autoStatus = (normalizedSoftAtStatus === 'Approved' && normalizedPhyAtStatus === 'Approved') ? 'Approved' : 'Pending';
+
           // Build site data object with optimized field access
           const siteData: any = {
             siteId: generatedSiteId,
@@ -407,10 +415,10 @@ export default function ExcelImport() {
             nmsVisibleDate: toDate(row['NMS VISIBLE DATE']),
             softAtOfferDate: toDate(row['SOFT AT OFFER DATE']),
             softAtAcceptanceDate: toDate(row['SOFT AT ACCEPTANCE DATE']),
-            softAtStatus: normalizeAtStatus(row['SOFT-AT STATUS']),
+            softAtStatus: normalizedSoftAtStatus,
             phyAtOfferDate: toDate(row['PHY-AT OFFER DATE']),
             phyAtAcceptanceDate: toDate(row['PHY-AT ACCEPTANCE DATE']),
-            phyAtStatus: normalizeAtStatus(row['PHY-AT STATUS']),
+            phyAtStatus: normalizedPhyAtStatus,
             bothAtStatus: toString(row['BOTH AT STATUS']),
             priIssueCategory: toString(row['PRI ISSUE CATEGORY']),
             priSiteId: toString(row['PRI SITE ID']),
@@ -428,7 +436,7 @@ export default function ExcelImport() {
             survey: toString(row['Survey']),
             finalPartnerSurvey: toString(row['Final Partner Survey']),
             surveyDate: toDate(row['Survey Date']),
-            status: 'Pending' as const,
+            status: autoStatus,
           };
 
           // Only log every 100 rows to reduce console overhead
@@ -559,7 +567,7 @@ export default function ExcelImport() {
 
     let missingVendors: any[] = [];
     try {
-      const checkMissingResponse = await fetch(`${getApiBaseUrl()}/api/vendors/check-missing`, {
+      const checkMissingResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/check-missing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ vendors: vendorCodesJson }),
@@ -583,7 +591,7 @@ export default function ExcelImport() {
 
     try {
       if (missingVendors.length > 0) {
-        const insertVendorsResponse = await fetch(`${getApiBaseUrl()}/api/vendors/batch-create`, {
+        const insertVendorsResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/batch-create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ vendors: missingVendors }),
@@ -611,7 +619,7 @@ export default function ExcelImport() {
       console.log(`[ExcelImport] Step 2a: Getting existing vendor mappings for ${vendorCodesJson.length} codes...`);
 
       // STEP 1: Try to get existing vendors first
-      const getMappingResponse = await fetch(`${getApiBaseUrl()}/api/vendors/get-mapping`, {
+      const getMappingResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/get-mapping`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ vendors: vendorCodesJson }),
@@ -635,7 +643,7 @@ export default function ExcelImport() {
         console.log(`[ExcelImport] Missing vendor codes:`, missingVendorCodes.map(v => v.code));
 
         // Use batch-find-or-create to auto-create missing vendors
-        const createResponse = await fetch(`${getApiBaseUrl()}/api/vendors/batch-find-or-create`, {
+        const createResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/batch-find-or-create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ vendors: missingVendorCodes }),
@@ -711,16 +719,128 @@ export default function ExcelImport() {
 
     console.log(`[ExcelImport] ✅ Prepared ${finalSites.length} sites for insertion`);
 
-    // STEP 4: INSERT ALL SITES IN PARALLEL BATCHES
-    setImportProgress({ current: 85, total: 100, stage: 'STEP 4/4: Inserting all sites in parallel batches...' });
+    // STEP 4: CREATE MISSING CIRCLES IN BATCH BEFORE INSERTING SITES
+    setImportProgress({ current: 82, total: 100, stage: 'STEP 4/4: Creating missing circles...' });
 
     try {
-      console.log(`[ExcelImport] Inserting ${finalSites.length} sites in parallel intelligent mode...`);
+      // Collect unique circles from sites
+      const uniqueCircles = new Set<string>();
+      finalSites.forEach(site => {
+        if (site.circle && site.circle.trim()) {
+          uniqueCircles.add(site.circle.trim());
+        }
+      });
 
-      const insertResponse = await fetch(`${getApiBaseUrl()}/api/sites/batch-upsert`, {
+      if (uniqueCircles.size > 0) {
+        console.log(`[ExcelImport] Found ${uniqueCircles.size} unique circles: ${Array.from(uniqueCircles).join(', ')}`);
+
+        // Check all circles in database in one query
+        const circlesToCheck = Array.from(uniqueCircles);
+        const checkCirclesRes = await authenticatedFetch(`${getApiBaseUrl()}/api/circles/check-exist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ names: circlesToCheck }),
+        });
+
+        let existingCircleNames = new Set<string>();
+        if (checkCirclesRes.ok) {
+          const checkData = await checkCirclesRes.json();
+          existingCircleNames = new Set(checkData.existing || []);
+        } else {
+          // Fallback: fetch all circles
+          const existingCirclesRes = await authenticatedFetch(`${getApiBaseUrl()}/api/circles?pageSize=1000`);
+          const existingCirclesData = await existingCirclesRes.json();
+          existingCircleNames = new Set(
+            (existingCirclesData.data || []).map((c: any) => c.name)
+          );
+        }
+
+        // Find missing circles
+        const missingCircles = circlesToCheck.filter(
+          circle => !existingCircleNames.has(circle)
+        );
+
+        // Create all missing circles in one batch
+        if (missingCircles.length > 0) {
+          console.log(`[ExcelImport] Creating ${missingCircles.length} missing circles in batch...`);
+
+          const circlesToCreate = missingCircles.map(name => ({
+            name,
+            shortName: name.substring(0, 3).toUpperCase()
+          }));
+
+          const createRes = await authenticatedFetch(`${getApiBaseUrl()}/api/circles/batch-create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ circles: circlesToCreate }),
+          });
+
+          if (createRes.ok) {
+            const result = await createRes.json();
+            console.log(`[ExcelImport] ✅ Created ${result.created || missingCircles.length} circles in batch`);
+          } else {
+            console.warn(`[ExcelImport] ⚠️ Failed to create circles in batch`);
+          }
+        } else {
+          console.log(`[ExcelImport] All circles already exist in database`);
+        }
+      }
+    } catch (error) {
+      console.warn('[ExcelImport] Error processing circles:', error);
+      // Continue with site import even if circle creation fails
+    }
+
+    // STEP 4.5: CHECK FOR DUPLICATE PLAN IDS IN PURCHASE ORDER LINES
+    setImportProgress({ current: 88, total: 100, stage: 'Checking for duplicate Plan IDs with existing POs...' });
+
+    let sitesToInsert = finalSites;
+    let sitesWithExistingPOs: any[] = [];
+
+    try {
+      // Fetch all purchase order lines to get plan IDs that already have POs
+      const poLinesResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/purchase-order-lines?pageSize=10000`);
+
+      if (poLinesResponse.ok) {
+        const poLinesData = await poLinesResponse.json();
+        // Extract unique plan IDs from purchase order lines
+        const existingPlanIds = new Set(
+          (poLinesData.data || [])
+            .map((line: any) => line.planId)
+            .filter((id: any) => id)
+        );
+
+        console.log(`[ExcelImport] Found ${existingPlanIds.size} Plan IDs with existing Purchase Orders`);
+
+        // Separate sites into: new sites to insert and sites with existing POs
+        sitesToInsert = finalSites.filter(site => !existingPlanIds.has(site.planId));
+        sitesWithExistingPOs = finalSites.filter(site => existingPlanIds.has(site.planId));
+        setSitesWithExistingPOs(sitesWithExistingPOs); // Update state to display in UI
+
+        console.log(`[ExcelImport] Will insert ${sitesToInsert.length} new sites, ${sitesWithExistingPOs.length} sites already have POs (duplicate Plan IDs)`);
+
+        if (sitesWithExistingPOs.length > 0) {
+          console.log(`[ExcelImport] Skipping ${sitesWithExistingPOs.length} sites that have duplicate Plan IDs with existing POs`);
+        }
+      } else {
+        console.warn('[ExcelImport] Could not fetch purchase order lines, proceeding with all sites');
+        sitesToInsert = finalSites;
+      }
+    } catch (error) {
+      console.warn('[ExcelImport] Error checking purchase order lines:', error);
+      // Continue with all sites if check fails
+      sitesToInsert = finalSites;
+    }
+
+    // STEP 5: INSERT ALL SITES IN PARALLEL BATCHES
+    setImportProgress({ current: 90, total: 100, stage: `STEP 5/5: Inserting ${sitesToInsert.length} new sites in parallel batches...` });
+
+    try {
+      console.log(`[ExcelImport] Inserting ${sitesToInsert.length} sites in parallel intelligent mode...`);
+
+      const insertResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/sites/batch-upsert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sites: finalSites }),
+        body: JSON.stringify({ sites: sitesToInsert }),
       });
 
       if (!insertResponse.ok) {
@@ -816,13 +936,13 @@ export default function ExcelImport() {
         try {
           let response;
           if (item.type === 'vendor') {
-            response = await fetch(`${getApiBaseUrl()}/api/vendors`, {
+            response = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(item.data),
             });
           } else if (item.type === 'employee') {
-            response = await fetch(`${getApiBaseUrl()}/api/employees`, {
+            response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(item.data),
@@ -927,6 +1047,43 @@ export default function ExcelImport() {
     toast({
       title: 'Success',
       description: `Downloaded ${errorDetails.length} error records with full site details`,
+    });
+  };
+
+  const downloadApprovedSitesReport = () => {
+    if (sitesWithExistingPOs.length === 0) return;
+
+    const approvedData = sitesWithExistingPOs.map(site => ({
+      'Plan ID': site.planId || '-',
+      'Site ID': site.siteId || '-',
+      'Circle': site.circle || '-',
+      'District': site.district || '-',
+      'Project': site.project || '-',
+      'Status': site.status || 'Approved',
+      'Exported At': new Date().toISOString()
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(approvedData);
+
+    // Set column widths for better readability
+    const columnWidths = [
+      { wch: 18 }, // Plan ID
+      { wch: 20 }, // Site ID
+      { wch: 12 }, // Circle
+      { wch: 15 }, // District
+      { wch: 15 }, // Project
+      { wch: 12 }, // Status
+      { wch: 25 }  // Exported At
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Approved Sites');
+    XLSX.writeFile(workbook, `approved_sites_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast({
+      title: 'Success',
+      description: `Exported ${sitesWithExistingPOs.length} approved sites with existing purchase orders`,
     });
   };
 
@@ -1198,6 +1355,67 @@ export default function ExcelImport() {
               </div>
             </label>
           </div>
+
+          {sitesWithExistingPOs.length > 0 && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <CardTitle className="text-blue-900">
+                        Existing Purchase Orders - {sitesWithExistingPOs.length} Site(s)
+                      </CardTitle>
+                      <CardDescription className="text-blue-700">
+                        These sites are approved and have generated PO - Skipped from insertion
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => downloadApprovedSitesReport()}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 text-blue-700 border-blue-300 hover:bg-blue-100"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto overflow-y-auto max-h-96 border rounded-lg border-blue-200">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-blue-100">
+                      <TableRow className="hover:bg-blue-100">
+                        <TableHead className="text-blue-900 font-bold">Plan ID</TableHead>
+                        <TableHead className="text-blue-900 font-bold">Site ID</TableHead>
+                        <TableHead className="text-blue-900 font-bold">Circle</TableHead>
+                        <TableHead className="text-blue-900 font-bold">District</TableHead>
+                        <TableHead className="text-blue-900 font-bold">Project</TableHead>
+                        <TableHead className="text-blue-900 font-bold">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sitesWithExistingPOs.map((site, idx) => (
+                        <TableRow key={idx} className="hover:bg-blue-100">
+                          <TableCell className="font-medium">{site.planId || '-'}</TableCell>
+                          <TableCell>{site.siteId || '-'}</TableCell>
+                          <TableCell>{site.circle || '-'}</TableCell>
+                          <TableCell>{site.district || '-'}</TableCell>
+                          <TableCell>{site.project || '-'}</TableCell>
+                          <TableCell>
+                            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                              {site.status || 'Approved'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {errors.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">

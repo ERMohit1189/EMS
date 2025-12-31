@@ -6,14 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 interface AllowanceData {
-  travel: number;
-  food: number;
-  accommodation: number;
-  mobile: number;
-  internet: number;
-  utilities: number;
-  parking: number;
-  misc: number;
+  travelAllowance: number;
+  foodAllowance: number;
+  accommodationAllowance: number;
+  mobileAllowance: number;
+  internetAllowance: number;
+  utilitiesAllowance: number;
+  parkingAllowance: number;
+  miscAllowance: number;
   notes?: string;
 }
 
@@ -65,14 +65,14 @@ export function AllowanceApprovalModal({
 
   const calculateTotal = () => {
     return (
-      (editedData.travel || 0) +
-      (editedData.food || 0) +
-      (editedData.accommodation || 0) +
-      (editedData.mobile || 0) +
-      (editedData.internet || 0) +
-      (editedData.utilities || 0) +
-      (editedData.parking || 0) +
-      (editedData.misc || 0)
+      (editedData.travelAllowance || 0) +
+      (editedData.foodAllowance || 0) +
+      (editedData.accommodationAllowance || 0) +
+      (editedData.mobileAllowance || 0) +
+      (editedData.internetAllowance || 0) +
+      (editedData.utilitiesAllowance || 0) +
+      (editedData.parkingAllowance || 0) +
+      (editedData.miscAllowance || 0)
     );
   };
 
@@ -103,10 +103,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.travelMax}
                 step="0.01"
-                value={editedData.travel}
-                onChange={(e) => handleFieldChange('travel', e.target.value)}
+                value={editedData.travelAllowance}
+                onChange={(e) => handleFieldChange('travelAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.travel > (maxValues.travelMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.travelAllowance > (maxValues.travelMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
@@ -121,10 +121,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.foodMax}
                 step="0.01"
-                value={editedData.food}
-                onChange={(e) => handleFieldChange('food', e.target.value)}
+                value={editedData.foodAllowance}
+                onChange={(e) => handleFieldChange('foodAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.food > (maxValues.foodMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.foodAllowance > (maxValues.foodMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
@@ -139,10 +139,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.accommodationMax}
                 step="0.01"
-                value={editedData.accommodation}
-                onChange={(e) => handleFieldChange('accommodation', e.target.value)}
+                value={editedData.accommodationAllowance}
+                onChange={(e) => handleFieldChange('accommodationAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.accommodation > (maxValues.accommodationMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.accommodationAllowance > (maxValues.accommodationMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
@@ -157,10 +157,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.mobileMax}
                 step="0.01"
-                value={editedData.mobile}
-                onChange={(e) => handleFieldChange('mobile', e.target.value)}
+                value={editedData.mobileAllowance}
+                onChange={(e) => handleFieldChange('mobileAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.mobile > (maxValues.mobileMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.mobileAllowance > (maxValues.mobileMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
@@ -175,10 +175,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.internetMax}
                 step="0.01"
-                value={editedData.internet}
-                onChange={(e) => handleFieldChange('internet', e.target.value)}
+                value={editedData.internetAllowance}
+                onChange={(e) => handleFieldChange('internetAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.internet > (maxValues.internetMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.internetAllowance > (maxValues.internetMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
@@ -193,10 +193,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.utilitiesMax}
                 step="0.01"
-                value={editedData.utilities}
-                onChange={(e) => handleFieldChange('utilities', e.target.value)}
+                value={editedData.utilitiesAllowance}
+                onChange={(e) => handleFieldChange('utilitiesAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.utilities > (maxValues.utilitiesMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.utilitiesAllowance > (maxValues.utilitiesMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
@@ -211,10 +211,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.parkingMax}
                 step="0.01"
-                value={editedData.parking}
-                onChange={(e) => handleFieldChange('parking', e.target.value)}
+                value={editedData.parkingAllowance}
+                onChange={(e) => handleFieldChange('parkingAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.parking > (maxValues.parkingMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.parkingAllowance > (maxValues.parkingMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
 
@@ -229,10 +229,10 @@ export function AllowanceApprovalModal({
                 min="0"
                 max={maxValues.miscMax}
                 step="0.01"
-                value={editedData.misc}
-                onChange={(e) => handleFieldChange('misc', e.target.value)}
+                value={editedData.miscAllowance}
+                onChange={(e) => handleFieldChange('miscAllowance', e.target.value)}
                 disabled={isLoading}
-                className={editedData.misc > (maxValues.miscMax || Infinity) ? 'border-red-500' : ''}
+                className={editedData.miscAllowance > (maxValues.miscMax || Infinity) ? 'border-red-500' : ''}
               />
             </div>
           </div>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { Trash2, Plus } from "lucide-react";
 
 interface Designation {
@@ -37,7 +38,7 @@ export default function DesignationMaster() {
 
   const loadDesignations = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/designations`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/designations`);
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setDesignations(Array.isArray(data) ? data : []);
@@ -58,9 +59,8 @@ export default function DesignationMaster() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/designations`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/designations`, {
         method: "POST",
-        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName }),
       });
@@ -78,7 +78,7 @@ export default function DesignationMaster() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`${getApiBaseUrl()}/api/designations/${id}`, { method: "DELETE", credentials: 'include' });
+      await authenticatedFetch(`${getApiBaseUrl()}/api/designations/${id}`, { method: "DELETE" });
       await loadDesignations();
       toast({ title: "Success", description: "Designation deleted" });
     } catch (error) {

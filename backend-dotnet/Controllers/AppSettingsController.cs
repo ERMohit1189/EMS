@@ -28,8 +28,8 @@ namespace VendorRegistrationBackend.Controllers
                 var response = new
                 {
                     approvalsRequiredForAllowance = settings?.ApprovalsRequiredForAllowance ?? 1,
-                    poGenerationDate = settings?.PoGenerationDate ?? 1,
-                    invoiceGenerationDate = settings?.InvoiceGenerationDate ?? 1
+                    poGenerationDate = settings?.PoGenerationDate ?? -1,
+                    invoiceGenerationDate = settings?.InvoiceGenerationDate ?? -1
                 };
 
                 return Ok(response);

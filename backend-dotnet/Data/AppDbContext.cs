@@ -8,6 +8,7 @@ namespace VendorRegistrationBackend.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+        public DbSet<AuthAuditLog> AuthAuditLogs { get; set; } = null!;
         // Employee Management
         public DbSet<Employee> Employees { get; set; } = null!;
         public DbSet<Department> Departments { get; set; } = null!;
@@ -48,14 +49,17 @@ namespace VendorRegistrationBackend.Data
 
         // Note: PaymentMaster also accessible via Set<PaymentMaster>()
 
-        // Session Management
-        public DbSet<SessionRow> Sessions { get; set; } = null!;
+        // Session Management (deprecated - using JWT tokens instead)
+        // public DbSet<SessionRow> Sessions { get; set; } = null!;
 
         // Export Settings
         public DbSet<ExportHeader> ExportHeaders { get; set; } = null!;
 
         // Application Settings
         public DbSet<AppSettings> AppSettings { get; set; } = null!;
+
+        // Report Templates
+        public DbSet<ReportTemplate> ReportTemplates { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -256,6 +260,34 @@ namespace VendorRegistrationBackend.Data
 
             modelBuilder.Entity<DailyAllowance>()
                 .HasIndex(da => da.PaidStatus);
+
+            // Configure AuthAuditLog entity
+            var authAuditLogBuilder = modelBuilder.Entity<AuthAuditLog>();
+            authAuditLogBuilder.ToTable("AuthAuditLogs");
+            authAuditLogBuilder.Property(aal => aal.Id).HasColumnName("Id");
+            authAuditLogBuilder.Property(aal => aal.EventType).HasColumnName("EventType");
+            authAuditLogBuilder.Property(aal => aal.Path).HasColumnName("Path");
+            authAuditLogBuilder.Property(aal => aal.QueryString).HasColumnName("QueryString");
+            authAuditLogBuilder.Property(aal => aal.Method).HasColumnName("Method");
+            authAuditLogBuilder.Property(aal => aal.UserId).HasColumnName("UserId");
+            authAuditLogBuilder.Property(aal => aal.UserName).HasColumnName("UserName");
+            authAuditLogBuilder.Property(aal => aal.Email).HasColumnName("Email");
+            authAuditLogBuilder.Property(aal => aal.IsAuthenticated).HasColumnName("IsAuthenticated");
+            authAuditLogBuilder.Property(aal => aal.Roles).HasColumnName("Roles");
+            authAuditLogBuilder.Property(aal => aal.Claims).HasColumnName("Claims");
+            authAuditLogBuilder.Property(aal => aal.IpAddress).HasColumnName("IpAddress");
+            authAuditLogBuilder.Property(aal => aal.UserAgent).HasColumnName("UserAgent");
+            authAuditLogBuilder.Property(aal => aal.UserType).HasColumnName("UserType");
+            authAuditLogBuilder.Property(aal => aal.AuthStatus).HasColumnName("AuthStatus");
+            authAuditLogBuilder.Property(aal => aal.FailureReason).HasColumnName("FailureReason");
+            authAuditLogBuilder.Property(aal => aal.CreatedAt).HasColumnName("CreatedAt");
+
+            // Configure DailyAllowance properties - mark as not database-generated to work with triggers
+            var dailyAllowanceBuilder = modelBuilder.Entity<DailyAllowance>();
+            dailyAllowanceBuilder.Property(da => da.Id).ValueGeneratedNever();
+            dailyAllowanceBuilder.Property(da => da.SubmittedAt).ValueGeneratedNever();
+            dailyAllowanceBuilder.Property(da => da.CreatedAt).ValueGeneratedNever();
+            dailyAllowanceBuilder.Property(da => da.UpdatedAt).ValueGeneratedNever();
 
             // Configure ExportHeader table mapping with column names
             var exportHeaderBuilder = modelBuilder.Entity<ExportHeader>()

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { Trash2, Plus } from "lucide-react";
 
 interface Department {
@@ -37,7 +38,7 @@ export default function DepartmentMaster() {
 
   const loadDepartments = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/departments`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/departments`);
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setDepartments(Array.isArray(data) ? data : []);
@@ -58,9 +59,8 @@ export default function DepartmentMaster() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/departments`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/departments`, {
         method: "POST",
-        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName }),
       });
@@ -78,7 +78,7 @@ export default function DepartmentMaster() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`${getApiBaseUrl()}/api/departments/${id}`, { method: "DELETE", credentials: 'include' });
+      await authenticatedFetch(`${getApiBaseUrl()}/api/departments/${id}`, { method: "DELETE" });
       await loadDepartments();
       toast({ title: "Success", description: "Department deleted" });
     } catch (error) {

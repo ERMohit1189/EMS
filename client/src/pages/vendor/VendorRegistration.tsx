@@ -112,27 +112,56 @@ export default function VendorRegistration() {
 
   async function onSubmit(values: z.infer<typeof vendorSchema>) {
     try {
+      const formData = new FormData();
+
+      // Append all form values as text fields
+      Object.entries(values).forEach(([key, value]) => {
+        if (key !== 'moa' && value !== null && value !== undefined && value !== '') {
+          formData.append(key, String(value));
+        }
+      });
+
+      // Add required fields that might be empty
+      if (!values.gstin) {
+        formData.append('gstin', '');
+      }
+      if (!values.aadhar) {
+        formData.append('aadhar', '');
+      }
+      if (!values.pan) {
+        formData.append('pan', '');
+      }
+
+      // Append files separately
+      if (aadharFile) {
+        formData.append('aadharFile', aadharFile);
+      }
+      if (panFile) {
+        formData.append('panFile', panFile);
+      }
+      if (gstinFile) {
+        formData.append('gstinFile', gstinFile);
+      }
+
       const response = await fetch(`${getApiBaseUrl()}/api/vendors`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...values,
-          gstin: values.gstin || '',
-          status: 'Pending',
-          moa: values.moa ? 'uploaded_doc.pdf' : '',
-        }),
+        body: formData,
+        // Do NOT set Content-Type header - browser will set it with boundary
       });
-      
+
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to register vendor' }));
-        throw new Error(error.error || 'Failed to register vendor');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to register vendor' }));
+        // Use message field if available (has the most detailed error), otherwise use error field
+        const errorMessage = errorData.message || errorData.error || 'Failed to register vendor';
+        throw new Error(errorMessage);
       }
-      
+
+      const result = await response.json();
       toast({
         title: 'Success',
         description: 'Vendor has been successfully registered and is pending approval.',
       });
-      
+
       setLocation('/vendor/list');
     } catch (error: any) {
       toast({

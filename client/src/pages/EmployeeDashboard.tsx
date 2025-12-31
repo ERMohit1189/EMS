@@ -2,11 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { User, Briefcase, Activity, Calendar, DollarSign, Mail, Zap, Shield, Loader2, IndianRupee, ClipboardCheck } from 'lucide-react';
- 
+
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
 import { performanceMonitor } from '@/lib/performanceMonitor';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
+import { getFullPhotoUrl, getPhotoUrlWithCacheBuster } from '@/lib/photo-url';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate } from '@/lib/exportUtils';
@@ -102,7 +105,7 @@ export default function EmployeeDashboard() {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/session`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/session`);
         if (!res.ok) return;
         const data = await res.json();
         if (mounted && typeof data?.isReportingPerson !== 'undefined') setIsReportingPerson(Boolean(data.isReportingPerson));
@@ -287,7 +290,7 @@ export default function EmployeeDashboard() {
         setUserProfile(profileData);
 
         // Fetch latest salary slip for this employee whenever we load profile
-        fetch(`${getApiBaseUrl()}/api/employee/salary-slip?employeeId=${employeeId}`)
+        authenticatedFetch(`${getApiBaseUrl()}/api/employee/salary-slip?employeeId=${employeeId}`)
           .then(res => res.ok ? res.json() : null)
           .then(data => {
             if (data && !data.error) {
@@ -414,7 +417,7 @@ export default function EmployeeDashboard() {
     const fetchPending = async () => {
       try {
         if (!showLeaveApprovals) return;
-        const res = await fetch(`${getApiBaseUrl()}/api/leaves/pending`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/pending`);
         if (!res.ok) return;
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) return;
@@ -601,12 +604,16 @@ export default function EmployeeDashboard() {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-12 w-12 rounded-full overflow-hidden bg-green-600/20 flex items-center justify-center">
-                    {userProfile.photo ? (
-                      <img src={userProfile.photo} alt={userProfile.name} className="h-12 w-12 object-cover" />
-                    ) : (
-                      <User className="h-6 w-6 text-green-600" />
-                    )}
+                  <div>
+                    <Avatar className="h-12 w-12">
+                      {userProfile.photo ? (
+                        <AvatarImage src={getPhotoUrlWithCacheBuster(userProfile.photo)} alt={userProfile.name} className="object-cover" />
+                      ) : (
+                        <AvatarFallback>
+                          <User className="h-6 w-6 text-green-600" />
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">

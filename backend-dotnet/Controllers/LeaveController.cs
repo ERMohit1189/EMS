@@ -159,9 +159,8 @@ namespace VendorRegistrationBackend.Controllers
             return Ok(allotment);
         }
 
-        [HttpGet("employee/{employeeId}/{year}")]
-        [Route("/api/leave-allotments/employee/{employeeId}/{year}")]
-        [Authorize(Roles = "admin,user,superadmin")]
+        [HttpGet("leave-allotment-by-employee/{employeeId}/{year}")]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> GetLeaveAllotmentByEmployee(string employeeId, int year)
         {
             var allotment = await _leaveService.GetLeaveAllotmentAsync(employeeId, year);
@@ -660,7 +659,6 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("employee/{employeeId}/years")]
-        [Route("/api/leave-allotments/employee/{employeeId}/years")]
         [Authorize(Roles = "admin,user,superadmin")]
         public async Task<IActionResult> GetLeaveAllotmentYears(string employeeId)
         {

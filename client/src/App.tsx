@@ -8,6 +8,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import GlobalPerformanceIndicator from "@/components/GlobalPerformanceIndicator";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import JoyrideTour from "@/components/JoyrideTour";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Eager load login pages for instant display
 import Login from "@/pages/Login";
@@ -60,6 +61,7 @@ const Allowances = lazy(() => import("@/pages/employee/Allowances"));
 const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const EmailSettings = lazy(() => import("@/pages/admin/EmailSettings"));
+const AppSettingsPage = lazy(() => import("@/pages/admin/AppSettings"));
 const VendorRates = lazy(() => import("@/pages/vendor/VendorRates"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
 const VendorDashboard = lazy(() => import("@/pages/VendorDashboard"));
@@ -68,6 +70,7 @@ const VendorInvoiceReport = lazy(() => import("@/pages/vendor/VendorInvoiceRepor
 const VendorSiteReport = lazy(() => import("@/pages/vendor/VendorSiteReport"));
 const VendorProfile = lazy(() => import("@/pages/vendor/VendorProfile"));
 const VendorChangePassword = lazy(() => import("@/pages/vendor/VendorChangePassword"));
+const ReportBuilder = lazy(() => import("@/pages/vendor/ReportBuilder"));
 const VendorForgotPassword = lazy(() => import("@/pages/vendor/VendorForgotPassword"));
 const Teams = lazy(() => import("@/pages/admin/Teams"));
 const AllowanceApproval = lazy(() => import("@/pages/admin/AllowanceApproval"));
@@ -119,8 +122,12 @@ function App() {
         }
 
         // Existing browser session - check if server session is still valid
+        // Use JWT token from localStorage instead of cookies
+        const token = localStorage.getItem('token');
         const { getApiBaseUrl } = await import('@/lib/api');
-        const response = await fetch(`${getApiBaseUrl()}/api/session`, { credentials: 'include' });
+        const response = await fetch(`${getApiBaseUrl()}/api/session`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
         const data = await response.json();
 
         console.log('[App] Session check result:', data);
@@ -137,7 +144,7 @@ function App() {
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('employeeEmail', data.employeeEmail || '');
             localStorage.setItem('employeeId', data.employeeId || '');
-            localStorage.setItem('employeeCode', data.employeeCode || data.employeeId || '');
+            localStorage.setItem('employeeCode', data.employeeCode || '');
             localStorage.setItem('employeeRole', data.employeeRole || '');
             // Also set employeeName and user object so pages relying on `user` update immediately
             localStorage.setItem('employeeName', data.employeeName || '');
@@ -157,6 +164,15 @@ function App() {
             // Update localStorage with session data
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('vendorId', data.vendorId || '');
+            localStorage.setItem('vendorEmail', data.vendorEmail || '');
+            localStorage.setItem('vendorName', data.vendorName || '');
+            localStorage.setItem('vendorRole', data.vendorRole || '');
+            try {
+              const userObj = { email: data.vendorEmail || '', name: data.vendorName || '', role: data.vendorRole || '' };
+              localStorage.setItem('user', JSON.stringify(userObj));
+            } catch (e) {
+              console.warn('[App] Failed to serialize vendor user object to localStorage', e);
+            }
             try { window.dispatchEvent(new Event('login')); } catch (e) { /* ignore */ }
           }
         } else {
@@ -281,7 +297,10 @@ function App() {
       // Refresh reporting-person flag from server to ensure immediate UI availability
       (async () => {
         try {
-          const res = await fetch('/api/session', { credentials: 'include' });
+          const token = localStorage.getItem('token');
+          const res = await fetch('/api/session', {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
           if (res.ok) {
             const json = await res.json();
             localStorage.setItem('isReportingPerson', json.isReportingPerson ? 'true' : 'false');
@@ -432,72 +451,291 @@ function App() {
                   </Route>
                   
                   {/* Vendor Routes */}
-                  <Route path="/vendor/dashboard" component={VendorDashboard} />
-                  <Route path="/vendor/profile" component={VendorProfile} />
-                  <Route path="/vendor/change-password" component={VendorChangePassword} />
-                  <Route path="/vendor/register" component={VendorRegistration} />
-                  <Route path="/vendor/list" component={VendorList} />
-                  <Route path="/vendor/edit/:id" component={VendorEdit} />
-                  <Route path="/vendor/credentials" component={VendorCredentials} />
-                  <Route path="/vendor/payment-master" component={PaymentMaster} />
+                  <Route path="/vendor/dashboard">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorDashboard />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/profile">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorProfile />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/change-password">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorChangePassword />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/register">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorRegistration />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/list">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorList />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/edit/:id">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorEdit />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/credentials">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorCredentials />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/payment-master">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <PaymentMaster />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/rates">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorRates />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/circle-master">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <CircleMaster />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/sites">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <SiteList />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/sites/status">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <SiteStatus />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/export-headers">
+                    <ProtectedRoute requiredUserType="admin">
+                      <ExportHeaders />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/export-settings">
+                    <ProtectedRoute requiredUserType="admin">
+                      <ExportHeaders />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/site/register">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <SiteRegistration />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/site/manage">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <SiteManagement />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/site/edit/:id">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <SiteEdit />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/excel-import">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <ExcelImport />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/po">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <POGeneration />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/invoices">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <InvoiceGeneration />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/vendor/report-builder">
+                    <ReportBuilder />
+                  </Route>
 
-                  <Route path="/vendor/rates" component={VendorRates} />
-                  <Route path="/vendor/circle-master" component={CircleMaster} />
-                  <Route path="/vendor/sites" component={SiteList} />
-                  <Route path="/vendor/sites/status" component={SiteStatus} />
-                  <Route path="/vendor/export-headers" component={ExportHeaders} />
-                  <Route path="/export-settings" component={ExportHeaders} />
-                  <Route path="/vendor/site/register" component={SiteRegistration} />
-                  <Route path="/vendor/site/manage" component={SiteManagement} />
-                  <Route path="/vendor/site/edit/:id" component={SiteEdit} />
-                  <Route path="/vendor/excel-import" component={ExcelImport} />
-                  <Route path="/vendor/po" component={POGeneration} />
-                  <Route path="/vendor/invoices" component={InvoiceGeneration} />
-                  
                   {/* Vendor Report Routes */}
-                  <Route path="/reports/vendor-po" component={VendorPOReport} />
-                  <Route path="/reports/vendor-invoice" component={VendorInvoiceReport} />
-                  <Route path="/reports/vendor-site" component={VendorSiteReport} />
+                  <Route path="/reports/vendor-po">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorPOReport />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/reports/vendor-invoice">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorInvoiceReport />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/reports/vendor-site">
+                    <ProtectedRoute requiredUserType="vendor">
+                      <VendorSiteReport />
+                    </ProtectedRoute>
+                  </Route>
                   
                   {/* Settings Route */}
                   <Route path="/settings" component={Settings} />
                   
                   {/* Employee Routes */}
-                  <Route path="/employee/register" component={EmployeeRegistration} />
-                  <Route path="/employee/edit/:id" component={EmployeeEdit} />
-                  <Route path="/employee/list" component={EmployeeList} />
-                  <Route path="/employee/credentials" component={EmployeeCredentials} />
-                  <Route path="/employee/my-profile" component={MyProfile} />
-                  <Route path="/employee/salary" component={EmployeeSalary} />
-                  <Route path="/employee/salary-history" component={EmployeeSalaryHistory} />
-                  <Route path="/employee/change-password" component={ChangePassword} />
-                  <Route path="/employee/salary-report" component={SalaryReport} />
-                  <Route path="/admin/salary-generation" component={SalaryGeneration} />
-                  <Route path="/admin/salary-reports" component={SalaryReportsMonthly} />
-                  <Route path="/employee/department-master" component={DepartmentMaster} />
-                  <Route path="/employee/designation-master" component={DesignationMaster} />
-                  <Route path="/employee/attendance" component={Attendance} />
-                  <Route path="/employee/monthly-attendance" component={MonthlyAttendance} />
-                  <Route path="/employee/leave-apply" component={LeaveApply} />
-                  <Route path="/employee/leave-history" component={LeaveHistory} />
-                  <Route path="/employee/leave-approvals" component={LeaveApprovals} />
-                  <Route path="/admin/bulk-attendance" component={BulkAttendanceMarking} />
-                  <Route path="/employee/allowances" component={Allowances} />
-                  <Route path="/employee/salary-structure" component={SalaryStructure} />
-                  <Route path="/employee/privacy-policy" component={EmployeePrivacyPolicy} />
+                  <Route path="/employee/register">
+                    <ProtectedRoute requiredUserType="employee">
+                      <EmployeeRegistration />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/edit/:id">
+                    <ProtectedRoute requiredUserType="employee">
+                      <EmployeeEdit />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/list">
+                    <ProtectedRoute requiredUserType="employee">
+                      <EmployeeList />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/credentials">
+                    <ProtectedRoute requiredUserType="employee">
+                      <EmployeeCredentials />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/my-profile">
+                    <ProtectedRoute requiredUserType="employee">
+                      <MyProfile />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/salary">
+                    <ProtectedRoute requiredUserType="employee">
+                      <EmployeeSalary />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/salary-history">
+                    <ProtectedRoute requiredUserType="employee">
+                      <EmployeeSalaryHistory />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/change-password">
+                    <ProtectedRoute requiredUserType="employee">
+                      <ChangePassword />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/salary-report">
+                    <ProtectedRoute requiredUserType="employee">
+                      <SalaryReport />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/salary-generation">
+                    <ProtectedRoute requiredUserType="admin">
+                      <SalaryGeneration />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/salary-reports">
+                    <ProtectedRoute requiredUserType="admin">
+                      <SalaryReportsMonthly />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/department-master">
+                    <ProtectedRoute requiredUserType="admin">
+                      <DepartmentMaster />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/designation-master">
+                    <ProtectedRoute requiredUserType="admin">
+                      <DesignationMaster />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/attendance">
+                    <ProtectedRoute requiredUserType="employee">
+                      <Attendance />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/monthly-attendance">
+                    <ProtectedRoute requiredUserType="admin">
+                      <MonthlyAttendance />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/leave-apply">
+                    <ProtectedRoute requiredUserType="employee">
+                      <LeaveApply />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/leave-history">
+                    <ProtectedRoute requiredUserType="employee">
+                      <LeaveHistory />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/leave-approvals">
+                    <ProtectedRoute requiredUserType="admin">
+                      <LeaveApprovals />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/bulk-attendance">
+                    <ProtectedRoute requiredUserType="admin">
+                      <BulkAttendanceMarking />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/allowances">
+                    <ProtectedRoute requiredUserType="employee">
+                      <Allowances />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/salary-structure">
+                    <ProtectedRoute requiredUserType="employee">
+                      <SalaryStructure />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/employee/privacy-policy">
+                    <EmployeePrivacyPolicy />
+                  </Route>
                   
                   {/* Admin Routes */}
-                  <Route path="/admin/teams" component={Teams} />
-                  <Route path="/admin/allowance-approvals" component={AllowanceApproval} />
+                  <Route path="/admin/teams">
+                    <ProtectedRoute requiredUserType="admin">
+                      <Teams />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/allowance-approvals">
+                    <ProtectedRoute requiredUserType="admin">
+                      <AllowanceApproval />
+                    </ProtectedRoute>
+                  </Route>
                   {/* Allow reporting-person users to access the same page under a /user path */}
-                  <Route path="/user/allowance-approvals" component={AllowanceApproval} />
-                  <Route path="/admin/approval-history" component={ApprovalHistory} />
-                  <Route path="/admin/holiday-master" component={HolidayMaster} />
-                  <Route path="/admin/leave-allotment" component={LeaveAllotment} />
-                  <Route path="/admin/attendance-report" component={AttendanceReport} />
+                  <Route path="/user/allowance-approvals">
+                    <ProtectedRoute requiredUserType="employee">
+                      <AllowanceApproval />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/approval-history">
+                    <ProtectedRoute requiredUserType="admin">
+                      <ApprovalHistory />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/holiday-master">
+                    <ProtectedRoute requiredUserType="admin">
+                      <HolidayMaster />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/leave-allotment">
+                    <ProtectedRoute requiredUserType="admin">
+                      <LeaveAllotment />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/attendance-report">
+                    <ProtectedRoute requiredUserType="admin">
+                      <AttendanceReport />
+                    </ProtectedRoute>
+                  </Route>
                   {/* Email Settings (Superadmin only) */}
-                  <Route path="/admin/email-settings" component={EmailSettings} />
-                  
+                  <Route path="/admin/email-settings">
+                    <ProtectedRoute requiredUserType="superadmin">
+                      <EmailSettings />
+                    </ProtectedRoute>
+                  </Route>
+
+                  {/* App Settings (Admin and Superadmin) */}
+                  <Route path="/admin/app-settings">
+                    <ProtectedRoute requiredUserType="admin">
+                      <AppSettingsPage />
+                    </ProtectedRoute>
+                  </Route>
+
                   {/* Vendor Privacy Policy */}
                   <Route path="/vendor/privacy-policy" component={VendorPrivacyPolicy} />
                   

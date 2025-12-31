@@ -1,6 +1,0 @@
-*** Begin Patch
-*** Update File: node_modules/wmf/dist/wmf.node.js
-@@
--a.Buffer_from=r=i?function(t,e){return e?new Buffer(t,e):new Buffer(t)}:Buffer.from.bind(Buffer),Buffer.alloc||(Buffer.alloc=function(t){return new Buffer(t)}),Buffer.allocUnsafe||(Buffer.allocUnsafe=function(t){return new Buffer(t)})
-+a.Buffer_from=r=i?function(t,e){return Buffer.from(t,e)}:Buffer.from.bind(Buffer);if(!Buffer.alloc)Buffer.alloc=function(t){return Buffer.from(new Uint8Array(t))};if(!Buffer.allocUnsafe)Buffer.allocUnsafe=function(t){return Buffer.from(new Uint8Array(t))}
-*** End Patch

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import type { PurchaseOrder, Site, Vendor } from "@shared/schema";
 
 interface POWithDetails extends PurchaseOrder {
@@ -59,13 +60,13 @@ export default function POPrint() {
           // Get first site for header info
           const firstSiteId = poData.siteId || (lines.length > 0 ? lines[0].siteId : null);
 
-          const siteRes = firstSiteId ? await fetch(`${baseUrl}/api/sites/${firstSiteId}`, { credentials: 'include' }) : null;
+          const siteRes = firstSiteId ? await authenticatedFetch(`${baseUrl}/api/sites/${firstSiteId}`) : null;
           const siteData = siteRes?.ok ? await siteRes.json() : null;
 
-          const vendorRes = await fetch(`${baseUrl}/api/vendors/${poData.vendorId}`, { credentials: 'include' });
+          const vendorRes = await authenticatedFetch(`${baseUrl}/api/vendors/${poData.vendorId}`);
           const vendorData = vendorRes.ok ? await vendorRes.json() : null;
 
-          const headerRes = await fetch(`${baseUrl}/api/export-headers`, { credentials: 'include' });
+          const headerRes = await authenticatedFetch(`${baseUrl}/api/export-headers`);
           const headerData = headerRes.ok ? await headerRes.json() : {};
 
           setPo({
@@ -82,7 +83,7 @@ export default function POPrint() {
       }
 
       // Fallback: Fetch PO with lines using withLines=true query parameter
-      const response = await fetch(`${baseUrl}/api/purchase-orders/${poId}?withLines=true`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${baseUrl}/api/purchase-orders/${poId}?withLines=true`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
 
@@ -93,13 +94,13 @@ export default function POPrint() {
       // Get first site for vendor info (if PO has old structure with single siteId)
       const firstSiteId = poData.siteId || (lines.length > 0 ? lines[0].siteId : null);
 
-      const siteRes = firstSiteId ? await fetch(`${baseUrl}/api/sites/${firstSiteId}`, { credentials: 'include' }) : null;
+      const siteRes = firstSiteId ? await authenticatedFetch(`${baseUrl}/api/sites/${firstSiteId}`) : null;
       const siteData = siteRes?.ok ? await siteRes.json() : null;
 
-      const vendorRes = await fetch(`${baseUrl}/api/vendors/${poData.vendorId}`, { credentials: 'include' });
+      const vendorRes = await authenticatedFetch(`${baseUrl}/api/vendors/${poData.vendorId}`);
       const vendorData = vendorRes.ok ? await vendorRes.json() : null;
 
-      const headerRes = await fetch(`${baseUrl}/api/export-headers`, { credentials: 'include' });
+      const headerRes = await authenticatedFetch(`${baseUrl}/api/export-headers`);
       const headerData = headerRes.ok ? await headerRes.json() : {};
 
       setPo({

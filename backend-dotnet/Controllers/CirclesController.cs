@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 using VendorRegistrationBackend.Models;
 using VendorRegistrationBackend.Services;
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 using System.Security.Claims;
 
 namespace VendorRegistrationBackend.Controllers
@@ -8,48 +9,99 @@ namespace VendorRegistrationBackend.Controllers
     [Route("api")]
     public class SessionController : ControllerBase
     {
+        /// <summary>
+        /// Returns current session information based on JWT token (if present).
+        /// This endpoint is intentionally AllowAnonymous for frontend session restore.
+        /// </summary>
         [HttpGet("session")]
         [AllowAnonymous]
         public IActionResult GetSession()
         {
             try
             {
-                // Check if user is authenticated
-                var isAuthenticated = User?.Identity?.IsAuthenticated ?? false;
+                var identity = User?.Identity;
+                var isAuthenticated = identity?.IsAuthenticated ?? false;
 
-                System.Diagnostics.Debug.WriteLine($"[SessionController] IsAuthenticated: {isAuthenticated}");
-                System.Diagnostics.Debug.WriteLine($"[SessionController] User Identity: {User?.Identity?.AuthenticationType ?? "null"}");
+                Log.Information(
+                    "[Session] Request received | IsAuthenticated={IsAuthenticated} | AuthType={AuthType}",
+                    isAuthenticated,
+                    identity?.AuthenticationType ?? "none"
+                );
 
+                // --------------------
+                // NOT AUTHENTICATED
+                // --------------------
                 if (!isAuthenticated)
                 {
-                    return Ok(new { authenticated = false });
+                    return Ok(new
+                    {
+                        authenticated = false
+                    });
                 }
 
-                // Get user info from claims - be resilient to different claim names
-                var email = User?.FindFirst(ClaimTypes.Email)?.Value;
-                var role = User?.FindFirst("Role")?.Value ?? User?.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
-                var userId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var name = User?.FindFirst(ClaimTypes.Name)?.Value;
-                var userType = User?.FindFirst("UserType")?.Value ?? "employee"; // Default to employee
+                // --------------------
+                // CLAIMS (STANDARD)
+                // --------------------
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var name = User.FindFirstValue(ClaimTypes.Name);
+                var email = User.FindFirstValue(ClaimTypes.Email);
+                var role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
 
-                System.Diagnostics.Debug.WriteLine($"[SessionController] User: {userId}, Email: {email}, Role: {role}, UserType: {userType}");
+                // Optional custom claims (safe defaults)
+                var userType = User.FindFirstValue("UserType") ?? "employee";
 
+                var isReportingPerson =
+                    User.FindFirstValue("IsReportingPerson")
+                        ?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+
+                Log.Information(
+                    "[Session] User resolved | UserId={UserId} | Name={Name} | Email={Email} | Role={Role} | UserType={UserType} | IsReportingPerson={IsReportingPerson}",
+                    userId,
+                    name,
+                    email,
+                    role,
+                    userType,
+                    isReportingPerson
+                );
+
+                // --------------------
+                // VENDOR RESPONSE
+                // --------------------
+                if (userType.Equals("vendor", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Ok(new
+                    {
+                        authenticated = true,
+                        userType = "vendor",
+                        vendorId = userId,
+                        vendorName = name,
+                        vendorEmail = email,
+                        vendorRole = role
+                    });
+                }
+
+                // --------------------
+                // EMPLOYEE RESPONSE
+                // --------------------
                 return Ok(new
                 {
                     authenticated = true,
-                    userType = userType,
+                    userType = "employee",
                     employeeId = userId,
-                    employeeEmail = email,
                     employeeName = name,
+                    employeeEmail = email,
                     employeeRole = role,
-                    isReportingPerson = User?.FindFirst("IsReportingPerson")?.Value?.ToLower() == "true",
-                    vendorId = User?.FindFirst("VendorId")?.Value // For vendor users
+                    isReportingPerson
                 });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[SessionController] Error: {ex.Message}");
-                return Ok(new { authenticated = false, error = ex.Message });
+                Log.Error(ex, "[Session] Exception while resolving session");
+
+                return Ok(new
+                {
+                    authenticated = false
+                });
             }
         }
     }

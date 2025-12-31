@@ -84,19 +84,121 @@ namespace VendorRegistrationBackend.Controllers
             return Ok(new { message = "Employee updated successfully" });
         }
 
+        [HttpPut("{id}/profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateEmployeeProfile(string id)
+        {
+            try
+            {
+                var employee = await _employeeService.GetEmployeeByIdAsync(id);
+                if (employee == null)
+                    return NotFound(new { message = "Employee not found" });
+
+                // Handle photo upload if provided
+                var photoFile = Request.Form.Files.GetFile("photo");
+                string? photoPath = null;
+
+                if (photoFile != null && photoFile.Length > 0)
+                {
+                    // Validate file size (max 2MB)
+                    if (photoFile.Length > 2 * 1024 * 1024)
+                        return BadRequest(new { error = "Photo size should be less than 2MB" });
+
+                    // Validate file type
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                    var extension = Path.GetExtension(photoFile.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(extension))
+                        return BadRequest(new { error = "Only JPG, PNG, and GIF files are allowed" });
+
+                    // Delete old photo if it exists
+                    if (!string.IsNullOrEmpty(employee.Photo))
+                    {
+                        try
+                        {
+                            var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", employee.Photo.TrimStart('/'));
+                            if (System.IO.File.Exists(oldFilePath))
+                            {
+                                System.IO.File.Delete(oldFilePath);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log error but continue - file deletion is not critical
+                            Console.WriteLine($"Error deleting old photo: {ex.Message}");
+                        }
+                    }
+
+                    // Save file to wwwroot/uploads/photos
+                    var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "photos");
+                    Directory.CreateDirectory(uploadsDir);
+
+                    var fileName = $"{Guid.NewGuid()}{extension}";
+                    var filePath = Path.Combine(uploadsDir, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await photoFile.CopyToAsync(stream);
+                    }
+
+                    photoPath = $"/uploads/photos/{fileName}";
+                    Console.WriteLine($"Photo saved successfully: {photoPath}");
+                }
+
+                // Map form data to UpdateEmployeeDto
+                var dto = new UpdateEmployeeDto
+                {
+                    Name = Request.Form["name"].ToString() ?? employee.Name,
+                    FatherName = Request.Form["fatherName"].ToString(),
+                    Mobile = Request.Form["mobile"].ToString(),
+                    AlternateNo = Request.Form["alternateNo"].ToString(),
+                    Address = Request.Form["address"].ToString(),
+                    City = Request.Form["city"].ToString(),
+                    State = Request.Form["state"].ToString(),
+                    Country = Request.Form["country"].ToString(),
+                    BloodGroup = Request.Form["bloodGroup"].ToString(),
+                    Aadhar = Request.Form["aadhar"].ToString(),
+                    PAN = Request.Form["pan"].ToString(),
+                    Photo = photoPath, // Include the photo path if uploaded
+                };
+
+                // Parse date of birth if provided
+                if (Request.Form.TryGetValue("dob", out var dobValue) && !string.IsNullOrEmpty(dobValue.ToString()))
+                {
+                    if (DateTime.TryParse(dobValue.ToString(), out var dob))
+                    {
+                        dto.DateOfBirth = dob;
+                    }
+                }
+
+                // Update employee with profile data
+                var updatedEmployee = await _employeeService.UpdateEmployeeAsync(id, dto);
+                if (updatedEmployee == null)
+                    return BadRequest(new { error = "Failed to update employee profile" });
+
+                // Build response
+                if (photoFile != null && photoFile.Length > 0)
+                {
+                    return Ok(new { message = "Profile updated successfully", photo = updatedEmployee.Photo });
+                }
+
+                return Ok(new { message = "Profile updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("{id}/change-password")]
         [Authorize]
-        public async Task<IActionResult> ChangePassword(string id, [FromBody] dynamic request)
+        public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordDto request)
         {
-            string oldPassword = request.oldPassword;
-            string newPassword = request.newPassword;
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request?.OldPassword) || string.IsNullOrEmpty(request?.NewPassword))
+                return BadRequest(new { message = "Current and new passwords are required" });
 
-            if (string.IsNullOrEmpty(oldPassword) || string.IsNullOrEmpty(newPassword))
-                return BadRequest(new { message = "Old and new passwords are required" });
-
-            var success = await _employeeService.ChangePasswordAsync(id, oldPassword, newPassword);
+            var success = await _employeeService.ChangePasswordAsync(id, request.OldPassword, request.NewPassword);
             if (!success)
-                return BadRequest(new { message = "Invalid old password or employee not found" });
+                return BadRequest(new { message = "Invalid current password or employee not found" });
 
             return Ok(new { message = "Password changed successfully" });
         }

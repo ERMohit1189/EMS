@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -64,9 +65,8 @@ export default function AttendanceReport() {
   const fetchAttendanceReport = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${getApiBaseUrl()}/api/reports/attendance?month=${month}&year=${year}`,
-        { credentials: 'include' }
+      const response = await authenticatedFetch(
+        `${getApiBaseUrl()}/api/reports/attendance?month=${month}&year=${year}`
       );
 
       if (response.ok) {
@@ -98,12 +98,11 @@ export default function AttendanceReport() {
 
     try {
       setIsLocking(true);
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${getApiBaseUrl()}/api/attendance/lock`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ month, year, lockAll: true }),
         }
       );
@@ -138,12 +137,11 @@ export default function AttendanceReport() {
 
     try {
       setIsLocking(true);
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${getApiBaseUrl()}/api/attendance/unlock`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ month, year, unlockAll: true }),
         }
       );
@@ -451,10 +449,9 @@ export default function AttendanceReport() {
                                   if (!window.confirm('Unlock attendance for this employee?')) return;
                                   try {
                                     setIsLocking(true);
-                                    const resp = await fetch(`${getApiBaseUrl()}/api/attendance/unlock`, {
+                                    const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance/unlock`, {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
-                                      credentials: 'include',
                                       body: JSON.stringify({ month, year, employeeId: emp.employeeId }),
                                     });
                                     if (!resp.ok) {

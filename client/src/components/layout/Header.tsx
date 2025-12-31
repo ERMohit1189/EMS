@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VoiceCommand } from "@/components/VoiceCommand";
+import { getFullPhotoUrl, getPhotoUrlWithCacheBuster } from "@/lib/photo-url";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 // QuickGuide temporarily disabled until rework
 // import QuickGuide from "@/components/QuickGuide";
 
@@ -209,13 +211,16 @@ export function Header({ onMenuClick, sidebarOpen }: HeaderProps) {
               className="rounded-full h-9 w-9 md:h-10 md:w-10"
               data-testid="button-user-menu"
             >
-              {employeePhoto ? (
-                <img src={employeePhoto} alt={employeeName} className="h-7 w-7 md:h-8 md:w-8 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs">
-                  {employeeName.slice(0, 2).toUpperCase()}
-                </div>
-              )}
+              {/* Use Radix Avatar to gracefully fall back when image fails to load */}
+              <Avatar className="h-7 w-7 md:h-8 md:w-8">
+                {employeePhoto ? (
+                  <AvatarImage src={getPhotoUrlWithCacheBuster(employeePhoto)} alt={employeeName} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="text-primary font-semibold text-xs">
+                    {employeeName.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                )}
+              </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

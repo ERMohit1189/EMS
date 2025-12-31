@@ -62,11 +62,15 @@ export default function VendorSiteReport() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingPOs, setLoadingPOs] = useState(false);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [antennaFilter, setAntennaFilter] = useState("");
-  const [zoneFilter, setZoneFilter] = useState("");
+  const [circleFilter, setCircleFilter] = useState("");
   const [planIdFilter, setPlanIdFilter] = useState("");
+  const [softAtStatusFilter, setSoftAtStatusFilter] = useState("");
+  const [phyAtStatusFilter, setPhyAtStatusFilter] = useState("");
+  const [bothAtStatusFilter, setBothAtStatusFilter] = useState("");
   const [poInvoiceFilter, setPoInvoiceFilter] = useState<'all'|'po'|'inv'|'both'>('all');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [vendorPOs, setVendorPOs] = useState<any[]>([]);
@@ -209,6 +213,7 @@ export default function VendorSiteReport() {
   }, [vendorId]);
 
   const fetchVendorPOs = async () => {
+    setLoadingPOs(true);
     try {
       const res = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`);
       if (res.ok) {
@@ -218,19 +223,26 @@ export default function VendorSiteReport() {
       }
     } catch (err) {
       console.error('Failed to fetch vendor POs', err);
+    } finally {
+      setLoadingPOs(false);
     }
   };
 
   const fetchVendorInvoices = async () => {
+    setLoadingInvoices(true);
     try {
       const res = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/invoices`);
       if (res.ok) {
         const json = await res.json();
-        const data = json.data || [];
+        // API returns array directly, not wrapped in data property
+        const data = Array.isArray(json) ? json : (json.data || []);
+        console.log('Fetched invoices:', data);
         setVendorInvoices(data);
       }
     } catch (err) {
       console.error('Failed to fetch vendor invoices', err);
+    } finally {
+      setLoadingInvoices(false);
     }
   };
 
@@ -296,21 +308,13 @@ export default function VendorSiteReport() {
     }
   };
 
-  const getUniqueAntennas = () => {
-    const antennas = new Set<string>();
-    sites.forEach((site) => {
-      if (site.siteAAntDia) antennas.add(site.siteAAntDia);
-      if (site.siteBAntDia) antennas.add(site.siteBAntDia);
-      if (site.maxAntSize) antennas.add(site.maxAntSize);
-    });
-    return Array.from(antennas).sort();
-  };
-
   const filteredSites = sites.filter((site) => {
     let matchesDate = true;
-    let matchesAntenna = true;
-    let matchesZone = true;
+    let matchesCircle = true;
     let matchesPlanId = true;
+    let matchesSoftAtStatus = true;
+    let matchesPhyAtStatus = true;
+    let matchesBothAtStatus = true;
 
     if (fromDate && site.createdAt) {
       matchesDate = new Date(site.createdAt) >= new Date(fromDate);
@@ -318,27 +322,91 @@ export default function VendorSiteReport() {
     if (toDate && site.createdAt) {
       matchesDate = matchesDate && new Date(site.createdAt) <= new Date(toDate);
     }
-    if (antennaFilter) {
-      matchesAntenna = site.siteAAntDia === antennaFilter || 
-                       site.siteBAntDia === antennaFilter || 
-                       site.maxAntSize === antennaFilter;
-    }
-    if (zoneFilter) {
-      matchesZone = site.zoneId === zoneFilter;
+    if (circleFilter) {
+      matchesCircle = site.circle === circleFilter;
     }
     if (planIdFilter) {
       matchesPlanId = site.planId?.toLowerCase().includes(planIdFilter.toLowerCase());
     }
+    if (softAtStatusFilter) {
+      matchesSoftAtStatus = site.softAtStatus === softAtStatusFilter;
+    }
+    if (phyAtStatusFilter) {
+      matchesPhyAtStatus = site.phyAtStatus === phyAtStatusFilter;
+    }
+    if (bothAtStatusFilter) {
+      matchesBothAtStatus = site.bothAtStatus === bothAtStatusFilter;
+    }
 
-    return matchesDate && matchesAntenna && matchesZone && matchesPlanId;
+    return matchesDate && matchesCircle && matchesPlanId && matchesSoftAtStatus && matchesPhyAtStatus && matchesBothAtStatus;
   });
 
   const sitePOInvoiceMap = useMemo(() => {
     const map = new Map<string, { poCount: number; invoiceCount: number; planPresent: boolean }>();
-    const invoicePoSet = new Set(vendorInvoices.map(inv => inv.poId));
 
+    // Step 1: Build map of sites that have invoices using PO lines
+    // This matches the Node.js server logic
+    const sitesWithInvoices = new Set<string>();
+
+    vendorInvoices.forEach((invoice: any) => {
+      // Each invoice has poIds - could be array or string
+      let poIds: string[] = [];
+
+      if (Array.isArray(invoice.poIds)) {
+        poIds = invoice.poIds;
+      } else if (typeof invoice.poIds === 'string' && invoice.poIds) {
+        // Handle string format like '["id1","id2"]' or 'id1,id2'
+        try {
+          if (invoice.poIds.startsWith('[')) {
+            // JSON array format
+            poIds = JSON.parse(invoice.poIds);
+          } else {
+            // Comma-separated format
+            poIds = invoice.poIds
+              .split(',')
+              .map((id: string) => id.trim())
+              .filter((id: string) => id.length > 0);
+          }
+        } catch (e) {
+          console.warn('Failed to parse poIds:', invoice.poIds, e);
+          poIds = [];
+        }
+      }
+
+      console.log('📋 Processing invoice:', {
+        invoiceNumber: invoice.invoiceNumber,
+        poCount: poIds.length,
+        poIds: poIds
+      });
+
+      // For each PO in this invoice
+      poIds.forEach((poId: string) => {
+        // Find the PO in vendorPOs
+        const po = vendorPOs.find((p: any) => p.id === poId);
+
+        if (po && po.lines) {
+          console.log(`  ✓ Found PO: ${po.PoNumber} with ${po.lines.length} site lines`);
+
+          // For each site in this PO's lines
+          po.lines.forEach((line: any) => {
+            if (line.siteId) {
+              sitesWithInvoices.add(line.siteId);
+              console.log(`    ✓ Site ${line.siteId} marked as having invoice`);
+            }
+          });
+        } else {
+          console.log(`  ⚠️ PO ${poId} not found in vendorPOs`);
+        }
+      });
+    });
+
+    console.log('Sites with invoices:', Array.from(sitesWithInvoices));
+    console.log('Total invoices:', vendorInvoices.length);
+    console.log('Total POs:', vendorPOs.length);
+
+    // Step 2: Process each PO and count invoices per site
     vendorPOs.forEach((po: any) => {
-      // Build unique set of siteIds in this PO and whether that site has plan id on any line
+      // Build unique set of siteIds in this PO
       const sitesInPo = new Map<string, { hasPlan: boolean }>();
       (po.lines || []).forEach((ln: any) => {
         if (!ln.siteId) return;
@@ -347,16 +415,33 @@ export default function VendorSiteReport() {
         sitesInPo.set(ln.siteId, cur);
       });
 
-      const hasInvoice = invoicePoSet.has(po.id);
+      // Check if any site in this PO has an invoice
+      const siteIds = Array.from(sitesInPo.keys());
 
+      console.log(`🔍 Checking PO: ${po.PoNumber} (ID: ${po.id}) with ${siteIds.length} sites`);
+
+      // Update map for each site in this PO
       for (const [sid, info] of sitesInPo.entries()) {
         const entry = map.get(sid) || { poCount: 0, invoiceCount: 0, planPresent: false };
         entry.poCount += 1;
-        if (hasInvoice) entry.invoiceCount += 1;
+
+        // Check if this site has an invoice
+        if (sitesWithInvoices.has(sid)) {
+          entry.invoiceCount += 1;
+          console.log(`  ✓ Site ${sid.substring(0, 8)}... has invoice`);
+        }
+
         if (info.hasPlan) entry.planPresent = true;
         map.set(sid, entry);
       }
     });
+
+    // Debug: show final status
+    console.log('Final sitePOInvoiceMap entries:', Array.from(map.entries()).map(([id, data]) => ({
+      siteId: id.substring(0, 8) + '...',
+      poCount: data.poCount,
+      invoiceCount: data.invoiceCount
+    })));
 
     return map;
   }, [vendorPOs, vendorInvoices]);
@@ -365,8 +450,8 @@ export default function VendorSiteReport() {
     if (poInvoiceFilter === 'all') return filteredSites;
     return filteredSites.filter(site => {
       const entry = sitePOInvoiceMap.get(site.id) || { poCount: 0, invoiceCount: 0, planPresent: false };
-      const hasPO = Boolean(entry.planPresent);
-      const hasInv = entry.invoiceCount > 0;
+      const hasPO = entry.poCount > 0;  // Check if site has any POs
+      const hasInv = entry.invoiceCount > 0;  // Check if site has any invoices
       switch (poInvoiceFilter) {
         case 'po': return hasPO;
         case 'inv': return hasInv;
@@ -379,10 +464,52 @@ export default function VendorSiteReport() {
   const clearFilters = () => {
     setFromDate("");
     setToDate("");
-    setAntennaFilter("");
-    setZoneFilter("");
+    setCircleFilter("");
     setPlanIdFilter("");
+    setSoftAtStatusFilter("");
+    setPhyAtStatusFilter("");
+    setBothAtStatusFilter("");
     setPoInvoiceFilter('all');
+  };
+
+  const getUniqueCircles = () => {
+    const circles = new Set<string>();
+    sites.forEach((site) => {
+      if (site.circle) {
+        circles.add(site.circle);
+      }
+    });
+    return Array.from(circles).sort();
+  };
+
+  const getUniqueSoftAtStatuses = () => {
+    const statuses = new Set<string>();
+    sites.forEach((site) => {
+      if (site.softAtStatus) {
+        statuses.add(site.softAtStatus);
+      }
+    });
+    return Array.from(statuses).sort();
+  };
+
+  const getUniquePhyAtStatuses = () => {
+    const statuses = new Set<string>();
+    sites.forEach((site) => {
+      if (site.phyAtStatus) {
+        statuses.add(site.phyAtStatus);
+      }
+    });
+    return Array.from(statuses).sort();
+  };
+
+  const getUniqueBothAtStatuses = () => {
+    const statuses = new Set<string>();
+    sites.forEach((site) => {
+      if (site.bothAtStatus) {
+        statuses.add(site.bothAtStatus);
+      }
+    });
+    return Array.from(statuses).sort();
   };
 
   const getStatusColor = (status: string) => {
@@ -456,39 +583,77 @@ export default function VendorSiteReport() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="antenna" className="flex items-center gap-2">
+              <Label htmlFor="softAtStatus" className="flex items-center gap-2">
                 <Radio className="h-4 w-4" />
-                Antenna Size
+                Soft AT Status
               </Label>
               <select
-                id="antenna"
-                value={antennaFilter}
-                onChange={(e) => setAntennaFilter(e.target.value)}
+                id="softAtStatus"
+                value={softAtStatusFilter}
+                onChange={(e) => setSoftAtStatusFilter(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                data-testid="select-antenna"
+                data-testid="select-soft-at-status"
               >
-                <option value="">All Antennas</option>
-                {getUniqueAntennas().map((ant) => (
-                  <option key={ant} value={ant}>{ant}</option>
+                <option value="">All Soft AT Status</option>
+                {getUniqueSoftAtStatuses().map((status) => (
+                  <option key={status} value={status}>{status}</option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="zone" className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                Zone
+              <Label htmlFor="phyAtStatus" className="flex items-center gap-2">
+                <Radio className="h-4 w-4" />
+                Phy AT Status
               </Label>
               <select
-                id="zone"
-                value={zoneFilter}
-                onChange={(e) => setZoneFilter(e.target.value)}
+                id="phyAtStatus"
+                value={phyAtStatusFilter}
+                onChange={(e) => setPhyAtStatusFilter(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                data-testid="select-zone"
+                data-testid="select-phy-at-status"
               >
-                <option value="">All Zones</option>
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.id}>{zone.name}</option>
+                <option value="">All Phy AT Status</option>
+                {getUniquePhyAtStatuses().map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bothAtStatus" className="flex items-center gap-2">
+                <Radio className="h-4 w-4" />
+                Both AT Status
+              </Label>
+              <select
+                id="bothAtStatus"
+                value={bothAtStatusFilter}
+                onChange={(e) => setBothAtStatusFilter(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                data-testid="select-both-at-status"
+              >
+                <option value="">All Both AT Status</option>
+                {getUniqueBothAtStatuses().map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="circle" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Circle
+              </Label>
+              <select
+                id="circle"
+                value={circleFilter}
+                onChange={(e) => setCircleFilter(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                data-testid="select-circle"
+              >
+                <option value="">All Circles</option>
+                {getUniqueCircles().map((circle) => (
+                  <option key={circle} value={circle}>{circle}</option>
                 ))}
               </select>
             </div>
@@ -506,7 +671,6 @@ export default function VendorSiteReport() {
                 data-testid="input-plan-id"
               />
             </div>
-
 
             <div className="flex items-end">
               <Button onClick={clearFilters} variant="outline" className="w-full" data-testid="button-clear">
@@ -577,7 +741,7 @@ export default function VendorSiteReport() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading || loadingPOs || loadingInvoices ? (
             <div className="flex justify-center py-8">
               <div className="h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
@@ -603,7 +767,7 @@ export default function VendorSiteReport() {
                         <Eye className="h-5 w-5" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-3">
+                    <div className="grid grid-cols-2 md:grid-cols-8 gap-3 mt-3">
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Site Name</label>
                         <p className="text-sm font-semibold mt-0.5 truncate">{site.hopAB || site.siteHopAB || site.siteId}</p>
@@ -617,6 +781,14 @@ export default function VendorSiteReport() {
                         <p className="text-sm font-semibold mt-0.5">{site.softAtStatus || '—'}</p>
                       </div>
                       <div>
+                        <label className="text-xs font-medium text-muted-foreground">Phy AT</label>
+                        <p className="text-sm font-semibold mt-0.5">{site.phyAtStatus || '—'}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Both AT</label>
+                        <p className="text-sm font-semibold mt-0.5">{site.bothAtStatus || '—'}</p>
+                      </div>
+                      <div>
                         <label className="text-xs font-medium text-muted-foreground">Site A Name</label>
                         <p className="text-sm font-semibold mt-0.5 truncate">{site.siteAName || "—"}</p>
                       </div>
@@ -628,8 +800,8 @@ export default function VendorSiteReport() {
                         <div className="mt-0.5 flex gap-2">
                           {(() => {
                             const entry = sitePOInvoiceMap.get(site.id) || { poCount: 0, invoiceCount: 0, planPresent: false };
-                            const hasPO = Boolean(entry.planPresent);
-                            const hasInv = entry.invoiceCount > 0;
+                            const hasPO = entry.poCount > 0;  // Show green if site has any POs
+                            const hasInv = entry.invoiceCount > 0;  // Show green if site has any invoices
                             return (
                               <>
                                 <span className={`text-xs px-2 py-0.5 rounded ${hasPO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{hasPO ? 'PO ✓' : 'PO ✕'}</span>
@@ -701,8 +873,8 @@ export default function VendorSiteReport() {
                     <div className="flex gap-2 mt-1">
                       {(() => {
                         const entry = sitePOInvoiceMap.get(selectedSite.id) || { poCount: 0, invoiceCount: 0, planPresent: false };
-                        const hasPO = Boolean(entry.planPresent);
-                        const hasInv = entry.invoiceCount > 0;
+                        const hasPO = entry.poCount > 0;  // Show green if site has any POs
+                        const hasInv = entry.invoiceCount > 0;  // Show green if site has any invoices
                         return (
                           <>
                             <span className={`text-xs px-2 py-0.5 rounded ${hasPO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{hasPO ? 'PO ✓' : 'PO ✕'}</span>

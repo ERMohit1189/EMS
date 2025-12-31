@@ -3,6 +3,7 @@ import { Users, Building2, HardHat, DollarSign, Activity, ArrowUpRight, User, Ma
 import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
@@ -62,11 +63,11 @@ export default function Dashboard() {
       try {
         // Fetch all data in parallel
         const [posRes, invoicesRes, sitesRes, vendorsRes, employeesRes] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/purchase-orders?pageSize=500`, { credentials: 'include' }),
-          fetch(`${getApiBaseUrl()}/api/invoices?pageSize=500`, { credentials: 'include' }),
-          fetch(`${getApiBaseUrl()}/api/sites?pageSize=500`, { credentials: 'include' }),
-          fetch(`${getApiBaseUrl()}/api/vendors?pageSize=500`, { credentials: 'include' }),
-          fetch(`${getApiBaseUrl()}/api/employees?pageSize=500`, { credentials: 'include' }),
+          authenticatedFetch(`${getApiBaseUrl()}/api/purchase-orders?page=1&pageSize=500`),
+          authenticatedFetch(`${getApiBaseUrl()}/api/invoices?page=1&pageSize=500`),
+          authenticatedFetch(`${getApiBaseUrl()}/api/sites?page=1&pageSize=500`),
+          authenticatedFetch(`${getApiBaseUrl()}/api/vendors?page=1&pageSize=500`),
+          authenticatedFetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`),
         ]);
 
         if (!posRes.ok || !invoicesRes.ok || !sitesRes.ok || !vendorsRes.ok || !employeesRes.ok) {

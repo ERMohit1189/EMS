@@ -306,167 +306,194 @@ namespace VendorRegistrationBackend.Services
                     }
                 }
 
-                // Step 4: Perform UPDATEs with all 80+ fields
+                // Step 4: Perform UPDATEs in BATCH (not one-by-one to avoid N+1 queries)
+                // Fetch all existing records that need updating in ONE query
+                var planIdsToUpdate = updateSites.Select(u => u.planId).ToList();
+                var existingSites = await _context.Sites
+                    .Where(s => planIdsToUpdate.Contains(s.PlanId))
+                    .ToListAsync();
+                var existingSitesByPlanId = existingSites.ToDictionary(s => s.PlanId);
+
+                // Now update all records in memory and batch save them
+                var sitesToUpdate = new List<Site>();
+                var failedUpdates = new List<(string planId, string error)>();
+
                 foreach (var (planId, site) in updateSites)
                 {
+                    if (existingSitesByPlanId.TryGetValue(planId, out var existing))
+                    {
+                        // Basic Info
+                        existing.PlanId = site.PlanId;
+                        existing.Name = site.Name;
+                        existing.Sno = site.Sno;
+                        existing.Address = site.Address;
+                        existing.City = site.City;
+                        existing.State = site.State;
+                        existing.PartnerCode = site.PartnerCode;
+                        existing.PartnerName = site.PartnerName;
+                        existing.VendorId = site.VendorId;
+                        existing.ZoneId = site.ZoneId;
+                        existing.Status = site.Status;
+                        existing.Circle = site.Circle;
+
+                        // HOP Information
+                        existing.HopType = site.HopType;
+                        existing.HopAB = site.HopAB;
+                        existing.HopBA = site.HopBA;
+                        existing.District = site.District;
+                        existing.Project = site.Project;
+
+                        // Antenna Information
+                        existing.SiteAAntDia = site.SiteAAntDia;
+                        existing.SiteBAntDia = site.SiteBAntDia;
+                        existing.MaxAntSize = site.MaxAntSize;
+
+                        // Site Names
+                        existing.SiteAName = site.SiteAName;
+                        existing.SiteBName = site.SiteBName;
+
+                        // TOCO Information
+                        existing.TocoVendorA = site.TocoVendorA;
+                        existing.TocoIdA = site.TocoIdA;
+                        existing.TocoVendorB = site.TocoVendorB;
+                        existing.TocoIdB = site.TocoIdB;
+
+                        // Media and Status
+                        existing.MediaAvailabilityStatus = site.MediaAvailabilityStatus;
+
+                        // SR Information
+                        existing.SrNoSiteA = site.SrNoSiteA;
+                        existing.SrDateSiteA = site.SrDateSiteA;
+                        existing.SrNoSiteB = site.SrNoSiteB;
+                        existing.SrDateSiteB = site.SrDateSiteB;
+                        existing.HopSrDate = site.HopSrDate;
+
+                        // SP Information
+                        existing.SpDateSiteA = site.SpDateSiteA;
+                        existing.SpDateSiteB = site.SpDateSiteB;
+                        existing.HopSpDate = site.HopSpDate;
+
+                        // SO Information
+                        existing.SoReleasedDateSiteA = site.SoReleasedDateSiteA;
+                        existing.SoReleasedDateSiteB = site.SoReleasedDateSiteB;
+                        existing.HopSoDate = site.HopSoDate;
+
+                        // RFAI Information
+                        existing.RfaiOfferedDateSiteA = site.RfaiOfferedDateSiteA;
+                        existing.RfaiOfferedDateSiteB = site.RfaiOfferedDateSiteB;
+                        existing.ActualHopRfaiOfferedDate = site.ActualHopRfaiOfferedDate;
+                        existing.RfaiSurveyCompletionDate = site.RfaiSurveyCompletionDate;
+
+                        // MO Information
+                        existing.MoNumberSiteA = site.MoNumberSiteA;
+                        existing.MaterialTypeSiteA = site.MaterialTypeSiteA;
+                        existing.MoDateSiteA = site.MoDateSiteA;
+                        existing.MoNumberSiteB = site.MoNumberSiteB;
+                        existing.MaterialTypeSiteB = site.MaterialTypeSiteB;
+                        existing.MoDateSiteB = site.MoDateSiteB;
+
+                        // SRN/RMO Information
+                        existing.SrnRmoNumber = site.SrnRmoNumber;
+                        existing.SrnRmoDate = site.SrnRmoDate;
+                        existing.HopMoDate = site.HopMoDate;
+                        existing.HopMaterialDispatchDate = site.HopMaterialDispatchDate;
+                        existing.HopMaterialDeliveryDate = site.HopMaterialDeliveryDate;
+                        existing.MaterialDeliveryStatus = site.MaterialDeliveryStatus;
+
+                        // Installation Information
+                        existing.SiteAInstallationDate = site.SiteAInstallationDate;
+                        existing.PtwNumberSiteA = site.PtwNumberSiteA;
+                        existing.PtwStatusA = site.PtwStatusA;
+                        existing.SiteBInstallationDate = site.SiteBInstallationDate;
+                        existing.PtwNumberSiteB = site.PtwNumberSiteB;
+                        existing.PtwStatusB = site.PtwStatusB;
+                        existing.HopIcDate = site.HopIcDate;
+                        existing.AlignmentDate = site.AlignmentDate;
+                        existing.HopInstallationRemarks = site.HopInstallationRemarks;
+
+                        // NMS Information
+                        existing.VisibleInNms = site.VisibleInNms;
+                        existing.NmsVisibleDate = site.NmsVisibleDate;
+
+                        // AT Information
+                        existing.SoftAtOfferDate = site.SoftAtOfferDate;
+                        existing.SoftAtAcceptanceDate = site.SoftAtAcceptanceDate;
+                        existing.SoftAtStatus = site.SoftAtStatus;
+                        existing.PhyAtOfferDate = site.PhyAtOfferDate;
+                        existing.PhyAtAcceptanceDate = site.PhyAtAcceptanceDate;
+                        existing.PhyAtStatus = site.PhyAtStatus;
+                        existing.BothAtStatus = site.BothAtStatus;
+
+                        // PRI Information
+                        existing.PriIssueCategory = site.PriIssueCategory;
+                        existing.PriSiteId = site.PriSiteId;
+                        existing.PriOpenDate = site.PriOpenDate;
+                        existing.PriCloseDate = site.PriCloseDate;
+                        existing.PriHistory = site.PriHistory;
+
+                        // Survey Information
+                        existing.RfiSurveyAllocationDate = site.RfiSurveyAllocationDate;
+                        existing.Descope = site.Descope;
+                        existing.ReasonOfExtraVisit = site.ReasonOfExtraVisit;
+
+                        // WCC Information
+                        existing.WccReceived80Percent = site.WccReceived80Percent;
+                        existing.WccReceivedDate80Percent = site.WccReceivedDate80Percent;
+                        existing.WccReceived20Percent = site.WccReceived20Percent;
+                        existing.WccReceivedDate20Percent = site.WccReceivedDate20Percent;
+                        existing.WccReceivedDate100Percent = site.WccReceivedDate100Percent;
+
+                        // Final Survey
+                        existing.Survey = site.Survey;
+                        existing.FinalPartnerSurvey = site.FinalPartnerSurvey;
+                        existing.SurveyDate = site.SurveyDate;
+
+                        existing.UpdatedAt = DateTime.UtcNow;
+
+                        sitesToUpdate.Add(existing);
+                    }
+                    else
+                    {
+                        failedUpdates.Add((planId, "Site not found for update"));
+                    }
+                }
+
+                // Batch update all sites at once in chunks
+                const int updateBatchSize = 50;
+                for (int i = 0; i < sitesToUpdate.Count; i += updateBatchSize)
+                {
+                    var batch = sitesToUpdate.Skip(i).Take(updateBatchSize).ToList();
                     try
                     {
-                        var existing = await _context.Sites.FirstOrDefaultAsync(s => s.PlanId == planId);
-                        if (existing != null)
-                        {
-                            // Basic Info
-                            existing.PlanId = site.PlanId;
-                            existing.Name = site.Name;
-                            existing.Sno = site.Sno;
-                            existing.Address = site.Address;
-                            existing.City = site.City;
-                            existing.State = site.State;
-                            existing.PartnerCode = site.PartnerCode;
-                            existing.PartnerName = site.PartnerName;
-                            existing.VendorId = site.VendorId;
-                            existing.ZoneId = site.ZoneId;
-                            existing.Status = site.Status;
-                            existing.Circle = site.Circle;
-
-                            // HOP Information
-                            existing.HopType = site.HopType;
-                            existing.HopAB = site.HopAB;
-                            existing.HopBA = site.HopBA;
-                            existing.District = site.District;
-                            existing.Project = site.Project;
-
-                            // Antenna Information
-                            existing.SiteAAntDia = site.SiteAAntDia;
-                            existing.SiteBAntDia = site.SiteBAntDia;
-                            existing.MaxAntSize = site.MaxAntSize;
-
-                            // Site Names
-                            existing.SiteAName = site.SiteAName;
-                            existing.SiteBName = site.SiteBName;
-
-                            // TOCO Information
-                            existing.TocoVendorA = site.TocoVendorA;
-                            existing.TocoIdA = site.TocoIdA;
-                            existing.TocoVendorB = site.TocoVendorB;
-                            existing.TocoIdB = site.TocoIdB;
-
-                            // Media and Status
-                            existing.MediaAvailabilityStatus = site.MediaAvailabilityStatus;
-
-                            // SR Information
-                            existing.SrNoSiteA = site.SrNoSiteA;
-                            existing.SrDateSiteA = site.SrDateSiteA;
-                            existing.SrNoSiteB = site.SrNoSiteB;
-                            existing.SrDateSiteB = site.SrDateSiteB;
-                            existing.HopSrDate = site.HopSrDate;
-
-                            // SP Information
-                            existing.SpDateSiteA = site.SpDateSiteA;
-                            existing.SpDateSiteB = site.SpDateSiteB;
-                            existing.HopSpDate = site.HopSpDate;
-
-                            // SO Information
-                            existing.SoReleasedDateSiteA = site.SoReleasedDateSiteA;
-                            existing.SoReleasedDateSiteB = site.SoReleasedDateSiteB;
-                            existing.HopSoDate = site.HopSoDate;
-
-                            // RFAI Information
-                            existing.RfaiOfferedDateSiteA = site.RfaiOfferedDateSiteA;
-                            existing.RfaiOfferedDateSiteB = site.RfaiOfferedDateSiteB;
-                            existing.ActualHopRfaiOfferedDate = site.ActualHopRfaiOfferedDate;
-                            existing.RfaiSurveyCompletionDate = site.RfaiSurveyCompletionDate;
-
-                            // MO Information
-                            existing.MoNumberSiteA = site.MoNumberSiteA;
-                            existing.MaterialTypeSiteA = site.MaterialTypeSiteA;
-                            existing.MoDateSiteA = site.MoDateSiteA;
-                            existing.MoNumberSiteB = site.MoNumberSiteB;
-                            existing.MaterialTypeSiteB = site.MaterialTypeSiteB;
-                            existing.MoDateSiteB = site.MoDateSiteB;
-
-                            // SRN/RMO Information
-                            existing.SrnRmoNumber = site.SrnRmoNumber;
-                            existing.SrnRmoDate = site.SrnRmoDate;
-                            existing.HopMoDate = site.HopMoDate;
-                            existing.HopMaterialDispatchDate = site.HopMaterialDispatchDate;
-                            existing.HopMaterialDeliveryDate = site.HopMaterialDeliveryDate;
-                            existing.MaterialDeliveryStatus = site.MaterialDeliveryStatus;
-
-                            // Installation Information
-                            existing.SiteAInstallationDate = site.SiteAInstallationDate;
-                            existing.PtwNumberSiteA = site.PtwNumberSiteA;
-                            existing.PtwStatusA = site.PtwStatusA;
-                            existing.SiteBInstallationDate = site.SiteBInstallationDate;
-                            existing.PtwNumberSiteB = site.PtwNumberSiteB;
-                            existing.PtwStatusB = site.PtwStatusB;
-                            existing.HopIcDate = site.HopIcDate;
-                            existing.AlignmentDate = site.AlignmentDate;
-                            existing.HopInstallationRemarks = site.HopInstallationRemarks;
-
-                            // NMS Information
-                            existing.VisibleInNms = site.VisibleInNms;
-                            existing.NmsVisibleDate = site.NmsVisibleDate;
-
-                            // AT Information
-                            existing.SoftAtOfferDate = site.SoftAtOfferDate;
-                            existing.SoftAtAcceptanceDate = site.SoftAtAcceptanceDate;
-                            existing.SoftAtStatus = site.SoftAtStatus;
-                            existing.PhyAtOfferDate = site.PhyAtOfferDate;
-                            existing.PhyAtAcceptanceDate = site.PhyAtAcceptanceDate;
-                            existing.PhyAtStatus = site.PhyAtStatus;
-                            existing.BothAtStatus = site.BothAtStatus;
-
-                            // PRI Information
-                            existing.PriIssueCategory = site.PriIssueCategory;
-                            existing.PriSiteId = site.PriSiteId;
-                            existing.PriOpenDate = site.PriOpenDate;
-                            existing.PriCloseDate = site.PriCloseDate;
-                            existing.PriHistory = site.PriHistory;
-
-                            // Survey Information
-                            existing.RfiSurveyAllocationDate = site.RfiSurveyAllocationDate;
-                            existing.Descope = site.Descope;
-                            existing.ReasonOfExtraVisit = site.ReasonOfExtraVisit;
-
-                            // WCC Information
-                            existing.WccReceived80Percent = site.WccReceived80Percent;
-                            existing.WccReceivedDate80Percent = site.WccReceivedDate80Percent;
-                            existing.WccReceived20Percent = site.WccReceived20Percent;
-                            existing.WccReceivedDate20Percent = site.WccReceivedDate20Percent;
-                            existing.WccReceivedDate100Percent = site.WccReceivedDate100Percent;
-
-                            // Final Survey
-                            existing.Survey = site.Survey;
-                            existing.FinalPartnerSurvey = site.FinalPartnerSurvey;
-                            existing.SurveyDate = site.SurveyDate;
-
-                            existing.UpdatedAt = DateTime.UtcNow;
-
-                            _context.Sites.Update(existing);
-                            await _context.SaveChangesAsync();
-                            result.Successful++;
-                        }
-                        else
-                        {
-                            result.Failed++;
-                            result.Errors.Add(new UpsertError
-                            {
-                                PlanId = planId,
-                                SiteId = "-",
-                                Error = "Site not found for update"
-                            });
-                        }
+                        _context.Sites.UpdateRange(batch);
+                        await _context.SaveChangesAsync();
+                        result.Successful += batch.Count;
                     }
                     catch (Exception ex)
                     {
-                        result.Failed++;
-                        result.Errors.Add(new UpsertError
+                        result.Failed += batch.Count;
+                        foreach (var site in batch)
                         {
-                            PlanId = planId,
-                            SiteId = "-",
-                            Error = $"Update failed: {ex.Message}"
-                        });
+                            result.Errors.Add(new UpsertError
+                            {
+                                PlanId = site.PlanId ?? "-",
+                                SiteId = site.Id ?? "-",
+                                Error = $"Update failed: {ex.Message}"
+                            });
+                        }
                     }
+                }
+
+                // Add failed updates to error list
+                foreach (var (planId, error) in failedUpdates)
+                {
+                    result.Failed++;
+                    result.Errors.Add(new UpsertError
+                    {
+                        PlanId = planId,
+                        SiteId = "-",
+                        Error = error
+                    });
                 }
             }
             catch (Exception ex)

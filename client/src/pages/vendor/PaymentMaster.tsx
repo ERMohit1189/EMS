@@ -7,6 +7,7 @@ import { getApiBaseUrl } from "@/lib/api";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import SmartSearchTextbox, { Suggestion } from "@/components/SmartSearchTextbox";
 import { Plus, Edit2, Trash2, Loader } from "lucide-react";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import type { PaymentMaster, Site, Vendor } from "@shared/schema";
 
 export default function PaymentMaster() {
@@ -50,8 +51,8 @@ export default function PaymentMaster() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const mastersResP = fetch(`${getApiBaseUrl()}/api/payment-masters`, { credentials: 'include' });
-      const vendorsP = fetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`, { credentials: 'include' }).then(r => r.json()).then(j => j.data || []);
+      const mastersResP = authenticatedFetch(`${getApiBaseUrl()}/api/payment-masters`);
+      const vendorsP = authenticatedFetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`).then(r => r.json()).then(j => j.data || []);
 
       const [mastersRes, vendorsDataList] = await Promise.all([mastersResP, vendorsP]);
 
@@ -112,7 +113,7 @@ export default function PaymentMaster() {
 
   const loadVendorRates = async (vendorId: string) => {
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/rates`, { credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/rates`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('Failed to fetch vendor rates', json);
@@ -146,7 +147,7 @@ export default function PaymentMaster() {
     if (!selectedVendor) return;
     if (!selectedVendor) return;
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ antennaSize: antenna, vendorAmount: amount }) });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ antennaSize: antenna, vendorAmount: amount }) });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('saveVendorRate failed', json);
@@ -163,7 +164,7 @@ export default function PaymentMaster() {
   const deleteVendorRate = async (antenna: string) => {
     if (!selectedVendor) return;
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates/${antenna}`, { method: 'DELETE', credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates/${antenna}`, { method: 'DELETE' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('deleteVendorRate failed', json);
@@ -179,7 +180,7 @@ export default function PaymentMaster() {
 
   const loadVendorSites = async () => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${getApiBaseUrl()}/api/sites?vendorId=${selectedVendor}&pageSize=500`
       );
       if (!response.ok) throw new Error("Failed to fetch sites");
@@ -393,7 +394,7 @@ export default function PaymentMaster() {
           siteAmount: formData.siteAmount ? parseFloat(formData.siteAmount) : null,
           vendorAmount: parseFloat(formData.vendorAmount),
         };
-        const response = await fetch(`${baseUrl}/api/payment-masters/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload) });
+        const response = await authenticatedFetch(`${baseUrl}/api/payment-masters/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!response.ok) throw new Error('Failed to update');
         toast({ title: 'Success', description: 'Payment master updated' });
       } else if (selectedSites.size > 0) {
@@ -423,10 +424,9 @@ export default function PaymentMaster() {
           return;
         }
 
-        const response = await fetch(`${baseUrl}/api/payment-masters/batch`, {
+        const response = await authenticatedFetch(`${baseUrl}/api/payment-masters/batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify(payloads)
         });
 
@@ -451,7 +451,7 @@ export default function PaymentMaster() {
           siteAmount: siteAmountSingle ? parseFloat(siteAmountSingle) : null,
           vendorAmount: parseFloat(vendorAmountSingle),
         };
-        const response = await fetch(`${baseUrl}/api/payment-masters`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload) });
+        const response = await authenticatedFetch(`${baseUrl}/api/payment-masters`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!response.ok) throw new Error('Failed to save');
         toast({ title: 'Success', description: 'Payment master created' });
       }
@@ -475,11 +475,10 @@ export default function PaymentMaster() {
 
     setSaving(true);
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${getApiBaseUrl()}/api/payment-masters/${id}`,
         {
-          method: "DELETE",
-          credentials: 'include'
+          method: "DELETE"
         }
       );
 
@@ -670,15 +669,13 @@ export default function PaymentMaster() {
                       <div className="text-xs text-yellow-700 mt-1">Select antenna size to enable bulk save</div>
                     )}
                   </div>
-                  <input id="applySiteAmt" type="number" placeholder="Site Rs (apply)" className="w-28 h-8 text-xs border rounded px-2" />
-                  <input id="applyVendorAmt" type="number" placeholder="Vendor Rs (apply)" className="w-28 h-8 text-xs border rounded px-2" />
+                  <input id="applyVendorAmt" type="number" placeholder="Vendor Rs (apply)" value={formData.antennaSize && vendorRatesMap[formData.antennaSize] ? vendorRatesMap[formData.antennaSize] : ''} readOnly={formData.antennaSize && vendorRatesMap[formData.antennaSize] ? true : false} className="w-28 h-8 text-xs border rounded px-2" />
 
                   <Button size="sm" onClick={() => {
-                    const siteValue = (document.getElementById('applySiteAmt') as HTMLInputElement)?.value;
                     const vendorValue = (document.getElementById('applyVendorAmt') as HTMLInputElement)?.value;
-                    if (!siteValue && !vendorValue) { toast({ title: 'Info', description: 'Enter site or vendor amount to apply', variant: 'default' }); return; }
+                    if (!vendorValue) { toast({ title: 'Info', description: 'Enter vendor amount to apply', variant: 'default' }); return; }
                     const next = { ...siteAmounts };
-                    selectedSites.forEach(id => { next[id] = { siteAmount: siteValue || (next[id]?.siteAmount || ''), vendorAmount: vendorValue || (next[id]?.vendorAmount || '') }; });
+                    selectedSites.forEach(id => { next[id] = { siteAmount: '', vendorAmount: vendorValue }; });
                     setSiteAmounts(next);
                   }} className="bg-emerald-600 hover:bg-emerald-700 text-white">Apply to selected</Button>
 
@@ -719,7 +716,7 @@ export default function PaymentMaster() {
                             onChange={e => handleSiteCheckbox(site, e.target.checked)}
                           />
                           <div className="flex-1">
-                            <p className="font-semibold text-xs mb-0.5">{site.siteAName || site.id}</p>
+                            <p className="font-semibold text-xs mb-0.5">{site.siteAName && site.siteBName ? `${site.siteAName} — ${site.siteBName}` : site.siteAName || site.siteBName || site.planId || site.id}</p>
                             <p className="text-xs mb-1 text-gray-600">{site.district || site.circle || "-"}</p>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-1 text-xs">
                               <div>
@@ -748,11 +745,8 @@ export default function PaymentMaster() {
                                 <div className="w-28 h-8 text-xs text-right font-medium">{getVendorAmountDisplay(site)}</div>
                               </div>
                             ) : (
-                              // Default list view: editable inputs for bulk selection
-                              <>
-                                <input className="w-28 h-8 text-xs border rounded px-2" type="number" placeholder={vendorRatesMap[String(site.maxAntSize||'')] ? `Auto: Rs ${vendorRatesMap[String(site.maxAntSize||'')]}` : "Site Rs"} value={siteAmounts[site.id]?.siteAmount || ''} onChange={(e) => setSiteAmounts(prev => ({ ...prev, [site.id]: { ...(prev[site.id] || { siteAmount: '', vendorAmount: '' }), siteAmount: e.target.value } }))} />
-                                <input className="w-28 h-8 text-xs border rounded px-2" type="number" placeholder={vendorRatesMap[String(site.maxAntSize||'')] ? `Auto: Rs ${vendorRatesMap[String(site.maxAntSize||'')]}` : "Vendor Rs"} value={siteAmounts[site.id]?.vendorAmount || ''} onChange={(e) => setSiteAmounts(prev => ({ ...prev, [site.id]: { ...(prev[site.id] || { siteAmount: '', vendorAmount: '' }), vendorAmount: e.target.value } }))} />
-                              </>
+                              // Default list view: vendor amount only
+                              <input className="w-28 h-8 text-xs border rounded px-2" type="number" placeholder={vendorRatesMap[String(site.maxAntSize||'')] ? `Auto: Rs ${vendorRatesMap[String(site.maxAntSize||'')]}` : "Vendor Rs"} value={siteAmounts[site.id]?.vendorAmount || ''} onChange={(e) => setSiteAmounts(prev => ({ ...prev, [site.id]: { ...(prev[site.id] || { siteAmount: '', vendorAmount: '' }), vendorAmount: e.target.value } }))} />
                             )}
                           </div>
                         </div>
@@ -809,7 +803,6 @@ export default function PaymentMaster() {
                         <th className="sticky top-0 z-10 bg-white/95 py-2 px-2 text-left font-semibold">Antenna Size</th>
                         <th className="sticky top-0 z-10 bg-white/95 py-2 px-2 text-left font-semibold">Plan ID</th>
                         <th className="sticky top-0 z-10 bg-white/95 py-2 px-2 text-left font-semibold">HOP A-B</th>
-                        <th className="sticky top-0 z-10 bg-white/95 py-2 px-2 text-right font-semibold">Site Amount</th>
                         <th className="sticky top-0 z-10 bg-white/95 py-2 px-2 text-right font-semibold">Vendor Amount</th>
                       </tr>
                     </thead>
@@ -832,7 +825,6 @@ export default function PaymentMaster() {
                             <td className="py-2 px-2">{master.antennaSize} kVA</td>
                             <td className="py-2 px-2">{master.planId || '-'}</td>
                             <td className="py-2 px-2">{hopAB}</td>
-                            <td className="text-right py-2 px-2">{hasSiteAmount ? `Rs ${parseFloat(String(master.siteAmount)).toFixed(2)}` : 'N/A'}</td>
                             <td className="text-right py-2 px-2">{master.vendorAmount != null && String(master.vendorAmount).trim() !== '' ? `Rs ${parseFloat(String(master.vendorAmount)).toFixed(2)}` : 'N/A'}</td>
                           </tr>
                         );

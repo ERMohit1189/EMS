@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import {
   AlertDialog,
@@ -25,7 +26,7 @@ interface Employee {
   mobile: string;
   city: string;
   status: string;
-  emp_code?: string;
+  empCode?: string;
   designationName?: string;
   departmentName?: string;
 }
@@ -60,13 +61,13 @@ export default function EmployeeList() {
         params.append('page', String(currentPage));
         params.append('pageSize', String(pageSize));
 
-        const empResponse = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`, { cache: 'no-store', credentials: 'include' });
+        const empResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`, { cache: 'no-store' });
         if (!empResponse.ok) throw new Error('Failed to fetch employees');
         const { data, totalCount } = await empResponse.json();
         const employees_data = data || [];
 
         // Fetch designations once
-        const desigResponse = await fetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store', credentials: 'include' });
+        const desigResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/designations`, { cache: 'no-store' });
         const designations = desigResponse.ok ? await desigResponse.json() : [];
         const designationMap: { [key: string]: string } = {};
         designations.forEach((d: any) => { designationMap[d.id] = d.name; });
@@ -93,9 +94,8 @@ export default function EmployeeList() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${id}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       if (response.ok) {
         setEmployees(employees.filter(e => e.id !== id));
@@ -157,7 +157,7 @@ export default function EmployeeList() {
          ) : (
            employees.map(e => (
              <div key={e.id} className="grid gap-0 border-b last:border-0 hover:bg-muted/50 transition-colors items-center" style={{gridTemplateColumns: '1fr 1.5fr 1.5fr 1.5fr 1fr 1fr 1fr'}}>
-               <div className="p-4 text-sm font-mono text-blue-600">{e.emp_code || 'N/A'}</div>
+               <div className="p-4 text-sm font-mono text-blue-600">{e.empCode || 'N/A'}</div>
                <div className="p-4">
                  <div className="font-medium text-sm">{e.name}</div>
                  <div className="text-xs text-muted-foreground">{e.designationName || 'Not Specified'}</div>
@@ -227,7 +227,7 @@ export default function EmployeeList() {
                <div className="space-y-2">
                  <div className="flex items-start justify-between gap-2">
                    <div className="flex-1 min-w-0">
-                     <p className="text-xs text-muted-foreground">Code: {e.emp_code || 'N/A'}</p>
+                     <p className="text-xs text-muted-foreground">Code: {e.empCode || 'N/A'}</p>
                      <p className="font-medium text-sm truncate">{e.name}</p>
                      <p className="text-xs text-muted-foreground">{e.designationName || 'Not Specified'}</p>
                    </div>

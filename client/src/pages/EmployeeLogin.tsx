@@ -48,16 +48,15 @@ export default function EmployeeLogin() {
     console.log('='.repeat(60));
 
     try {
-      console.log('[EmployeeLogin] Login attempt to: /api/auth/login');
+      console.log('[EmployeeLogin] Login attempt to: /api/employees/login');
       console.log('[EmployeeLogin] Email:', email);
 
       const fetchStartTime = performance.now();
-      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
+      const apiUrl = `${getApiBaseUrl()}/api/employees/login`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
       });
       const fetchEndTime = performance.now();
       const fetchDuration = ((fetchEndTime - fetchStartTime) / 1000).toFixed(3);
@@ -93,6 +92,14 @@ export default function EmployeeLogin() {
       console.log('User data:', data.user);
       console.log('[EmployeeLogin] Role from API:', data.user.role);
 
+      // Store JWT token
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        console.log('[EmployeeLogin] JWT token stored successfully');
+      } else {
+        console.warn('[EmployeeLogin] No token received from server');
+      }
+
       // Clear ANY and ALL vendor-related data from previous sessions to prevent conflicts
       console.log('[EmployeeLogin] Clearing all vendor data from localStorage...');
       localStorage.removeItem("vendorId");
@@ -112,7 +119,7 @@ export default function EmployeeLogin() {
       localStorage.setItem("employeeId", data.user.id);
       localStorage.setItem("employeeEmail", data.user.email);
       localStorage.setItem("employeeName", data.user.name);
-      localStorage.setItem("employeeCode", data.user.empCode || data.user.id);
+      localStorage.setItem("employeeCode", data.user.empCode || "");
       localStorage.setItem("employeeRole", normalizedRole);
       localStorage.setItem("employeeDepartment", data.user.department || "Not Assigned");
       localStorage.setItem("employeeDesignation", data.user.designation || "Not Specified");
@@ -120,9 +127,15 @@ export default function EmployeeLogin() {
       const addCacheBuster = (url: string) => {
         if (!url) return '';
         try {
-          const u = new URL(url, window.location.origin);
-          u.searchParams.set('v', String(Date.now()));
-          return u.toString();
+          // If already a full URL, add cache buster directly
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            const u = new URL(url);
+            u.searchParams.set('v', String(Date.now()));
+            return u.toString();
+          }
+          // For relative paths, just add cache buster without modifying the path
+          const sep = url.includes('?') ? '&' : '?';
+          return `${url}${sep}v=${Date.now()}`;
         } catch (e) {
           const sep = url.includes('?') ? '&' : '?';
           return `${url}${sep}v=${Date.now()}`;
@@ -130,6 +143,8 @@ export default function EmployeeLogin() {
       };
       localStorage.setItem("employeePhoto", addCacheBuster(data.user.photo || ""));
       const isRPValue = data.user.isReportingPerson ? "true" : "false";
+      console.log('[EmployeeLogin] Backend returned isReportingPerson:', data.user.isReportingPerson);
+      console.log('[EmployeeLogin] Backend returned reportingTeamIds:', data.user.reportingTeamIds);
       localStorage.setItem("isReportingPerson", isRPValue);
       // Also store reporting team ids for client-side convenience
       try {
@@ -140,12 +155,6 @@ export default function EmployeeLogin() {
 
       // Store last login type for session expiry redirect
       localStorage.setItem("lastLoginType", "employee");
-
-      // CRITICAL: Set browserSessionId to mark this as an active session
-      // This prevents App.tsx from treating page refresh as a new browser session
-      const browserSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('browserSessionId', browserSessionId);
-      console.log('[EmployeeLogin] Browser session ID set:', browserSessionId);
 
       console.log('[EmployeeLogin] Raw role from API:', data.user.role);
       console.log('[EmployeeLogin] Normalized and stored employeeRole:', normalizedRole);
@@ -183,7 +192,7 @@ export default function EmployeeLogin() {
 
       window.dispatchEvent(new Event("login"));
 
-      // Small delay to ensure session is fully established
+      // Small delay to ensure login data is fully stored
       setTimeout(() => {
         const loginEndTime = performance.now();
         const totalDuration = ((loginEndTime - loginStartTime) / 1000).toFixed(3);

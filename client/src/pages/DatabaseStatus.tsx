@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/Loader";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetchJson } from "@/lib/fetchWithLoader";
 
 interface DatabaseInfo {
   tables: Array<{
@@ -24,13 +25,7 @@ export default function DatabaseStatus() {
       try {
         setLoading(true);
         const baseUrl = getApiBaseUrl();
-        const response = await fetch(`${baseUrl}/api/database-status`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch database status: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await authenticatedFetchJson(`${baseUrl}/api/database-status`);
         setDbInfo(data);
         setError(null);
       } catch (err) {

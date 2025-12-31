@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   Select,
@@ -226,9 +227,7 @@ export default function BulkAttendanceMarking() {
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams`);
       if (response.ok) {
         const data = await response.json();
         setTeams(Array.isArray(data) ? data : []);
@@ -259,9 +258,7 @@ export default function BulkAttendanceMarking() {
   const fetchTeamEmployees = async (teamId: string, pageParam = page, pageSizeParam = pageSize) => {
     try {
       setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}/members?page=${pageParam}&pageSize=${pageSizeParam}`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${teamId}/members?page=${pageParam}&pageSize=${pageSizeParam}`);
       if (response.ok) {
         const data = await response.json();
         const empList = Array.isArray(data) ? data : (data.members || []);
@@ -330,13 +327,13 @@ export default function BulkAttendanceMarking() {
     setEmployeeLoading((prev) => ({ ...prev, [key]: true }));
     try {
       // Check if salary exists for this employee
-      const salaryResp = await fetch(`${getApiBaseUrl()}/api/salary/check/${employeeId}/${month}/${year}`, { credentials: 'include' });
+      const salaryResp = await authenticatedFetch(`${getApiBaseUrl()}/api/salary/check/${employeeId}/${month}/${year}`);
       const salaryExists = salaryResp.ok && (await salaryResp.json())?.exists;
 
       // Fetch approved leave dates for the employee in this month/year
       let approvedLeaves: Record<number, string> = {};
       try {
-        const approvedResp = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}/${month}/approved-dates`, { credentials: 'include' });
+        const approvedResp = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}/${month}/approved-dates`);
         if (approvedResp.ok) {
           approvedLeaves = await approvedResp.json();
         }
@@ -344,7 +341,7 @@ export default function BulkAttendanceMarking() {
         console.warn('Failed to fetch approved leave dates:', e);
       }
 
-      const resp = await fetch(`${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`, { credentials: 'include' });
+      const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`);
       if (resp.ok) {
         const data = await resp.json();
 
@@ -414,9 +411,8 @@ export default function BulkAttendanceMarking() {
     setEmployeeSaving((prev) => ({ ...prev, [key]: true }));
     try {
       const empAttendance = attendanceByEmployee[key] || {};
-      const response = await fetch(`${getApiBaseUrl()}/api/attendance`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId: key,
@@ -452,9 +448,8 @@ export default function BulkAttendanceMarking() {
 
   const fetchHolidays = async () => {
     try {
-      const holidaysResponse = await fetch(
-        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`,
-        { credentials: 'include' }
+      const holidaysResponse = await authenticatedFetch(
+        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`
       );
       const holidaysData = holidaysResponse.ok ? await holidaysResponse.json() : [];
 
@@ -491,9 +486,7 @@ export default function BulkAttendanceMarking() {
 
   const fetchLeaveTypes = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-types`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-types`);
       if (response.ok) {
         const data = await response.json();
         setLeaveTypes(data || []);
@@ -514,9 +507,7 @@ export default function BulkAttendanceMarking() {
         setLeaveLoading(false);
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}`);
       if (response.ok) {
         const data = await response.json();
         // Transform backend response into LeaveType array
@@ -765,10 +756,9 @@ export default function BulkAttendanceMarking() {
         day: bulkMode === 'day' ? selectedBulkDay : undefined
       });
 
-      const response = await fetch(`${getApiBaseUrl()}/api/attendance/bulk`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           employeeIds: selectedEmployees,
           month,
@@ -844,7 +834,7 @@ export default function BulkAttendanceMarking() {
       let filteredEmployees = employees.filter(e => selectedEmployees.includes(e.employeeId || e.id));
       if (all && selectedTeam) {
         // If user asked for 'all', request all team members and filter by selected employees
-        const resp = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members?page=1&pageSize=${Math.max(totalEmployees, 1)}`, { credentials: 'include' });
+        const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members?page=1&pageSize=${Math.max(totalEmployees, 1)}`);
         if (resp.ok) {
           const rs = await resp.json();
           const allMembers = Array.isArray(rs) ? rs : (rs.members || []);
@@ -892,7 +882,7 @@ export default function BulkAttendanceMarking() {
     try {
       let filteredEmployees = employees.filter(e => selectedEmployees.includes(e.employeeId || e.id));
       if (all && selectedTeam) {
-        const resp = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members?page=1&pageSize=${Math.max(totalEmployees, 1)}`, { credentials: 'include' });
+        const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members?page=1&pageSize=${Math.max(totalEmployees, 1)}`);
         if (resp.ok) {
           const rs = await resp.json();
           const allMembers = Array.isArray(rs) ? rs : (rs.members || []);
@@ -938,7 +928,7 @@ export default function BulkAttendanceMarking() {
     const filteredEmployees = employees.filter(e => selectedEmployees.includes(e.employeeId || e.id));
     let employeesToPrint = filteredEmployees;
     if (all && selectedTeam) {
-      const resp = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members?page=1&pageSize=${Math.max(totalEmployees, 1)}`, { credentials: 'include' });
+      const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeam}/members?page=1&pageSize=${Math.max(totalEmployees, 1)}`);
       if (resp.ok) {
         const rs = await resp.json();
         const allMembers = Array.isArray(rs) ? rs : (rs.members || []);

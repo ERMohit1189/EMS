@@ -8,8 +8,8 @@ namespace VendorRegistrationBackend.Services
         Task<VendorDto?> GetVendorByIdAsync(string id);
         Task<List<VendorDto>> GetAllVendorsAsync();
         Task<(List<VendorDto> vendors, int totalCount)> GetVendorsPagedAsync(int page, int pageSize, string? status = null);
-        Task<Vendor> CreateVendorAsync(CreateVendorDto dto);
-        Task<Vendor?> UpdateVendorAsync(string id, UpdateVendorDto dto);
+        Task<Vendor> CreateVendorAsync(CreateVendorDto dto, Microsoft.AspNetCore.Http.IFormCollection? form = null);
+        Task<Vendor?> UpdateVendorAsync(string id, UpdateVendorDto dto, Microsoft.AspNetCore.Http.IFormCollection? form = null);
         Task<bool> UpdateVendorStatusAsync(string id, string status);
         Task<bool> DeleteVendorAsync(string id);
         Task<bool> ChangePasswordAsync(string id, string oldPassword, string newPassword);

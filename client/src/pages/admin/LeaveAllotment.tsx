@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   Select,
@@ -151,7 +152,7 @@ export default function LeaveAllotment() {
       setCheckingNextYear(true);
       try {
         const nextYear = Number(formData.year) + 1;
-        const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${selectedEmployeeId}/${nextYear}/exists`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${selectedEmployeeId}/${nextYear}/exists`);
         if (!cancelled) {
           if (res.ok) {
             const d = await res.json();
@@ -175,9 +176,7 @@ export default function LeaveAllotment() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/employees?pageSize=1000`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees?pageSize=1000`);
       if (response.ok) {
         const result = await response.json();
         const employeeData = result.data || [];
@@ -204,9 +203,7 @@ export default function LeaveAllotment() {
 
   const fetchAllotments = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments?year=${selectedYear}`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/allotments?year=${selectedYear}`);
       if (response.ok) {
         const data = await response.json();
         setAllotments(data);
@@ -252,10 +249,9 @@ export default function LeaveAllotment() {
         payload.forceReason = forceReason || 'Forced by admin';
       }
       console.log('[LeaveAllotment] Submitting individual allotment payload:', payload);
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/allotments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
@@ -294,10 +290,9 @@ export default function LeaveAllotment() {
         payload.forceReason = bulkForceReason || 'Forced by admin';
       }
       console.log('[LeaveAllotment] Submitting bulk allotment payload:', payload);
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/bulk`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
@@ -335,7 +330,7 @@ export default function LeaveAllotment() {
     // Check if next-year allotment exists for this employee so we can show the override UI
     try {
       if (allotment.employeeId && typeof allotment.year !== 'undefined') {
-        const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${allotment.employeeId}/${allotment.year + 1}/exists`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${allotment.employeeId}/${allotment.year + 1}/exists`);
         if (res.ok) {
           const d = await res.json();
           const exists = !!d.exists;
@@ -374,7 +369,7 @@ export default function LeaveAllotment() {
     // If next-year allotment exists for this employee, prevent saving edits to this year
     if (typeof editData.employeeId !== 'undefined' && editData.employeeId) {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${editData.employeeId}/${editData.year + 1}/exists`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${editData.employeeId}/${editData.year + 1}/exists`);
         if (res.ok) {
           const d = await res.json();
           if (d.exists && !editForceOverride) {
@@ -412,10 +407,9 @@ export default function LeaveAllotment() {
         payload.forceReason = editForceReason || 'Forced by admin';
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/${editingId}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
@@ -456,7 +450,7 @@ export default function LeaveAllotment() {
     // Check for next-year allotment existence when we have employee/year info
     if (employeeId && typeof year !== 'undefined') {
       try {
-        const checkRes = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year + 1}/exists`, { credentials: 'include' });
+        const checkRes = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year + 1}/exists`);
         if (checkRes.ok) {
           const d = await checkRes.json();
           if (d.exists) {
@@ -478,9 +472,8 @@ export default function LeaveAllotment() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/${id}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/allotments/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
 
       if (response.ok) {

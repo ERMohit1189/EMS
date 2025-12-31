@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { FileText, Calendar, MapPin, Search, Download, RefreshCw, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
 
 interface PurchaseOrder {
   id: string;
@@ -167,14 +168,27 @@ export default function VendorPOReport() {
     try {
       setModalLoading(true);
       setModalPoNumber(po.poNumber || null);
-      const fetches = siteIds.map(id => fetch(`${getApiBaseUrl()}/api/sites/${id}`).then(r => r.ok ? r.json() : null));
-      const results = await Promise.all(fetches);
-      const sitesData = results.filter(Boolean);
-      setModalSites(sitesData as any[]);
+
+      // Always fetch fresh data from batch endpoint (no caching)
+      const batchResponse = await fetch(`${getApiBaseUrl()}/api/sites/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: siteIds })
+      });
+
+      if (batchResponse.ok) {
+        const sitesData = await batchResponse.json();
+        setModalSites(sitesData);
+      } else {
+        toast({ title: 'Error', description: 'Failed to load site details', variant: 'destructive' });
+        setModalSites([]);
+      }
+
       setSitesModalOpen(true);
     } catch (err) {
       console.error('Failed to load sites for PO', err);
       toast({ title: 'Error', description: 'Failed to load site details', variant: 'destructive' });
+      setModalSites([]);
     } finally {
       setModalLoading(false);
     }
@@ -185,6 +199,39 @@ export default function VendorPOReport() {
     0
   );
 
+  const downloadExcel = () => {
+    if (filteredPOs.length === 0) {
+      toast({ title: "No data", description: "No purchase orders to download", variant: "destructive" });
+      return;
+    }
+
+    const formattedData = filteredPOs.map((po, idx) => ({
+      'S.No': idx + 1,
+      'PO Number': po.poNumber,
+      'Date': po.poDate ? format(new Date(po.poDate), "dd MMM yyyy") : "N/A",
+      'Description': po.description,
+      'Total Amount': parseFloat(po.totalAmount || "0"),
+      'Status': po.status,
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 8 },   // S.No
+      { wch: 15 },  // PO Number
+      { wch: 15 },  // Date
+      { wch: 30 },  // Description
+      { wch: 15 },  // Total Amount
+      { wch: 12 },  // Status
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "POs");
+    XLSX.writeFile(workbook, `vendor-po-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast({ title: "Success", description: "PO report downloaded successfully" });
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -198,10 +245,16 @@ export default function VendorPOReport() {
             <p className="text-gray-500">View and filter your purchase orders</p>
           </div>
         </div>
-        <Button onClick={fetchPurchaseOrders} variant="outline" data-testid="button-refresh">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={downloadExcel} variant="outline" data-testid="button-export">
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button onClick={fetchPurchaseOrders} variant="outline" data-testid="button-refresh">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -272,16 +325,36 @@ export default function VendorPOReport() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 relative">
+          {loading && <div className="absolute inset-0 bg-white/40 rounded-lg"></div>}
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-blue-900">{filteredPOs.length}</p>
-            <p className="text-sm text-blue-700">Total POs</p>
+            {loading ? (
+              <div className="flex items-center gap-3">
+                <div className="h-6 w-6 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <p className="text-sm text-blue-700">Loading...</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-blue-900">{filteredPOs.length}</p>
+                <p className="text-sm text-blue-700">Total POs</p>
+              </>
+            )}
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 relative">
+          {loading && <div className="absolute inset-0 bg-white/40 rounded-lg"></div>}
           <CardContent className="pt-6">
-            <p className="text-3xl font-bold text-green-900">Rs {totalAmount.toLocaleString()}</p>
-            <p className="text-sm text-green-700">Total PO Amount</p>
+            {loading ? (
+              <div className="flex items-center gap-3">
+                <div className="h-6 w-6 border-3 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+                <p className="text-sm text-green-700">Loading...</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-green-900">Rs {totalAmount.toLocaleString()}</p>
+                <p className="text-sm text-green-700">Total PO Amount</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -290,12 +363,19 @@ export default function VendorPOReport() {
         <CardHeader>
           <CardTitle>Purchase Orders ({filteredPOs.length})</CardTitle>
         </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <CardContent className="relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-50">
+              <div className="flex flex-col items-center gap-4">
+                <div className="h-12 w-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-900">Loading Purchase Orders</p>
+                  <p className="text-sm text-gray-600">Please wait...</p>
+                </div>
+              </div>
             </div>
-          ) : filteredPOs.length > 0 ? (
+          )}
+          {!loading && filteredPOs.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
@@ -362,44 +442,91 @@ export default function VendorPOReport() {
           {modalLoading ? (
             <div className="flex justify-center py-8"><div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
           ) : modalSites.length > 0 ? (
-            <div className="space-y-4">
-              {modalSites.map((s, idx) => (
-                <Card key={s.id} className="p-3 relative">
-                  <div className="absolute -left-4 -top-4 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center border-2 border-white text-sm font-semibold shadow z-20">
-                    {idx + 1}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {modalSites.map((s, idx) => {
+                const statusColors = {
+                  'Completed': 'from-green-50 to-green-100 border-green-200',
+                  'Pending': 'from-yellow-50 to-yellow-100 border-yellow-200',
+                  'In Progress': 'from-blue-50 to-blue-100 border-blue-200',
+                  'Failed': 'from-red-50 to-red-100 border-red-200'
+                };
+                const atStatus = s.phyAtStatus || s.softAtStatus || 'Pending';
+                const bgGradient = statusColors[atStatus as keyof typeof statusColors] || 'from-gray-50 to-gray-100 border-gray-200';
+
+                return (
+                  <div key={s.id} className={`relative bg-gradient-to-br ${bgGradient} rounded-lg border-2 p-3 shadow-md hover:shadow-lg transition-all`}>
+                    <div className="absolute -left-3 -top-3 w-7 h-7 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center justify-center border-2 border-white text-xs font-bold shadow-md">
+                      {idx + 1}
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      {/* Row 1: Site Names */}
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Site A</p>
+                          <p className="text-sm font-bold text-gray-900">{s.siteAName || s.hopAB || '—'}</p>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Plan</p>
+                          <p className="text-sm font-bold text-blue-600">{s.planId || s.sitePlanId || '—'}</p>
+                        </div>
+                      </div>
+
+                      {/* Row 2: Antenna & Amount */}
+                      <div className="flex gap-2 bg-white bg-opacity-50 rounded px-2 py-1">
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-gray-600">Max Antenna</p>
+                          <p className="text-sm font-bold text-orange-600">{s.maxAntSize ? s.maxAntSize : (Math.max(parseFloat(s.siteAAntDia || '0'), parseFloat(s.siteBAntDia || '0')) || '—')}</p>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-gray-600">Amount</p>
+                          <p className={`text-sm font-bold ${(s.vendorAmount && s.vendorAmount > 0) ? 'text-green-600' : 'text-red-500'}`}>
+                            Rs {typeof s.vendorAmount === 'number' ? s.vendorAmount.toLocaleString() : '0'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Row 3: Dates */}
+                      <div className="flex gap-2 text-xs">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-600">Inst. Date</p>
+                          <p className="text-gray-800">{
+                            s.siteAInstallationDate
+                              ? (typeof s.siteAInstallationDate === 'string'
+                                  ? s.siteAInstallationDate.slice(0, 10)
+                                  : new Date(s.siteAInstallationDate).toISOString().slice(0, 10))
+                              : '—'
+                          }</p>
+                        </div>
+                      </div>
+
+                      {/* Row 4: AT Status Badges */}
+                      <div className="flex gap-2 pt-1">
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Soft AT</p>
+                          <span className={`inline-block px-2 py-1 text-xs font-bold rounded ${
+                            s.softAtStatus === 'Completed' ? 'bg-green-200 text-green-800' :
+                            s.softAtStatus === 'In Progress' ? 'bg-blue-200 text-blue-800' :
+                            'bg-gray-200 text-gray-800'
+                          }`}>
+                            {s.softAtStatus || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Phy AT</p>
+                          <span className={`inline-block px-2 py-1 text-xs font-bold rounded ${
+                            s.phyAtStatus === 'Completed' ? 'bg-green-200 text-green-800' :
+                            s.phyAtStatus === 'In Progress' ? 'bg-blue-200 text-blue-800' :
+                            'bg-gray-200 text-gray-800'
+                          }`}>
+                            {s.phyAtStatus || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="pt-6 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium">Site Name</p>
-                      <p className="text-sm">{s.hopAB || s.siteHopAB || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Plan ID</p>
-                      <p className="text-sm">{s.planId || s.sitePlanId || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Max Ant Size</p>
-                      <p className="text-sm">{s.maxAntSize ?? (Math.max(parseFloat(s.siteAAntDia||0), parseFloat(s.siteBAntDia||0)) || '—')}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Vendor Amount</p>
-                      <p className="text-sm">{s.vendorAmount ? `Rs ${parseFloat(String(s.vendorAmount)).toLocaleString()}` : '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Installation Date</p>
-                      <p className="text-sm">{s.siteAInstallationDate ? new Date(s.siteAInstallationDate).toISOString().slice(0,10) : '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Soft AT Status</p>
-                      <p className="text-sm">{s.softAtStatus || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">PHY AT Status</p>
-                      <p className="text-sm">{s.phyAtStatus || '—'}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="py-6 text-center text-muted-foreground">No sites found for this PO</p>

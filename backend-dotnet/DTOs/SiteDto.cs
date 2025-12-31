@@ -182,4 +182,9 @@ namespace VendorRegistrationBackend.DTOs
         public int Successful { get; set; }
         public int Failed { get; set; }
     }
+
+    public class BatchSiteRequestDto
+    {
+        public List<string> Ids { get; set; } = new List<string>();
+    }
 }

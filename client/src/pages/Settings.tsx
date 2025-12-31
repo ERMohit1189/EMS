@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { Loader2 } from "lucide-react";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 
@@ -15,8 +16,8 @@ export default function Settings() {
   const [procurementEmail, setProcurementEmail] = useState('');
   const [dpoEmail, setDpoEmail] = useState('');
   const [approvalsRequired, setApprovalsRequired] = useState('1');
-  const [poGenerationDate, setPoGenerationDate] = useState('1');
-  const [invoiceGenerationDate, setInvoiceGenerationDate] = useState('1');
+  const [poGenerationDate, setPoGenerationDate] = useState('-1');
+  const [invoiceGenerationDate, setInvoiceGenerationDate] = useState('-1');
   const [loadingSaveApprovals, setLoadingSaveApprovals] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allowanceCaps, setAllowanceCaps] = useState({
@@ -56,14 +57,12 @@ export default function Settings() {
 
   const fetchAppSettings = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, {
-        credentials: 'include'
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`);
       if (response.ok) {
         const data = await response.json();
         setApprovalsRequired(data.approvalsRequiredForAllowance?.toString() || '1');
-        setPoGenerationDate(data.poGenerationDate?.toString() || '1');
-        setInvoiceGenerationDate(data.invoiceGenerationDate?.toString() || '1');
+        setPoGenerationDate(data.poGenerationDate?.toString() || '-1');
+        setInvoiceGenerationDate(data.invoiceGenerationDate?.toString() || '-1');
       }
     } catch (error) {
       console.error('Error fetching app settings:', error);
@@ -75,10 +74,9 @@ export default function Settings() {
   const handleSaveApprovals = async () => {
     setLoadingSaveApprovals(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           approvalsRequiredForAllowance: parseInt(approvalsRequired, 10),
           poGenerationDate: parseInt(poGenerationDate, 10),
@@ -208,40 +206,40 @@ export default function Settings() {
             <a href="/admin/email-settings" className="text-sm text-blue-600 hover:text-blue-800 font-semibold">Configure Email Settings (Superadmin only)</a>
           </div>
           <div>
-            <label className="text-sm font-medium mb-2 block">PO Generation Date (Day of Month)</label>
+            <label className="text-sm font-medium mb-2 block">PO Generation Day of Month</label>
             <div className="flex gap-2">
               <Input
                 type="number"
-                min="1"
+                min="-1"
                 max="31"
                 value={poGenerationDate}
                 onChange={(e) => setPoGenerationDate(e.target.value)}
-                placeholder="1"
+                placeholder="-1"
                 data-testid="input-po-generation-date"
                 className="flex-1"
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Day of month (1-31) when vendors can generate Purchase Orders
+              Day of month (1-31) when vendors can generate Purchase Orders. Use <strong>-1 to disable restrictions</strong> (allow any day).
             </p>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Invoice Generation Date (Day of Month)</label>
+            <label className="text-sm font-medium mb-2 block">Invoice Generation Day of Month</label>
             <div className="flex gap-2">
               <Input
                 type="number"
-                min="1"
+                min="-1"
                 max="31"
                 value={invoiceGenerationDate}
                 onChange={(e) => setInvoiceGenerationDate(e.target.value)}
-                placeholder="1"
+                placeholder="-1"
                 data-testid="input-invoice-generation-date"
                 className="flex-1"
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Day of month (1-31) when vendors can generate Invoices
+              Day of month (1-31) when vendors can generate Invoices. Use <strong>-1 to disable restrictions</strong> (allow any day).
             </p>
           </div>
 

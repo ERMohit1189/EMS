@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { fetchExportHeader, type ExportHeader } from "@/lib/exportUtils";
 import jsPDF from 'jspdf';
 import { Download } from "lucide-react";
@@ -91,9 +92,7 @@ export default function EmployeeSalary() {
       
       if (isSuperAdmin) {
         // For superadmin: fetch all salary structures
-        const response = await fetch(`${getApiBaseUrl()}/api/salary-structures?page=1&pageSize=500`, {
-          credentials: 'include'
-        });
+        const response = await authenticatedFetch(`${getApiBaseUrl()}/api/salary-structures?page=1&pageSize=500`);
         if (response.ok) {
           const result = await response.json();
           const salaries = result.data || [];
@@ -113,8 +112,8 @@ export default function EmployeeSalary() {
       } else {
         // For employee: fetch their own salary
         const [salaryResponse, empResponse] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`, { credentials: 'include' }),
-          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { credentials: 'include' })
+          authenticatedFetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`),
+          authenticatedFetch(`${getApiBaseUrl()}/api/employees/${employeeId}`)
         ]);
 
         if (salaryResponse.ok) {
@@ -265,7 +264,7 @@ export default function EmployeeSalary() {
       
       const detailsData = [
         { label: "Employee Name", value: employeeName || "N/A" },
-        { label: "Employee Code", value: localStorage.getItem('employeeCode') || employeeId || "N/A" },
+        { label: "Employee Code", value: localStorage.getItem('employeeCode') || "N/A" },
         { label: "Designation", value: localStorage.getItem('employeeDesignation') || "N/A" },
         { label: "Department", value: localStorage.getItem('employeeDepartment') || "N/A" },
       ];

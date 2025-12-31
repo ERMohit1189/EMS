@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   AlertDialog,
@@ -112,9 +113,8 @@ export default function Attendance() {
         }
       }
       
-      const response = await fetch(
-        `${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`,
-        { credentials: 'include' }
+      const response = await authenticatedFetch(
+        `${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -160,9 +160,8 @@ export default function Attendance() {
   const fetchLeaveAllotments = async () => {
     if (!employeeId) return;
     try {
-      const response = await fetch(
-        `${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}`,
-        { credentials: 'include' }
+      const response = await authenticatedFetch(
+        `${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}`
       );
       
       if (response.ok) {
@@ -249,9 +248,8 @@ export default function Attendance() {
         }
       }
       
-      const response = await fetch(`${getApiBaseUrl()}/api/attendance`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId,

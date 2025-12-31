@@ -11,5 +11,6 @@ namespace VendorRegistrationBackend.Services
         Task<Dictionary<string, object>> GetEmployeeSummaryAsync();
         Task<List<dynamic>> GetSalaryGeneratedSummariesAsync();
         Task<List<dynamic>> GetSalaryGeneratedDetailsAsync(int year, int month);
+        Task<Dictionary<string, object>> TestQueryAsync(string query);
     }
 }

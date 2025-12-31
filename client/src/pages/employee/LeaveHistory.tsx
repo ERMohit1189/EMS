@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 
 export default function LeaveHistory() {
   const employeeId = localStorage.getItem('employeeId') || (window as any).__EMPLOYEE_ID__ || null;
@@ -14,7 +15,7 @@ export default function LeaveHistory() {
     const fetchYears = async () => {
       if (!employeeId) return;
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/years`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/years`);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.years) && data.years.length > 0) {
@@ -42,7 +43,7 @@ export default function LeaveHistory() {
       try {
         const years = Array.from({ length: yearsToShow }, (_, i) => maxYear - i);
         const results = await Promise.all(years.map(async (y) => {
-          const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${y}`, { credentials: 'include' });
+          const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${y}`);
           if (!res.ok) return { year: y, error: `Failed (${res.status})` };
           const data = await res.json();
           // extract summaries

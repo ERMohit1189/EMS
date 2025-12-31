@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Eye, Printer, Trash2, FileText } from "lucide-react";
-import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { fetchWithLoader, authenticatedFetch } from "@/lib/fetchWithLoader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SmartSearchTextbox, { Suggestion } from "@/components/SmartSearchTextbox";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
@@ -69,10 +69,10 @@ export default function POGeneration() {
   const [isVendor, setIsVendor] = useState(false);
   const [vendorId, setVendorId] = useState<string>("");
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>("");
-  const [poGenerationDate, setPoGenerationDate] = useState<number>(1);
+  const [poGenerationDate, setPoGenerationDate] = useState<number>(-1);
   const [showAllMode, setShowAllMode] = useState(false);
   // New: grouping option - when true generate one PO per vendor (grouped)
-  const [groupByVendor, setGroupByVendor] = useState<boolean>(false);
+  const [groupByVendor, setGroupByVendor] = useState<boolean>(true);
   const [vendorSuggestions, setVendorSuggestions] = useState<Suggestion[]>([]);
   const [vendorLoading, setVendorLoading] = useState(false);
   const { toast } = useToast();
@@ -100,7 +100,7 @@ export default function POGeneration() {
   const refreshSitesAndPOs = async (useStoredVendor?: string | null) => {
     try {
       const baseUrl = getApiBaseUrl();
-      const sitesRes = await fetch(`${baseUrl}/api/sites/for-po-generation?withVendors=true`, { credentials: 'include' });
+      const sitesRes = await authenticatedFetch(`${baseUrl}/api/sites/for-po-generation?withVendors=true`);
       const sitesResJson = sitesRes.ok ? await sitesRes.json() : [];
       // Normalize site payloads to an array of valid site objects
       const rawSitesArray: any[] = Array.isArray(sitesResJson)
@@ -129,12 +129,12 @@ export default function POGeneration() {
       let posRes: Response;
       // Use the same `storedVendorId` (computed above) to decide whether to fetch vendor-specific POs
       const apiUrl = storedVendorId
-        ? `${baseUrl}/api/vendors/${storedVendorId}/saved-pos`
-        : `${baseUrl}/api/saved-pos?pageSize=10000`;
+        ? `${baseUrl}/api/vendors/${storedVendorId}/saved-pos?withLines=true`
+        : `${baseUrl}/api/saved-pos?pageSize=10000&withLines=true`;
 
       console.debug('[POGeneration][REFRESH] Fetching saved POs from:', apiUrl, 'for vendor:', storedVendorId || 'all (employee)');
 
-      posRes = await fetch(apiUrl, { credentials: 'include' });
+      posRes = await authenticatedFetch(apiUrl);
 
       let allPOsData: PORecord[] = [];
       if (posRes.ok) {
@@ -215,7 +215,7 @@ export default function POGeneration() {
         const baseUrl = getApiBaseUrl(); // ensure baseUrl is available for subsequent fetches
 
         // Determine user role: prefer server-side session; fallback to localStorage
-        const sessionRes = await fetch(`${baseUrl}/api/session`, { credentials: 'include' });
+        const sessionRes = await authenticatedFetch(`${baseUrl}/api/session`);
         let sessionJson: any = null;
         if (sessionRes.ok) {
           sessionJson = await sessionRes.json();
@@ -270,14 +270,30 @@ export default function POGeneration() {
         // Parallelize API calls: sites/POs and settings FIRST (most critical)
         const [refreshResult, settingsRes] = await Promise.all([
           refreshSitesAndPOs(vendorOnly ? normalizedStoredVendorId : null),
-          fetch(`${baseUrl}/api/app-settings`, { credentials: 'include' })
+          authenticatedFetch(`${baseUrl}/api/app-settings`)
         ]);
         const { sites: refreshedSites } = refreshResult;
 
         // Process settings
-        if (settingsRes.ok) {
-          const settingsData = await settingsRes.json();
-          setPoGenerationDate(settingsData.poGenerationDate || 1);
+        try {
+          if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            console.log('[POGeneration] Settings loaded:', settingsData);
+            setPoGenerationDate(settingsData.poGenerationDate || -1);
+          } else {
+            console.error('[POGeneration] Settings fetch failed:', settingsRes.status, settingsRes.statusText);
+            const errorData = await settingsRes.json().catch(() => ({}));
+            console.error('[POGeneration] Settings error details:', errorData);
+            toast({
+              title: 'Warning',
+              description: 'Failed to load app settings. Using default values.',
+              variant: 'default',
+            });
+            setPoGenerationDate(-1); // Default value (no restrictions)
+          }
+        } catch (err) {
+          console.error('[POGeneration] Settings error:', err);
+          setPoGenerationDate(-1); // Default value (no restrictions)
         }
 
         // Load vendors asynchronously AFTER initial render (lazy load for admins only)
@@ -288,7 +304,7 @@ export default function POGeneration() {
             try {
               // Load ALL vendors (1003+) using minimal=true for lightweight data
               // pageSize=10000 ensures we get all vendors with one request
-              const vendorsRes = await fetch(`${baseUrl}/api/vendors/all?minimal=true`, { credentials: 'include' });
+              const vendorsRes = await authenticatedFetch(`${baseUrl}/api/vendors/all?minimal=true`);
               if (!vendorsRes.ok) return;
               const vendorsResJson = await vendorsRes.json();
               const rawVendorsArray: any[] = Array.isArray(vendorsResJson) ? vendorsResJson : (vendorsResJson && typeof vendorsResJson === 'object' ? (vendorsResJson.items || vendorsResJson.data || [vendorsResJson]) : []);
@@ -509,15 +525,15 @@ export default function POGeneration() {
       return;
     }
 
-    // Check date restriction for vendors
-    if (isVendor) {
+    // Check date restriction for vendors (only if poGenerationDate is not -1)
+    if (isVendor && poGenerationDate !== -1) {
       const today = new Date().getDate();
       const allowedDate = poGenerationDate;
 
       if (today !== allowedDate) {
         toast({
           title: "Access Restricted",
-          description: `Vendors can only generate POs on day ${allowedDate} of each month. Today is day ${today}.`,
+          description: `PO generation is only allowed on day ${allowedDate} of the month. Today is day ${today}. Contact admin to change this setting or disable restrictions.`,
           variant: "destructive"
         });
         return;
@@ -586,6 +602,7 @@ export default function POGeneration() {
         const posPayload = Object.keys(byVendor).map(vendorIdKey => {
           const lines = byVendor[vendorIdKey].map((r, i) => ({
             siteId: r.siteId,
+            planId: r.planId, // Plan ID for duplicate detection during import
             description: r.description,
             quantity: r.quantity,
             unitPrice: r.unitPrice,
@@ -605,10 +622,9 @@ export default function POGeneration() {
         });
 
         try {
-          const resp = await fetch(`${baseUrl}/api/purchase-orders/generate`, {
+          const resp = await authenticatedFetch(`${baseUrl}/api/purchase-orders/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ pos: posPayload })
           });
 
@@ -660,10 +676,9 @@ export default function POGeneration() {
           }
         }
         
-        const response = await fetch(`${baseUrl}/api/purchase-orders`, {
+        const response = await authenticatedFetch(`${baseUrl}/api/purchase-orders`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: 'include',
           body: JSON.stringify({
             poNumber: record.poNumber,
             vendorId: record.vendorId,
@@ -788,9 +803,8 @@ export default function POGeneration() {
 
     try {
       const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/api/purchase-orders/${poId}`, {
+      const response = await authenticatedFetch(`${baseUrl}/api/purchase-orders/${poId}`, {
         method: "DELETE",
-        credentials: 'include',
       });
 
       if (response.ok) {
@@ -839,7 +853,7 @@ export default function POGeneration() {
 
       // If no cached data, fetch from API with withLines=true
       if (!po) {
-        const poRes = await fetch(`${baseUrl}/api/purchase-orders/${poId}?withLines=true`, { credentials: 'include' });
+        const poRes = await authenticatedFetch(`${baseUrl}/api/purchase-orders/${poId}?withLines=true`);
         if (!poRes.ok) throw new Error("Failed to fetch PO");
         const poResult = await poRes.json();
 
@@ -850,19 +864,20 @@ export default function POGeneration() {
 
       // Get first site for header info (if available)
       const firstSiteId = po.siteId || (lines.length > 0 ? lines[0].siteId : null);
-      const siteRes = firstSiteId ? await fetch(`${baseUrl}/api/sites/${firstSiteId}`, { credentials: 'include' }) : null;
+      const siteRes = firstSiteId ? await authenticatedFetch(`${baseUrl}/api/sites/${firstSiteId}`) : null;
       const site = siteRes?.ok ? await siteRes.json() : null;
 
-      const vendorRes = await fetch(`${baseUrl}/api/vendors/${po.vendorId}`, { credentials: 'include' });
+      const vendorRes = await authenticatedFetch(`${baseUrl}/api/vendors/${po.vendorId}`);
       const vendor = vendorRes.ok ? await vendorRes.json() : null;
 
-      const headerRes = await fetch(`${baseUrl}/api/export-headers`, { credentials: 'include' });
+      const headerRes = await authenticatedFetch(`${baseUrl}/api/export-headers`);
       const exportHeaderSettings = headerRes.ok ? await headerRes.json() : {};
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageW = 210;
-      const m = 12;
-      let y = 20;
+      const pdf = new jsPDF('l', 'mm', 'a4');  // 'l' for landscape
+      const pageW = 297;  // Landscape width
+      const pageH = 210;  // Landscape height
+      const m = 15;  // Left/right margin
+      let y = 15;
 
       // Calculate GST amounts based on PO gstApply flag and gstType
       const subtotal = Number(po.totalAmount || 0);
@@ -878,62 +893,154 @@ export default function POGeneration() {
       }
       const finalTotal = subtotal + igstAmt + cgstAmt + sgstAmt;
 
-      // ===== HEADER =====
+      // ===== HEADER: PURCHASE ORDER TITLE & DETAILS =====
       pdf.setFont('Arial', 'bold');
-      pdf.setFontSize(26);
+      pdf.setFontSize(28);
       pdf.setTextColor(44, 62, 80);
       pdf.text('PURCHASE ORDER', m, y);
 
-      pdf.setFontSize(11);
-      pdf.setTextColor(153, 153, 153);
-      pdf.setFont('Arial', 'normal');
-      pdf.text(exportHeaderSettings.companyName || 'Company Name', m, y + 7);
-
-      // Right side info
-      const rX = pageW - m - 60;
+      // Right side details box
+      const detailsX = pageW - m - 70;
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
+
       pdf.setFont('Arial', 'bold');
-      pdf.text('PO No.:', rX, y);
+      pdf.text('PO No.:', detailsX, y);
       pdf.setFont('Arial', 'normal');
-      pdf.text(String(poNumber), rX + 25, y);
+      pdf.text(String(poNumber), detailsX + 22, y);
 
       y += 7;
       pdf.setFont('Arial', 'bold');
-      pdf.text('PO Date:', rX, y);
+      pdf.text('PO Date:', detailsX, y);
       pdf.setFont('Arial', 'normal');
-      pdf.text(String(po.poDate || ''), rX + 25, y);
+      pdf.text(String(po.poDate || ''), detailsX + 22, y);
 
       y += 7;
       pdf.setFont('Arial', 'bold');
-      pdf.text('Due Date:', rX, y);
+      pdf.text('Due Date:', detailsX, y);
       pdf.setFont('Arial', 'normal');
-      pdf.text(String(po.dueDate || ''), rX + 25, y);
+      pdf.text(String(po.dueDate || ''), detailsX + 22, y);
 
-      y += 18;
+      // Company subtitle under title
+      y = 23;
+      pdf.setFont('Arial', 'normal');
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(exportHeaderSettings.companyName || 'Company Name', m, y);
 
-      // ===== COMPANY INFO =====
+      y = 32;
+
+      // ===== COMPANY INFO SECTION =====
       pdf.setFontSize(9);
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
-      if (exportHeaderSettings.companyName) {
-        pdf.text(exportHeaderSettings.companyName, m, y);
-        y += 4;
-      }
-      if (exportHeaderSettings.address) {
-        pdf.text(exportHeaderSettings.address, m, y);
-        y += 4;
-      }
-      if (exportHeaderSettings.contactPhone) {
-        pdf.text(`Phone: ${exportHeaderSettings.contactPhone}`, m, y);
-        y += 4;
-      }
-      if (exportHeaderSettings.website) {
-        pdf.text(`Website: ${exportHeaderSettings.website}`, m, y);
-        y += 4;
+
+      const companyLines: string[] = [];
+      if (exportHeaderSettings.companyName) companyLines.push(exportHeaderSettings.companyName);
+      if (exportHeaderSettings.address) companyLines.push(exportHeaderSettings.address);
+      if (exportHeaderSettings.contactPhone) companyLines.push(`Phone: ${exportHeaderSettings.contactPhone}`);
+      if (exportHeaderSettings.website) companyLines.push(`Website: ${exportHeaderSettings.website}`);
+
+      companyLines.forEach((line, idx) => {
+        pdf.text(line, m, y + (idx * 3.5));
+      });
+
+      y += companyLines.length * 3.5 + 8;
+
+      // ===== PO DETAILS SECTION (Purchase Order No, Rev, Date, Vendor Info) =====
+      pdf.setFillColor(240, 240, 240);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setLineWidth(0.5);
+
+      // Draw border for entire section
+      const detailBoxHeight = 50;
+      pdf.rect(m, y, pageW - (2 * m), detailBoxHeight, 'F');
+      pdf.rect(m, y, pageW - (2 * m), detailBoxHeight);
+
+      pdf.setFontSize(9);
+      pdf.setFont('Arial', 'bold');
+      pdf.setTextColor(0, 0, 0);
+
+      const detailBoxX = m + 4;
+      const colWidth = (pageW - (2 * m) - 8) / 4;
+
+      // Format PO Date
+      const poDateFormatted = po.poDate ?
+        new Date(po.poDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase()
+        : 'N/A';
+
+      // Column 1: Purchase Order No
+      pdf.setFont('Arial', 'bold');
+      pdf.setFontSize(8);
+      pdf.text('Purchase Order No:', detailBoxX, y + 4);
+      pdf.setFont('Arial', 'normal');
+      pdf.setFontSize(9);
+      pdf.text(String(poNumber), detailBoxX, y + 10);
+
+      // Column 2: Rev
+      const col2X = detailBoxX + colWidth;
+      pdf.setFont('Arial', 'bold');
+      pdf.setFontSize(8);
+      pdf.text('Rev:', col2X, y + 4);
+      pdf.setFont('Arial', 'normal');
+      pdf.setFontSize(9);
+      pdf.text('0', col2X, y + 10);
+
+      // Column 3: PO Date
+      const col3X = detailBoxX + (colWidth * 2);
+      pdf.setFont('Arial', 'bold');
+      pdf.setFontSize(8);
+      pdf.text('PO Date:', col3X, y + 4);
+      pdf.setFont('Arial', 'normal');
+      pdf.setFontSize(9);
+      pdf.text(poDateFormatted, col3X, y + 10);
+
+      // Column 4: TO / Vendor Details
+      const col4X = detailBoxX + (colWidth * 3);
+      pdf.setFont('Arial', 'bold');
+      pdf.setFontSize(8);
+      pdf.text('TO:', col4X, y + 4);
+
+      pdf.setFont('Arial', 'normal');
+      pdf.setFontSize(7);
+      let vendorDetailY = y + 10;
+
+      // Vendor details
+      const vendorName = vendor?.name || 'Vendor Name';
+      const vendorGstin = vendor?.gstin || exportHeaderSettings.gstin || '';
+      const vendorAddress = vendor?.address || '';
+      const vendorCity = vendor?.city || '';
+      const vendorState = vendor?.state || '';
+      const vendorPin = vendor?.pincode || '';
+      const vendorPhone = vendor?.phone || '';
+
+      // Company name (split if too long)
+      const nameLines = pdf.splitTextToSize(vendorName, colWidth - 2);
+      nameLines.slice(0, 2).forEach((line: string) => {
+        pdf.text(line, col4X, vendorDetailY);
+        vendorDetailY += 3;
+      });
+
+      if (vendorGstin) {
+        pdf.text(`GSTIN: ${vendorGstin}`, col4X, vendorDetailY);
+        vendorDetailY += 3;
       }
 
-      y += 6;
+      // Address details
+      const addressLines = pdf.splitTextToSize(
+        `${vendorAddress}${vendorAddress && vendorCity ? ' ' : ''}${vendorCity}${vendorCity && vendorState ? ' ' : ''}${vendorState}${vendorPin ? ' ' + vendorPin : ''}`,
+        colWidth - 2
+      );
+      addressLines.slice(0, 3).forEach((line: string) => {
+        pdf.text(line, col4X, vendorDetailY);
+        vendorDetailY += 3;
+      });
+
+      if (vendorPhone) {
+        pdf.text(`Tel: ${vendorPhone}`, col4X, vendorDetailY);
+      }
+
+      y += detailBoxHeight + 2;
 
       // Determine items to display: lines if available, otherwise single PO item
       const itemsToDisplay = lines && lines.length > 0 ? lines : [{
@@ -944,144 +1051,140 @@ export default function POGeneration() {
         totalAmount: po.totalAmount || 0
       }];
 
-      // ===== BILL TO & SITE INFO =====
+      // ===== BILL TO & SITE INFORMATION (SIDE BY SIDE) =====
       pdf.setFontSize(11);
       pdf.setFont('Arial', 'bold');
+      pdf.setTextColor(0, 0, 0);
       pdf.text('Bill To', m, y);
-      pdf.text('Site Information', 105, y);
+      pdf.text('Site Information', 110, y);
 
       y += 5;
 
-      // Separators
-      pdf.setDrawColor(221, 221, 221);
+      // Draw separator lines under titles
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setLineWidth(0.5);
       pdf.line(m, y, 100, y);
-      pdf.line(105, y, pageW - m, y);
+      pdf.line(110, y, pageW - m, y);
 
-      y += 4;
+      y += 5;
 
-      // Vendor & Site content
+      // Bill To (Left column) & Site Info (Right column)
       pdf.setFontSize(9);
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
 
+      // Vendor info
       const vn = vendor?.name || '[Vendor Name]';
       const ve = vendor?.email || '';
       const va = vendor?.address || '';
       const vc = vendor?.city || '';
       const vst = vendor?.state || '';
-      const vp = vendor?.pincode || '';
-      const vg = vendor?.gstin || '';
 
-      // Vendor left column
-      let vy = y;
+      let vendorY = y;
       pdf.setFont('Arial', 'bold');
       pdf.setFontSize(10);
-      pdf.text(vn, m, vy);
-      vy += 4;
+      pdf.text(vn, m, vendorY);
+      vendorY += 4;
 
       pdf.setFont('Arial', 'normal');
       pdf.setFontSize(9);
-      if (ve) { pdf.text(ve, m, vy); vy += 4; }
-      pdf.text(va, m, vy);
-      vy += 4;
-      if (vc || vst || vp) {
-        pdf.text(`${vc}, ${vst} ${vp}`.trim(), m, vy);
-        vy += 4;
+      if (ve) { pdf.text(ve, m, vendorY); vendorY += 3.5; }
+      if (va) { pdf.text(va, m, vendorY); vendorY += 3.5; }
+      if (vc || vst) {
+        const cityState = `${vc}${vc && vst ? ', ' : ''}${vst}`.trim();
+        if (cityState) { pdf.text(cityState, m, vendorY); vendorY += 3.5; }
       }
-      if (vg) { pdf.text(`GSTIN: ${vg}`, m, vy); vy += 4; }
-      if (vendor?.phone) { pdf.text(`Phone: ${vendor.phone}`, m, vy); }
 
-      // Site right column
-      let sy = y;
+      // Site info (Right column)
+      let siteY = y;
       pdf.setFont('Arial', 'bold');
       pdf.setFontSize(10);
 
-      // Check if PO has multiple sites
-      const hasMultipleSites = itemsToDisplay && itemsToDisplay.length > 1;
+      if (itemsToDisplay && itemsToDisplay.length > 1) {
+        // Multiple sites - show first site as header
+        const firstSite = itemsToDisplay[0];
+        const siteName = firstSite.siteHopAB || firstSite.siteId || 'Site';
+        pdf.text(siteName, 110, siteY);
+      } else if (site) {
+        const siteName = site.hopAB || '[Site Name]';
+        pdf.text(siteName, 110, siteY);
+      }
+      siteY += 4;
 
-      if (hasMultipleSites) {
-        // Show first 5 sites
-        const sitesToShow = itemsToDisplay.slice(0, 5);
-        const remainingCount = itemsToDisplay.length - 5;
+      pdf.setFont('Arial', 'normal');
+      pdf.setFontSize(9);
 
-        pdf.text('Sites:', 105, sy);
-        sy += 4;
-
-        pdf.setFont('Arial', 'normal');
-        pdf.setFontSize(8);
-        sitesToShow.forEach((item: any) => {
-          const siteName = item.siteHopAB || item.siteId || 'Site';
-          pdf.text(`• ${siteName}`, 105, sy);
-          sy += 3;
-        });
-
-        if (remainingCount > 0) {
-          pdf.setFont('Arial', 'bold');
-          pdf.text(`+ ${remainingCount} more sites`, 105, sy);
+      // Show site details
+      if (itemsToDisplay && itemsToDisplay.length > 0) {
+        const firstSite = itemsToDisplay[0];
+        if (firstSite.siteId || po.siteId) {
+          pdf.text(`Site ID: ${firstSite.siteId || po.siteId}`, 110, siteY);
+          siteY += 3.5;
         }
-      } else {
-        // Single site - show full details
-        const sn = site?.hopAB || '[Site Name]';
-        pdf.text(sn, 105, sy);
-        sy += 4;
-
-        pdf.setFont('Arial', 'normal');
-        pdf.setFontSize(9);
-        pdf.text(`Site ID: ${po.siteId}`, 105, sy);
-        sy += 4;
-        if (site?.planId) { pdf.text(`Plan ID: ${site.planId}`, 105, sy); sy += 4; }
-        if (site?.circle) { pdf.text(`Circle: ${site.circle}`, 105, sy); sy += 4; }
-        if (site?.district) { pdf.text(`District: ${site.district}`, 105, sy); sy += 4; }
-        if (site?.state) { pdf.text(`State: ${site.state}`, 105, sy); }
+        if (firstSite.sitePlanId || site?.planId) {
+          pdf.text(`Plan ID: ${firstSite.sitePlanId || site?.planId}`, 110, siteY);
+          siteY += 3.5;
+        }
+        if (site?.circle) {
+          pdf.text(`Circle: ${site.circle}`, 110, siteY);
+          siteY += 3.5;
+        }
       }
 
-      y += 26;
+      y = Math.max(vendorY, siteY) + 6;
 
       // ===== ITEMS TABLE =====
-      pdf.setFontSize(9);
-      pdf.setFont('Arial', 'bold');
+      const tableStartX = m;
+      const tableEndX = pageW - m;
+      const tableWidth = tableEndX - tableStartX;
+
+      // Column widths (proportional) - adjusted for landscape (wider)
+      const col1Width = 140;  // Site/Description
+      const col2Width = 20;   // Quantity
+      const col3Width = 35;   // Unit Price
+      const col4Width = 40;   // Amount
+
+      const tableCol1X = tableStartX;
+      const tableCol2X = tableCol1X + col1Width;
+      const tableCol3X = tableCol2X + col2Width;
+      const tableCol4X = tableCol3X + col3Width;
+
+      // Dark header background
       pdf.setFillColor(44, 62, 80);
       pdf.setTextColor(255, 255, 255);
+      pdf.setFont('Arial', 'bold');
+      pdf.setFontSize(9);
+      const headerHeight = 7;
 
-      const col1X = m;
-      const col2X = m + 80;
-      const col3X = m + 110;
-      const col4X = m + 135;
+      // Draw header row with dark background
+      pdf.rect(tableCol1X, y, col1Width, headerHeight, 'F');
+      pdf.text('Site/Description', tableCol1X + 2, y + headerHeight - 2);
 
-      // TABLE HEADER ROW
-      pdf.setFillColor(44, 62, 80);
-      pdf.rect(col1X, y, 80, 7, 'F');
-      pdf.text('Site/Description', col1X + 2, y + 4.5);
+      pdf.rect(tableCol2X, y, col2Width, headerHeight, 'F');
+      pdf.text('Quantity', tableCol2X + 2, y + headerHeight - 2);
 
-      pdf.setFillColor(44, 62, 80);
-      pdf.rect(col2X, y, 30, 7, 'F');
-      pdf.text('Quantity', col2X + 5, y + 4.5);
+      pdf.rect(tableCol3X, y, col3Width, headerHeight, 'F');
+      pdf.text('Unit Price', tableCol3X + 2, y + headerHeight - 2);
 
-      pdf.setFillColor(44, 62, 80);
-      pdf.rect(col3X, y, 25, 7, 'F');
-      pdf.text('Unit Price', col3X - 3, y + 4.5);
+      pdf.rect(tableCol4X, y, col4Width, headerHeight, 'F');
+      pdf.text('Amount', tableCol4X + 2, y + headerHeight - 2);
 
-      pdf.setFillColor(44, 62, 80);
-      pdf.rect(col4X, y, 30, 7, 'F');
-      pdf.text('Amount', col4X + 3, y + 4.5);
-
-      y += 8;
+      y += headerHeight;
 
       // ITEM DATA ROWS - Display all lines if available, otherwise single item
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(0, 0, 0);
-      pdf.setDrawColor(221, 221, 221);
-      pdf.setFontSize(10);
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.3);
+      pdf.setFontSize(9);
 
       let subtotalAmount = 0;
+      const rowHeight = 8;
 
       // Display each item/line as a row
       for (const item of itemsToDisplay) {
-        // Use description as-is (already contains site name)
-        const siteName = String(item.siteHopAB || item.siteId || '');
-        const baseDescription = String(item.description || 'Installation and commissioning');
-        const description = baseDescription;
-
+        // Prepare values
+        const description = String(item.description || 'Installation and commissioning');
         const itemQty = String(item.quantity || 1);
         const itemRate = Number(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const itemTotal = Number(item.totalAmount || 0);
@@ -1089,79 +1192,83 @@ export default function POGeneration() {
 
         subtotalAmount += itemTotal;
 
-        // Check if we need a new page (leave room for totals)
-        if (y > 250) {
+        // Check if we need a new page (leave room for totals: 50 units)
+        if (y > 260) {
           // Add new page
           pdf.addPage();
           y = 20;
 
           // Re-draw table header on new page
-          pdf.setFontSize(9);
-          pdf.setFont('Arial', 'bold');
+          pdf.setFillColor(44, 62, 80);
           pdf.setTextColor(255, 255, 255);
+          pdf.setFont('Arial', 'bold');
+          pdf.setFontSize(9);
 
-          pdf.setFillColor(44, 62, 80);
-          pdf.rect(col1X, y, 80, 7, 'F');
-          pdf.text('Site/Description', col1X + 2, y + 4.5);
+          pdf.rect(tableCol1X, y, col1Width, headerHeight, 'F');
+          pdf.text('Site/Description', tableCol1X + 2, y + headerHeight - 2);
 
-          pdf.setFillColor(44, 62, 80);
-          pdf.rect(col2X, y, 30, 7, 'F');
-          pdf.text('Quantity', col2X + 5, y + 4.5);
+          pdf.rect(tableCol2X, y, col2Width, headerHeight, 'F');
+          pdf.text('Quantity', tableCol2X + 2, y + headerHeight - 2);
 
-          pdf.setFillColor(44, 62, 80);
-          pdf.rect(col3X, y, 25, 7, 'F');
-          pdf.text('Unit Price', col3X - 3, y + 4.5);
+          pdf.rect(tableCol3X, y, col3Width, headerHeight, 'F');
+          pdf.text('Unit Price', tableCol3X + 2, y + headerHeight - 2);
 
-          pdf.setFillColor(44, 62, 80);
-          pdf.rect(col4X, y, 30, 7, 'F');
-          pdf.text('Amount', col4X + 3, y + 4.5);
+          pdf.rect(tableCol4X, y, col4Width, headerHeight, 'F');
+          pdf.text('Amount', tableCol4X + 2, y + headerHeight - 2);
 
-          y += 8;
+          y += headerHeight;
 
           // Reset formatting for item rows
           pdf.setFont('Arial', 'normal');
           pdf.setTextColor(0, 0, 0);
-          pdf.setDrawColor(221, 221, 221);
-          pdf.setFontSize(10);
+          pdf.setDrawColor(180, 180, 180);
+          pdf.setLineWidth(0.3);
+          pdf.setFontSize(9);
         }
 
-        // Description value - show description with site name
-        pdf.rect(col1X, y, 80, 8);
-        pdf.setFontSize(8);
+        // Draw borders for each cell
+        pdf.rect(tableCol1X, y, col1Width, rowHeight);
+        pdf.rect(tableCol2X, y, col2Width, rowHeight);
+        pdf.rect(tableCol3X, y, col3Width, rowHeight);
+        pdf.rect(tableCol4X, y, col4Width, rowHeight);
+
+        // Description value
+        pdf.setFontSize(9);
         pdf.setFont('Arial', 'normal');
-        pdf.text(description, col1X + 2, y + 4.5);
+        pdf.text(description, tableCol1X + 2, y + 5);
 
-        // Quantity value
-        pdf.rect(col2X, y, 30, 8);
-        pdf.text(itemQty, col2X + 12, y + 4.5);
+        // Quantity value (centered)
+        pdf.text(itemQty, tableCol2X + 7, y + 5);
 
-        // Unit Price value
-        pdf.rect(col3X, y, 25, 8);
-        pdf.text(`Rs. ${itemRate}`, col3X + 1, y + 4.5);
+        // Unit Price value (right aligned)
+        pdf.text(`Rs. ${itemRate}`, tableCol3X + 2, y + 5);
 
-        // Amount value
-        pdf.rect(col4X, y, 30, 8);
-        pdf.text(`Rs. ${itemTotalDisplay}`, col4X + 2, y + 4.5);
+        // Amount value (right aligned)
+        pdf.text(`Rs. ${itemTotalDisplay}`, tableCol4X + 2, y + 5);
 
-        y += 8;
+        y += rowHeight;
       }
 
       y += 6;
 
-      // Check if totals section needs a new page (leave room for totals: ~35 units)
-      if (y > 260) {
+      // Check if totals section needs a new page (leave room for totals: ~40 units)
+      if (y > 250) {
         pdf.addPage();
         y = 20;
       }
 
-      // ===== TOTALS =====
-      const tX = col3X;
+      // ===== TOTALS SECTION =====
+      const totalsLabelX = tableCol3X + 10;
+      const totalsValueX = tableCol4X + 15;
+
       pdf.setFontSize(9);
       pdf.setFont('Arial', 'normal');
+      pdf.setTextColor(0, 0, 0);
 
+      // Subtotal
       const subtotalDisplay = subtotalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      pdf.text('Subtotal:', tX, y);
-      pdf.text(`Rs. ${subtotalDisplay}`, col4X + 2, y);
+      pdf.text('Subtotal:', totalsLabelX, y);
+      pdf.text(`Rs. ${subtotalDisplay}`, totalsValueX, y);
       y += 6;
 
       // Recalculate GST based on actual subtotalAmount from all lines
@@ -1179,35 +1286,37 @@ export default function POGeneration() {
       if (po.gstApply) {
         if (po.gstType === 'igst') {
           const igstDisplay = recalcIgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          pdf.text('IGST (18%):', tX, y);
-          pdf.text(`Rs. ${igstDisplay}`, col4X + 2, y);
+          pdf.text('IGST (18%):', totalsLabelX, y);
+          pdf.text(`Rs. ${igstDisplay}`, totalsValueX, y);
           y += 6;
         } else if (po.gstType === 'cgstsgst') {
           const cgstDisplay = recalcCgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           const sgstDisplay = recalcSgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          pdf.text('CGST (9%):', tX, y);
-          pdf.text(`Rs. ${cgstDisplay}`, col4X + 2, y);
+          pdf.text('CGST (9%):', totalsLabelX, y);
+          pdf.text(`Rs. ${cgstDisplay}`, totalsValueX, y);
           y += 6;
-          pdf.text('SGST (9%):', tX, y);
-          pdf.text(`Rs. ${sgstDisplay}`, col4X + 2, y);
+          pdf.text('SGST (9%):', totalsLabelX, y);
+          pdf.text(`Rs. ${sgstDisplay}`, totalsValueX, y);
           y += 6;
         }
       }
 
-      pdf.text('Shipping:', tX, y);
-      pdf.text('Rs. 0', col4X + 2, y);
-      y += 7;
+      // Shipping
+      pdf.text('Shipping:', totalsLabelX, y);
+      pdf.text('Rs. 0', totalsValueX, y);
+      y += 8;
 
-      // Total box - recalculate with correct GST
+      // Total box with dark background (matching template)
       pdf.setFont('Arial', 'bold');
       pdf.setFontSize(11);
       pdf.setFillColor(44, 62, 80);
       pdf.setTextColor(255, 255, 255);
-      pdf.rect(tX, y, 60, 7, 'F');
-      pdf.text('TOTAL:', tX + 2, y + 5);
+      pdf.rect(totalsLabelX - 10, y, 65, 8, 'F');
+      pdf.text('TOTAL:', totalsLabelX - 8, y + 6);
+
       const recalcFinalTotal = subtotalAmount + recalcIgstAmt + recalcCgstAmt + recalcSgstAmt;
       const finalDisplay = recalcFinalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      pdf.text(`Rs. ${finalDisplay}`, col4X + 2, y + 5);
+      pdf.text(`Rs. ${finalDisplay}`, totalsValueX, y + 6);
 
       y += 14;
 
@@ -1223,12 +1332,17 @@ export default function POGeneration() {
         pdf.text(po.remarks.substring(0, 100), m, y);
       }
 
+      y += 8;
+
       // ===== FOOTER =====
       pdf.setFontSize(8);
       pdf.setFont('Arial', 'normal');
       pdf.setTextColor(102, 102, 102);
-      pdf.text('This is a system-generated Purchase Order. No signature required.', 105, 278, { align: 'center' });
-      pdf.text(`Status: ${po.status}`, 105, 283, { align: 'center' });
+
+      // Ensure footer is at bottom of landscape page
+      const footerY = pageH - 8;  // Landscape height is 210mm
+      pdf.text('This is a system-generated Purchase Order. No signature required.', pageW / 2, footerY, { align: 'center' });
+      pdf.text(`Status: ${po.status}`, pageW / 2, footerY + 3, { align: 'center' });
 
       pdf.save(`PO-${poNumber}.pdf`);
       toast({ title: 'Success', description: `PDF exported for ${poNumber}` });
@@ -1506,23 +1620,7 @@ export default function POGeneration() {
                   </div>
                 )}
 
-                {/* Grouping option */}
-                <div className="mt-4 p-3 rounded border bg-gray-50 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Generation Mode</p>
-                    <p className="text-xs text-muted-foreground">Choose whether to create a PO per site or a single PO per vendor (auto-grouped).</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <label className="inline-flex items-center gap-2 text-sm">
-                      <input type="radio" name="poMode" checked={!groupByVendor} onChange={() => setGroupByVendor(false)} />
-                      <span>PO per Site</span>
-                    </label>
-                    <label className="inline-flex items-center gap-2 text-sm">
-                      <input type="radio" name="poMode" checked={groupByVendor} onChange={() => setGroupByVendor(true)} />
-                      <span>Single PO per Vendor</span>
-                    </label>
-                  </div>
-                </div>
+                {/* Generation Mode - Always grouped, hidden from UI */}
 
                 <Button onClick={generatePOs} className="mt-4 w-full" disabled={showAllMode || selectedSites.size === 0 || generating}>
                   {generating ? (

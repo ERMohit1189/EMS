@@ -98,11 +98,14 @@ namespace VendorRegistrationBackend.Controllers
         {
             try
             {
+                Serilog.Log.Information("[PurchaseOrdersController] GetAllPurchaseOrders called with page={Page}, pageSize={PageSize}, withDetails={WithDetails}, availableOnly={AvailableOnly}", page, pageSize, withDetails, availableOnly);
+
                 if (page < 1) page = 1;
                 if (pageSize < 1) pageSize = 50;
                 if (pageSize > 500) pageSize = 500;
 
                 var purchaseOrders = await _purchaseOrderService.GetAllPurchaseOrdersAsync();
+                Serilog.Log.Information("[PurchaseOrdersController] Successfully loaded {Count} purchase orders", purchaseOrders.Count);
 
                 // Filter out POs that are already invoiced if availableOnly is true
                 if (availableOnly)
@@ -185,6 +188,7 @@ namespace VendorRegistrationBackend.Controllers
             }
             catch (Exception ex)
             {
+                Serilog.Log.Error(ex, "[PurchaseOrdersController] GetAllPurchaseOrders failed. Exception: {Message}, InnerException: {InnerMessage}", ex.Message, ex.InnerException?.Message);
                 return BadRequest(new { error = ex.Message, details = ex.InnerException?.Message });
             }
         }
@@ -197,8 +201,48 @@ namespace VendorRegistrationBackend.Controllers
             return Ok(purchaseOrders);
         }
 
+        [HttpGet("/api/purchase-order-lines")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetPurchaseOrderLines([FromQuery] int page = 1, [FromQuery] int pageSize = 10000)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10000;
+                if (pageSize > 10000) pageSize = 10000;
+
+                var purchaseOrderLines = await _context.PurchaseOrderLines
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                var totalCount = purchaseOrderLines.Count;
+
+                var data = purchaseOrderLines
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(line => new
+                    {
+                        line.Id,
+                        line.PoId,
+                        line.SiteId,
+                        line.PlanId,
+                        line.Description,
+                        line.Quantity,
+                        line.UnitPrice,
+                        line.TotalAmount
+                    })
+                    .ToList();
+
+                return Ok(new { data, totalCount, page, pageSize });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message, details = ex.InnerException?.Message });
+            }
+        }
+
         [HttpPost("generate")]
-        [Authorize(Roles = "admin,superadmin")]
+        [Authorize]
         public async Task<IActionResult> GenerateGroupedPurchaseOrders([FromBody] GenerateGroupedPOsRequest request)
         {
             try
@@ -236,6 +280,7 @@ namespace VendorRegistrationBackend.Controllers
                                 Id = Guid.NewGuid().ToString(),
                                 PoId = poId,
                                 SiteId = line.SiteId,
+                                PlanId = line.PlanId, // Store PlanId for duplicate detection during import
                                 Description = line.Description,
                                 Quantity = line.Quantity ?? 1,
                                 UnitPrice = string.IsNullOrEmpty(line.UnitPrice) ? 0 : decimal.Parse(line.UnitPrice),
@@ -351,7 +396,7 @@ namespace VendorRegistrationBackend.Controllers
 
         [HttpGet("/api/saved-pos")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetSavedPOs([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        public async Task<IActionResult> GetSavedPOs([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] bool withLines = true)
         {
             try
             {
@@ -377,7 +422,7 @@ namespace VendorRegistrationBackend.Controllers
                         po.DueDate,
                         VendorName = po.Vendor?.Name ?? string.Empty,
                         LineCount = po.Lines?.Count ?? 0,
-                        Lines = po.Lines?.Select(l => (object)new
+                        Lines = withLines ? (po.Lines?.Select(l => (object)new
                         {
                             l.Id,
                             l.PoId,
@@ -389,7 +434,7 @@ namespace VendorRegistrationBackend.Controllers
                             SiteName = l.Site?.Name ?? string.Empty,
                             SitePlanId = l.Site?.PlanId ?? string.Empty,
                             SiteHopAB = l.Site?.HopAB ?? string.Empty
-                        }).ToList() ?? new List<object>()
+                        }).ToList() ?? new List<object>()) : new List<object>()
                     })
                     .ToList();
 
@@ -398,6 +443,44 @@ namespace VendorRegistrationBackend.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { error = ex.Message, details = ex.InnerException?.Message });
+            }
+        }
+
+        [HttpGet("debug/{poNumber}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DebugPurchaseOrder(string poNumber)
+        {
+            try
+            {
+                var allPOs = await _purchaseOrderService.GetAllPurchaseOrdersAsync();
+                var po = allPOs.FirstOrDefault(p => p.PoNumber == poNumber);
+
+                if (po == null)
+                    return NotFound(new { message = "Purchase order not found" });
+
+                return Ok(new
+                {
+                    po = new
+                    {
+                        po.Id,
+                        po.PoNumber,
+                        po.VendorId,
+                        poIdLength = po.Id.Length,
+                        lineCount = po.Lines?.Count ?? 0,
+                        lines = po.Lines?.Select(l => (dynamic)new
+                        {
+                            l.Id,
+                            l.SiteId,
+                            l.Description,
+                            l.Quantity,
+                            l.UnitPrice
+                        }).ToList<dynamic>() ?? new List<dynamic>()
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
         }
     }
@@ -446,6 +529,7 @@ namespace VendorRegistrationBackend.Controllers
     public class POLinePayload
     {
         public string? SiteId { get; set; }
+        public string? PlanId { get; set; } // Plan ID for duplicate detection during import
         public string? Description { get; set; }
         public int? Quantity { get; set; }
         public string? UnitPrice { get; set; }

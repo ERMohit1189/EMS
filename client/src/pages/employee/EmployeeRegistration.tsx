@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { IndianStates, getCitiesByState } from "@/assets/india-data";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import {
   Form,
   FormControl,
@@ -151,8 +152,8 @@ export default function EmployeeRegistration() {
     const loadData = async () => {
       try {
         const [deptRes, desigRes] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/departments`, { credentials: 'include' }),
-          fetch(`${getApiBaseUrl()}/api/designations`, { credentials: 'include' }),
+          authenticatedFetch(`${getApiBaseUrl()}/api/departments`),
+          authenticatedFetch(`${getApiBaseUrl()}/api/designations`),
         ]);
         if (deptRes.ok) setDepartments(await deptRes.json());
         if (desigRes.ok) setDesignations(await desigRes.json());
@@ -227,9 +228,8 @@ export default function EmployeeRegistration() {
         kitNo: values.kitNo,
       };
 
-      const response = await fetch(`${getApiBaseUrl()}/api/employees`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees`, {
         method: "POST",
-        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });

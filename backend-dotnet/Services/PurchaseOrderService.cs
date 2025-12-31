@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using VendorRegistrationBackend.Data;
 using VendorRegistrationBackend.Models;
 
@@ -34,11 +35,46 @@ namespace VendorRegistrationBackend.Services
 
         public async Task<List<PurchaseOrder>> GetAllPurchaseOrdersAsync()
         {
-            return await _context.PurchaseOrders
-                .Include(po => po.Vendor)
-                .Include(po => po.Lines)
-                .ThenInclude(pol => pol.Site)
-                .ToListAsync();
+            try
+            {
+                return await _context.PurchaseOrders
+                    .Include(po => po.Vendor)
+                    .Include(po => po.Lines)
+                    .ThenInclude(pol => pol.Site)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log the error for debugging
+                Log.Error(ex, "[PurchaseOrderService] GetAllPurchaseOrdersAsync failed with eager loading. Falling back to manual loading. Error: {Message}", ex.Message);
+
+                // Fallback: Load without relationships if eager loading fails
+                var poList = await _context.PurchaseOrders.ToListAsync();
+
+                // Manually load vendor and lines for each PO
+                foreach (var po in poList)
+                {
+                    if (!string.IsNullOrEmpty(po.VendorId))
+                    {
+                        po.Vendor = await _context.Vendors.FindAsync(po.VendorId);
+                    }
+
+                    po.Lines = await _context.PurchaseOrderLines
+                        .Where(l => l.PoId == po.Id)
+                        .ToListAsync();
+
+                    // Load Site for each line
+                    foreach (var line in po.Lines ?? new List<PurchaseOrderLine>())
+                    {
+                        if (!string.IsNullOrEmpty(line.SiteId))
+                        {
+                            line.Site = await _context.Sites.FindAsync(line.SiteId);
+                        }
+                    }
+                }
+
+                return poList;
+            }
         }
 
         public async Task<PurchaseOrder> CreatePurchaseOrderAsync(PurchaseOrder po)

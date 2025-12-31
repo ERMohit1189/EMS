@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { FileText, Receipt, MapPin, User, Mail, Phone, Calendar, Eye, AlertCircle, Download, X, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from 'xlsx';
@@ -224,7 +225,7 @@ export default function VendorDashboard() {
   useEffect(() => {
     async function checkSession() {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/session`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/session`);
         if (!res.ok) {
           localStorage.removeItem('vendorId');
           setError('Session expired. Please log in again.');
@@ -260,10 +261,10 @@ export default function VendorDashboard() {
     setLoading(true);
     try {
       const [vendorRes, posRes, invoicesRes, sitesRes] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}`, { credentials: 'include' }),
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`, { credentials: 'include' }),
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/invoices`, { credentials: 'include' }),
-        fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/sites`, { credentials: 'include' }),
+        authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}`),
+        authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/purchase-orders`),
+        authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/invoices`),
+        authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/sites`),
       ]);
 
       if (vendorRes.ok) {

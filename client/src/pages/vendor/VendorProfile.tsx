@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 
 const vendorProfileSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -112,7 +113,7 @@ export default function VendorProfile() {
   async function onSubmit(values: z.infer<typeof vendorProfileSchema>) {
     if (!vendorId) return;
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),

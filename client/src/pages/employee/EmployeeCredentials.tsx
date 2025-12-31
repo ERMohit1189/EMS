@@ -7,6 +7,7 @@ import { Copy, RotateCcw, Download, Eye, EyeOff } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   AlertDialog,
@@ -22,8 +23,8 @@ interface Employee {
   id: string;
   name: string;
   email: string;
-  designation: string;
-  emp_code?: string;
+  designation?: string;
+  empCode?: string;
 }
 
 interface EmployeeCredential {
@@ -72,7 +73,7 @@ export default function EmployeeCredentials() {
         params.append('page', String(currentPage));
         params.append('pageSize', String(pageSize));
 
-        const response = await fetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`, { credentials: 'include' });
+        const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees?${params.toString()}`);
         if (response.ok) {
           const data = await response.json();
           const empList = data.data || [];
@@ -170,7 +171,7 @@ export default function EmployeeCredentials() {
     
     const newCred: EmployeeCredential = {
       employeeId,
-      employeeCode: employee.emp_code,
+      employeeCode: employee.empCode,
       employeeName: employee.name,
       designation: employee.designation,
       email: employee.email,
@@ -181,9 +182,8 @@ export default function EmployeeCredentials() {
 
     // Sync password to database
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/sync-credentials`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/sync-credentials`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employeeId, password: generatedPassword }),
       });
@@ -463,7 +463,7 @@ export default function EmployeeCredentials() {
               ) : (
                 employeesWithoutCreds.map(employee => (
                   <div key={employee.id} className="grid grid-cols-4 gap-0 items-center border-b p-3">
-                    <div className="text-sm font-mono text-blue-600">{employee.emp_code || 'N/A'}</div>
+                    <div className="text-sm font-mono text-blue-600">{employee.empCode || 'N/A'}</div>
                     <div className="font-medium">{employee.name}</div>
                     <div className="text-sm text-muted-foreground">{employee.designation}</div>
                     <div className="text-right">

@@ -15,11 +15,13 @@ namespace VendorRegistrationBackend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IAuthService _authService;
+        private readonly IAuthAuditService _auditService;
 
-        public AuthController(AppDbContext context, IAuthService authService)
+        public AuthController(AppDbContext context, IAuthService authService, IAuthAuditService auditService)
         {
             _context = context;
             _authService = authService;
+            _auditService = auditService;
         }
 
         [HttpGet("login")]
@@ -34,53 +36,75 @@ namespace VendorRegistrationBackend.Controllers
             });
         }
 
-        [HttpPost("login")]
+        [HttpOptions("/api/employees/login")]
+        [AllowAnonymous]
+        public IActionResult OptionsEmployeeLogin()
+        {
+            // Handle CORS preflight request for employee login
+            return Ok();
+        }
+
+        [HttpPost("/api/employees/login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
             if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+            {
+                await _auditService.LogAuthAttemptAsync(HttpContext, "Employee", request.Email ?? "", "Failed", "InvalidRequest");
                 return BadRequest(new { message = "Email and password are required" });
+            }
 
             var user = await _authService.AuthenticateAsync(request.Email, request.Password);
 
             if (user == null)
-                return Unauthorized(new { success = false, message = "Invalid credentials" });
-
-            // Create session (persistent server-side session id)
-            var sessionId = await _authService.CreateSessionAsync(user);
-
-            // Set authentication cookie (ASP.NET cookies for ClaimsPrincipal)
-            var claims = new[] {
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role ?? "user"),
-                // Keep legacy claim name for compatibility
-                new Claim("Role", user.Role ?? "user"),
-                // Add UserType claim for session validation
-                new Claim("UserType", "employee")
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, "Cookies");
-            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
-
-            await HttpContext.SignInAsync("Cookies", claimsPrincipal);
-
-            // Also set a server session id cookie (sid) so client and DB rows can be correlated
-            var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
             {
-                HttpOnly = true,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
-                Secure = Request.IsHttps,
-                Path = "/",
-                Expires = DateTimeOffset.UtcNow.AddDays(7)
-            };
-            Response.Cookies.Append("sid", sessionId, cookieOptions);
+                await _auditService.LogAuthAttemptAsync(HttpContext, "Employee", request.Email, "Failed", "InvalidCredentials");
+                return Unauthorized(new { success = false, message = "Invalid credentials" });
+            }
+
+            // Check if user is a reporting person in ANY team (RP1, RP2, or RP3)
+            // A reporting person is an employee whose team member record has reportingPerson1/2/3 equal to their OWN team member ID
+            bool isReportingPerson = false;
+            var reportingTeamIds = new List<string>();
+            if (!string.IsNullOrEmpty(user.Id))
+            {
+                Console.WriteLine($"[AuthController] Checking reporting person status for userId: {user.Id}");
+
+                // Get teams where this employee is a reporting person
+                // (team member record has reportingPerson1/2/3 equal to its own ID)
+                var reportingTeams = await _context.TeamMembers
+                    .Where(tm => tm.EmployeeId == user.Id)
+                    .ToListAsync();
+
+                Console.WriteLine($"[AuthController] Employee team memberships found: {reportingTeams.Count}");
+                reportingTeams.ForEach(tm => Console.WriteLine($"[AuthController] - TeamMember ID: {tm.Id}, RP1: {tm.ReportingPerson1}, RP2: {tm.ReportingPerson2}, RP3: {tm.ReportingPerson3}"));
+
+                var reportingTeamsList = reportingTeams
+                    .Where(tm => tm.ReportingPerson1 == tm.Id || tm.ReportingPerson2 == tm.Id || tm.ReportingPerson3 == tm.Id)
+                    .Select(tm => tm.TeamId)
+                    .Distinct()
+                    .ToList();
+
+                Console.WriteLine($"[AuthController] Found {reportingTeamsList.Count} teams where employee is a reporting person");
+                reportingTeamsList.ForEach(teamId => Console.WriteLine($"[AuthController] - Team: {teamId}"));
+
+                isReportingPerson = reportingTeamsList.Count > 0;
+                reportingTeamIds = reportingTeamsList;
+
+                Console.WriteLine($"[AuthController] isReportingPerson: {isReportingPerson}");
+            }
+
+            // Generate JWT token
+            var token = _authService.GenerateJwtToken(user, isReportingPerson, reportingTeamIds);
+
+            // Log successful login
+            await _auditService.LogAuthAttemptAsync(HttpContext, "Employee", request.Email, "Success", null, user.Id);
 
             return Ok(new LoginResponseDto
             {
                 Success = true,
                 Message = "Login successful",
+                Token = token,
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -91,32 +115,68 @@ namespace VendorRegistrationBackend.Controllers
                     Department = user.Department?.Name,
                     Designation = user.Designation?.Name,
                     Photo = user.Photo,
-                    IsReportingPerson = false,
-                    ReportingTeamIds = new List<string>()
+                    IsReportingPerson = isReportingPerson,
+                    ReportingTeamIds = reportingTeamIds
                 }
             });
         }
 
-        [HttpPost("logout")]
-        [Authorize]
-        public async Task<IActionResult> Logout()
+
+        [HttpOptions("/api/vendors/login")]
+        [AllowAnonymous]
+        public IActionResult OptionsVendorLogin()
         {
-            // Destroy server session row if sid cookie present
-            var sid = Request.Cookies.ContainsKey("sid") ? Request.Cookies["sid"] : null;
-            if (!string.IsNullOrEmpty(sid))
+            // Handle CORS preflight request for vendor login
+            return Ok();
+        }
+
+        [HttpPost("/api/vendors/login")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VendorLogin([FromBody] VendorLoginRequestDto request)
+        {
+            if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
             {
-                await _authService.DestroySessionAsync(sid);
-                // Remove the sid cookie from client
-                Response.Cookies.Delete("sid", new Microsoft.AspNetCore.Http.CookieOptions
-                {
-                    HttpOnly = true,
-                    SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
-                    Secure = Request.IsHttps,
-                    Path = "/"
-                });
+                await _auditService.LogAuthAttemptAsync(HttpContext, "Vendor", request.Email ?? "", "Failed", "InvalidRequest");
+                return BadRequest(new { message = "Email and password are required" });
             }
 
-            await HttpContext.SignOutAsync("Cookies");
+            var vendor = await _authService.AuthenticateVendorAsync(request.Email, request.Password);
+
+            if (vendor == null)
+            {
+                await _auditService.LogAuthAttemptAsync(HttpContext, "Vendor", request.Email, "Failed", "InvalidCredentials");
+                return Unauthorized(new { success = false, message = "Invalid credentials" });
+            }
+
+            // Generate JWT token
+            var token = _authService.GenerateVendorJwtToken(vendor);
+
+            // Log successful login
+            await _auditService.LogAuthAttemptAsync(HttpContext, "Vendor", request.Email, "Success", null, vendor.Id);
+
+            return Ok(new VendorLoginResponseDto
+            {
+                Success = true,
+                Message = "Login successful",
+                Token = token,
+                Vendor = new VendorResponseDto
+                {
+                    Id = vendor.Id,
+                    VendorCode = vendor.VendorCode,
+                    Name = vendor.Name,
+                    Email = vendor.Email,
+                    Mobile = vendor.Mobile,
+                    Status = vendor.Status,
+                    Role = vendor.Role
+                }
+            });
+        }
+        [HttpPost("logout")]
+        [Authorize]
+        public IActionResult Logout()
+        {
+            // With JWT, logout is handled by the client deleting the token
+            // The server doesn't need to maintain any state
             return Ok(new { message = "Logged out successfully" });
         }
 
@@ -155,37 +215,50 @@ namespace VendorRegistrationBackend.Controllers
                 var email = User.FindFirst(ClaimTypes.Email)?.Value;
                 var role = User.FindFirst("Role")?.Value ?? string.Empty;
 
-                var userType = role.ToLower() == "vendor" ? "vendor" : "employee";
+                // Use the UserType claim we explicitly set during login instead of checking role
+                // This is more reliable since role might be different (e.g., "manager", "admin", etc.)
+                var userType = User.FindFirst("UserType")?.Value ?? "";
 
-                // Check if user is a reporting person by first getting all employee teams, then checking if employee is reporting person in any of them
+                // Check if user is a reporting person in ANY team (RP1, RP2, or RP3)
+                // A reporting person is an employee whose team member record has reportingPerson1/2/3 equal to their OWN team member ID
                 bool isReportingPerson = false;
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    // Get all teams of the employee
-                    var employeeTeams = await _context.TeamMembers
+                    // Get all team memberships for this employee first (to avoid LINQ comparison issues)
+                    var employeeTeamMembers = await _context.TeamMembers
                         .Where(tm => tm.EmployeeId == userId)
-                        .Select(tm => tm.TeamId)
                         .ToListAsync();
 
-                    // Check if employee is a reporting person in any of those teams
-                    if (employeeTeams.Count > 0)
-                    {
-                        isReportingPerson = await _context.TeamMembers
-                            .Where(tm => employeeTeams.Contains(tm.TeamId) &&
-                                        (tm.ReportingPerson1 == userId || tm.ReportingPerson2 == userId || tm.ReportingPerson3 == userId))
-                            .AnyAsync();
-                    }
+                    // Then check in-memory if any have self-referencing reportingPerson fields
+                    isReportingPerson = employeeTeamMembers
+                        .Any(tm => tm.ReportingPerson1 == tm.Id ||
+                                   tm.ReportingPerson2 == tm.Id ||
+                                   tm.ReportingPerson3 == tm.Id);
+
+                    Console.WriteLine($"[AuthController Session] Employee {userId} has {employeeTeamMembers.Count} team memberships");
+                    Console.WriteLine($"[AuthController Session] isReportingPerson: {isReportingPerson}");
                 }
 
-                return Ok(new {
-                    authenticated = true,
-                    userType,
-                    employeeId = userId,
-                    employeeEmail = email,
-                    employeeName = name,
-                    employeeRole = role,
-                    isReportingPerson
-                });
+                if (userType == "vendor") {
+                    return Ok(new {
+                        authenticated = true,
+                        userType,
+                        vendorId = userId,
+                        vendorEmail = email,
+                        vendorName = name,
+                        vendorRole = role
+                    });
+                } else {
+                    return Ok(new {
+                        authenticated = true,
+                        userType,
+                        employeeId = userId,
+                        employeeEmail = email,
+                        employeeName = name,
+                        employeeRole = role,
+                        isReportingPerson
+                    });
+                }
             }
             catch (Exception ex)
             {

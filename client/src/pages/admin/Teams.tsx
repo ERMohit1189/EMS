@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { Loader2 } from 'lucide-react';
 
 interface Team {
@@ -63,7 +64,7 @@ export default function Teams() {
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams`);
       if (response.ok) {
         const data = await response.json();
         setTeams(data);
@@ -75,7 +76,7 @@ export default function Teams() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees?limit=1000`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees?limit=1000`);
       if (response.ok) {
         const data = await response.json();
         // Filter out superadmin role just in case server returns it
@@ -90,7 +91,7 @@ export default function Teams() {
 
   const fetchTeamMembers = async (teamId: string) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}/members`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${teamId}/members`);
       if (response.ok) {
         const data = await response.json();
         console.log('[Teams] Fetched team members:', data);
@@ -117,9 +118,8 @@ export default function Teams() {
     try {
       setLoadingCreate(true);
       console.log('[Teams] Creating team:', formData.name);
-      const response = await fetch(`${getApiBaseUrl()}/api/teams`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
@@ -179,11 +179,10 @@ export default function Teams() {
       console.log('[Teams] Auto-assigning reporting persons:', { reportingPerson1Id, reportingPerson2Id, reportingPerson3Id });
 
       const promises = newEmployeeIds.map((employeeId) =>
-        fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
+        authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members`, {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             employeeId,
             reportingPerson1: reportingPerson1Id,
             reportingPerson2: reportingPerson2Id,
@@ -227,9 +226,8 @@ export default function Teams() {
 
     try {
       setLoadingRemoveMember(memberId);
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members/${memberId}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/members/${memberId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
 
       if (response.ok) {
@@ -263,9 +261,8 @@ export default function Teams() {
         updates[fieldName] = memberToAssign.id;
         
         console.log('[Teams] Updating member:', otherMember.id, 'with:', updates);
-        const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${otherMember.id}/reporting`, {
+        const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/members/${otherMember.id}/reporting`, {
           method: 'PUT',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         });
@@ -327,9 +324,8 @@ export default function Teams() {
         const fieldName = `reportingPerson${level}`;
         updates[fieldName] = null;
         
-        const response = await fetch(`${getApiBaseUrl()}/api/teams/members/${member.id}/reporting`, {
+        const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/members/${member.id}/reporting`, {
           method: 'PUT',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         });
@@ -355,9 +351,8 @@ export default function Teams() {
 
     try {
       console.log('[Teams] Clearing RP', level, 'from all employees');
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/reporting/${level}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${selectedTeamId}/reporting/${level}`, {
         method: 'DELETE',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -397,9 +392,8 @@ export default function Teams() {
     if (!window.confirm('Are you sure you want to delete this team?')) return;
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${teamId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
 
       if (response.ok) {

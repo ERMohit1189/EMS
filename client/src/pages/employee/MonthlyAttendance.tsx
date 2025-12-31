@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import {
   Select,
@@ -178,9 +179,7 @@ export default function MonthlyAttendance() {
       // For superadmin: keep existing behavior and fetch all teams
       if (isSuperAdmin) {
         console.log('[MonthlyAttendance] SuperAdmin - fetching all teams');
-        const response = await fetch(`${getApiBaseUrl()}/api/teams`, {
-          credentials: 'include',
-        });
+        const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams`);
         if (response.ok) {
           const data = await response.json();
           console.log('[MonthlyAttendance] Teams received:', data);
@@ -195,9 +194,7 @@ export default function MonthlyAttendance() {
       // For non-superadmins (admins and reporting users), only show teams where the
       // logged-in employee is a reporting person (RP1/RP2/RP3). Do not fall back to all teams.
       console.log('[MonthlyAttendance] Fetching teams where logged-in employee is a reporting person');
-      const reportingResponse = await fetch(`${getApiBaseUrl()}/api/teams/my-reporting-teams`, {
-        credentials: 'include',
-      });
+      const reportingResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/my-reporting-teams`);
 
       if (reportingResponse.ok) {
         const reportingTeams = await reportingResponse.json();
@@ -216,9 +213,7 @@ export default function MonthlyAttendance() {
   const fetchAllEmployees = async () => {
     try {
       setLoadingEmployees(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/employees`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees`);
       if (response.ok) {
         const data = await response.json();
         const employeeList = Array.isArray(data) ? data : [];
@@ -238,9 +233,7 @@ export default function MonthlyAttendance() {
   const fetchTeamEmployees = async (teamId: string) => {
     try {
       setLoadingEmployees(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/teams/${teamId}/members`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/teams/${teamId}/members`);
       if (response.ok) {
         const data = await response.json();
         const employeeList = Array.isArray(data) ? data : [];
@@ -275,9 +268,8 @@ export default function MonthlyAttendance() {
       console.debug('[MonthlyAttendance] fetchAttendance: selectedEmployee:', selectedEmployee, 'month:', month, 'year:', year);
 
       // Fetch holidays from Holiday Master
-      const holidaysResponse = await fetch(
-        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`,
-        { credentials: 'include' }
+      const holidaysResponse = await authenticatedFetch(
+        `${getApiBaseUrl()}/api/holidays/month/${year}/${month}`
       );
       const holidaysData = holidaysResponse.ok ? await holidaysResponse.json() : [];
       
@@ -298,9 +290,8 @@ export default function MonthlyAttendance() {
         }
       }
 
-      const response = await fetch(
-        `${getApiBaseUrl()}/api/attendance/${selectedEmployee}/${month}/${year}`,
-        { credentials: 'include' }
+      const response = await authenticatedFetch(
+        `${getApiBaseUrl()}/api/attendance/${selectedEmployee}/${month}/${year}`
       );
       
       if (response.ok) {
@@ -408,9 +399,8 @@ export default function MonthlyAttendance() {
         setLeaveTypes(cached);
         return;
       }
-      const response = await fetch(
-        `${getApiBaseUrl()}/api/leave-allotments/employee/${selectedEmployee}/${year}`,
-        { credentials: 'include' }
+      const response = await authenticatedFetch(
+        `${getApiBaseUrl()}/api/leave-allotments/employee/${selectedEmployee}/${year}`
       );
 
       if (response.ok) {
@@ -449,9 +439,8 @@ export default function MonthlyAttendance() {
       const payloadAttendance = { ...attendance };
       try {
         setLoading(true);
-        const res = await fetch(`${getApiBaseUrl()}/api/attendance`, {
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance`, {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             employeeId: selectedEmployee,
@@ -593,10 +582,9 @@ export default function MonthlyAttendance() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/attendance/lock`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           employeeId: selectedEmployee,
           month,
@@ -640,10 +628,9 @@ export default function MonthlyAttendance() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${getApiBaseUrl()}/api/attendance`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           employeeId: selectedEmployee,
           month,

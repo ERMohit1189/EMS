@@ -19,6 +19,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> GetHoliday(string id)
         {
             var holiday = await _holidayService.GetHolidayByIdAsync(id);
@@ -37,6 +38,7 @@ namespace VendorRegistrationBackend.Controllers
         }
 
         [HttpGet("year/{year}")]
+        [Authorize(Roles = "admin,superadmin")]
         public async Task<IActionResult> GetHolidaysByYear(int year)
         {
             if (year < 2020 || year > 2099)

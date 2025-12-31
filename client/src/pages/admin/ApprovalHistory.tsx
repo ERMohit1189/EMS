@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { ChevronLeft, ChevronRight, Filter, Download, Printer, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -47,9 +48,10 @@ const STATUS_COLORS = {
 export default function ApprovalHistory() {
     // Role-based access control
     const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
+    const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
     const isSuperAdmin = employeeRole === 'superadmin';
     const isAdmin = employeeRole === 'admin';
-    const isAllowed = isSuperAdmin || isAdmin;
+    const isAllowed = isSuperAdmin || isAdmin || isReportingPerson;
     if (!isAllowed) {
       return (
         <div className="flex flex-col items-center justify-center h-[60vh]">
@@ -121,7 +123,7 @@ export default function ApprovalHistory() {
   useEffect(() => {
     const fetchAppSettings = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, { credentials: 'include' });
+        const response = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`);
         if (response.ok) {
           const data = await response.json();
           setRequiredApprovals(data.approvalsRequiredForAllowance || 1);
@@ -152,7 +154,7 @@ export default function ApprovalHistory() {
         // Admin can see ALL employees in the system
         try {
           console.log('[ApprovalHistory] Fetching all employees from API');
-          const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`, { credentials: 'include' });
+          const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`);
           if (response.ok) {
             const data = await response.json();
             console.log('[ApprovalHistory] All employees from API:', data);
@@ -173,7 +175,7 @@ export default function ApprovalHistory() {
         try {
           console.log('[ApprovalHistory] Fetching team members for non-admin user');
           const url = `${getApiBaseUrl()}/api/allowances/pending?employeeId=${storedEmployeeId}`;
-          const response = await fetch(url, { credentials: 'include' });
+          const response = await authenticatedFetch(url);
           if (response.ok) {
             const data = await response.json();
             const teamRecords = data.data || [];
@@ -219,7 +221,7 @@ export default function ApprovalHistory() {
         return;
       }
       
-      const response = await fetch(url, { credentials: 'include' });
+      const response = await authenticatedFetch(url);
       if (response.ok) {
         const data = await response.json();
         const allRecords = data.data || [];
@@ -249,7 +251,7 @@ export default function ApprovalHistory() {
   // Fetch approver names from IDs
   const fetchApproverNames = async (approverIds: string[]) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=500`);
       if (response.ok) {
         const data = await response.json();
         const allEmployees = data.data || [];

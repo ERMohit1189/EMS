@@ -286,6 +286,11 @@ const adminMenuGroups = [
         icon: Mail,
         href: "/admin/email-settings",
       },
+      {
+        title: "Report Builder",
+        icon: BarChart3,
+        href: "/vendor/report-builder",
+      },
     ],
   },
   {

@@ -5,6 +5,7 @@ import SmartSearchTextbox, { Suggestion } from "@/components/SmartSearchTextbox"
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import type { Vendor } from "@shared/schema";
 import { useLocation } from "wouter";
 
@@ -32,7 +33,7 @@ export default function VendorRates() {
 
   const fetchVendors = async () => {
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`, { credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`);
       if (!res.ok) throw new Error('Failed to fetch vendors');
       const json = await res.json();
       const vendorsData = json.data || [];
@@ -52,7 +53,7 @@ export default function VendorRates() {
   const loadRates = async (vendorId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/rates`, { credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/rates`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('Failed to load rates', json);
@@ -71,10 +72,9 @@ export default function VendorRates() {
     if (!selectedVendor) { toast({ title: 'Error', description: 'Select vendor first', variant: 'destructive' }); return; }
     if (!antenna || !amount) { toast({ title: 'Error', description: 'Antenna and amount required', variant: 'destructive' }); return; }
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates`, {
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ antennaSize: antenna, vendorAmount: amount })
       });
       const json = await res.json().catch(() => ({}));
@@ -95,7 +95,7 @@ export default function VendorRates() {
     if (!selectedVendor) return;
     if (!confirm(`Delete rate for ${ant} kVA?`)) return;
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates/${ant}`, { method: 'DELETE', credentials: 'include' });
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${selectedVendor}/rates/${ant}`, { method: 'DELETE' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('Delete vendor rate failed', json);

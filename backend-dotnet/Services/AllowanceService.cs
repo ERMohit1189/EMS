@@ -399,6 +399,7 @@ namespace VendorRegistrationBackend.Services
         private async Task<DailyAllowanceResponseDto> MapToResponseAsync(DailyAllowance allowance)
         {
             var employee = await _context.Employees.FindAsync(allowance.EmployeeId);
+            var team = string.IsNullOrEmpty(allowance.TeamId) ? null : await _context.Teams.FindAsync(allowance.TeamId);
 
             var allowanceData = string.IsNullOrEmpty(allowance.AllowanceData)
                 ? new AllowanceDataDto()
@@ -418,6 +419,7 @@ namespace VendorRegistrationBackend.Services
                 EmployeeId = allowance.EmployeeId,
                 EmployeeName = employee?.Name,
                 TeamId = allowance.TeamId,
+                TeamName = team?.Name,
                 Date = allowance.Date,
                 AllowanceData = allowanceData,
                 ApprovalStatus = allowance.ApprovalStatus,

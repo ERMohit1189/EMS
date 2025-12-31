@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
-import { Receipt, Calendar, FileText, Search, RefreshCw, AlertCircle } from "lucide-react";
+import { Receipt, Calendar, FileText, Search, RefreshCw, AlertCircle, Download } from "lucide-react";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
 
 interface Invoice {
   id: string;
@@ -172,6 +173,42 @@ export default function VendorInvoiceReport() {
     return sum + parseFloat(site?.vendorAmount || "0");
   }, 0);
 
+  const downloadExcel = () => {
+    if (filteredInvoices.length === 0) {
+      toast({ title: "No data", description: "No invoices to download", variant: "destructive" });
+      return;
+    }
+
+    const formattedData = filteredInvoices.map((invoice) => ({
+      'Invoice Number': invoice.invoiceNumber,
+      'Invoice Date': invoice.invoiceDate ? format(new Date(invoice.invoiceDate), "dd MMM yyyy") : "N/A",
+      'Due Date': invoice.dueDate ? format(new Date(invoice.dueDate), "dd MMM yyyy") : "N/A",
+      'Amount': parseFloat(invoice.amount),
+      'GST': parseFloat(invoice.gst || "0"),
+      'Total Amount': parseFloat(invoice.totalAmount),
+      'Status': invoice.status,
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 18 },  // Invoice Number
+      { wch: 15 },  // Invoice Date
+      { wch: 15 },  // Due Date
+      { wch: 15 },  // Amount
+      { wch: 15 },  // GST
+      { wch: 15 },  // Total Amount
+      { wch: 12 },  // Status
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+    XLSX.writeFile(workbook, `vendor-invoice-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast({ title: "Success", description: "Invoice report downloaded successfully" });
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -184,10 +221,16 @@ export default function VendorInvoiceReport() {
             <p className="text-gray-500">View and filter your invoices</p>
           </div>
         </div>
-        <Button onClick={fetchInvoices} variant="outline" data-testid="button-refresh">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={downloadExcel} variant="outline" data-testid="button-export">
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button onClick={fetchInvoices} variant="outline" data-testid="button-refresh">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <Card>

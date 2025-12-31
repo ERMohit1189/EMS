@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
@@ -24,6 +25,9 @@ export default function VendorChangePassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const vendorId = localStorage.getItem('vendorId');
 
   const form = useForm<z.infer<typeof changePasswordSchema>>({
@@ -45,11 +49,11 @@ export default function VendorChangePassword() {
   async function onSubmit(values: z.infer<typeof changePasswordSchema>) {
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/change-password`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/${vendorId}/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          currentPassword: values.currentPassword,
+          oldPassword: values.currentPassword,
           newPassword: values.newPassword,
         }),
       });
@@ -93,7 +97,27 @@ export default function VendorChangePassword() {
                 <FormItem>
                   <FormLabel>Current Password <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter current password" {...field} disabled={loading} />
+                    <div className="relative">
+                      <Input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        placeholder="Enter current password"
+                        {...field}
+                        disabled={loading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        disabled={loading}
+                      >
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -103,7 +127,27 @@ export default function VendorChangePassword() {
                 <FormItem>
                   <FormLabel>New Password <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter new password" {...field} disabled={loading} />
+                    <div className="relative">
+                      <Input
+                        type={showNewPassword ? 'text' : 'password'}
+                        placeholder="Enter new password"
+                        {...field}
+                        disabled={loading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        disabled={loading}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -113,7 +157,27 @@ export default function VendorChangePassword() {
                 <FormItem>
                   <FormLabel>Confirm New Password <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Confirm new password" {...field} disabled={loading} />
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirm new password"
+                        {...field}
+                        disabled={loading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        disabled={loading}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

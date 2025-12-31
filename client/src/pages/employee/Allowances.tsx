@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { Download, Printer } from 'lucide-react';
 import { fetchExportHeader, type ExportHeader } from '@/lib/exportUtils';
@@ -145,7 +146,7 @@ export default function Allowances() {
     }
     try {
       const url = `${getApiBaseUrl()}/api/teams/employee/${employeeId}`;
-      const response = await fetch(url, { credentials: 'include' });
+      const response = await authenticatedFetch(url);
       if (response.ok) {
         const data = await response.json();
         return data || [];
@@ -164,7 +165,7 @@ export default function Allowances() {
     setLoadingMembers(true);
     try {
       const url = `${getApiBaseUrl()}/api/teams/${teamId}/members`;
-      const response = await fetch(url, { credentials: 'include' });
+      const response = await authenticatedFetch(url);
       if (response.ok) {
         const data = await response.json();
         setTeamMembers(data || []);
@@ -208,7 +209,7 @@ export default function Allowances() {
 
       // Fetch allowances and teams in parallel
       const [allowancesResponse, teamsData] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`, { credentials: 'include' }),
+        authenticatedFetch(`${getApiBaseUrl()}/api/allowances/${employeeId}?month=${m}&year=${y}`),
         fetchTeams()
       ]);
 
@@ -243,7 +244,7 @@ export default function Allowances() {
   const fetchCaps = async () => {
     if (!employeeId) return;
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/caps/${employeeId}`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/allowances/caps/${employeeId}`);
       if (response.ok) {
         const data = await response.json();
         setCaps(data);
@@ -272,7 +273,7 @@ export default function Allowances() {
 
   const fetchAppSettings = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`);
       if (response.ok) {
         const data = await response.json();
         setRequiredApprovals(data.approvalsRequiredForAllowance || 1);
@@ -390,9 +391,8 @@ export default function Allowances() {
         allowanceData: JSON.stringify(allowanceData),
       };
 
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/bulk`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/allowances/bulk`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -483,9 +483,8 @@ export default function Allowances() {
 
     setDeleting(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${id}`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/allowances/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       if (response.ok) {
         toast({

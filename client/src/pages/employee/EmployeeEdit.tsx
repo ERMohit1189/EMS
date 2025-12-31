@@ -6,6 +6,7 @@ import { useLocation, useRoute } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { IndianStates, getCitiesByState } from "@/assets/india-data";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import {
   Form,
   FormControl,
@@ -124,6 +125,7 @@ export default function EmployeeEdit() {
   const [employee, setEmployee] = useState<any>(null);
   const stateInputRef = useRef<HTMLInputElement>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
+  const initialStateRef = useRef<string | null>(null);
   const { isLoading, withLoaderMultiple } = usePageLoader();
 
   const employeeId = params?.id;
@@ -132,19 +134,16 @@ export default function EmployeeEdit() {
     const loadData = async () => {
       await withLoaderMultiple([
         () =>
-          fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, {
+          authenticatedFetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, {
             cache: "no-store",
-            credentials: 'include',
           }).then((r) => (r.ok ? r.json() : null)),
         () =>
-          fetch(`${getApiBaseUrl()}/api/departments`, {
+          authenticatedFetch(`${getApiBaseUrl()}/api/departments`, {
             cache: "no-store",
-            credentials: 'include',
           }).then((r) => (r.ok ? r.json() : [])),
         () =>
-          fetch(`${getApiBaseUrl()}/api/designations`, {
+          authenticatedFetch(`${getApiBaseUrl()}/api/designations`, {
             cache: "no-store",
-            credentials: 'include',
           }).then((r) => (r.ok ? r.json() : [])),
       ])
         .then(([emp, depts, desigs]) => {
@@ -185,7 +184,7 @@ export default function EmployeeEdit() {
     defaultValues: {
       name: employee?.name || "",
       email: employee?.email || "",
-      dob: employee?.dob ? employee.dob : "",
+      dob: employee?.dateOfBirth ? employee.dateOfBirth : "",
       fatherName: employee?.fatherName || "",
       mobile: employee?.mobile || "",
       alternateNo: employee?.alternateNo || "",
@@ -211,86 +210,57 @@ export default function EmployeeEdit() {
 
   useEffect(() => {
     if (employee) {
-      // Sync form values with employee data for all fields
-      form.setValue("name", employee.name || "", { shouldValidate: false });
-      form.setValue("email", employee.email || "", { shouldValidate: false });
-      form.setValue("dob", employee.dob || "", { shouldValidate: false });
-      form.setValue("fatherName", employee.fatherName || "", {
-        shouldValidate: false,
-      });
-      form.setValue("mobile", employee.mobile || "", { shouldValidate: false });
-      form.setValue("alternateNo", employee.alternateNo || "", {
-        shouldValidate: false,
-      });
-      form.setValue("address", employee.address || "", {
-        shouldValidate: false,
-      });
-      form.setValue("city", employee.city || "", { shouldValidate: false });
-      form.setValue("state", employee.state || "", { shouldValidate: false });
-      // Preload city options for the employee's state so the existing city is selectable
-      setCities(getCitiesByState(employee.state || ""));
-      form.setValue("country", employee.country || "India", {
-        shouldValidate: false,
-      });
-      form.setValue("role", employee.role, { shouldValidate: false });
-      form.setValue("departmentId", employee.departmentId || "", {
-        shouldValidate: false,
-      });
-      form.setValue("designationId", employee.designationId || "", {
-        shouldValidate: false,
-      });
-      form.setValue("doj", employee.doj, { shouldValidate: false });
-      form.setValue("aadhar", employee.aadhar || "", { shouldValidate: false });
-      form.setValue("pan", employee.pan || "", { shouldValidate: false });
-      form.setValue("bloodGroup", employee.bloodGroup || "", {
-        shouldValidate: false,
-      });
-      form.setValue("maritalStatus", employee.maritalStatus || "Single", {
-        shouldValidate: false,
-      });
-      form.setValue("spouseName", employee.spouseName || "", {
-        shouldValidate: false,
-      });
-      form.setValue("nominee", employee.nominee || "", {
-        shouldValidate: false,
-      });
-      form.setValue("ppeKit", employee.ppeKit || false, {
-        shouldValidate: false,
-      });
-      form.setValue("kitNo", employee.kitNo || "", { shouldValidate: false });
-      form.setValue("status", employee.status || "Active", {
-        shouldValidate: false,
-      });
-      // Only calculate age if DOB has a valid date
-      if (employee.dob && employee.dob.trim()) {
-        calculateAge(employee.dob);
+      console.log('[EmployeeEdit] Employee loaded, resetting form with values:', employee);
+
+      // Set the initial state for comparison in the state change effect
+      initialStateRef.current = employee.state || null;
+
+      // Preload city options for the employee's state
+      if (employee.state) {
+        setCities(getCitiesByState(employee.state));
+      }
+
+      // Calculate age if DOB is available
+      if (employee.dateOfBirth && employee.dateOfBirth.trim()) {
+        calculateAge(employee.dateOfBirth);
       } else {
         setAge(null);
       }
+
+      // Reset form with all employee values at once
+      // Use Promise.resolve().then() to defer reset until next microtask, allowing Select components to fully render first
+      Promise.resolve().then(() => {
+        form.reset({
+          name: employee.name || "",
+          email: employee.email || "",
+          dob: employee.dateOfBirth || "",
+          fatherName: employee.fatherName || "",
+          mobile: employee.mobile || "",
+          alternateNo: employee.alternateNo || "",
+          address: employee.address || "",
+          city: employee.city || "",
+          state: employee.state || "",
+          country: employee.country || "India",
+          role: employee.role || "user",
+          departmentId: employee.departmentId || "",
+          designationId: employee.designationId || "",
+          doj: employee.doj || "",
+          aadhar: employee.aadhar || "",
+          pan: employee.pan || "",
+          bloodGroup: employee.bloodGroup || "",
+          maritalStatus: employee.maritalStatus || "Single",
+          spouseName: employee.spouseName || "",
+          nominee: employee.nominee || "",
+          ppeKit: employee.ppeKit || false,
+          kitNo: employee.kitNo || "",
+          status: employee.status || "Active",
+        }, { keepDirty: false, keepTouched: false });
+
+        console.log('[EmployeeEdit] Form reset complete');
+      });
     }
   }, [employee, form]);
 
-  // Ensure department select value is applied after departments load
-  useEffect(() => {
-    if (!employee) return;
-    if (departments && departments.length > 0) {
-      const deptId = employee.departmentId || "";
-      if (deptId) {
-        form.setValue("departmentId", deptId, { shouldValidate: false });
-      }
-    }
-  }, [departments, employee, form]);
-
-  // Ensure designation select value is applied after designations load
-  useEffect(() => {
-    if (!employee) return;
-    if (designations && designations.length > 0) {
-      const desigId = employee.designationId || "";
-      if (desigId) {
-        form.setValue("designationId", desigId, { shouldValidate: false });
-      }
-    }
-  }, [designations, employee, form]);
 
   const calculateAge = (dob: string) => {
     if (!dob) {
@@ -325,7 +295,10 @@ export default function EmployeeEdit() {
     if (watchedState) {
       setCities(getCitiesByState(watchedState));
       // Only clear city when state was changed by the user (not during initial population)
-      if (watchedState !== employee?.state) {
+      // Compare with initialStateRef to detect user changes, not initial load
+      const isUserChange = initialStateRef.current !== null && watchedState !== initialStateRef.current;
+
+      if (isUserChange) {
         form.setValue("city", "", { shouldValidate: false });
         setCitySearch("");
       }
@@ -334,7 +307,7 @@ export default function EmployeeEdit() {
       form.setValue("city", "", { shouldValidate: false });
       setCitySearch("");
     }
-  }, [watchedState, form, employee?.state]);
+  }, [watchedState, form]);
 
   useEffect(() => {
     calculateAge(watchedDob || "");
@@ -354,7 +327,6 @@ export default function EmployeeEdit() {
     try {
       const payload = {
         name: values.name,
-        email: values.email,
         fatherName: values.fatherName,
         mobile: values.mobile,
         alternateNo: values.alternateNo,
@@ -362,14 +334,14 @@ export default function EmployeeEdit() {
         city: values.city,
         state: values.state,
         country: values.country,
-        dob: values.dob,
+        dateOfBirth: values.dob ? new Date(values.dob).toISOString().split('T')[0] : null,
         aadhar: values.aadhar,
         pan: values.pan,
         bloodGroup: values.bloodGroup,
         maritalStatus: values.maritalStatus,
         spouseName: values.spouseName,
         nominee: values.nominee,
-        doj: values.doj,
+        dateOfJoining: values.doj ? new Date(values.doj).toISOString().split('T')[0] : null,
         departmentId: values.departmentId,
         designationId: values.designationId,
         role: values.role,
@@ -378,11 +350,10 @@ export default function EmployeeEdit() {
         kitNo: values.kitNo,
       };
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${getApiBaseUrl()}/api/employees/${employeeId}`,
         {
           method: "PUT",
-          credentials: 'include',
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         },

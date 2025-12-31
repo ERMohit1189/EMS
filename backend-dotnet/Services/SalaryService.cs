@@ -126,12 +126,32 @@ namespace VendorRegistrationBackend.Services
 
         public async Task<List<dynamic>> GenerateSalariesAsync(int month, int year, bool missingOnly = false)
         {
-            var salaryStructures = await _context.SalaryStructures
+            // Get existing generated salary employee ids for this month/year
+            var existingRows = await _context.GeneratedSalaries
+                .Where(gs => gs.Month == month && gs.Year == year)
+                .Select(gs => gs.EmployeeId)
+                .ToListAsync();
+            var existingEmployeeIds = (existingRows ?? new List<string>()).Where(id => !string.IsNullOrEmpty(id)).ToList();
+
+            Console.WriteLine($"[SalaryService] GenerateSalariesAsync - missingOnly: {missingOnly}, existing employees: {existingEmployeeIds.Count}");
+
+            var allSalaryStructures = await _context.SalaryStructures
                 .Include(ss => ss.Employee)
                 .ThenInclude(e => e.Department)
                 .Include(ss => ss.Employee)
                 .ThenInclude(e => e.Designation)
                 .ToListAsync();
+
+            // Filter salary structures based on missingOnly flag
+            var salaryStructures = allSalaryStructures;
+            if (missingOnly && existingEmployeeIds.Count > 0)
+            {
+                // Only include employees that DON'T have salaries generated yet
+                salaryStructures = allSalaryStructures
+                    .Where(ss => !existingEmployeeIds.Contains(ss.EmployeeId))
+                    .ToList();
+                Console.WriteLine($"[SalaryService] Filtered to {salaryStructures.Count} missing employees (from {allSalaryStructures.Count} total)");
+            }
 
             // Get holidays for this month
             var holidays = await _context.Holidays
@@ -338,61 +358,81 @@ namespace VendorRegistrationBackend.Services
         {
             try
             {
-                // Check if salaries already exist for this month/year
-                var existingCount = await _context.GeneratedSalaries
-                    .Where(gs => gs.Month == month && gs.Year == year)
-                    .CountAsync();
+                Console.WriteLine($"[SalaryService] SaveGeneratedSalariesAsync - saving {salaries.Count} salaries for {month}/{year}");
 
-                if (existingCount > 0)
-                {
-                    throw new Exception($"Salaries already saved for {month}/{year}. Delete saved salaries to regenerate.");
-                }
+                int savedCount = 0;
+                int updatedCount = 0;
 
-                int count = 0;
                 foreach (var s in salaries)
                 {
-                    var generatedSalary = new GeneratedSalary
+                    try
                     {
-                        Id = Guid.NewGuid().ToString(),
-                        EmployeeId = s.EmployeeId ?? string.Empty,
-                        Month = month,
-                        Year = year,
-                        TotalDays = s.TotalDays,
-                        PresentDays = s.PresentDays,
-                        HalfDays = s.HalfDays,
-                        AbsentDays = s.AbsentDays,
-                        LeaveDays = s.LeaveDays,
-                        Sundays = s.Sundays,
-                        Holidays = s.Holidays,
-                        WorkingDays = s.WorkingDays,
-                        SalaryDays = s.SalaryDays,
-                        BasicSalary = s.BasicSalary,
-                        HRA = s.HRA,
-                        DA = s.DA,
-                        LTA = s.LTA,
-                        Conveyance = s.Conveyance,
-                        Medical = s.Medical,
-                        Bonuses = s.Bonuses,
-                        OtherBenefits = s.OtherBenefits,
-                        GrossSalary = s.GrossSalary,
-                        PerDaySalary = s.PerDaySalary,
-                        EarnedSalary = s.EarnedSalary,
-                        PF = s.PF,
-                        ProfessionalTax = s.ProfessionalTax,
-                        IncomeTax = s.IncomeTax,
-                        EPF = s.EPF,
-                        ESIC = s.ESIC,
-                        FixedDeductions = s.FixedDeductions,
-                        AbsentDaysDeduction = s.AbsentDaysDeduction,
-                        TotalDeductions = s.TotalDeductions,
-                        NetSalary = s.NetSalary,
-                        GeneratedBy = generatedBy,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
+                        // Upsert logic: check if salary for this employee/month/year already exists
+                        var existing = await _context.GeneratedSalaries
+                            .FirstOrDefaultAsync(gs => gs.EmployeeId == s.EmployeeId && gs.Month == month && gs.Year == year);
 
-                    _context.GeneratedSalaries.Add(generatedSalary);
-                    count++;
+                        var generatedSalary = new GeneratedSalary
+                        {
+                            EmployeeId = s.EmployeeId ?? string.Empty,
+                            Month = month,
+                            Year = year,
+                            TotalDays = s.TotalDays,
+                            PresentDays = s.PresentDays,
+                            HalfDays = s.HalfDays,
+                            AbsentDays = s.AbsentDays,
+                            LeaveDays = s.LeaveDays,
+                            Sundays = s.Sundays,
+                            Holidays = s.Holidays,
+                            WorkingDays = s.WorkingDays,
+                            SalaryDays = s.SalaryDays,
+                            BasicSalary = s.BasicSalary,
+                            HRA = s.HRA,
+                            DA = s.DA,
+                            LTA = s.LTA,
+                            Conveyance = s.Conveyance,
+                            Medical = s.Medical,
+                            Bonuses = s.Bonuses,
+                            OtherBenefits = s.OtherBenefits,
+                            GrossSalary = s.GrossSalary,
+                            PerDaySalary = s.PerDaySalary,
+                            EarnedSalary = s.EarnedSalary,
+                            PF = s.PF,
+                            ProfessionalTax = s.ProfessionalTax,
+                            IncomeTax = s.IncomeTax,
+                            EPF = s.EPF,
+                            ESIC = s.ESIC,
+                            FixedDeductions = s.FixedDeductions,
+                            AbsentDaysDeduction = s.AbsentDaysDeduction,
+                            TotalDeductions = s.TotalDeductions,
+                            NetSalary = s.NetSalary,
+                            GeneratedBy = generatedBy,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+
+                        if (existing != null)
+                        {
+                            // Update existing record
+                            generatedSalary.Id = existing.Id;
+                            generatedSalary.CreatedAt = existing.CreatedAt;
+                            _context.GeneratedSalaries.Update(generatedSalary);
+                            updatedCount++;
+                            Console.WriteLine($"[SalaryService] Updated salary for employee {s.EmployeeId}");
+                        }
+                        else
+                        {
+                            // Insert new record
+                            generatedSalary.Id = Guid.NewGuid().ToString();
+                            generatedSalary.CreatedAt = DateTime.UtcNow;
+                            _context.GeneratedSalaries.Add(generatedSalary);
+                            savedCount++;
+                            Console.WriteLine($"[SalaryService] Saved new salary for employee {s.EmployeeId}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"[SalaryService] Error saving salary for employee {s.EmployeeId}: {ex.Message}");
+                        // Continue with next employee instead of failing entire operation
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -400,7 +440,9 @@ namespace VendorRegistrationBackend.Services
                 // Lock attendance for this month/year (similar to Node.js behavior)
                 await LockAttendanceForMonthAsync(month, year);
 
-                return new DTOs.SaveGeneratedSalariesResultDto { Success = true, Count = count, Message = $"Saved {count} salaries." };
+                var totalCount = savedCount + updatedCount;
+                Console.WriteLine($"[SalaryService] Saved {savedCount} new salaries, updated {updatedCount} existing salaries. Total: {totalCount}");
+                return new DTOs.SaveGeneratedSalariesResultDto { Success = true, Count = totalCount, Message = $"Saved {savedCount} salaries, updated {updatedCount} existing salaries." };
             }
             catch (Exception ex)
             {
@@ -418,7 +460,10 @@ namespace VendorRegistrationBackend.Services
             if (!string.IsNullOrEmpty(search))
             {
                 search = search.ToLower();
-                query = query.Where(gs => gs.Employee != null && gs.Employee.Name != null && gs.Employee.Name.ToLower().Contains(search));
+                query = query.Where(gs =>
+                    (gs.EmployeeId == search) ||
+                    (gs.Employee != null && gs.Employee.Name != null && gs.Employee.Name.ToLower().Contains(search))
+                );
             }
 
             var total = await query.CountAsync();
@@ -431,15 +476,53 @@ namespace VendorRegistrationBackend.Services
             var result = new List<dynamic>();
             foreach (var salary in salaries)
             {
+                // Calculate earnedSalary if it's 0 (for backwards compatibility with old records)
+                var earnedSalary = salary.EarnedSalary;
+                if (earnedSalary == 0 && salary.PerDaySalary > 0 && salary.SalaryDays > 0)
+                {
+                    earnedSalary = salary.PerDaySalary * salary.SalaryDays;
+                    Console.WriteLine($"[SalaryService] Calculated earnedSalary for {salary.EmployeeId}: {earnedSalary}");
+                }
+
                 result.Add(new
                 {
                     id = salary.Id,
                     employeeId = salary.EmployeeId,
                     employeeCode = salary.Employee?.EmpCode ?? "",
                     employeeName = salary.Employee?.Name ?? "",
-                    netSalary = salary.NetSalary,
+                    department = salary.Employee?.Department?.Name ?? "N/A",
+                    designation = salary.Employee?.Designation?.Name ?? "N/A",
+                    totalDays = salary.TotalDays,
+                    presentDays = salary.PresentDays,
+                    halfDays = salary.HalfDays,
+                    absentDays = salary.AbsentDays,
+                    leaveDays = salary.LeaveDays,
+                    sundays = salary.Sundays,
+                    holidays = salary.Holidays,
+                    workingDays = salary.WorkingDays,
+                    salaryDays = salary.SalaryDays,
+                    basicSalary = salary.BasicSalary,
+                    hra = salary.HRA,
+                    da = salary.DA,
+                    lta = salary.LTA,
+                    conveyance = salary.Conveyance,
+                    medical = salary.Medical,
+                    bonuses = salary.Bonuses,
+                    otherBenefits = salary.OtherBenefits,
                     grossSalary = salary.GrossSalary,
+                    perDaySalary = salary.PerDaySalary,
+                    earnedSalary = Math.Round(earnedSalary, 2),
+                    pf = salary.PF,
+                    professionalTax = salary.ProfessionalTax,
+                    incomeTax = salary.IncomeTax,
+                    epf = salary.EPF,
+                    esic = salary.ESIC,
+                    fixedDeductions = salary.FixedDeductions,
+                    absentDaysDeduction = salary.AbsentDaysDeduction,
                     totalDeductions = salary.TotalDeductions,
+                    netSalary = salary.NetSalary,
+                    month = salary.Month,
+                    year = salary.Year,
                     createdAt = salary.CreatedAt
                 });
             }
@@ -472,6 +555,80 @@ namespace VendorRegistrationBackend.Services
         {
             return await _context.GeneratedSalaries
                 .AnyAsync(gs => gs.EmployeeId == employeeId && gs.Month == month && gs.Year == year);
+        }
+
+        // Efficient single-query method to get all salary history for an employee (fixes N+1 query problem)
+        public async Task<List<dynamic>> GetEmployeeSalaryHistoryAsync(string employeeId)
+        {
+            Console.WriteLine($"[SalaryService] GetEmployeeSalaryHistoryAsync - fetching all salary records for employee {employeeId}");
+
+            // Fetch ALL salary records in ONE query instead of 60 separate queries
+            var salaries = await _context.GeneratedSalaries
+                .Where(gs => gs.EmployeeId == employeeId)
+                .Include(gs => gs.Employee)
+                .ThenInclude(e => e.Department)
+                .Include(gs => gs.Employee)
+                .ThenInclude(e => e.Designation)
+                .OrderByDescending(gs => gs.Year)
+                .ThenByDescending(gs => gs.Month)
+                .ToListAsync();
+
+            Console.WriteLine($"[SalaryService] Found {salaries.Count} salary records in 1 query");
+
+            var result = new List<dynamic>();
+            foreach (var salary in salaries)
+            {
+                // Calculate earnedSalary if it's 0 (for backwards compatibility with old records)
+                var earnedSalary = salary.EarnedSalary;
+                if (earnedSalary == 0 && salary.PerDaySalary > 0 && salary.SalaryDays > 0)
+                {
+                    earnedSalary = salary.PerDaySalary * salary.SalaryDays;
+                }
+
+                result.Add(new
+                {
+                    id = salary.Id,
+                    employeeId = salary.EmployeeId,
+                    employeeCode = salary.Employee?.EmpCode ?? "",
+                    employeeName = salary.Employee?.Name ?? "",
+                    department = salary.Employee?.Department?.Name ?? "N/A",
+                    designation = salary.Employee?.Designation?.Name ?? "N/A",
+                    totalDays = salary.TotalDays,
+                    presentDays = salary.PresentDays,
+                    halfDays = salary.HalfDays,
+                    absentDays = salary.AbsentDays,
+                    leaveDays = salary.LeaveDays,
+                    sundays = salary.Sundays,
+                    holidays = salary.Holidays,
+                    workingDays = salary.WorkingDays,
+                    salaryDays = salary.SalaryDays,
+                    basicSalary = salary.BasicSalary,
+                    hra = salary.HRA,
+                    da = salary.DA,
+                    lta = salary.LTA,
+                    conveyance = salary.Conveyance,
+                    medical = salary.Medical,
+                    bonuses = salary.Bonuses,
+                    otherBenefits = salary.OtherBenefits,
+                    grossSalary = salary.GrossSalary,
+                    perDaySalary = salary.PerDaySalary,
+                    earnedSalary = Math.Round(earnedSalary, 2),
+                    pf = salary.PF,
+                    professionalTax = salary.ProfessionalTax,
+                    incomeTax = salary.IncomeTax,
+                    epf = salary.EPF,
+                    esic = salary.ESIC,
+                    fixedDeductions = salary.FixedDeductions,
+                    absentDaysDeduction = salary.AbsentDaysDeduction,
+                    totalDeductions = salary.TotalDeductions,
+                    netSalary = salary.NetSalary,
+                    month = salary.Month,
+                    year = salary.Year,
+                    createdAt = salary.CreatedAt
+                });
+            }
+
+            return result;
         }
 
         public async Task<List<dynamic>> GetSalaryGeneratedSummariesAsync()

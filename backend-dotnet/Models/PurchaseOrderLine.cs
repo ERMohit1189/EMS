@@ -5,6 +5,7 @@ namespace VendorRegistrationBackend.Models
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string PoId { get; set; } = string.Empty; // Required, Foreign Key
         public string SiteId { get; set; } = string.Empty; // Required, Foreign Key
+        public string? PlanId { get; set; } // Plan ID for duplicate detection during import
 
         // Line Details
         public string? Description { get; set; } // Required

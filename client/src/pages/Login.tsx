@@ -81,7 +81,6 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: "include",
       });
 
       const data = await response.json();
@@ -100,15 +99,29 @@ export default function Login() {
 
       console.log("[Login] Before storing - response data:", data);
 
+      // Store JWT token
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        console.log('[Login] JWT token stored successfully');
+      } else {
+        console.warn('[Login] No token received from server');
+      }
+
       // Store login info in localStorage
       try {
         // Helper to add a short cache-busting query param so replacing the same filename shows immediately
         const addCacheBuster = (url: string) => {
           if (!url) return '';
           try {
-            const u = new URL(url, window.location.origin);
-            u.searchParams.set('v', String(Date.now()));
-            return u.toString();
+            // If already a full URL, add cache buster directly
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              const u = new URL(url);
+              u.searchParams.set('v', String(Date.now()));
+              return u.toString();
+            }
+            // For relative paths, just add cache buster without modifying the path
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}v=${Date.now()}`;
           } catch (e) {
             const sep = url.includes('?') ? '&' : '?';
             return `${url}${sep}v=${Date.now()}`;
@@ -131,17 +144,22 @@ export default function Login() {
         localStorage.setItem("employeeId", data.user.id);
         localStorage.setItem("employeeEmail", data.user.email);
         localStorage.setItem("employeeName", data.user.name);
-        localStorage.setItem("employeeCode", data.user.empCode || data.user.id);
+        localStorage.setItem("employeeCode", data.user.empCode || "");
         localStorage.setItem("employeePhoto", photoUrl);
 
         // Store last login type for session expiry redirect
         localStorage.setItem("lastLoginType", "admin");
 
-        // CRITICAL: Set browserSessionId to mark this as an active session
-        // This prevents App.tsx from treating page refresh as a new browser session
-        const browserSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        sessionStorage.setItem('browserSessionId', browserSessionId);
-        console.log('[Login] Browser session ID set:', browserSessionId);
+        // Store reporting person status if available
+        if (data.user.isReportingPerson !== undefined) {
+          const isRPValue = data.user.isReportingPerson ? "true" : "false";
+          localStorage.setItem("isReportingPerson", isRPValue);
+          console.log('[Login] Stored isReportingPerson:', isRPValue);
+        }
+        if (data.user.reportingTeamIds) {
+          localStorage.setItem('reportingTeamIds', JSON.stringify(data.user.reportingTeamIds));
+          console.log('[Login] Stored reportingTeamIds:', data.user.reportingTeamIds);
+        }
 
         console.log("[Login] ✅ All stored successfully");
         console.log("[Login] Verification - what we stored:", {
@@ -149,6 +167,7 @@ export default function Login() {
           employeeRole: localStorage.getItem("employeeRole"),
           employeeId: localStorage.getItem("employeeId"),
           isLoggedIn: localStorage.getItem("isLoggedIn"),
+          isReportingPerson: localStorage.getItem("isReportingPerson"),
         });
       } catch (storageError) {
         console.error("[Login] ❌ Storage error:", storageError);
@@ -165,7 +184,7 @@ export default function Login() {
 
       toast({
         title: "Success",
-        description: `Logged in as ${data.employee.name}`,
+        description: `Logged in as ${data.user.name}`,
       });
 
       // Dispatch login event to App component - trigger header update

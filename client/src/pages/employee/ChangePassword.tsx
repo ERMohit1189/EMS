@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { Lock, Check } from "lucide-react";
 import { z } from "zod";
 
@@ -77,14 +78,13 @@ export default function ChangePassword() {
 
     try {
       const employeeId = localStorage.getItem("employeeId");
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/change-password`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/${employeeId}/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
         }),
-        credentials: "include",
       });
 
       const data = await response.json();

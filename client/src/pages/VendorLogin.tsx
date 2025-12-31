@@ -10,8 +10,8 @@ import { Mail, Lock, Building2 } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 
 export default function VendorLogin() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("10018cd4e5@vendor.local");
+  const [password, setPassword] = useState("2Tpvzlv1C0kC");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
@@ -42,14 +42,13 @@ export default function VendorLogin() {
     setLoading(true);
 
     try {
-      console.log('Login attempt to: /api/auth/login');
+      console.log('Login attempt to: /api/vendors/login');
 
-      const apiUrl = `${getApiBaseUrl()}/api/auth/login`;
+      const apiUrl = `${getApiBaseUrl()}/api/vendors/login`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
       });
 
       const data = await response.json();
@@ -65,25 +64,50 @@ export default function VendorLogin() {
         return;
       }
 
+      // Store JWT token
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        console.log('[VendorLogin] JWT token stored successfully');
+      } else {
+        console.warn('[VendorLogin] No token received from server');
+      }
+
       // Clear any employee-related data from previous sessions
       localStorage.removeItem("employeeId");
       localStorage.removeItem("employeeEmail");
       localStorage.removeItem("employeeName");
       localStorage.removeItem("employeeRole");
+      // Also clear other employee-related keys to avoid mixed session state
+      localStorage.removeItem("employeeCode");
+      localStorage.removeItem("employeeDepartment");
+      localStorage.removeItem("employeeDesignation");
+      localStorage.removeItem("employeePhoto");
+      localStorage.removeItem("isReportingPerson");
+      localStorage.removeItem("reportingTeamIds");
+      // Remove any stored 'user' object left from previous employee login
+      localStorage.removeItem("user");
+      // Also clear employee Remember Me credentials to avoid showing old employee credentials
+      localStorage.removeItem("rememberMe_email");
+      localStorage.removeItem("rememberMe_password");
 
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("vendorId", data.user.id);
-      localStorage.setItem("vendorEmail", data.user.email);
-      localStorage.setItem("vendorName", data.user.name);
+      localStorage.setItem("vendorId", data.vendor.id);
+      localStorage.setItem("vendorEmail", data.vendor.email);
+      localStorage.setItem("vendorName", data.vendor.name);
+      localStorage.setItem("vendorCode", data.vendor.vendorCode);
+      localStorage.setItem("vendorStatus", data.vendor.status);
+      localStorage.setItem("vendorRole", data.vendor.role);
+
+      // Mark current user as vendor and provide a small 'user' object used by header
+      localStorage.setItem("isVendor", "true");
+      try {
+        localStorage.setItem('user', JSON.stringify({ email: data.vendor.email, name: data.vendor.name, role: (data.vendor.role || 'vendor') }));
+      } catch (e) {
+        console.warn('[VendorLogin] Failed to set user object in localStorage', e);
+      }
 
       // Store last login type for session expiry redirect
       localStorage.setItem("lastLoginType", "vendor");
-
-      // CRITICAL: Set browserSessionId to mark this as an active session
-      // This prevents App.tsx from treating page refresh as a new browser session
-      const browserSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('browserSessionId', browserSessionId);
-      console.log('[VendorLogin] Browser session ID set:', browserSessionId);
 
       // Save credentials to localStorage if Remember Me is checked
       console.log("[VendorLogin] Remember Me checkbox state:", rememberMe);
@@ -108,6 +132,7 @@ export default function VendorLogin() {
       }
 
       window.dispatchEvent(new Event("login"));
+
       setLocation("/vendor/dashboard");
     } catch (error: any) {
       toast({

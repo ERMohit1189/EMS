@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate } from '@/lib/exportUtils';
 import { Loader2 } from 'lucide-react';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
@@ -71,7 +72,7 @@ export default function SalaryGeneration() {
   // Fetch day-wise attendance for an employee
   const fetchDaywiseAttendance = async (employeeId: string) => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/attendance/${employeeId}/${month}/${year}`);
       if (!response.ok) throw new Error('Failed to fetch attendance');
       const data = await response.json();
       let days: { day: number; status: string; leaveType?: string }[] = [];
@@ -108,11 +109,10 @@ export default function SalaryGeneration() {
       const url = new URL(`${getApiBaseUrl()}/api/salary/generate`);
       url.searchParams.set('month', String(month));
       url.searchParams.set('year', String(year));
-      if (onlyMissing) url.searchParams.set('missingOnly', '1');
+      if (onlyMissing) url.searchParams.set('missingOnly', 'true');
 
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        credentials: 'include'
+      const response = await authenticatedFetch(url.toString(), {
+        method: 'POST'
       });
 
       if (response.ok) {
@@ -370,7 +370,7 @@ export default function SalaryGeneration() {
       url.searchParams.set('page', String(page));
       url.searchParams.set('pageSize', String(pageSize));
       if (search) url.searchParams.set('search', search);
-      const response = await fetch(url.toString(), { credentials: 'include' });
+      const response = await authenticatedFetch(url.toString());
       if (!response.ok) throw new Error('Failed to fetch generated salaries');
       const body = await response.json();
       setGeneratedData(body.data || []);
@@ -395,9 +395,8 @@ export default function SalaryGeneration() {
   const handleServerPrint = async (employeeId: string) => {
     try {
       setTokenLoadingMap(m => ({ ...m, [employeeId]: true }));
-      const resp = await fetch(`${getApiBaseUrl()}/api/print-token/${employeeId}`, {
+      const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/print-token/${employeeId}`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
       if (!resp.ok) {
@@ -502,10 +501,9 @@ export default function SalaryGeneration() {
                 onClick={async () => {
                   try {
                     setLoading(true);
-                    const response = await fetch(`${getApiBaseUrl()}/api/salary/save`, {
+                    const response = await authenticatedFetch(`${getApiBaseUrl()}/api/salary/save`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      credentials: 'include',
                       body: JSON.stringify({ month, year, salaries: salaryData })
                     });
                     if (response.ok) {
@@ -732,7 +730,7 @@ export default function SalaryGeneration() {
                             if (!confirm('Are you sure you want to delete this generated salary? This will also unlock attendance for the employee.')) return;
                             try {
                               setGenLoading(true);
-                              const resp = await fetch(`${getApiBaseUrl()}/api/reports/salary-generated/${row.id}`, { method: 'DELETE', credentials: 'include' });
+                              const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/reports/salary-generated/${row.id}`, { method: 'DELETE' });
                               if (!resp.ok) {
                                 const err = await resp.json().catch(() => ({}));
                                 throw new Error(err.error || 'Failed to delete generated salary');

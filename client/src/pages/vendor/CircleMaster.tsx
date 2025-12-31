@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,9 +37,7 @@ export default function CircleMaster() {
   const fetchZones = async () => {
     try {
       setLoading(true); // Always show loader instantly
-      const response = await fetch(`${getApiBaseUrl()}/api/circles?pageSize=500`, {
-        credentials: 'include'
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/circles?pageSize=500`);
       if (!response.ok) throw new Error("Failed to fetch");
       const result = await response.json();
       setZones(result.data || []);
@@ -61,11 +60,10 @@ export default function CircleMaster() {
       const url = editing ? `${baseUrl}/api/circles/${editing.id}` : `${baseUrl}/api/circles`;
       const method = editing ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newZone),
-        credentials: 'include'
+        body: JSON.stringify(newZone)
       });
 
       if (!response.ok) {
@@ -103,9 +101,8 @@ export default function CircleMaster() {
     if (!confirm("Are you sure you want to delete this circle?")) return;
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/circles/${id}`, {
-        method: "DELETE",
-        credentials: 'include'
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/circles/${id}`, {
+        method: "DELETE"
       });
       if (!response.ok) throw new Error("Failed to delete");
 

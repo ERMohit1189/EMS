@@ -4,6 +4,8 @@ import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
+import { getPhotoUrlWithCacheBuster } from "@/lib/photo-url";
 import {
   Form,
   FormControl,
@@ -76,21 +78,24 @@ export default function MyProfile() {
     if (!employeeId) return;
     setLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}`, { credentials: 'include' });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/${employeeId}`);
       if (response.ok) {
         const data = await response.json();
-        // Get department and designation from localStorage (saved during login), fall back to API
-        const department = localStorage.getItem('employeeDepartment') || data.department || 'Not Assigned';
-        const designation = localStorage.getItem('employeeDesignation') || data.designation || 'Not Specified';
-        
+        // Get department and designation from API data (use API as source of truth, fallback to localStorage)
+        const department = data.department || localStorage.getItem('employeeDepartment') || 'Not Assigned';
+        const designation = data.designation || localStorage.getItem('employeeDesignation') || 'Not Specified';
+        const role = data.role || localStorage.getItem('employeeRole') || 'user';
+        const status = data.status || 'Active';
+        const doj = data.doj || 'Not Available';
+
         const employeeWithNames = {
           ...data,
           department,
           designation,
-          role: data.role || localStorage.getItem('employeeRole') || 'user',
-          status: data.status || 'Active',
+          role,
+          status,
         };
-        
+
         // Log when role/status are missing so we can diagnose the backend
         if (!data.role || !data.status) {
           console.warn('MyProfile: missing role/status from API for', req.params?.id || employeeId, data.role, data.status);
@@ -103,21 +108,23 @@ export default function MyProfile() {
           hasCity: !!employeeWithNames.city,
         });
         setEmployee(employeeWithNames);
-        if (data.photo) {
-          // Append cache-busting query param so browsers load the replaced file immediately
-          const addCacheBuster = (url: string) => {
-            if (!url) return '';
-            try {
-              const u = new URL(url, window.location.origin);
-              u.searchParams.set('v', String(Date.now()));
-              return u.toString();
-            } catch (e) {
-              const sep = url.includes('?') ? '&' : '?';
-              return `${url}${sep}v=${Date.now()}`;
-            }
-          };
 
-          const photoWithBuster = addCacheBuster(data.photo);
+        // Update localStorage with latest values from API (email, role, status always come from API)
+        if (data.email) {
+          localStorage.setItem('employeeEmail', data.email);
+        }
+        if (role) {
+          localStorage.setItem('employeeRole', role);
+        }
+        // Note: Department and Designation are typically only set during login by the backend
+        // But we can update them here if the API provides them
+
+        if (data.photo) {
+          console.log('Photo found in API response:', data.photo);
+
+          // Use utility function to construct full photo URL with cache buster
+          const photoWithBuster = getPhotoUrlWithCacheBuster(data.photo);
+          console.log('Photo with cache buster:', photoWithBuster);
           setPhotoPreview(photoWithBuster);
 
           // If this is the logged-in employee, update localStorage so header/dashboard can show the image
@@ -127,6 +134,9 @@ export default function MyProfile() {
             window.dispatchEvent(new Event('login'));
             window.dispatchEvent(new Event('user-updated'));
           }
+        } else {
+          console.log('No photo in API response, clearing photoPreview');
+          setPhotoPreview(null);
         }
         // preload cities list based on current state
         setCities(getCitiesByState(data.state || ""));
@@ -160,7 +170,7 @@ export default function MyProfile() {
       address: employee?.address || "",
       city: employee?.city || "",
       state: employee?.state || "",
-      dob: employee?.dob || "",
+      dob: employee?.dateOfBirth || "",
       bloodGroup: employee?.bloodGroup || "",
       aadhar: employee?.aadhar || "",
       pan: employee?.pan || "",
@@ -168,7 +178,11 @@ export default function MyProfile() {
   });
 
   useEffect(() => {
+    console.log('useEffect triggered with employee:', !!employee);
+
     if (employee) {
+      console.log('Employee data available, proceeding with form reset');
+
       // Normalize state and city values
       const employeeState = employee.state?.trim() || "";
       const employeeCity = employee.city?.trim() || "";
@@ -183,26 +197,44 @@ export default function MyProfile() {
 
       setCities(initialCities);
 
-      // Reset form with all employee data
-      form.reset({
-        name: employee.name || "",
-        fatherName: employee.fatherName || "",
-        mobile: employee.mobile || "",
-        alternateNo: employee.alternateNo || "",
-        address: employee.address || "",
-        city: employeeCity,
+      console.log('Resetting form with employee data:', {
         state: employeeState,
-        dob: employee.dob || "",
-        bloodGroup: employee.bloodGroup || "",
-        aadhar: employee.aadhar || "",
-        pan: employee.pan || "",
+        city: employeeCity,
+        dob: employee.dateOfBirth,
       });
+
+      // Reset form with all employee data
+      // Use Promise.resolve().then() to defer reset until next microtask, allowing Select components to fully render first
+      Promise.resolve().then(() => {
+        form.reset({
+          name: employee.name || "",
+          fatherName: employee.fatherName || "",
+          mobile: employee.mobile || "",
+          alternateNo: employee.alternateNo || "",
+          address: employee.address || "",
+          city: employeeCity,
+          state: employeeState,
+          dob: employee.dateOfBirth || "",
+          bloodGroup: employee.bloodGroup || "",
+          aadhar: employee.aadhar || "",
+          pan: employee.pan || "",
+        }, { keepDirty: false, keepTouched: false });
+
+        console.log('Form reset complete:', {
+          state: form.getValues("state"),
+          city: form.getValues("city"),
+          dob: form.getValues("dob"),
+        });
+      });
+    } else {
+      console.log('No employee data available yet');
     }
   }, [employee, form]);
 
   // Watch state changes and update city options
   const watchedState = form.watch("state");
   const initialStateRef = useRef<string | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
     // Set initial state on first load
@@ -217,16 +249,24 @@ export default function MyProfile() {
       setCities(newCities);
 
       // Only clear city if state changed by user (not initial load)
-      if (watchedState !== initialStateRef.current) {
+      // During initial load (when watchedState matches initialStateRef), don't clear the city
+      const isUserChange = initialStateRef.current !== null && watchedState !== initialStateRef.current;
+
+      if (isUserChange) {
         const currentCity = form.getValues("city");
         if (!newCities.includes(currentCity)) {
           form.setValue("city", "", { shouldValidate: false });
         }
       }
+
+      // After first state change, mark initial load as complete
+      if (isInitialLoadRef.current && watchedState === initialStateRef.current) {
+        isInitialLoadRef.current = false;
+      }
     } else {
       setCities([]);
     }
-  }, [watchedState, form]);
+  }, [watchedState]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -266,9 +306,8 @@ export default function MyProfile() {
         formData.append('photo', photoFile);
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/profile`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/${employeeId}/profile`, {
         method: 'PUT',
-        credentials: 'include',
         body: formData,
       });
 
@@ -277,6 +316,8 @@ export default function MyProfile() {
           title: "Success",
           description: "Profile updated successfully",
         });
+        // Clear the photo file after successful upload so form can be resubmitted
+        setPhotoFile(null);
         await fetchEmployeeData();
       } else {
         const error = await response.json();
@@ -338,11 +379,20 @@ export default function MyProfile() {
     );
   }
 
-  const initials = employee.name
-    .split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase();
+  // Get initials: first letter of first name + first letter of last name (max 2 letters)
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(p => p.length > 0);
+    if (parts.length >= 2) {
+      // Two or more words: use first letter of first and last word
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1) {
+      // Single word: use first letter (or first two letters if available)
+      return parts[0].substring(0, 2).toUpperCase();
+    }
+    return "?";
+  };
+
+  const initials = getInitials(employee.name);
 
   return (
     <div className="space-y-6">
@@ -512,32 +562,35 @@ export default function MyProfile() {
                   control={form.control}
                   name="city"
                   render={({ field }) => {
-                    console.log('City field render - value:', field.value, 'cities length:', cities.length);
+                    console.log('City field render:', {
+                      fieldValue: field.value,
+                      fieldValueType: typeof field.value,
+                      citiesLength: cities.length,
+                      employeeCity: employee?.city,
+                    });
                     return (
                       <FormItem>
                         <FormLabel>City *</FormLabel>
-                        <FormControl>
-                          <Select value={field.value || ""} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select City" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-48 overflow-y-auto">
-                              {cities && cities.length > 0 ? (
-                                cities.map((c) => (
-                                  <SelectItem key={c} value={c}>
-                                    {c}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <div className="p-2 text-amber-600">
-                                  {watchedState ? "No cities available for this state" : "Select a state first"}
-                                </div>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select City" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-48 overflow-y-auto">
+                            {cities && cities.length > 0 ? (
+                              cities.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="p-2 text-amber-600">
+                                {watchedState ? "No cities available for this state" : "Select a state first"}
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     );
@@ -548,42 +601,46 @@ export default function MyProfile() {
                   control={form.control}
                   name="state"
                   render={({ field }) => {
-                    console.log('State field render - value:', field.value, 'IndianStates length:', IndianStates.length);
+                    console.log('State field render:', {
+                      fieldValue: field.value,
+                      fieldValueType: typeof field.value,
+                      statesLength: IndianStates.length,
+                      employeeState: employee?.state,
+                      watchedState: form.watch('state'),
+                    });
                     return (
                       <FormItem>
                         <FormLabel>State *</FormLabel>
-                        <FormControl>
-                          <Select
-                            value={field.value || ""}
-                            onValueChange={(val) => {
-                              field.onChange(val);
-                              const newCities = getCitiesByState(val);
-                              setCities(newCities);
-                              // clear city only if it doesn't belong to the new state's cities
-                              const currentCity = form.getValues("city");
-                              if (!newCities.includes(currentCity)) {
-                                form.setValue("city", "", { shouldValidate: false });
-                              }
-                            }}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select State" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-56 overflow-y-auto">
-                              {IndianStates && IndianStates.length > 0 ? (
-                                IndianStates.map((s) => (
-                                  <SelectItem key={s} value={s}>
-                                    {s}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <div className="p-2 text-red-500">No states available</div>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            const newCities = getCitiesByState(val);
+                            setCities(newCities);
+                            // clear city only if it doesn't belong to the new state's cities
+                            const currentCity = form.getValues("city");
+                            if (!newCities.includes(currentCity)) {
+                              form.setValue("city", "", { shouldValidate: false });
+                            }
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select State" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-56 overflow-y-auto">
+                            {IndianStates && IndianStates.length > 0 ? (
+                              IndianStates.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {s}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="p-2 text-red-500">No states available</div>
+                            )}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     );

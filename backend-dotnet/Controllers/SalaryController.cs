@@ -394,34 +394,18 @@ namespace VendorRegistrationBackend.Controllers
                 if (string.IsNullOrEmpty(loggedInEmployeeId))
                     return Unauthorized(new { error = "Employee ID not found in token" });
 
-                // Get all salary records for this employee, sorted by year and month descending
-                // We'll fetch all records by querying multiple years to get complete history
-                var allSalaries = new List<dynamic>();
-                var currentYear = DateTime.UtcNow.Year;
+                Console.WriteLine($"[SalaryController] Fetching salary history for employee {loggedInEmployeeId}");
 
-                // Check salary records for current year and previous years (up to 5 years back)
-                for (int year = currentYear; year >= currentYear - 5; year--)
-                {
-                    for (int month = 12; month >= 1; month--)
-                    {
-                        var salaries = await _salaryService.GetGeneratedSalariesAsync(year, month, 1, 1, loggedInEmployeeId);
-                        if (salaries != null && salaries.Count > 0)
-                        {
-                            allSalaries.AddRange(salaries);
-                        }
-                    }
-                }
+                // Fetch ALL salary records for this employee in ONE query (not 60 queries!)
+                var salaryHistory = await _salaryService.GetEmployeeSalaryHistoryAsync(loggedInEmployeeId);
 
-                // Return as array sorted by year and month descending
-                var sortedSalaries = allSalaries
-                    .OrderByDescending(s => s.year)
-                    .ThenByDescending(s => s.month)
-                    .ToList();
+                Console.WriteLine($"[SalaryController] Found {salaryHistory.Count} salary records");
 
-                return Ok(sortedSalaries);
+                return Ok(salaryHistory);
             }
             catch (Exception ex)
             {
+                Console.Error.WriteLine($"[SalaryController] Error fetching salary history: {ex.Message}");
                 return BadRequest(new { error = ex.Message });
             }
         }

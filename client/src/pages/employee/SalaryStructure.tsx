@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { fetchExportHeader, getCompanyName, getCompanyAddress, formatExportDate, getCurrentYear, createProfessionalSalaryExcel, type ExportHeader } from "@/lib/exportUtils";
@@ -136,9 +137,7 @@ export default function SalaryStructure() {
 
   const fetchEmployeesParallel = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees?page=1&pageSize=100`);
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.data || []);
@@ -155,9 +154,7 @@ export default function SalaryStructure() {
 
   const fetchConfiguredCountParallel = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/salary-structures/count`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/salary-structures/count`);
       if (response.ok) {
         const data = await response.json();
         setConfiguredCount(typeof data.count === 'number' ? data.count : 0);
@@ -172,9 +169,7 @@ export default function SalaryStructure() {
 
   const fetchExportHeaderParallel = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/export-headers`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/export-headers`);
       if (response.ok) {
         const data = await response.json();
         setExportHeader(data);
@@ -301,9 +296,7 @@ export default function SalaryStructure() {
     setGrossInput("");
     setNetInput("");
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`, {
-        credentials: 'include',
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/employees/${employeeId}/salary`);
       if (response.ok) {
         const data = await response.json();
         // Convert all string numeric values to numbers and round to 2 decimals to fix precision issues
@@ -488,11 +481,10 @@ export default function SalaryStructure() {
         wantDeduction: wantDeduction,
       };
       
-      const response = await fetch(endpoint, {
+      const response = await authenticatedFetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(salaryData),
-        credentials: 'include',
       });
 
       if (!response.ok) {

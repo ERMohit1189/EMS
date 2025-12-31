@@ -164,6 +164,9 @@ namespace VendorRegistrationBackend.DTOs
         [JsonPropertyName("teamId")]
         public string? TeamId { get; set; }
 
+        [JsonPropertyName("teamName")]
+        public string? TeamName { get; set; }
+
         [JsonPropertyName("date")]
         public DateTime Date { get; set; }
 

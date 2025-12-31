@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 
 const LeaveApply: React.FC = () => {
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
@@ -26,7 +27,7 @@ const LeaveApply: React.FC = () => {
       if (!employeeId) return;
       setLeaveTypesLoading(true);
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${selectedYear}`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${selectedYear}`);
         if (res.ok) {
           const data = await res.json();
           const types = data.leaveTypes || [];
@@ -63,7 +64,7 @@ const LeaveApply: React.FC = () => {
       if (!employeeId) return;
       setLeavesLoading(true);
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/leaves/my`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/my`);
         if (res.ok) {
           const data = await res.json();
           setLeaves(Array.isArray(data) ? data : []);
@@ -149,9 +150,8 @@ const LeaveApply: React.FC = () => {
     setValidatingDates(true);
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/leaves/validate-dates`, {
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/validate-dates`, {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ startDate, endDate }),
         });
@@ -196,9 +196,8 @@ const LeaveApply: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`${getApiBaseUrl()}/api/leaves/apply`, {
+      const res = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/apply`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employeeId, leaveType: selectedType, startDate, endDate, days, remark }),
       });
@@ -207,7 +206,7 @@ const LeaveApply: React.FC = () => {
         setStartDate(''); setEndDate(''); setRemark('');
         // Refresh my leaves
         try {
-          const r2 = await fetch(`${getApiBaseUrl()}/api/leaves/my`, { credentials: 'include' });
+          const r2 = await authenticatedFetch(`${getApiBaseUrl()}/api/leaves/my`);
           if (r2.ok) {
             const d2 = await r2.json();
             setLeaves(Array.isArray(d2) ? d2 : []);
@@ -232,8 +231,8 @@ const LeaveApply: React.FC = () => {
 
     try {
       const [leavesRes, allotRes] = await Promise.all([
-        fetch(`${getApiBaseUrl()}/api/leaves/my`, { credentials: 'include' }),
-        fetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}`, { credentials: 'include' }),
+        authenticatedFetch(`${getApiBaseUrl()}/api/leaves/my`),
+        authenticatedFetch(`${getApiBaseUrl()}/api/leave-allotments/employee/${employeeId}/${year}`),
       ]);
 
       if (leavesRes.ok) {

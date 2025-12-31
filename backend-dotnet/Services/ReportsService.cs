@@ -367,5 +367,133 @@ namespace VendorRegistrationBackend.Services
 
             return details;
         }
+
+        public async Task<Dictionary<string, object>> TestQueryAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                throw new ArgumentException("Query cannot be empty");
+
+            try
+            {
+                // Extract column names from the query
+                var columns = ExtractColumnsFromQuery(query);
+
+                // Get a sample execution (limit to 2 rows) - add TOP if not already present
+                var limitedQuery = query;
+                if (!query.Contains("TOP", StringComparison.OrdinalIgnoreCase) && !query.Contains("LIMIT", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Find SELECT keyword and add TOP after it
+                    var selectIndex = query.IndexOf("SELECT", StringComparison.OrdinalIgnoreCase);
+                    if (selectIndex >= 0)
+                    {
+                        limitedQuery = query.Substring(0, selectIndex + 6) + " TOP 2 " + query.Substring(selectIndex + 6);
+                    }
+                }
+
+                var connection = _context.Database.GetDbConnection();
+                var command = connection.CreateCommand();
+                command.CommandText = limitedQuery;
+
+                if (connection.State != System.Data.ConnectionState.Open)
+                    await connection.OpenAsync();
+
+                var reader = await command.ExecuteReaderAsync();
+                var results = new List<Dictionary<string, object>>();
+
+                var fieldCount = reader.FieldCount;
+                var columnNames = new List<string>();
+                for (int i = 0; i < fieldCount; i++)
+                {
+                    columnNames.Add(reader.GetName(i));
+                }
+
+                while (await reader.ReadAsync())
+                {
+                    var row = new Dictionary<string, object>();
+                    for (int i = 0; i < fieldCount; i++)
+                    {
+                        row[columnNames[i]] = reader.GetValue(i) ?? DBNull.Value;
+                    }
+                    results.Add(row);
+                }
+
+                reader.Close();
+                connection.Close();
+
+                // If column extraction failed, use actual columns from result
+                if (columns.Count == 0 || (columns.Count == 1 && columns[0] == "result"))
+                {
+                    columns = columnNames;
+                }
+
+                return new Dictionary<string, object>
+                {
+                    { "columns", columns },
+                    { "results", results },
+                    { "success", true }
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Query test failed: {ex.Message}");
+            }
+        }
+
+        private List<string> ExtractColumnsFromQuery(string query)
+        {
+            var columns = new List<string>();
+
+            try
+            {
+                // Simple parser to extract column names from SELECT clause
+                var selectIndex = query.IndexOf("SELECT", StringComparison.OrdinalIgnoreCase);
+                var fromIndex = query.IndexOf("FROM", StringComparison.OrdinalIgnoreCase);
+
+                if (selectIndex >= 0 && fromIndex > selectIndex)
+                {
+                    var selectClause = query.Substring(selectIndex + 6, fromIndex - selectIndex - 6).Trim();
+
+                    // Split by comma and clean up
+                    var parts = selectClause.Split(',');
+                    foreach (var part in parts)
+                    {
+                        var cleaned = part.Trim();
+                        // Handle aliases (AS keyword)
+                        var asIndex = cleaned.IndexOf(" AS ", StringComparison.OrdinalIgnoreCase);
+                        if (asIndex > 0)
+                        {
+                            cleaned = cleaned.Substring(asIndex + 4).Trim();
+                        }
+                        // Handle functions like COUNT(*) or SUM(amount)
+                        if (cleaned.Contains("("))
+                        {
+                            cleaned = cleaned.Substring(cleaned.LastIndexOf("(") + 1).Replace(")", "").Trim();
+                        }
+                        // Handle table.column format
+                        if (cleaned.Contains("."))
+                        {
+                            cleaned = cleaned.Substring(cleaned.LastIndexOf(".") + 1).Trim();
+                        }
+
+                        if (!string.IsNullOrEmpty(cleaned) && cleaned != "*")
+                        {
+                            columns.Add(cleaned);
+                        }
+                    }
+                }
+
+                // If no columns found, try to get from actual execution
+                if (columns.Count == 0)
+                {
+                    columns.Add("result");
+                }
+            }
+            catch
+            {
+                columns.Add("result");
+            }
+
+            return columns;
+        }
     }
 }

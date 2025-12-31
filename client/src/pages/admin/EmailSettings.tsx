@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useLocation } from 'wouter';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 
 export default function EmailSettings() {
   const [, setLocation] = useLocation();
@@ -38,7 +39,7 @@ export default function EmailSettings() {
     (async () => {
       try {
         setLoading(true);
-        const resp = await fetch(`${getApiBaseUrl()}/api/admin/email-settings`, { credentials: 'include' });
+        const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/admin/email-settings`);
         const raw = await resp.text();
         let js: any = null;
         try { js = raw ? JSON.parse(raw) : null; } catch (e) { /* invalid json, proceed with raw */ }
@@ -55,7 +56,7 @@ export default function EmailSettings() {
     try {
       setLoading(true);
       const body = { ...settings };
-      const resp = await fetch(`${getApiBaseUrl()}/api/admin/email-settings`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/admin/email-settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const raw = await resp.text();
       let js: any = null;
       try { js = raw ? JSON.parse(raw) : null; } catch (e) { /* ignore parse error */ }
@@ -72,7 +73,7 @@ export default function EmailSettings() {
     try {
       if (!testEmail) return toast({ title: 'Error', description: 'Enter recipient email', variant: 'destructive' });
       setLoading(true);
-      const resp = await fetch(`${getApiBaseUrl()}/api/admin/email-settings/test`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: testEmail }) });
+      const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/admin/email-settings/test`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: testEmail }) });
       const raw = await resp.text();
       let js: any = null;
       try { js = raw ? JSON.parse(raw) : null; } catch (e) { /* ignore parse error */ }

@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/fetchWithLoader';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -110,7 +111,6 @@ interface SiteStatusData {
   priCloseDate: string | null;
   priHistory: string | null;
   rfiSurveyAllocationDate: string | null;
-  descope: string | null;
   reasonOfExtraVisit: string | null;
   wccReceived80Percent: string | null;
   wccReceivedDate80Percent: string | null;
@@ -194,7 +194,7 @@ export default function SiteStatus() {
         params.append('t', String(Date.now()));
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/api/sites?${params.toString()}`);
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/sites?${params.toString()}`);
       if (response.ok) {
         const { data, totalCount } = await response.json();
         setSites(data || []);
@@ -213,7 +213,7 @@ export default function SiteStatus() {
 
   const fetchAtpCounts = async () => {
     try {
-      const resp = await fetch(`${getApiBaseUrl()}/api/sites/atp-counts`);
+      const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/sites/atp-counts`);
       if (resp.ok) {
         const json = await resp.json();
         setAtpCounts({ phy: json.phy || {}, soft: json.soft || {}, totalCount: json.totalCount || 0 });
@@ -226,7 +226,7 @@ export default function SiteStatus() {
   const fetchVendors = async () => {
     setVendorLoading(true);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`);
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/vendors/all?minimal=true`);
       if (!response.ok) throw new Error('Failed to fetch vendors');
       const result = await response.json();
       let vendorsData: any[] = result.data || [];
@@ -347,10 +347,13 @@ export default function SiteStatus() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedSites.size === filteredSites.length) {
+    const pendingSites = filteredSites.filter(s => s.status === 'Pending');
+    const pendingSiteIds = new Set(pendingSites.map(s => s.id));
+
+    if (selectedSites.size === pendingSites.length && pendingSites.length > 0) {
       setSelectedSites(new Set());
     } else {
-      setSelectedSites(new Set(filteredSites.map(s => s.id)));
+      setSelectedSites(pendingSiteIds);
     }
   };
 
@@ -367,7 +370,7 @@ export default function SiteStatus() {
       const isSuperAdmin = employeeRole === 'superadmin';
 
       // Fetch export header settings
-      const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+      const headerResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/export-headers`);
       const headerSettings = headerResponse.ok ? await headerResponse.json() : {};
 
       const excelData = filteredSites.map(site => {
@@ -459,7 +462,7 @@ export default function SiteStatus() {
         data['PRI Close Date'] = site.priCloseDate || '-';
         data['PRI History'] = site.priHistory || '-';
         data['RFI Survey Allocation Date'] = site.rfiSurveyAllocationDate || '-';
-        data['Descope'] = site.descope || '-';
+        data['Vendor Name'] = site.partnerName || '-';
         data['Reason of Extra Visit'] = site.reasonOfExtraVisit || '-';
         data['WCC Received 80%'] = site.wccReceived80Percent || '-';
         data['WCC Received Date 80%'] = site.wccReceivedDate80Percent || '-';
@@ -516,7 +519,7 @@ export default function SiteStatus() {
       const valueWidth = contentWidth * 0.65;
 
       // Fetch export header settings
-      const headerResponse = await fetch(`${getApiBaseUrl()}/api/export-headers`);
+      const headerResponse = await authenticatedFetch(`${getApiBaseUrl()}/api/export-headers`);
       const exportHeaderSettings = headerResponse.ok ? await headerResponse.json() : {};
 
       // Field definitions - conditionally include Site Amount
@@ -606,7 +609,7 @@ export default function SiteStatus() {
         { label: 'PRI Close Date', value: site.priCloseDate },
         { label: 'PRI History', value: site.priHistory },
         { label: 'RFI Survey Allocation', value: site.rfiSurveyAllocationDate },
-        { label: 'Descope', value: site.descope },
+        { label: 'Vendor Name', value: site.partnerName },
         { label: 'Reason of Extra Visit', value: site.reasonOfExtraVisit },
         { label: 'WCC 80% Received', value: site.wccReceived80Percent },
         { label: 'WCC Date 80%', value: site.wccReceivedDate80Percent },
@@ -737,13 +740,12 @@ export default function SiteStatus() {
         shouldApproveStatus: bulkPhyAtStatus === 'Approved' && bulkSoftAtStatus === 'Approved',
       };
       
-      const response = await fetch(`${getApiBaseUrl()}/api/sites/bulk-update-status-by-plan`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/sites/bulk-update-status-by-plan`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatePayload),
       });
 
@@ -1150,15 +1152,15 @@ export default function SiteStatus() {
               <Table>
                 <TableHeader className="sticky top-0 z-10 bg-white">
                   <TableRow className="bg-gray-50">
-                    {cardStatusFilter !== 'Approved' && (
-                      <TableHead className="font-semibold w-12">
-                        <Checkbox 
-                          checked={selectedSites.size === filteredSites.length && filteredSites.length > 0}
+                    <TableHead className="font-semibold w-12">
+                      {filteredSites.some(site => site.status === 'Pending') && (
+                        <Checkbox
+                          checked={selectedSites.size === filteredSites.filter(s => s.status === 'Pending').length && filteredSites.some(s => s.status === 'Pending')}
                           onCheckedChange={toggleSelectAll}
                           data-testid="checkbox-select-all"
                         />
-                      </TableHead>
-                    )}
+                      )}
+                    </TableHead>
                     <TableHead className="font-semibold">Plan ID</TableHead>
                     <TableHead className="font-semibold">Circle</TableHead>
                     <TableHead className="font-semibold">District</TableHead>
@@ -1168,7 +1170,7 @@ export default function SiteStatus() {
                     <TableHead className="font-semibold">Visible in NMS</TableHead>
                     <TableHead className="font-semibold">Both AT Status</TableHead>
                     <TableHead className="font-semibold">ATP Remark</TableHead>
-                    <TableHead className="font-semibold">Descope</TableHead>
+                    <TableHead className="font-semibold">Vendor Name</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1176,11 +1178,11 @@ export default function SiteStatus() {
                     // Show skeleton rows matching the page size (capped)
                     Array.from({ length: Math.min(pageSize || 10, 10) }).map((_, i) => (
                       <TableRow key={`skeleton-${i}`} className="animate-pulse">
-                        {cardStatusFilter !== 'Approved' && (
-                          <TableCell>
+                        <TableCell>
+                          {filteredSites.some(site => site.status === 'Pending') && (
                             <div className="h-4 w-4 bg-gray-200 rounded"></div>
-                          </TableCell>
-                        )}
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium text-blue-600 font-mono"><div className="h-4 bg-gray-200 rounded w-24" /></TableCell>
                         <TableCell><div className="h-4 bg-gray-200 rounded w-20" /></TableCell>
                         <TableCell><div className="h-4 bg-gray-200 rounded w-20" /></TableCell>
@@ -1191,20 +1193,21 @@ export default function SiteStatus() {
                         <TableCell><div className="h-4 bg-gray-200 rounded w-12" /></TableCell>
                         <TableCell><div className="h-4 bg-gray-200 rounded w-32" /></TableCell>
                         <TableCell><div className="h-4 bg-gray-200 rounded w-24" /></TableCell>
+                        <TableCell><div className="h-4 bg-gray-200 rounded w-28" /></TableCell>
                       </TableRow>
                     ))
                   ) : (
                     filteredSites.map((site) => (
                       <TableRow key={site.id} className={`hover:bg-gray-50 transition-colors ${selectedSites.has(site.id) ? 'bg-blue-100' : ''}`}>
-                        {cardStatusFilter !== 'Approved' && (
-                          <TableCell>
-                            <Checkbox 
+                        <TableCell>
+                          {site.status === 'Pending' && (
+                            <Checkbox
                               checked={selectedSites.has(site.id)}
                               onCheckedChange={() => toggleSiteSelection(site.id)}
                               data-testid={`checkbox-site-${site.id}`}
                             />
-                          </TableCell>
-                        )}
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium text-blue-600 font-mono">{truncateId(site.planId)}</TableCell>
                         <TableCell>{site.circle || '-'}</TableCell>
                         <TableCell>{site.district || '-'}</TableCell>
@@ -1242,18 +1245,9 @@ export default function SiteStatus() {
                             <span className="text-gray-400">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-xs">
-                          {site.atpRemark ? (
-                            <div className={`px-2 py-1 rounded text-xs ${getAtpStatusColor(site.atpRemark)}`}>
-                              {site.atpRemark}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {site.descope ? (
-                            <Badge variant="destructive">{site.descope}</Badge>
+                        <TableCell className="font-medium">
+                          {site.partnerName ? (
+                            <span className="text-blue-700">{site.partnerName}</span>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 import { getApiBaseUrl } from "@/lib/api";
-import { fetchWithLoader } from "@/lib/fetchWithLoader";
+import { fetchWithLoader, authenticatedFetch } from "@/lib/fetchWithLoader";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import type { Vendor } from "@shared/schema";
 import * as XLSX from "xlsx";
@@ -55,9 +55,7 @@ export default function VendorList() {
       if (statusFilter && statusFilter !== 'All') params.append('status', statusFilter);
 
       const url = `${getApiBaseUrl()}/api/vendors?${params.toString()}`;
-      const response = await fetch(url, {
-        credentials: 'include'
-      });
+      const response = await authenticatedFetch(url);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: response.statusText }));
         throw new Error(errorData.error || `Failed to fetch vendors (${response.status})`);
@@ -92,8 +90,7 @@ export default function VendorList() {
       const response = await fetchWithLoader(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-        credentials: 'include'
+        body: JSON.stringify({ status })
       });
       if (!response.ok) throw new Error('Failed to update status');
       fetchVendors();
@@ -118,8 +115,7 @@ export default function VendorList() {
     try {
       const url = `${getApiBaseUrl()}/api/vendors/${id}`;
       const response = await fetchWithLoader(url, {
-        method: 'DELETE',
-        credentials: 'include'
+        method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete vendor');
 

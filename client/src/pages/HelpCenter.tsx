@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
+import { authenticatedFetch } from "@/lib/fetchWithLoader";
 import FaqBox from "@/components/FaqBox";
 import {
   defaultFaqsMap,
@@ -505,7 +506,7 @@ Response: { matched: 12, unmatched: 3 }`}</code></pre>
     document.title = 'Help Center - EOMS';
     const load = async () => {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/help`, { credentials: 'include' });
+        const res = await authenticatedFetch(`${getApiBaseUrl()}/api/help`);
         if (res.ok) {
           const data = await res.json();
           setContent(data);
@@ -517,7 +518,7 @@ Response: { matched: 12, unmatched: 3 }`}</code></pre>
     };
     const check = async () => {
       try {
-        const s = await fetch(`${getApiBaseUrl()}/api/session`, { credentials: 'include' });
+        const s = await authenticatedFetch(`${getApiBaseUrl()}/api/session`);
         if (s.ok) {
           const d = await s.json();
           setIsSuperadmin((d.employeeRole || '').toLowerCase() === 'superadmin');
@@ -556,7 +557,7 @@ Response: { matched: 12, unmatched: 3 }`}</code></pre>
               <Button variant="outline" size="sm" onClick={() => { setEditing(false); setOverviewDraft(content.overview || ''); }}>Cancel</Button>
               <Button size="sm" onClick={async () => {
                 try {
-                  const res = await fetch(`${getApiBaseUrl()}/api/help`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...content, overview: overviewDraft }) });
+                  const res = await authenticatedFetch(`${getApiBaseUrl()}/api/help`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...content, overview: overviewDraft }) });
                   if (!res.ok) throw new Error('Failed to save');
                   const data = await res.json();
                   setContent({ ...content, overview: overviewDraft });
@@ -638,7 +639,7 @@ Response: { matched: 12, unmatched: 3 }`}</code></pre>
                           try {
                             const descKey = findDescKey(selectedKey) ?? selectedKey;
                             const payload = { ...content, [`${descKey}_summary`]: pageDraftSummary, [descKey]: pageDraftDetail };
-                            const res = await fetch(`${getApiBaseUrl()}/api/help`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                            const res = await authenticatedFetch(`${getApiBaseUrl()}/api/help`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                             if (!res.ok) throw new Error('Save failed');
                             setContent(payload);
                             setEditingPage(false);

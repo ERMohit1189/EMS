@@ -8,12 +8,25 @@ const _getApiBaseUrl = () => {
 export const getApiBaseUrl = () => _getApiBaseUrl();
 export const getAPI_BASE_URL = () => _getApiBaseUrl();
 
+// Helper function to get JWT token from localStorage
+const getAuthHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 export const apiCall = async (endpoint: string, options?: RequestInit) => {
   const baseUrl = _getApiBaseUrl();
   const url = baseUrl ? `${baseUrl}${endpoint}` : (endpoint.startsWith('/') ? endpoint : `/${endpoint}`);
   return fetch(url, {
     ...options,
-    credentials: 'include',
+    headers: {
+      ...getAuthHeaders(),
+      ...(options?.headers || {})
+    },
   });
 };
 

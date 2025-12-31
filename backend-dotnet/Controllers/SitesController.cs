@@ -129,6 +129,71 @@ namespace VendorRegistrationBackend.Controllers
             return Ok(site);
         }
 
+        [HttpPost("batch")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetSitesBatch([FromBody] BatchSiteRequestDto request)
+        {
+            if (request?.Ids == null || request.Ids.Count == 0)
+                return Ok(new List<object>());
+
+            try
+            {
+                // Use LEFT JOIN to get sites with vendor amounts (including sites without payment records)
+                var enrichedSites = await _context.Sites
+                    .Where(s => request.Ids.Contains(s.Id))
+                    .GroupJoin(_context.PaymentMasters,
+                          site => site.Id,
+                          payment => payment.SiteId,
+                          (site, payments) => new
+                          {
+                              site,
+                              payment = payments.FirstOrDefault()
+                          })
+                    .Select(x => new
+                    {
+                        x.site.Id,
+                        x.site.PlanId,
+                        x.site.Name,
+                        x.site.SiteAName,
+                        x.site.SiteBName,
+                        x.site.HopAB,
+                        x.site.MaxAntSize,
+                        x.site.SiteAAntDia,
+                        x.site.SiteBAntDia,
+                        x.site.SiteAInstallationDate,
+                        x.site.SiteBInstallationDate,
+                        x.site.SoftAtStatus,
+                        x.site.PhyAtStatus,
+                        VendorAmount = x.payment != null ? x.payment.VendorAmount : 0m
+                    })
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.PlanId,
+                        x.Name,
+                        x.SiteAName,
+                        x.SiteBName,
+                        x.HopAB,
+                        x.MaxAntSize,
+                        x.SiteAAntDia,
+                        x.SiteBAntDia,
+                        SiteAInstallationDate = (x.SiteAInstallationDate ?? x.SiteBInstallationDate) != null
+                            ? (x.SiteAInstallationDate ?? x.SiteBInstallationDate).Value.ToString("yyyy-MM-dd")
+                            : null,
+                        x.SoftAtStatus,
+                        x.PhyAtStatus,
+                        x.VendorAmount
+                    })
+                    .ToListAsync();
+
+                return Ok(enrichedSites);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> CreateSite([FromBody] Site site)
@@ -215,42 +280,56 @@ namespace VendorRegistrationBackend.Controllers
             try
             {
                 // Return sites with status "Approved" that are eligible for PO generation
-                var sites = await _siteService.GetAllSitesAsync();
-                var filteredSites = sites
-                    .Where(s => s.Status == "Approved")
-                    .ToList();
+                // Optimized: Filter at database level instead of loading all sites to memory
+                var approvedSitesQuery = _context.Sites
+                    .AsNoTracking()
+                    .Where(s => s.Status == "Approved");
 
-                // Fetch vendor amounts from PaymentMasters table
-                var paymentMasters = await _context.PaymentMasters.ToListAsync();
+                var approvedSites = await approvedSitesQuery.ToListAsync();
 
-                // Add vendorAmount to each site based on PaymentMasters data
-                var enrichedSites = filteredSites.Select(site => {
-                    var siteObj = new {
-                        site.Id,
-                        site.Name,
-                        site.Address,
-                        site.City,
-                        site.State,
-                        site.PartnerCode,
-                        site.PartnerName,
-                        site.VendorId,
-                        site.ZoneId,
-                        site.Status,
-                        site.Circle,
-                        site.PlanId,
-                        site.HopType,
-                        site.HopAB,
-                        site.HopBA,
-                        site.Sno,
-                        site.CreatedAt,
-                        site.UpdatedAt,
-                        // Add vendorAmount from PaymentMasters
-                        vendorAmount = paymentMasters
-                            .Where(pm => pm.SiteId == site.Id && (vendorId == null || pm.VendorId == vendorId))
-                            .Select(pm => pm.VendorAmount)
-                            .FirstOrDefault()
-                    };
-                    return siteObj;
+                // Build a dictionary of site IDs for fast O(1) lookup
+                var siteIds = approvedSites.Select(s => s.Id).ToList();
+
+                // Fetch vendor amounts from PaymentMasters table in ONE query
+                // Filter by vendor if specified, use dictionary for O(1) lookups
+                var paymentMastersQuery = _context.PaymentMasters
+                    .AsNoTracking()
+                    .Where(pm => siteIds.Contains(pm.SiteId));
+
+                if (!string.IsNullOrEmpty(vendorId))
+                {
+                    paymentMastersQuery = paymentMastersQuery.Where(pm => pm.VendorId == vendorId);
+                }
+
+                var paymentMasters = await paymentMastersQuery.ToListAsync();
+
+                // Create a dictionary: Key = SiteId, Value = VendorAmount
+                var vendorAmountBysite = paymentMasters
+                    .GroupBy(pm => pm.SiteId)
+                    .ToDictionary(g => g.Key, g => g.First().VendorAmount);
+
+                // Add vendorAmount to each site using O(1) dictionary lookup
+                var enrichedSites = approvedSites.Select(site => new {
+                    site.Id,
+                    site.Name,
+                    site.Address,
+                    site.City,
+                    site.State,
+                    site.PartnerCode,
+                    site.PartnerName,
+                    site.VendorId,
+                    site.ZoneId,
+                    site.Status,
+                    site.Circle,
+                    site.PlanId,
+                    site.HopType,
+                    site.HopAB,
+                    site.HopBA,
+                    site.Sno,
+                    site.CreatedAt,
+                    site.UpdatedAt,
+                    // O(1) dictionary lookup instead of O(n) LINQ-to-Objects search
+                    vendorAmount = vendorAmountBysite.TryGetValue(site.Id, out var amount) ? amount : (decimal?)null
                 }).ToList();
 
                 return Ok(new { sites = enrichedSites, data = enrichedSites });

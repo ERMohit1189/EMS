@@ -3,22 +3,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getApiBaseUrl } from '@/lib/api';
+import { authenticatedFetch, authenticatedFetchJson } from '@/lib/fetchWithLoader';
 import { SkeletonLoader } from '@/components/SkeletonLoader';
 import { AllowanceApprovalModal } from '@/components/AllowanceApprovalModal';
+
+interface AllowanceDataFormat {
+  travelAllowance?: number;
+  foodAllowance?: number;
+  accommodationAllowance?: number;
+  mobileAllowance?: number;
+  internetAllowance?: number;
+  utilitiesAllowance?: number;
+  parkingAllowance?: number;
+  miscAllowance?: number;
+  notes?: string;
+}
 
 interface AllowanceForApproval {
   id: string;
   employeeId: string;
   employeeName: string;
   employeeEmail: string;
-  teamId: string;
-  teamName: string;
+  teamId?: string;
+  teamName?: string;
   date: string;
-  allowanceData: string;
+  allowanceData: AllowanceDataFormat | string;
   submittedAt: string;
   approvalStatus: string;
   approvalCount?: number;
   approvedBy?: string;
+  requiredApprovals?: number;
 }
 
 export default function AllowanceApproval() {
@@ -26,11 +40,10 @@ export default function AllowanceApproval() {
     const employeeRole = localStorage.getItem('employeeRole')?.toLowerCase() || '';
     const isSuperAdmin = employeeRole === 'superadmin';
     const isAdmin = employeeRole === 'admin';
-    const isUser = employeeRole === 'user';
     const isReportingPerson = localStorage.getItem('isReportingPerson') === 'true';
 
-    // Allow superadmin/admin OR a regular 'user' who is a reporting person
-    const isAllowed = isSuperAdmin || isAdmin || (isUser && isReportingPerson);
+    // Allow superadmin, admin, or any reporting person
+    const isAllowed = isSuperAdmin || isAdmin || isReportingPerson;
 
     if (!isAllowed) {
       return (
@@ -69,9 +82,7 @@ export default function AllowanceApproval() {
 
   const fetchAppSettings = async () => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/app-settings`, {
-        credentials: 'include'
-      });
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`);
       if (response.ok) {
         const data = await response.json();
         setCurrentRequiredApprovals(data.approvalsRequiredForAllowance || 1);
@@ -109,9 +120,7 @@ export default function AllowanceApproval() {
       
       console.log('[AllowanceApproval] fetchPendingAllowances - URL:', url);
 
-      const response = await fetch(url, {
-        credentials: 'include'
-      });
+      const response = await authenticatedFetch(url);
       const data = await response.json();
       console.log('[AllowanceApproval] fetchPendingAllowances - Response:', data);
       
@@ -151,10 +160,9 @@ export default function AllowanceApproval() {
 
     setApproving(selectedAllowance.id);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${selectedAllowance.id}/approve`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/allowances/${selectedAllowance.id}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           editedData,
           remark,
@@ -201,10 +209,9 @@ export default function AllowanceApproval() {
     // This is now a quick approve without modal
     setApproving(allowanceId);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${allowanceId}/approve`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/allowances/${allowanceId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -244,10 +251,9 @@ export default function AllowanceApproval() {
   const handleReject = async (allowanceId: string) => {
     setRejecting(allowanceId);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/allowances/${allowanceId}/reject`, {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/allowances/${allowanceId}/reject`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ rejectionReason: 'Rejected by approver' }),
       });
 
