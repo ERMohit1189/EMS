@@ -34,11 +34,12 @@ import html2canvas from "html2canvas";
 
 interface ReportElement {
   id: string;
-  type: "text" | "line" | "vline" | "rectangle" | "table" | "field" | "border" | "image";
+  type: "text" | "line" | "vline" | "rectangle" | "table" | "field" | "border" | "image" | "group";
   x: number;
   y: number;
   width: number;
   height: number;
+  // For standard elements
   content?: string;
   fieldName?: string;
   fontSize?: number;
@@ -54,6 +55,9 @@ interface ReportElement {
   cols?: number;
   rotation?: number;
   locked?: boolean;
+  // Group support
+  children?: string[]; // IDs of child elements when type === 'group'
+  parentId?: string; // optional parent group id for child elements
 }
 
 interface DesignState {
@@ -426,12 +430,25 @@ export default function ReportDesigner({
         if (e.button === 0 && editingId !== clicked.id && !clicked.locked) { // Left mouse button, not editing text, and not locked
           // Store initial positions of all selected elements for smooth multi-drag
           const initialPositions: { [id: string]: { x: number; y: number } } = {};
-          newSelectedIds.forEach((id) => {
-            const el = design.elements.find((e) => e.id === id);
-            if (el && !el.locked) {
-              initialPositions[id] = { x: el.x, y: el.y };
-            }
-          });
+
+          // If clicked is a group, store initial positions for its children
+          if (clicked.type === 'group' && clicked.children) {
+            clicked.children.forEach((childId) => {
+              const child = design.elements.find((el) => el.id === childId);
+              if (child && !child.locked) {
+                initialPositions[childId] = { x: child.x, y: child.y };
+              }
+            });
+            // Also add group's initial position
+            initialPositions[clicked.id] = { x: clicked.x, y: clicked.y };
+          } else {
+            newSelectedIds.forEach((id) => {
+              const el = design.elements.find((e) => e.id === id);
+              if (el && !el.locked) {
+                initialPositions[id] = { x: el.x, y: el.y };
+              }
+            });
+          }
 
           setDraggingElement({
             id: clicked.id,
@@ -526,6 +543,61 @@ export default function ReportDesigner({
       const deltaY = e.clientY - draggingElement.startY;
 
       const draggingEl = design.elements.find((el) => el.id === draggingElement.id);
+
+      // If dragging a group, move group and its children using stored initialPositions
+      if (draggingEl?.type === 'group' && draggingEl.children && draggingElement.initialPositions) {
+        // Calculate new group position constrained by margins and canvas
+        const constrainedGroup = constrainElementPosition(
+          draggingElement.elementX + deltaX,
+          draggingElement.elementY + deltaY,
+          draggingEl.width,
+          draggingEl.height,
+          { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin }
+        );
+
+        const newGroupX = constrainedGroup.x;
+        const newGroupY = constrainedGroup.y;
+
+        // Move children relative to their initial positions
+        const updatedChildPositions: { [id: string]: { x: number; y: number } } = {};
+        draggingEl.children.forEach((childId) => {
+          const initPos = draggingElement.initialPositions![childId];
+          const childEl = design.elements.find((el) => el.id === childId);
+          if (initPos && childEl && !childEl.locked) {
+            const tentativeX = initPos.x + deltaX;
+            const tentativeY = initPos.y + deltaY;
+            const constrainedChild = constrainElementPosition(
+              tentativeX,
+              tentativeY,
+              childEl.width,
+              childEl.height,
+              { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin }
+            );
+            updatedChildPositions[childId] = { x: constrainedChild.x, y: constrainedChild.y };
+          }
+        });
+
+        // Alignment guides based on children
+        const guides = calculateAlignmentGuides(Object.keys(updatedChildPositions), updatedChildPositions);
+        setAlignmentGuides(guides);
+
+        setDesign((prev) => ({
+          ...prev,
+          elements: prev.elements.map((el) => {
+            if (el.id === draggingEl.id) {
+              return { ...el, x: newGroupX, y: newGroupY };
+            }
+            if (updatedChildPositions[el.id]) {
+              return { ...el, x: updatedChildPositions[el.id].x, y: updatedChildPositions[el.id].y };
+            }
+            return el;
+          }),
+        }));
+
+        return;
+      }
+
+      // Existing multi-select move
       const constrained = constrainElementPosition(
         draggingElement.elementX + deltaX,
         draggingElement.elementY + deltaY,
@@ -537,7 +609,6 @@ export default function ReportDesigner({
       const newX = constrained.x;
       const newY = constrained.y;
 
-      // If multiple elements are selected, move all of them (except locked ones)
       if (design.selectedIds.length > 1 && draggingElement.initialPositions) {
         const currentPositions: { [id: string]: { x: number; y: number } } = {};
         design.selectedIds.forEach((id) => {
@@ -557,7 +628,6 @@ export default function ReportDesigner({
           }
         });
 
-        // Calculate alignment guides
         const guides = calculateAlignmentGuides(Object.keys(currentPositions), currentPositions);
         setAlignmentGuides(guides);
 
@@ -976,6 +1046,65 @@ export default function ReportDesigner({
     const deltaY = e.clientY - resizeStart.y;
 
     const updates: any = {};
+
+    // Handle resizing for groups by scaling children accordingly
+    if (element.type === 'group') {
+      const group = element;
+      const originalWidth = group.width;
+      const originalHeight = group.height;
+
+      let newWidth = group.width;
+      let newHeight = group.height;
+      let newX = group.x;
+      let newY = group.y;
+
+      if (resizing.handle.includes("e")) {
+        newWidth = Math.max(30, group.width + deltaX);
+      }
+      if (resizing.handle.includes("w")) {
+        newX = group.x + deltaX;
+        newWidth = Math.max(30, group.width - deltaX);
+      }
+      if (resizing.handle.includes("s")) {
+        newHeight = Math.max(30, group.height + deltaY);
+      }
+      if (resizing.handle.includes("n")) {
+        newY = group.y + deltaY;
+        newHeight = Math.max(30, group.height - deltaY);
+      }
+
+      const scaleX = newWidth / Math.max(1, originalWidth);
+      const scaleY = newHeight / Math.max(1, originalHeight);
+
+      // Update children positions and sizes
+      const updatedElements = design.elements.map((el) => {
+        if (el.id === group.id) {
+          return { ...el, x: newX, y: newY, width: newWidth, height: newHeight };
+        }
+        if (group.children && group.children.includes(el.id)) {
+          // Position relative to group origin
+          const relX = el.x - group.x;
+          const relY = el.y - group.y;
+          const newChildX = newX + relX * scaleX;
+          const newChildY = newY + relY * scaleY;
+          const newChildW = Math.max(10, Math.round(el.width * scaleX));
+          const newChildH = Math.max(10, Math.round(el.height * scaleY));
+          // Constrain within margins
+          const constrained = constrainElementPosition(newChildX, newChildY, newChildW, newChildH, {
+            left: leftMargin,
+            right: rightMargin,
+            top: topMargin,
+            bottom: bottomMargin,
+          });
+          return { ...el, x: constrained.x, y: constrained.y, width: newChildW, height: newChildH };
+        }
+        return el;
+      });
+
+      setDesign((prev) => ({ ...prev, elements: updatedElements, history: [...prev.history, updatedElements] }));
+      setResizeStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
 
     if (resizing.handle.includes("e")) {
       // Right edge
@@ -1573,6 +1702,90 @@ export default function ReportDesigner({
             <Save className="h-3 w-3" />
             Save
           </Button>
+
+          {/* Group / Ungroup controls */}
+          <Button
+            onClick={() => {
+              // Group selected elements
+              if (design.selectedIds.length > 1) {
+                const ids = [...design.selectedIds];
+                const children = design.elements.filter((el) => ids.includes(el.id));
+                if (children.length < 2) return;
+                const minX = Math.min(...children.map((c) => c.x));
+                const minY = Math.min(...children.map((c) => c.y));
+                const maxX = Math.max(...children.map((c) => c.x + c.width));
+                const maxY = Math.max(...children.map((c) => c.y + c.height));
+                const groupId = `group-${Date.now()}`;
+                const groupElement: ReportElement = {
+                  id: groupId,
+                  type: 'group',
+                  x: minX,
+                  y: minY,
+                  width: Math.max(30, maxX - minX),
+                  height: Math.max(30, maxY - minY),
+                  children: ids,
+                };
+
+                // Mark children with parentId
+                const updated = design.elements.map((el) =>
+                  ids.includes(el.id) ? { ...el, parentId: groupId } : el
+                );
+
+                setDesign((prev) => ({
+                  ...prev,
+                  elements: [...updated, groupElement],
+                  selectedId: groupId,
+                  selectedIds: [],
+                  history: [...prev.history, [...updated, groupElement]],
+                }));
+              }
+            }}
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2"
+            title="Group selected elements"
+            disabled={design.selectedIds.length <= 1}
+          >
+            <Copy className="h-3 w-3" />
+            Group
+          </Button>
+
+          <Button
+            onClick={() => {
+              // Ungroup if a group is selected
+              if (design.selectedId) {
+                const el = design.elements.find((d) => d.id === design.selectedId);
+                if (el && el.type === 'group') {
+                  const children = el.children || [];
+                  // Remove group element and clear parentId on children
+                  const withoutGroup = design.elements.filter((e) => e.id !== el.id).map((e) => {
+                    if (children.includes(e.id)) {
+                      const { parentId, ...rest } = e as any;
+                      return { ...rest } as ReportElement;
+                    }
+                    return e;
+                  });
+
+                  setDesign((prev) => ({
+                    ...prev,
+                    elements: withoutGroup,
+                    selectedId: undefined,
+                    selectedIds: children,
+                    history: [...prev.history, withoutGroup],
+                  }));
+                }
+              }
+            }}
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2"
+            title="Ungroup selected group"
+            disabled={!design.selectedId || design.elements.find((e) => e.id === design.selectedId)?.type !== 'group'}
+          >
+            <Trash2 className="h-3 w-3" />
+            Ungroup
+          </Button>
+
           <Button
             onClick={onClose}
             variant="ghost"
@@ -2788,6 +3001,13 @@ export default function ReportDesigner({
                         alt="Embedded"
                         className="h-full w-full object-cover"
                       />
+                    )}
+
+                    {/* Group overlay */}
+                    {el.type === 'group' && (
+                      <div className="h-full w-full flex items-center justify-center pointer-events-none">
+                        <div className="text-xs text-gray-600 px-1 py-0.5 bg-white/70 rounded">Group ({el.children?.length || 0})</div>
+                      </div>
                     )}
 
                     {/* Lock Indicator - Show for locked elements */}
