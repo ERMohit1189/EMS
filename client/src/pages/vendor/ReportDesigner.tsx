@@ -366,19 +366,39 @@ export default function ReportDesigner({
 
     // If any margin changed, adjust element positions and ensure they remain within new margins
     if (leftDelta !== 0 || rightDelta !== 0 || topDelta !== 0 || bottomDelta !== 0) {
+      const canvasWidth = canvasRef.current?.clientWidth ?? A4_WIDTH;
+      const canvasHeight = canvasRef.current?.clientHeight ?? A4_HEIGHT;
+
+      const prevLeft = prevMarginsRef.current.left;
+      const prevRight = prevMarginsRef.current.right;
+      const prevTop = prevMarginsRef.current.top;
+      const prevBottom = prevMarginsRef.current.bottom;
+
+      const oldContentWidth = Math.max(1, canvasWidth - prevLeft - prevRight);
+      const newContentWidth = Math.max(1, canvasWidth - leftMargin - rightMargin);
+      const oldContentHeight = Math.max(1, canvasHeight - prevTop - prevBottom);
+      const newContentHeight = Math.max(1, canvasHeight - topMargin - bottomMargin);
+
       const updatedElements = design.elements.map((el) => {
-        // Move elements relative to left/top changes, then clamp to the available area defined by margins
-        const tentativeX = el.x + leftDelta;
-        const tentativeY = el.y + topDelta;
+        // Preserve relative position within the old content area, map to new content area
+        const relX = (el.x - prevLeft) / oldContentWidth;
+        const relY = (el.y - prevTop) / oldContentHeight;
+
+        const newX = leftMargin + relX * newContentWidth;
+        const newY = topMargin + relY * newContentHeight;
+
         const constrained = constrainElementPosition(
-          tentativeX,
-          tentativeY,
+          newX,
+          newY,
           el.width,
           el.height,
           { left: leftMargin, right: rightMargin, top: topMargin, bottom: bottomMargin }
         );
         return { ...el, x: constrained.x, y: constrained.y };
       });
+
+      // Clear redo stack because this is an action that changes layout
+      redoStackRef.current = [];
 
       setDesign((prev) => ({
         ...prev,
