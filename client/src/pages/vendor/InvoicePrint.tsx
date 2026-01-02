@@ -44,8 +44,8 @@ export default function InvoicePrint() {
 
   // Calculate pages based on line items count
   const calculatePages = (lineCount: number) => {
-    const firstPageItems = 5;
-    const otherPageItems = 10;
+    const firstPageItems = 10;
+    const otherPageItems = 20;
 
     let totalPages = 1;
     let remainingItems = lineCount;
@@ -54,7 +54,7 @@ export default function InvoicePrint() {
       remainingItems -= firstPageItems;
       totalPages += Math.ceil(remainingItems / otherPageItems);
     } else if (remainingItems >= 1) {
-      totalPages = 2;
+      totalPages = 1;
     }
 
     console.log(`📄 Invoice A4 Calculation:
@@ -238,26 +238,79 @@ export default function InvoicePrint() {
               >
               <div className="invoice-content">
 
-          {/* Header - conditional on printHeaders and shown on all pages */}
+          {/* Header - shown on all pages when printHeaders is checked */}
           {printHeaders && (
-            <div style={{ padding: '20px 0', borderBottom: '2px solid #333' }}>
-              <div style={{ marginBottom: '10px' }}>
-                <span style={{ display: 'inline-block', backgroundColor: '#f5f5f5', padding: '5px 10px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '10px', color: '#666' }}>
-                  S.No. [I-25-{invoice.invoiceNumber}] | Original for Buyer
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ padding: '15px 0', borderBottom: '3px solid #333' }}>
+              {/* Top Section: Company Info and Invoice Title */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 <div>
-                  <h2 style={{ fontSize: '24px', color: '#333', marginBottom: '5px' }}>{invoice.exportHeaders?.companyName || 'COMPANY NAME'}</h2>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '2px 0' }}>{invoice.exportHeaders?.address}</p>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '2px 0' }}>GSTIN: {invoice.exportHeaders?.gstin}</p>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '2px 0' }}>PAN No: {(invoice.exportHeaders as any)?.pan || 'N/A'}</p>
+                  <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#333', margin: '0 0 5px 0' }}>{invoice.exportHeaders?.companyName || 'COMPANY NAME'}</h1>
+                  <p style={{ fontSize: '10px', color: '#666', margin: '2px 0' }}>{invoice.exportHeaders?.address}</p>
+                  <p style={{ fontSize: '10px', color: '#666', margin: '2px 0' }}>{invoice.exportHeaders?.state}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <h1 style={{ fontSize: '32px', color: '#d32f2f', marginBottom: '5px', fontWeight: 'bold' }}>TAX INVOICE</h1>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '2px 0' }}><strong>Invoice No:</strong> {invoice.invoiceNumber}</p>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '2px 0' }}><strong>Invoice Date:</strong> {formatDate(invoice.invoiceDate)}</p>
+                  <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#d32f2f', margin: 0 }}>TAX INVOICE</h2>
+                </div>
+              </div>
+
+              {/* Company Details Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', fontSize: '9px', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid #ddd' }}>
+                <div>
+                  <strong>GSTIN:</strong> {invoice.exportHeaders?.gstin || 'N/A'}
+                </div>
+                <div>
+                  <strong>PAN:</strong> {(invoice.exportHeaders as any)?.pan || 'N/A'}
+                </div>
+                <div>
+                  <strong>CIN:</strong> {(invoice.exportHeaders as any)?.cin || 'N/A'}
+                </div>
+              </div>
+
+              {/* Invoice Meta Details Row 1 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', fontSize: '9px', marginBottom: '8px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>Invoice No:</div>
+                  <div>{invoice.invoiceNumber}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>Invoice Date:</div>
+                  <div>{formatDate(invoice.invoiceDate)}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>PO No:</div>
+                  <div>{(invoice as any)?.poNumber || 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>PO Date:</div>
+                  <div>{formatDate((invoice as any)?.poDate) || 'N/A'}</div>
+                </div>
+              </div>
+
+              {/* Invoice Meta Details Row 2 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', fontSize: '9px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>Project Name:</div>
+                  <div>{(invoice as any)?.projectName || 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>SO No:</div>
+                  <div>{(invoice as any)?.soNumber || 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>Project No:</div>
+                  <div>{(invoice as any)?.projectNumber || 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>Place of Supply:</div>
+                  <div>{(invoice as any)?.placeOfSupply || 'N/A'}</div>
+                </div>
+              </div>
+
+              {/* Invoice Meta Details Row 3 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '9px', marginTop: '8px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#003d7a' }}>Payment Terms:</div>
+                  <div>{(invoice as any)?.paymentTerms || 'N/A'}</div>
                 </div>
               </div>
             </div>
