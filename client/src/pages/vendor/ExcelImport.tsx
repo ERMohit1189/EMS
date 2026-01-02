@@ -34,21 +34,32 @@ export default function ExcelImport() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Show parsing progress immediately
-    setImportProgress({ current: 0, total: 100, stage: 'Reading Excel file...' });
+    // Show file info and parsing progress immediately
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+    console.log(`📁 File selected: ${file.name} (${fileSizeMB} MB)`);
+
+    setImportProgress({ current: 10, total: 100, stage: `📁 Reading file: ${file.name} (${fileSizeMB} MB)...` });
     setImporting(true);
+
+    toast({
+      title: '📁 File Selected',
+      description: `Processing ${file.name} (${fileSizeMB} MB)...`,
+    });
 
     const reader = new FileReader();
 
     reader.onload = (e) => {
       try {
         const data = e.target?.result as ArrayBuffer;
+        console.log(`✅ File loaded in memory: ${(data.byteLength / 1024 / 1024).toFixed(2)} MB`);
 
         // Use Web Worker to parse Excel file without blocking UI
         if (typeof Worker !== 'undefined') {
+          console.log('🔄 Web Worker available - starting background parsing...');
           const worker = new Worker('/excel-worker.js');
-          
-          setImportProgress({ current: 30, total: 100, stage: 'Parsing Excel file (background)...' });
+
+          setImportProgress({ current: 30, total: 100, stage: '⏳ Parsing Excel file in background (worker)...' });
+          console.log('🔄 Sending data to Web Worker...');
 
           // Send data to worker
           worker.postMessage({ data, type: 'parse' });
@@ -56,9 +67,11 @@ export default function ExcelImport() {
           // Handle worker response
           worker.onmessage = (event) => {
             const { type, data: workerData, error } = event.data;
+            console.log(`📨 Message from worker: type=${type}`, workerData || error);
 
             if (type === 'success') {
               const { jsonData, columns, rowCount } = workerData;
+              console.log(`✅ Worker parsing complete: ${rowCount} rows, ${columns.length} columns`);
 
               if (jsonData.length === 0) {
                 toast({
@@ -71,17 +84,19 @@ export default function ExcelImport() {
                 return;
               }
 
-              setImportProgress({ current: 80, total: 100, stage: 'Processing data...' });
+              setImportProgress({ current: 80, total: 100, stage: `📊 Processing ${rowCount} rows...` });
               setColumns(columns);
               setImportedData(jsonData);
               setErrors([]);
 
-              setImportProgress({ current: 100, total: 100, stage: 'Done!' });
+              setImportProgress({ current: 100, total: 100, stage: '✅ Done! Ready to import.' });
 
               toast({
                 title: `✅ Loaded ${rowCount} rows`,
                 description: `Found ${columns.length} columns. Ready to import.`,
               });
+
+              console.log(`🎉 Success! ${rowCount} rows with ${columns.length} columns loaded`);
 
               setTimeout(() => {
                 setImporting(false);
@@ -90,10 +105,10 @@ export default function ExcelImport() {
 
               worker.terminate();
             } else if (type === 'error') {
-              console.error('Excel parsing error:', error);
+              console.error('❌ Excel parsing error:', error);
               toast({
-                title: 'Error reading file',
-                description: error || 'Failed to parse Excel file',
+                title: '❌ Error reading file',
+                description: error || 'Failed to parse Excel file. Check console for details.',
                 variant: 'destructive'
               });
               setImporting(false);
@@ -103,10 +118,10 @@ export default function ExcelImport() {
           };
 
           worker.onerror = (error) => {
-            console.error('Worker error:', error);
+            console.error('❌ Worker error:', error);
             toast({
-              title: 'Error',
-              description: 'Failed to process Excel file',
+              title: '❌ Worker Error',
+              description: `Failed to process Excel file. Worker error: ${error.message || 'Unknown'}`,
               variant: 'destructive'
             });
             setImporting(false);
@@ -115,7 +130,8 @@ export default function ExcelImport() {
           };
         } else {
           // Fallback: Parse on main thread if Web Worker not supported
-          setImportProgress({ current: 30, total: 100, stage: 'Parsing Excel workbook...' });
+          console.warn('⚠️ Web Worker not supported - falling back to main thread parsing (may freeze page!)');
+          setImportProgress({ current: 30, total: 100, stage: '⚠️ Parsing Excel workbook on main thread...' });
           const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
@@ -137,12 +153,14 @@ export default function ExcelImport() {
           setImportedData(jsonData);
           setErrors([]);
 
-          setImportProgress({ current: 100, total: 100, stage: 'Done!' });
+          setImportProgress({ current: 100, total: 100, stage: '✅ Done! Ready to import.' });
 
           toast({
             title: `✅ Loaded ${jsonData.length} rows`,
             description: `Found ${allColumns.length} columns. Ready to import.`,
           });
+
+          console.log(`🎉 Success! ${jsonData.length} rows with ${allColumns.length} columns loaded (fallback)`);
 
           setTimeout(() => {
             setImporting(false);
@@ -150,10 +168,10 @@ export default function ExcelImport() {
           }, 1000);
         }
       } catch (error) {
-        console.error('Excel import error:', error);
+        console.error('❌ Excel import error:', error);
         toast({
           title: 'Error reading file',
-          description: 'Please ensure the file is a valid Excel file',
+          description: `Please ensure the file is a valid Excel file. Error: ${error instanceof Error ? error.message : 'Unknown'}`,
           variant: 'destructive'
         });
         setImporting(false);
@@ -161,6 +179,18 @@ export default function ExcelImport() {
       }
     };
 
+    reader.onerror = () => {
+      console.error('❌ FileReader error');
+      toast({
+        title: 'Error reading file',
+        description: 'Failed to read file. Please try again.',
+        variant: 'destructive'
+      });
+      setImporting(false);
+      setImportProgress({ current: 0, total: 0, stage: '' });
+    };
+
+    console.log(`📂 Starting to read file: ${file.name}...`);
     reader.readAsArrayBuffer(file);
   };
 
