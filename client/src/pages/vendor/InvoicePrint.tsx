@@ -282,26 +282,39 @@ export default function InvoicePrint() {
                 </div>
               </div>
 
-              {/* Project and PO Details - Below Bill To / Ship To */}
-              <div style={{ padding: '8px 0', backgroundColor: 'white', borderBottom: '1px solid #ddd' }}>
-                {/* Row 1: Project Name */}
-                <div style={{ fontSize: '9px', marginBottom: '5px' }}>
-                  <strong style={{ color: '#003d7a' }}>Project name:</strong> {(invoice as any)?.projectName || 'N/A'}
+              {/* Order Details - Below Bill To / Ship To */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', padding: '20px 30px', margin: '0 30px', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd', borderLeft: '1px solid #ddd', borderRight: '1px solid #ddd' }}>
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project Name</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.projectName || 'N/A'}</div>
                 </div>
-
-                {/* Row 2: SO No, Project No, PO No */}
-                <div style={{ fontSize: '9px', marginBottom: '5px' }}>
-                  <strong style={{ color: '#003d7a' }}>SO No.:</strong> {(invoice as any)?.soNumber || 'N/A'} <strong style={{ marginLeft: '20px', color: '#003d7a' }}>Project No.:</strong> {(invoice as any)?.projectNumber || 'N/A'} <strong style={{ marginLeft: '20px', color: '#003d7a' }}>PO No:</strong> {(invoice as any)?.poNumber || 'N/A'}
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>SO No.</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.soNumber || 'N/A'}</div>
                 </div>
-
-                {/* Row 3: PO Date, Payment Terms, Place of Supply */}
-                <div style={{ fontSize: '9px', marginBottom: '5px' }}>
-                  <strong style={{ color: '#003d7a' }}>PO Date:</strong> {formatDate((invoice as any)?.poDate) || 'N/A'} <strong style={{ marginLeft: '20px', color: '#003d7a' }}>Payment Terms:</strong> {(invoice as any)?.paymentTerms || 'N/A'} <strong style={{ marginLeft: '20px', color: '#003d7a' }}>Place of Supply:</strong> {(invoice as any)?.placeOfSupply || 'N/A'}
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project No.</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.projectNumber || 'N/A'}</div>
                 </div>
-
-                {/* Row 4: CIN, PAN, GSTIN */}
-                <div style={{ fontSize: '9px' }}>
-                  <strong style={{ color: '#003d7a' }}>CIN:</strong> {(invoice.exportHeaders as any)?.cin || 'N/A'} <strong style={{ marginLeft: '20px', color: '#003d7a' }}>PAN:</strong> {(invoice.exportHeaders as any)?.pan || 'N/A'} <strong style={{ marginLeft: '20px', color: '#003d7a' }}>GSTIN:</strong> {invoice.exportHeaders?.gstin || 'N/A'}
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO No.</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.poNumber || 'N/A'}</div>
+                </div>
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO Date</div>
+                  <div style={{ color: '#666' }}>{formatDate((invoice as any)?.poDate) || 'N/A'}</div>
+                </div>
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Payment Terms</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.paymentTerms || 'N/A'}</div>
+                </div>
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Place of Supply</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.placeOfSupply || 'N/A'}</div>
+                </div>
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>CIN</div>
+                  <div style={{ color: '#666' }}>{(invoice.exportHeaders as any)?.cin || 'N/A'}</div>
                 </div>
               </div>
             </div>
