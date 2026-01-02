@@ -15,9 +15,88 @@ namespace VendorRegistrationBackend.Services
 
         public async Task<Invoice?> GetInvoiceByIdAsync(string id)
         {
-            return await _context.Invoices
+            var invoice = await _context.Invoices
                 .Include(i => i.Vendor)
                 .FirstOrDefaultAsync(i => i.Id == id);
+
+            return invoice;
+        }
+
+        public async Task<object?> GetInvoiceWithLineItemsAsync(string id)
+        {
+            var invoice = await _context.Invoices
+                .Include(i => i.Vendor)
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (invoice == null) return null;
+
+            // Parse PoIds from JSON string
+            var poIds = new List<string>();
+            if (!string.IsNullOrEmpty(invoice.PoIds))
+            {
+                try
+                {
+                    poIds = System.Text.Json.JsonSerializer.Deserialize<List<string>>(invoice.PoIds) ?? new List<string>();
+                }
+                catch
+                {
+                    // If parsing fails, treat as single ID
+                    poIds = new List<string> { invoice.PoIds };
+                }
+            }
+
+            // Get all purchase order lines for this invoice's POs
+            var lineItems = await _context.PurchaseOrderLines
+                .Where(line => poIds.Contains(line.PoId))
+                .Include(line => line.Site)
+                .ToListAsync();
+
+            // Map to response object with site details
+            var invoiceWithItems = new
+            {
+                invoice.Id,
+                invoice.InvoiceNumber,
+                invoice.VendorId,
+                invoice.PoIds,
+                invoice.InvoiceDate,
+                invoice.DueDate,
+                invoice.Amount,
+                invoice.GST,
+                invoice.TotalAmount,
+                invoice.Status,
+                invoice.PaymentMethod,
+                invoice.PaymentDate,
+                invoice.BankDetails,
+                invoice.Remarks,
+                invoice.CreatedAt,
+                invoice.UpdatedAt,
+                Vendor = invoice.Vendor,
+                LineItems = lineItems.Select((line, index) => new
+                {
+                    SlNo = index + 1,
+                    Description = !string.IsNullOrEmpty(line.Site?.HopAB) && !string.IsNullOrEmpty(line.Site?.MaxAntSize)
+                        ? $"Installation > {line.Site.HopAB} with {line.Site.MaxAntSize} Ant"
+                        : line.Description ?? "Service/Product",
+                    HsnSacNo = "998734", // Default HSN/SAC, can be customized later
+                    Quantity = line.Quantity,
+                    UnitPrice = line.UnitPrice,
+                    Amount = line.TotalAmount,
+                    TaxableValue = line.TotalAmount,
+                    SiteId = line.SiteId,
+                    Site = new
+                    {
+                        line.Site?.Id,
+                        line.Site?.SiteId,
+                        line.Site?.PlanId,
+                        line.Site?.HopAB,
+                        line.Site?.MaxAntSize,
+                        line.Site?.District,
+                        line.Site?.Circle
+                    }
+                }).ToList()
+            };
+
+            return invoiceWithItems;
         }
 
         public async Task<List<Invoice>> GetAllInvoicesAsync()

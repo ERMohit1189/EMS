@@ -21,9 +21,21 @@ interface VendorDetail {
   gstin?: string;
 }
 
+interface LineItem {
+  slNo?: number;
+  description?: string;
+  hsnSacNo?: string;
+  quantity?: number;
+  unitPrice?: number;
+  amount?: number;
+  taxableValue?: number;
+  siteId?: string;
+}
+
 interface InvoiceWithDetails extends Invoice {
   vendor?: VendorDetail;
   exportHeaders?: any;
+  lineItems?: LineItem[];
 }
 
 export default function InvoicePrint() {
@@ -288,15 +300,29 @@ export default function InvoicePrint() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="text-center">1</td>
-                      <td>Invoice Item</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">1</td>
-                      <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    </tr>
+                    {invoice.lineItems && invoice.lineItems.length > 0 ? (
+                      invoice.lineItems.map((item, idx) => (
+                        <tr key={idx}>
+                          <td className="text-center">{item.slNo || idx + 1}</td>
+                          <td>{item.description || 'Invoice Item'}</td>
+                          <td className="text-center">{item.hsnSacNo || '-'}</td>
+                          <td className="text-center">{item.quantity || 1}</td>
+                          <td className="text-right">₹ {Number(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="text-right">₹ {Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="text-right">₹ {Number(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="text-center">1</td>
+                        <td>Invoice Item</td>
+                        <td className="text-center">-</td>
+                        <td className="text-center">1</td>
+                        <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
 

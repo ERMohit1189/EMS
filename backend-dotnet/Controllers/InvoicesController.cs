@@ -23,11 +23,18 @@ namespace VendorRegistrationBackend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetInvoice(string id)
         {
-            var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
-            if (invoice == null)
-                return NotFound(new { message = "Invoice not found" });
+            // Try to get invoice with line items (for print page)
+            var invoiceWithItems = await _invoiceService.GetInvoiceWithLineItemsAsync(id);
+            if (invoiceWithItems == null)
+            {
+                // Fallback to basic invoice if no line items found
+                var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
+                if (invoice == null)
+                    return NotFound(new { message = "Invoice not found" });
+                return Ok(new { invoice });
+            }
 
-            return Ok(invoice);
+            return Ok(new { invoice = invoiceWithItems });
         }
 
         [HttpGet]

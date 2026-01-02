@@ -5,6 +5,7 @@ namespace VendorRegistrationBackend.Services
     public interface IInvoiceService
     {
         Task<Invoice?> GetInvoiceByIdAsync(string id);
+        Task<object?> GetInvoiceWithLineItemsAsync(string id);
         Task<List<Invoice>> GetAllInvoicesAsync();
         Task<List<Invoice>> GetInvoicesByVendorAsync(string vendorId);
         Task<Invoice> CreateInvoiceAsync(Invoice invoice);
