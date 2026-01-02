@@ -47,45 +47,64 @@ self.onmessage = function(event) {
 
       // Process and send data in chunks
       let chunkCount = 0;
+      let actualDataRows = 0;
+
       for (let startRow = range.s.r + 1; startRow <= range.e.r; startRow += chunkSize) {
         const endRow = Math.min(startRow + chunkSize - 1, range.e.r);
         const jsonData = [];
 
         for (let row = startRow; row <= endRow; row++) {
           const rowData = {};
+          let hasData = false;
+
           for (let col = range.s.c; col <= range.e.c; col++) {
             const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
-            rowData[headers[col - range.s.c]] = cell ? cell.v : null;
+            const value = cell ? cell.v : null;
+            rowData[headers[col - range.s.c]] = value;
+            if (value !== null && value !== undefined && value !== '') {
+              hasData = true;
+            }
           }
-          jsonData.push(rowData);
+
+          // Only include rows that have at least one cell with data
+          if (hasData) {
+            jsonData.push(rowData);
+            actualDataRows++;
+          }
         }
 
-        chunkCount++;
-        const rowsProcessed = Math.min(startRow + chunkSize - range.s.r - 1, totalRows);
+        // Only send chunk if it has data
+        if (jsonData.length > 0) {
+          chunkCount++;
+          const scanProgress = Math.min((startRow + chunkSize) - range.s.r - 1, totalRows);
 
-        self.postMessage({
-          type: 'chunk',
-          data: {
-            chunkNumber: chunkCount,
-            rows: jsonData,
-            rowsProcessed: rowsProcessed,
-            totalRows: totalRows,
-            progress: ((rowsProcessed / totalRows) * 100).toFixed(2)
-          }
-        });
+          self.postMessage({
+            type: 'chunk',
+            data: {
+              chunkNumber: chunkCount,
+              rows: jsonData,
+              rowsProcessed: actualDataRows,
+              totalRows: actualDataRows,
+              progress: ((scanProgress / totalRows) * 100).toFixed(2)
+            }
+          });
+        }
       }
 
       const jsonTime = performance.now() - jsonStart;
-      console.log(`[Worker] Manual JSON conversion took ${jsonTime.toFixed(2)}ms for ${totalRows} rows`);
+      console.log(`[Worker] Manual JSON conversion took ${jsonTime.toFixed(2)}ms for ${totalRows} rows (${actualDataRows} with data)`);
 
       const totalTime = performance.now() - totalStart;
       console.log(`[Worker] Total parsing time: ${totalTime.toFixed(2)}ms`);
+      console.log(`[Worker] Filtered ${totalRows - actualDataRows} empty rows, kept ${actualDataRows} rows with data`);
 
       // Send completion message
       self.postMessage({
         type: 'complete',
         data: {
-          totalRows: totalRows,
+          totalRows: actualDataRows,
+          scannedRows: totalRows,
+          emptyRowsSkipped: totalRows - actualDataRows,
           chunkCount: chunkCount,
           timing: {
             readTime: readTime.toFixed(2),
