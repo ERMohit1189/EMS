@@ -10,7 +10,19 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import './InvoicePrint.css';
 
+interface VendorDetail {
+  id?: string;
+  name?: string;
+  email?: string;
+  mobile?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  gstin?: string;
+}
+
 interface InvoiceWithDetails extends Invoice {
+  vendor?: VendorDetail;
   exportHeaders?: any;
 }
 
@@ -241,10 +253,10 @@ export default function InvoicePrint() {
                 <div className="parties-section">
                   <div className="party-box">
                     <h3>Bill To</h3>
-                    <p><strong>Vendor</strong></p>
-                    <p>GSTIN: N/A</p>
-                    <p>Address: N/A</p>
-                    <p>City/State: N/A</p>
+                    <p><strong>{invoice.vendor?.name || 'Vendor Name'}</strong></p>
+                    <p>GSTIN: {invoice.vendor?.gstin || 'N/A'}</p>
+                    <p>Address: {invoice.vendor?.address || 'N/A'}</p>
+                    <p>City/State: {invoice.vendor?.city && invoice.vendor?.state ? `${invoice.vendor.city}, ${invoice.vendor.state}` : 'N/A'}</p>
                   </div>
 
                   <div className="party-box">
