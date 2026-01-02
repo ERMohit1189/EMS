@@ -177,65 +177,51 @@ export default function InvoicePrint() {
   };
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#f5f5f5', display: 'flex', flexDirection: 'column' }}>
-      {/* No-print toolbar */}
-      <div className="no-print" style={{
-        display: 'flex',
-        gap: '12px',
-        padding: '16px',
-        backgroundColor: 'white',
-        borderBottom: '1px solid #ddd',
-        alignItems: 'center',
-        flexWrap: 'wrap'
-      }}>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => window.history.back()}
-          className="border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
-        >
-          <ArrowLeft className="h-3 w-3 mr-2" /> Back
-        </Button>
-
-        {/* Page counter */}
-        <div style={{ fontSize: '13px', color: '#666', fontWeight: '500' }}>
-          📄 Pages: {pages} | Items: {invoice?.lineItems?.length || 0}
+    <div style={{ width: '100%', display: 'block', background: 'white', minHeight: '100vh', boxSizing: 'border-box' }}>
+      <div className="print-wrapper" style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', boxSizing: 'border-box' }}>
+        {/* Toolbar - matching POPrint */}
+        <div className="no-print flex gap-4 p-8 border-b sticky top-0 bg-white z-10 items-center" style={{ width: '100%', boxSizing: 'border-box' }}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.history.back()}
+            className="border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
+          >
+            <ArrowLeft className="h-3 w-3 mr-2" /> Back
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handlePrint}
+            className="border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
+          >
+            <Printer className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDownloadPDF}
+            className="border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
+          >
+            <FileText className="h-3 w-3" />
+          </Button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', padding: '8px 16px', backgroundColor: '#f0f0f0', borderRadius: '4px', fontWeight: 600, color: '#003d7a', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={printHeaders}
+              onChange={(e) => setPrintHeaders(e.target.checked)}
+              style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+            />
+            Print Header
+          </label>
+          <div style={{ padding: '8px 16px', backgroundColor: '#f0f0f0', borderRadius: '4px', fontWeight: 600, color: '#003d7a' }}>
+            📄 Pages: <span style={{ fontSize: '16px' }}>{pages}</span> | Items: <span style={{ fontSize: '16px' }}>{invoice?.lineItems?.length || 0}</span>
+          </div>
         </div>
 
-        {/* Print headers checkbox */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#333', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={printHeaders}
-            onChange={(e) => setPrintHeaders(e.target.checked)}
-            style={{ cursor: 'pointer' }}
-          />
-          Print Headers
-        </label>
-
-        <div style={{ flex: 1 }}></div>
-
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handlePrint}
-          className="border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
-        >
-          <Printer className="h-3 w-3 mr-2" /> Print
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleDownloadPDF}
-          className="border-slate-300 hover:bg-slate-50 text-xs py-1 h-auto"
-        >
-          <FileText className="h-3 w-3 mr-2" /> PDF
-        </Button>
-      </div>
-
-      {/* Invoice container - scrollable */}
-      <div style={{ padding: '20px', display: 'flex', justifyContent: 'center', flex: 1, overflowY: 'auto' }}>
-        <div ref={printRef} style={{ width: '900px', backgroundColor: 'white', boxShadow: '0 0 15px rgba(0,0,0,0.1)' }}>
+        {/* Invoice container - scrollable */}
+        <div style={{ padding: '20px', width: '100%', overflowY: 'auto', flex: 1, backgroundColor: '#f0f0f0', boxSizing: 'border-box' }}>
+          <div ref={printRef} style={{ margin: '0 auto', width: 'fit-content' }}>
 
           {/* Render multiple pages */}
           {Array.from({ length: pages }).map((_, pageIndex) => {
@@ -246,7 +232,12 @@ export default function InvoicePrint() {
             if (!hasContent && pageIndex > 0) return null;
 
             return (
-              <div key={pageIndex} style={{ pageBreakAfter: pageIndex < pages - 1 ? 'always' : 'auto' }}>
+              <div
+                key={pageIndex}
+                className="invoice-container"
+                style={{ pageBreakAfter: pageIndex < pages - 1 ? 'always' : 'auto' }}
+              >
+              <div style={{ backgroundColor: 'white', boxShadow: '0 0 15px rgba(0,0,0,0.1)' }}>
 
           {/* Header - conditional on printHeaders and shown on all pages */}
           {printHeaders && (
@@ -401,9 +392,10 @@ export default function InvoicePrint() {
           </div>
 
               </div>
+              </div>
             );
           })}
-
+          </div>
         </div>
       </div>
     </div>
