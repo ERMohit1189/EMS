@@ -260,7 +260,7 @@ export default function InvoicePrint() {
           {/* Bill To / Ship To - only on first page */}
           {pageIndex === 0 && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', backgroundColor: 'white', boxSizing: 'border-box' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '20px 8px', width: 'calc(100% - 16px)', margin: '0 auto', backgroundColor: 'white', boxSizing: 'border-box' }}>
                 <div style={{ border: '1px solid #ddd', padding: '10px', backgroundColor: '#fafafa' }}>
                   <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '6px', textTransform: 'uppercase' }}>Bill To</h3>
                   <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}><strong>{invoice.vendor?.name || 'Vendor Name'}</strong></p>
