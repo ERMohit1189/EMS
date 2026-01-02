@@ -29,6 +29,7 @@ export default function ExcelImport() {
   const [estimatedTime, setEstimatedTime] = useState<{ minutes: number; seconds: number; totalSeconds: number }>({ minutes: 0, seconds: 0, totalSeconds: 0 });
   const [elapsedTime, setElapsedTime] = useState(0); // Track elapsed seconds
   const [sitesWithExistingPOs, setSitesWithExistingPOs] = useState<any[]>([]); // Sites that already have POs
+  const [parsingTiming, setParsingTiming] = useState<{ readTime: string; jsonTime: string; totalTime: string } | null>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -36,6 +37,7 @@ export default function ExcelImport() {
 
     // Show file info and parsing progress immediately
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+    const uploadStartTime = performance.now();
     console.log(`📁 File selected: ${file.name} (${fileSizeMB} MB)`);
 
     setImportProgress({ current: 10, total: 100, stage: `📁 Reading file: ${file.name} (${fileSizeMB} MB)...` });
@@ -70,8 +72,15 @@ export default function ExcelImport() {
             console.log(`📨 Message from worker: type=${type}`, workerData || error);
 
             if (type === 'success') {
-              const { jsonData, columns, rowCount } = workerData;
+              const { jsonData, columns, rowCount, timing } = workerData;
               console.log(`✅ Worker parsing complete: ${rowCount} rows, ${columns.length} columns`);
+
+              if (timing) {
+                console.log(`⏱️  XLSX.read(): ${timing.readTime}ms`);
+                console.log(`⏱️  sheet_to_json(): ${timing.jsonTime}ms`);
+                console.log(`⏱️  Total worker parsing: ${timing.totalTime}ms`);
+                setParsingTiming(timing);
+              }
 
               if (jsonData.length === 0) {
                 toast({
@@ -93,10 +102,10 @@ export default function ExcelImport() {
 
               toast({
                 title: `✅ Loaded ${rowCount} rows`,
-                description: `Found ${columns.length} columns. Ready to import.`,
+                description: `Found ${columns.length} columns. Parsing took ${timing?.totalTime || '?'}ms`,
               });
 
-              console.log(`🎉 Success! ${rowCount} rows with ${columns.length} columns loaded`);
+              console.log(`🎉 Success! ${rowCount} rows with ${columns.length} columns loaded (${timing?.totalTime}ms)`);
 
               setTimeout(() => {
                 setImporting(false);

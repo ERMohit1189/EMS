@@ -6,11 +6,25 @@ self.onmessage = function(event) {
     const { data, type } = event.data;
 
     if (type === 'parse') {
-      // Parse Excel file
+      const totalStart = performance.now();
+
+      // Step 1: Parse workbook from binary
+      const readStart = performance.now();
       const workbook = XLSX.read(data, { type: 'array' });
+      const readTime = performance.now() - readStart;
+      console.log(`[Worker] XLSX.read() took ${readTime.toFixed(2)}ms`);
+
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+
+      // Step 2: Convert sheet to JSON
+      const jsonStart = performance.now();
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const jsonTime = performance.now() - jsonStart;
+      console.log(`[Worker] sheet_to_json() took ${jsonTime.toFixed(2)}ms for ${jsonData.length} rows`);
+
+      const totalTime = performance.now() - totalStart;
+      console.log(`[Worker] Total parsing time: ${totalTime.toFixed(2)}ms`);
 
       // Send result back to main thread
       self.postMessage({
@@ -18,7 +32,12 @@ self.onmessage = function(event) {
         data: {
           jsonData: jsonData,
           columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : [],
-          rowCount: jsonData.length
+          rowCount: jsonData.length,
+          timing: {
+            readTime: readTime.toFixed(2),
+            jsonTime: jsonTime.toFixed(2),
+            totalTime: totalTime.toFixed(2)
+          }
         }
       });
     }
