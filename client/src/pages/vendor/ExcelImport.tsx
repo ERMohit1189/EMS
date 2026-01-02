@@ -66,23 +66,50 @@ export default function ExcelImport() {
           // Send data to worker
           worker.postMessage({ data, type: 'parse' });
 
-          // Handle worker response
+          // Handle worker response - chunked processing
+          let allRows: RawRowData[] = [];
+          let totalRows = 0;
+          let columns: string[] = [];
+
           worker.onmessage = (event) => {
             const { type, data: workerData, error } = event.data;
             console.log(`📨 Message from worker: type=${type}`, workerData || error);
 
-            if (type === 'success') {
-              const { jsonData, columns, rowCount, timing } = workerData;
-              console.log(`✅ Worker parsing complete: ${rowCount} rows, ${columns.length} columns`);
+            if (type === 'headers') {
+              // Receive headers and total row count
+              columns = workerData.columns;
+              totalRows = workerData.totalRows;
+              console.log(`📋 Headers received: ${columns.length} columns, ${totalRows} rows total`);
+              setColumns(columns);
+              setImportProgress({ current: 40, total: 100, stage: `📥 Receiving data (${totalRows} rows)...` });
+            }
+            else if (type === 'chunk') {
+              // Receive chunk of rows and accumulate
+              const { rows, progress, chunkNumber } = workerData;
+              allRows.push(...rows);
+              console.log(`📦 Chunk ${chunkNumber} received: ${rows.length} rows, ${progress}% complete`);
+
+              // Update progress based on how much data we've received
+              const progressPercent = 40 + Math.round((parseFloat(progress) * 0.5)); // 40-90%
+              setImportProgress({
+                current: progressPercent,
+                total: 100,
+                stage: `📥 Receiving data (${allRows.length} of ${totalRows} rows, ${progress}%)...`
+              });
+            }
+            else if (type === 'complete') {
+              // Processing complete
+              const { timing } = workerData;
+              console.log(`✅ Worker parsing complete: ${allRows.length} rows, ${columns.length} columns`);
 
               if (timing) {
                 console.log(`⏱️  XLSX.read(): ${timing.readTime}ms`);
-                console.log(`⏱️  sheet_to_json(): ${timing.jsonTime}ms`);
+                console.log(`⏱️  JSON conversion: ${timing.jsonTime}ms`);
                 console.log(`⏱️  Total worker parsing: ${timing.totalTime}ms`);
                 setParsingTiming(timing);
               }
 
-              if (jsonData.length === 0) {
+              if (allRows.length === 0) {
                 toast({
                   title: 'Empty file',
                   description: 'No data found in Excel file',
@@ -93,19 +120,18 @@ export default function ExcelImport() {
                 return;
               }
 
-              setImportProgress({ current: 80, total: 100, stage: `📊 Processing ${rowCount} rows...` });
-              setColumns(columns);
-              setImportedData(jsonData);
+              setImportProgress({ current: 90, total: 100, stage: `📊 Processing ${allRows.length} rows...` });
+              setImportedData(allRows);
               setErrors([]);
 
               setImportProgress({ current: 100, total: 100, stage: '✅ Done! Ready to import.' });
 
               toast({
-                title: `✅ Loaded ${rowCount} rows`,
+                title: `✅ Loaded ${allRows.length} rows`,
                 description: `Found ${columns.length} columns. Parsing took ${timing?.totalTime || '?'}ms`,
               });
 
-              console.log(`🎉 Success! ${rowCount} rows with ${columns.length} columns loaded (${timing?.totalTime}ms)`);
+              console.log(`🎉 Success! ${allRows.length} rows with ${columns.length} columns loaded (${timing?.totalTime}ms)`);
 
               setTimeout(() => {
                 setImporting(false);
@@ -113,7 +139,8 @@ export default function ExcelImport() {
               }, 1000);
 
               worker.terminate();
-            } else if (type === 'error') {
+            }
+            else if (type === 'error') {
               console.error('❌ Excel parsing error:', error);
               toast({
                 title: '❌ Error reading file',

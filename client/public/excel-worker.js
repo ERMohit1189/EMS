@@ -17,7 +17,7 @@ self.onmessage = function(event) {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
 
-      // Step 2: Convert sheet to JSON using optimized manual approach (faster than sheet_to_json)
+      // Step 2: Convert sheet to JSON using optimized manual approach
       const jsonStart = performance.now();
 
       // Get range of cells
@@ -30,30 +30,63 @@ self.onmessage = function(event) {
         headers.push(cell ? cell.v : `Column${col}`);
       }
 
-      // Build JSON data row by row (much faster than sheet_to_json)
-      const jsonData = [];
-      for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        const rowData = {};
-        for (let col = range.s.c; col <= range.e.c; col++) {
-          const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
-          rowData[headers[col - range.s.c]] = cell ? cell.v : null;
+      const chunkSize = 5000; // Process and send 5000 rows at a time
+      const totalRows = range.e.r - range.s.r;
+
+      console.log(`[Worker] Starting chunked processing of ${totalRows} rows...`);
+
+      // Send headers first
+      self.postMessage({
+        type: 'headers',
+        data: {
+          columns: headers,
+          totalRows: totalRows,
+          chunkSize: chunkSize
         }
-        jsonData.push(rowData);
+      });
+
+      // Process and send data in chunks
+      let chunkCount = 0;
+      for (let startRow = range.s.r + 1; startRow <= range.e.r; startRow += chunkSize) {
+        const endRow = Math.min(startRow + chunkSize - 1, range.e.r);
+        const jsonData = [];
+
+        for (let row = startRow; row <= endRow; row++) {
+          const rowData = {};
+          for (let col = range.s.c; col <= range.e.c; col++) {
+            const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
+            rowData[headers[col - range.s.c]] = cell ? cell.v : null;
+          }
+          jsonData.push(rowData);
+        }
+
+        chunkCount++;
+        const rowsProcessed = Math.min(startRow + chunkSize - range.s.r - 1, totalRows);
+
+        self.postMessage({
+          type: 'chunk',
+          data: {
+            chunkNumber: chunkCount,
+            rows: jsonData,
+            rowsProcessed: rowsProcessed,
+            totalRows: totalRows,
+            progress: ((rowsProcessed / totalRows) * 100).toFixed(2)
+          }
+        });
       }
 
       const jsonTime = performance.now() - jsonStart;
-      console.log(`[Worker] Manual JSON conversion took ${jsonTime.toFixed(2)}ms for ${jsonData.length} rows`);
+      console.log(`[Worker] Manual JSON conversion took ${jsonTime.toFixed(2)}ms for ${totalRows} rows`);
 
       const totalTime = performance.now() - totalStart;
       console.log(`[Worker] Total parsing time: ${totalTime.toFixed(2)}ms`);
 
-      // Send result back to main thread
+      // Send completion message
       self.postMessage({
-        type: 'success',
+        type: 'complete',
         data: {
-          jsonData: jsonData,
-          columns: headers,
-          rowCount: jsonData.length,
+          totalRows: totalRows,
+          chunkCount: chunkCount,
           timing: {
             readTime: readTime.toFixed(2),
             jsonTime: jsonTime.toFixed(2),
