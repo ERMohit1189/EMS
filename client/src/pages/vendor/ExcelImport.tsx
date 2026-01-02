@@ -34,14 +34,24 @@ export default function ExcelImport() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Show parsing progress immediately
+    setImportProgress({ current: 0, total: 100, stage: 'Reading Excel file...' });
+    setImporting(true);
+
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = e.target?.result as ArrayBuffer;
+
+        // Parse Excel file
+        setImportProgress({ current: 10, total: 100, stage: 'Parsing Excel workbook...' });
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+
+        // Convert to JSON but with custom handler for large datasets
+        setImportProgress({ current: 30, total: 100, stage: 'Converting to JSON format...' });
         const jsonData = XLSX.utils.sheet_to_json(worksheet) as RawRowData[];
 
         if (jsonData.length === 0) {
@@ -49,23 +59,64 @@ export default function ExcelImport() {
             title: 'Empty file',
             description: 'No data found in Excel file',
           });
+          setImporting(false);
+          setImportProgress({ current: 0, total: 0, stage: '' });
           return;
         }
 
+        // Process data in chunks to avoid UI freeze
+        const CHUNK_SIZE = 500; // Process 500 rows at a time
+        const totalRows = jsonData.length;
         const allColumns = Object.keys(jsonData[0]);
+        const processedData: RawRowData[] = [];
+
+        setImportProgress({ current: 50, total: 100, stage: `Processing ${totalRows} rows in chunks...` });
+
+        // Process rows in chunks with async/await to yield to browser
+        for (let i = 0; i < totalRows; i += CHUNK_SIZE) {
+          const chunk = jsonData.slice(i, Math.min(i + CHUNK_SIZE, totalRows));
+          processedData.push(...chunk);
+
+          // Calculate progress
+          const progress = 50 + Math.round((processedData.length / totalRows) * 40);
+          setImportProgress({
+            current: progress,
+            total: 100,
+            stage: `Processing rows: ${processedData.length}/${totalRows}`
+          });
+
+          // Yield to browser to prevent freeze
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
+        // Update state with processed data
+        setImportProgress({ current: 95, total: 100, stage: 'Finalizing...' });
         setColumns(allColumns);
-        setImportedData(jsonData);
+        setImportedData(processedData);
         setErrors([]);
 
+        // Complete
+        setImportProgress({ current: 100, total: 100, stage: 'Done!' });
+
         toast({
-          title: `Loaded ${jsonData.length} rows`,
+          title: `✅ Loaded ${processedData.length} rows`,
           description: `Found ${allColumns.length} columns. Ready to import.`,
         });
+
+        // Clear progress after 1 second
+        setTimeout(() => {
+          setImporting(false);
+          setImportProgress({ current: 0, total: 0, stage: '' });
+        }, 1000);
       } catch (error) {
+        console.error('Excel import error:', error);
         toast({
           title: 'Error reading file',
           description: 'Please ensure the file is a valid Excel file',
+          variant: 'destructive'
         });
+        setImporting(false);
+        setImportProgress({ current: 0, total: 0, stage: '' });
       }
     };
 
