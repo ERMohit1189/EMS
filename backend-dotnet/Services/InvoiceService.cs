@@ -85,13 +85,14 @@ namespace VendorRegistrationBackend.Services
                     SiteId = line.SiteId,
                     Site = new
                     {
-                        line.Site?.Id,
-                        line.Site?.SiteId,
-                        line.Site?.PlanId,
-                        line.Site?.HopAB,
-                        line.Site?.MaxAntSize,
-                        line.Site?.District,
-                        line.Site?.Circle
+                        Id = line.Site?.Id,
+                        PlanId = line.Site?.PlanId,
+                        HopAB = line.Site?.HopAB,
+                        MaxAntSize = line.Site?.MaxAntSize,
+                        District = line.Site?.District,
+                        Circle = line.Site?.Circle,
+                        Name = line.Site?.Name,
+                        Address = line.Site?.Address
                     }
                 }).ToList()
             };
