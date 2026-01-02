@@ -366,7 +366,7 @@ export default function InvoicePrint() {
 
           {/* Totals - only on last page */}
           {pageIndex === pages - 1 && (
-            <div style={{ padding: '0 15px', marginBottom: '30px', width: 'calc(100% - 30px)', margin: '0 auto 30px', boxSizing: 'border-box' }}>
+            <div style={{ padding: '0 8px', marginBottom: '30px', width: 'calc(100% - 16px)', margin: '0 auto 30px', boxSizing: 'border-box' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                 <tbody>
                   <tr>
