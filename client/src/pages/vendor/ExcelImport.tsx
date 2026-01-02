@@ -53,6 +53,8 @@ export default function ExcelImport() {
         // Convert to JSON but with custom handler for large datasets
         setImportProgress({ current: 30, total: 100, stage: 'Converting to JSON format...' });
         const jsonData = XLSX.utils.sheet_to_json(worksheet) as RawRowData[];
+        // Yield to browser after heavy XLSX parsing
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         if (jsonData.length === 0) {
           toast({
@@ -86,7 +88,7 @@ export default function ExcelImport() {
           });
 
           // Yield to browser to prevent freeze
-          await new Promise(resolve => setTimeout(resolve, 0));
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         // Update state with processed data
