@@ -40,76 +40,115 @@ export default function ExcelImport() {
 
     const reader = new FileReader();
 
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
       try {
         const data = e.target?.result as ArrayBuffer;
 
-        // Parse Excel file
-        setImportProgress({ current: 10, total: 100, stage: 'Parsing Excel workbook...' });
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
+        // Use Web Worker to parse Excel file without blocking UI
+        if (typeof Worker !== 'undefined') {
+          const worker = new Worker('/excel-worker.js');
+          
+          setImportProgress({ current: 30, total: 100, stage: 'Parsing Excel file (background)...' });
 
-        // Convert to JSON but with custom handler for large datasets
-        setImportProgress({ current: 30, total: 100, stage: 'Converting to JSON format...' });
-        const jsonData = XLSX.utils.sheet_to_json(worksheet) as RawRowData[];
-        // Yield to browser after heavy XLSX parsing
-        await new Promise(resolve => setTimeout(resolve, 100));
+          // Send data to worker
+          worker.postMessage({ data, type: 'parse' });
 
-        if (jsonData.length === 0) {
+          // Handle worker response
+          worker.onmessage = (event) => {
+            const { type, data: workerData, error } = event.data;
+
+            if (type === 'success') {
+              const { jsonData, columns, rowCount } = workerData;
+
+              if (jsonData.length === 0) {
+                toast({
+                  title: 'Empty file',
+                  description: 'No data found in Excel file',
+                });
+                setImporting(false);
+                setImportProgress({ current: 0, total: 0, stage: '' });
+                worker.terminate();
+                return;
+              }
+
+              setImportProgress({ current: 80, total: 100, stage: 'Processing data...' });
+              setColumns(columns);
+              setImportedData(jsonData);
+              setErrors([]);
+
+              setImportProgress({ current: 100, total: 100, stage: 'Done!' });
+
+              toast({
+                title: `✅ Loaded ${rowCount} rows`,
+                description: `Found ${columns.length} columns. Ready to import.`,
+              });
+
+              setTimeout(() => {
+                setImporting(false);
+                setImportProgress({ current: 0, total: 0, stage: '' });
+              }, 1000);
+
+              worker.terminate();
+            } else if (type === 'error') {
+              console.error('Excel parsing error:', error);
+              toast({
+                title: 'Error reading file',
+                description: error || 'Failed to parse Excel file',
+                variant: 'destructive'
+              });
+              setImporting(false);
+              setImportProgress({ current: 0, total: 0, stage: '' });
+              worker.terminate();
+            }
+          };
+
+          worker.onerror = (error) => {
+            console.error('Worker error:', error);
+            toast({
+              title: 'Error',
+              description: 'Failed to process Excel file',
+              variant: 'destructive'
+            });
+            setImporting(false);
+            setImportProgress({ current: 0, total: 0, stage: '' });
+            worker.terminate();
+          };
+        } else {
+          // Fallback: Parse on main thread if Web Worker not supported
+          setImportProgress({ current: 30, total: 100, stage: 'Parsing Excel workbook...' });
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet) as RawRowData[];
+
+          if (jsonData.length === 0) {
+            toast({
+              title: 'Empty file',
+              description: 'No data found in Excel file',
+            });
+            setImporting(false);
+            setImportProgress({ current: 0, total: 0, stage: '' });
+            return;
+          }
+
+          const allColumns = Object.keys(jsonData[0]);
+          setImportProgress({ current: 95, total: 100, stage: 'Finalizing...' });
+          setColumns(allColumns);
+          setImportedData(jsonData);
+          setErrors([]);
+
+          setImportProgress({ current: 100, total: 100, stage: 'Done!' });
+
           toast({
-            title: 'Empty file',
-            description: 'No data found in Excel file',
-          });
-          setImporting(false);
-          setImportProgress({ current: 0, total: 0, stage: '' });
-          return;
-        }
-
-        // Process data in chunks to avoid UI freeze
-        const CHUNK_SIZE = 500; // Process 500 rows at a time
-        const totalRows = jsonData.length;
-        const allColumns = Object.keys(jsonData[0]);
-        const processedData: RawRowData[] = [];
-
-        setImportProgress({ current: 50, total: 100, stage: `Processing ${totalRows} rows in chunks...` });
-
-        // Process rows in chunks with async/await to yield to browser
-        for (let i = 0; i < totalRows; i += CHUNK_SIZE) {
-          const chunk = jsonData.slice(i, Math.min(i + CHUNK_SIZE, totalRows));
-          processedData.push(...chunk);
-
-          // Calculate progress
-          const progress = 50 + Math.round((processedData.length / totalRows) * 40);
-          setImportProgress({
-            current: progress,
-            total: 100,
-            stage: `Processing rows: ${processedData.length}/${totalRows}`
+            title: `✅ Loaded ${jsonData.length} rows`,
+            description: `Found ${allColumns.length} columns. Ready to import.`,
           });
 
-          // Yield to browser to prevent freeze
-          await new Promise(resolve => setTimeout(resolve, 50));
+          setTimeout(() => {
+            setImporting(false);
+            setImportProgress({ current: 0, total: 0, stage: '' });
+          }, 1000);
         }
-
-        // Update state with processed data
-        setImportProgress({ current: 95, total: 100, stage: 'Finalizing...' });
-        setColumns(allColumns);
-        setImportedData(processedData);
-        setErrors([]);
-
-        // Complete
-        setImportProgress({ current: 100, total: 100, stage: 'Done!' });
-
-        toast({
-          title: `✅ Loaded ${processedData.length} rows`,
-          description: `Found ${allColumns.length} columns. Ready to import.`,
-        });
-
-        // Clear progress after 1 second
-        setTimeout(() => {
-          setImporting(false);
-          setImportProgress({ current: 0, total: 0, stage: '' });
-        }, 1000);
       } catch (error) {
         console.error('Excel import error:', error);
         toast({
