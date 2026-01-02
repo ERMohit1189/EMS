@@ -17,21 +17,17 @@ self.onmessage = function(event) {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
 
-      // Step 2: Convert sheet to JSON using optimized manual approach
+      // Step 2: Convert sheet to JSON using XLSX's optimized sheet_to_json (much faster for large files)
       const jsonStart = performance.now();
 
-      // Get range of cells
-      const range = XLSX.utils.decode_range(worksheet['!ref']);
+      // Use XLSX's built-in sheet_to_json which is highly optimized
+      const allRows = XLSX.utils.sheet_to_json(worksheet);
+      const headers = allRows.length > 0 ? Object.keys(allRows[0]) : [];
 
-      // Get headers from first row
-      const headers = [];
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cell = worksheet[XLSX.utils.encode_col(col) + '1'];
-        headers.push(cell ? cell.v : `Column${col}`);
-      }
+      console.log(`[Worker] sheet_to_json extracted ${allRows.length} rows with ${headers.length} columns`);
 
       const chunkSize = 5000; // Process and send 5000 rows at a time
-      const totalRows = range.e.r - range.s.r;
+      const totalRows = allRows.length;
 
       console.log(`[Worker] Starting chunked processing of ${totalRows} rows...`);
 
@@ -47,64 +43,44 @@ self.onmessage = function(event) {
 
       // Process and send data in chunks
       let chunkCount = 0;
-      let actualDataRows = 0;
 
-      for (let startRow = range.s.r + 1; startRow <= range.e.r; startRow += chunkSize) {
-        const endRow = Math.min(startRow + chunkSize - 1, range.e.r);
-        const jsonData = [];
+      for (let i = 0; i < allRows.length; i += chunkSize) {
+        const chunk = allRows.slice(i, i + chunkSize);
 
-        for (let row = startRow; row <= endRow; row++) {
-          const rowData = {};
-          let hasData = false;
-
-          for (let col = range.s.c; col <= range.e.c; col++) {
-            const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
-            const value = cell ? cell.v : null;
-            rowData[headers[col - range.s.c]] = value;
-            if (value !== null && value !== undefined && value !== '') {
-              hasData = true;
-            }
-          }
-
-          // Only include rows that have at least one cell with data
-          if (hasData) {
-            jsonData.push(rowData);
-            actualDataRows++;
-          }
-        }
+        // Filter out completely empty rows in chunk
+        const filteredChunk = chunk.filter(row => {
+          return Object.values(row).some(val => val !== null && val !== undefined && val !== '');
+        });
 
         // Only send chunk if it has data
-        if (jsonData.length > 0) {
+        if (filteredChunk.length > 0) {
           chunkCount++;
-          const scanProgress = Math.min((startRow + chunkSize) - range.s.r - 1, totalRows);
+          const progress = Math.min(i + chunkSize, totalRows);
 
           self.postMessage({
             type: 'chunk',
             data: {
               chunkNumber: chunkCount,
-              rows: jsonData,
-              rowsProcessed: actualDataRows,
-              totalRows: actualDataRows,
-              progress: ((scanProgress / totalRows) * 100).toFixed(2)
+              rows: filteredChunk,
+              rowsProcessed: filteredChunk.length,
+              totalRows: filteredChunk.length,
+              progress: ((progress / totalRows) * 100).toFixed(2)
             }
           });
         }
       }
 
       const jsonTime = performance.now() - jsonStart;
-      console.log(`[Worker] Manual JSON conversion took ${jsonTime.toFixed(2)}ms for ${totalRows} rows (${actualDataRows} with data)`);
+      console.log(`[Worker] sheet_to_json() took ${jsonTime.toFixed(2)}ms for ${totalRows} rows`);
 
       const totalTime = performance.now() - totalStart;
       console.log(`[Worker] Total parsing time: ${totalTime.toFixed(2)}ms`);
-      console.log(`[Worker] Filtered ${totalRows - actualDataRows} empty rows, kept ${actualDataRows} rows with data`);
 
       // Send completion message
       self.postMessage({
         type: 'complete',
         data: {
-          totalRows: actualDataRows,
-          scannedRows: totalRows,
-          emptyRowsSkipped: totalRows - actualDataRows,
+          totalRows: totalRows,
           chunkCount: chunkCount,
           timing: {
             readTime: readTime.toFixed(2),
