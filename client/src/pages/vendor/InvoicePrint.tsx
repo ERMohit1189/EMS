@@ -240,7 +240,7 @@ export default function InvoicePrint() {
 
           {/* Header - shown on all pages when printHeaders is checked */}
           {printHeaders && (
-            <div style={{ padding: '12px 30px', width: 'calc(100% - 60px)', margin: '0 auto 8px', borderBottom: '3px solid #333', boxSizing: 'border-box' }}>
+            <div style={{ padding: '12px 15px', width: 'calc(100% - 30px)', margin: '0 auto 8px', borderBottom: '3px solid #333', boxSizing: 'border-box' }}>
               {/* Top Section: Company Info and Invoice Title */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div>
@@ -260,7 +260,7 @@ export default function InvoicePrint() {
           {/* Bill To / Ship To - only on first page */}
           {pageIndex === 0 && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '10px 30px', width: 'calc(100% - 60px)', margin: '0 auto', backgroundColor: 'white', boxSizing: 'border-box' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '10px 15px', width: 'calc(100% - 30px)', margin: '0 auto', backgroundColor: 'white', boxSizing: 'border-box' }}>
                 <div style={{ border: '1px solid #ddd', padding: '10px', backgroundColor: '#fafafa' }}>
                   <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '6px', textTransform: 'uppercase' }}>Bill To</h3>
                   <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}><strong>{invoice.vendor?.name || 'Vendor Name'}</strong></p>
@@ -283,7 +283,7 @@ export default function InvoicePrint() {
               </div>
 
               {/* Order Details - Below Bill To / Ship To */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', padding: '20px 30px', width: 'calc(100% - 60px)', margin: '0 auto', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd', borderLeft: '1px solid #ddd', borderRight: '1px solid #ddd', boxSizing: 'border-box' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd', borderLeft: '1px solid #ddd', borderRight: '1px solid #ddd', boxSizing: 'border-box' }}>
                 <div style={{ fontSize: '11px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project Name</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.projectName || 'N/A'}</div>
@@ -321,7 +321,7 @@ export default function InvoicePrint() {
           )}
 
           {/* Items Table */}
-          <table style={{ width: 'calc(100% - 60px)', borderCollapse: 'collapse', margin: '20px 30px', fontSize: '12px', tableLayout: 'fixed' }}>
+          <table style={{ width: 'calc(100% - 30px)', borderCollapse: 'collapse', margin: '20px 15px', fontSize: '12px', tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ backgroundColor: '#333', color: 'white' }}>
                 <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '4%' }}>SI. No.</th>
@@ -366,7 +366,7 @@ export default function InvoicePrint() {
 
           {/* Totals - only on last page */}
           {pageIndex === pages - 1 && (
-            <div style={{ padding: '0 30px', marginBottom: '30px', width: 'calc(100% - 60px)', margin: '0 auto 30px', boxSizing: 'border-box' }}>
+            <div style={{ padding: '0 15px', marginBottom: '30px', width: 'calc(100% - 30px)', margin: '0 auto 30px', boxSizing: 'border-box' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                 <tbody>
                   <tr>
@@ -388,7 +388,7 @@ export default function InvoicePrint() {
 
           {/* Bank Details - only on last page */}
           {pageIndex === pages - 1 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', padding: '20px 30px', width: 'calc(100% - 60px)', margin: '0 auto', backgroundColor: '#fafafa', border: '1px solid #ddd', boxSizing: 'border-box' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', backgroundColor: '#fafafa', border: '1px solid #ddd', boxSizing: 'border-box' }}>
               <div>
                 <h3 style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', marginBottom: '8px', textTransform: 'uppercase' }}>Bank Details for R.T.G.S./N.E.F.T</h3>
                 <p style={{ fontSize: '11px', color: '#333', margin: '3px 0' }}><strong>Bank Name:</strong> Bank of Baroda</p>
@@ -406,7 +406,7 @@ export default function InvoicePrint() {
 
           {/* Footer - only on last page */}
           {pageIndex === pages - 1 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '20px 30px', width: 'calc(100% - 60px)', margin: '0 auto', borderTop: '1px solid #ddd', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', borderTop: '1px solid #ddd', boxSizing: 'border-box' }}>
               <div style={{ fontSize: '10px', color: '#666' }}>
                 <p>Place & Date: {invoice.exportHeaders?.city || 'N/A'} - {formatDate(new Date().toISOString())}</p>
               </div>
@@ -418,7 +418,7 @@ export default function InvoicePrint() {
           )}
 
           {/* Footer - positioned absolutely at bottom */}
-          <div className="footer" style={{ marginTop: 'auto', padding: '0 30px', width: 'calc(100% - 60px)', margin: '0 auto', boxSizing: 'border-box' }}>
+          <div className="footer" style={{ marginTop: 'auto', padding: '0 15px', width: 'calc(100% - 30px)', margin: '0 auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', color: '#666' }}>
               <div>
                 {new Date().toLocaleDateString('en-IN')} {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
