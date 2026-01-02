@@ -44,8 +44,8 @@ export default function InvoicePrint() {
 
   // Calculate pages based on line items count
   const calculatePages = (lineCount: number) => {
-    const firstPageItems = 15;
-    const otherPageItems = 25;
+    const firstPageItems = 12;
+    const otherPageItems = 22;
 
     let totalPages = 1;
     let remainingItems = lineCount;
