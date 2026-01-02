@@ -235,13 +235,12 @@ export default function InvoicePrint() {
               <div
                 key={pageIndex}
                 className="invoice-container"
-                style={{ pageBreakAfter: pageIndex < pages - 1 ? 'always' : 'auto' }}
               >
-              <div style={{ backgroundColor: 'white', boxShadow: '0 0 15px rgba(0,0,0,0.1)' }}>
+              <div className="invoice-content">
 
           {/* Header - conditional on printHeaders and shown on all pages */}
           {printHeaders && (
-            <div style={{ padding: '30px', borderBottom: '2px solid #333' }}>
+            <div style={{ padding: '20px 0', borderBottom: '2px solid #333' }}>
               <div style={{ marginBottom: '10px' }}>
                 <span style={{ display: 'inline-block', backgroundColor: '#f5f5f5', padding: '5px 10px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '10px', color: '#666' }}>
                   S.No. [I-25-{invoice.invoiceNumber}] | Original for Buyer
@@ -386,9 +385,16 @@ export default function InvoicePrint() {
             </div>
           )}
 
-          {/* Document ref */}
-          <div style={{ fontSize: '9px', color: '#999', padding: '10px 30px', textAlign: 'center' }}>
-            <p>Powered by Invoice Management System | Page {pageNum}/{pages}</p>
+          {/* Footer - positioned absolutely at bottom */}
+          <div className="footer" style={{ marginTop: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', color: '#666' }}>
+              <div>
+                {new Date().toLocaleDateString('en-IN')} {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <div>
+                Page {pageNum} of {pages}
+              </div>
+            </div>
           </div>
 
               </div>
