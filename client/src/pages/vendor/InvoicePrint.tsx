@@ -255,6 +255,7 @@ export default function InvoicePrint() {
                     <h3>Bill To</h3>
                     <p><strong>{invoice.vendor?.name || 'Vendor Name'}</strong></p>
                     <p>PAN No: {invoice.vendor?.pan || 'N/A'}</p>
+                    <p>State Code: {(invoice.vendor as any)?.stateCode || 'N/A'}</p>
                     <p>GSTIN: {invoice.vendor?.gstin || 'N/A'}</p>
                     <p>Address: {invoice.vendor?.address || 'N/A'}</p>
                     <p>City/State: {invoice.vendor?.city && invoice.vendor?.state ? `${invoice.vendor.city}, ${invoice.vendor.state}` : 'N/A'}</p>
@@ -263,6 +264,7 @@ export default function InvoicePrint() {
                   <div className="party-box">
                     <h3>Ship To</h3>
                     <p><strong>{invoice.exportHeaders?.companyName || 'COMPANY NAME'}</strong></p>
+                    <p>PAN No: {(invoice.exportHeaders as any)?.pan || 'N/A'}</p>
                     <p>State Code: {(invoice.exportHeaders as any)?.stateCode || 'N/A'}</p>
                     {invoice.exportHeaders?.gstin && <p>GSTIN: {invoice.exportHeaders.gstin}</p>}
                     {invoice.exportHeaders?.address && <p>Address: {invoice.exportHeaders.address}</p>}
