@@ -55,6 +55,22 @@ interface ReportElement {
   cols?: number;
   rotation?: number;
   locked?: boolean;
+  headerHeight?: number;
+  // Table-related properties
+  cellPadding?: number;
+  rowHeight?: number;
+  columnWidths?: number[];
+  columnAlignments?: string[];
+  columns?: string[]; // optional explicit column keys for table
+  repeat?: string; // section name to repeat rows for
+  showHeader?: boolean;
+  repeatHeaderOnEveryPage?: boolean;
+  headerFontSize?: number;
+  headerFontWeight?: string;
+  headerBgColor?: string;
+  headerFontColor?: string;
+  altRowBgColor?: string;
+  altRowFontColor?: string;
   // Group support
   children?: string[]; // IDs of child elements when type === 'group'
   parentId?: string; // optional parent group id for child elements
@@ -179,6 +195,10 @@ export default function ReportDesigner({
   }, [showPrintSettings, templateId, initialMargins, exportMargins, exportPageSize, exportOrientation, exportAutoFixOverlaps]);
   const [toolbarDragStart, setToolbarDragStart] = useState({ x: 0, y: 0 });
 
+  // Refs to allow global undo/redo to be called by handlers defined earlier
+  const undoRef = useRef<() => void>(() => {});
+  const redoRef = useRef<() => void>(() => {});
+
   // DPI used for conversions between px and inches (96 is common)
   const DPI = 96;
   const mmToPx = (mm: number) => Math.round((mm / 25.4) * DPI);
@@ -229,15 +249,15 @@ export default function ReportDesigner({
       if (isCtrlOrCmd && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
         if (e.shiftKey) {
-          redo();
+          redoRef.current();
         } else {
-          undo();
+          undoRef.current();
         }
         return;
       }
       if (isCtrlOrCmd && (e.key === 'y' || e.key === 'Y')) {
         e.preventDefault();
-        redo();
+        redoRef.current();
         return;
       }
 
@@ -602,21 +622,40 @@ export default function ReportDesigner({
     //   return;
     // }
 
-    // Check if clicking on existing element - prefer unlocked elements over locked ones
-    const clickedElements = design.elements.filter((el) => {
-      // Add buffer for thin lines to make them easier to select
+    // Determine which elements are under the pointer (topmost elements first)
+    const clickedCandidates: ReportElement[] = [];
+    for (let i = design.elements.length - 1; i >= 0; i--) {
+      const el = design.elements[i];
       const buffer = (el.type === "line" || el.type === "vline") ? 8 : 0;
-
-      return (
+      if (
         x >= el.x - buffer &&
         x <= el.x + el.width + buffer &&
         y >= el.y - buffer &&
         y <= el.y + el.height + buffer
-      );
-    });
+      ) {
+        clickedCandidates.push(el);
+      }
+    }
 
-    // Prefer unlocked elements, but if all are locked, pick the last one
-    const clicked = clickedElements.find((el) => !el.locked) || clickedElements[clickedElements.length - 1];
+    // Choose clicked element with the following preference:
+    // 1) unlocked non-group child under pointer (so clicking inside a group picks the child),
+    // 2) unlocked element under pointer (may be group),
+    // 3) topmost element under pointer (locked or unlocked)
+    let clicked: ReportElement | undefined = undefined;
+    if (clickedCandidates.length > 0) {
+      clicked = clickedCandidates.find((el) => !el.locked && el.type !== 'group')
+             || clickedCandidates.find((el) => !el.locked)
+             || clickedCandidates[0];
+    }
+
+    // If the user is explicitly holding Alt or Shift, prefer selecting the parent group instead
+        if (clicked && clicked.parentId && (e.altKey || e.shiftKey)) {
+          const parentId = clicked.parentId;
+          const parentGroup = design.elements.find((el) => el.id === parentId && el.type === 'group');
+          if (parentGroup && !parentGroup.locked) {
+            clicked = parentGroup;
+          }
+        }
 
     // If no tool is active, handle selection/deselection and dragging
     if (!tool) {
@@ -757,11 +796,13 @@ export default function ReportDesigner({
         const newGroupX = constrainedGroup.x;
         const newGroupY = constrainedGroup.y;
 
-        // Move children relative to their initial positions
+        // Move children relative to their initial positions (fall back to current position if initial not available)
         const updatedChildPositions: { [id: string]: { x: number; y: number } } = {};
         draggingEl.children.forEach((childId) => {
-          const initPos = draggingElement.initialPositions![childId];
           const childEl = design.elements.find((el) => el.id === childId);
+          // prefer stored initial position, otherwise use child's current position as fallback
+          const storedInit = draggingElement.initialPositions ? draggingElement.initialPositions[childId] : undefined;
+          const initPos = storedInit ?? (childEl ? { x: childEl.x, y: childEl.y } : undefined);
           if (initPos && childEl && !childEl.locked) {
             const tentativeX = initPos.x + deltaX;
             const tentativeY = initPos.y + deltaY;
@@ -928,6 +969,38 @@ export default function ReportDesigner({
     });
   };
 
+  // Column resize support (drag the small handle rendered in header)
+  const columnResizeState = useRef<{ elId: string; colIndex: number; startX: number; startWidths: number[] } | null>(null);
+
+  const startColumnResize = (elId: string, colIndex: number, mouseEvent: React.MouseEvent) => {
+    mouseEvent.preventDefault();
+    mouseEvent.stopPropagation();
+    const el = design.elements.find((d) => d.id === elId);
+    if (!el) return;
+    const cols = el.cols || 2;
+    const startWidths = (el as any).columnWidths && (el as any).columnWidths.length ? [...(el as any).columnWidths] : Array.from({ length: cols }).map(() => Math.max(40, Math.floor(el.width / cols)));
+    columnResizeState.current = { elId, colIndex, startX: mouseEvent.clientX, startWidths };
+
+    const onMove = (ev: MouseEvent) => {
+      const st = columnResizeState.current;
+      if (!st) return;
+      const delta = Math.round(ev.clientX - st.startX);
+      const newWidths = [...st.startWidths];
+      newWidths[st.colIndex] = Math.max(30, Math.round(st.startWidths[st.colIndex] + delta));
+      // Apply live update
+      updateElement(st.elId, { columnWidths: newWidths });
+    };
+
+    const onUp = (ev: MouseEvent) => {
+      columnResizeState.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
   const handleCanvasMouseUp = (e: React.MouseEvent) => {
     // Stop header border dragging
     if (isDraggingHeaderBorder) {
@@ -1032,6 +1105,12 @@ export default function ReportDesigner({
       borderWidth: (tool === "border" || tool === "line" || tool === "vline") ? 2 : undefined,
       rows: tool === "table" ? 2 : undefined,
       cols: tool === "table" ? 2 : undefined,
+      cellPadding: tool === "table" ? 4 : undefined, // default cell padding (px)
+      rowHeight: tool === "table" ? undefined : undefined, // optional explicit row height (px)
+      headerHeight: tool === "table" ? 28 : undefined, // header row height in px
+      // per-column defaults: split element width equally and default left alignment
+      columnWidths: tool === "table" ? Array.from({ length: 2 }).map(() => Math.max(40, Math.floor(finalWidth / 2))) : undefined,
+      columnAlignments: tool === "table" ? Array.from({ length: 2 }).map(() => "left") : undefined
     };
 
     addElement(newElement);
@@ -1223,6 +1302,10 @@ export default function ReportDesigner({
       }));
     }
   };
+
+  // Ensure refs point to the current implementations so handlers defined earlier can call them safely
+  undoRef.current = undo;
+  redoRef.current = redo;
 
   const startEditingText = (id: string, currentText: string) => {
     setEditingId(id);
@@ -1429,8 +1512,11 @@ export default function ReportDesigner({
         if (response.ok) {
           const data = await response.json();
           console.log(`Data from section ${section.sectionName}:`, data);
-          if (data.results && data.results.length > 0) {
-            // Extract all column values from first result
+          console.log(`Data from section ${section.sectionName} - results length:`, data && data.results ? data.results.length : 0);
+          // Store full result array under the section name so tables can repeat rows (store empty array when none)
+          (results as any)[section.sectionName] = (data && data.results) ? data.results : [];
+          // Also merge first row into root results for single-field bindings if exists
+          if (data && data.results && data.results.length > 0) {
             Object.assign(results, data.results[0]);
           }
         } else {
@@ -1637,6 +1723,8 @@ export default function ReportDesigner({
         }
         if (el.type === "table") {
           cssClass += `border-collapse: collapse; `;
+          // For printing, allow tables to size dynamically and flow across pages
+          cssClass += `display: block !important; height: auto !important; overflow: visible !important; `;
         }
         if (el.type === "image") {
           cssClass += `object-fit: cover; `;
@@ -1681,13 +1769,123 @@ export default function ReportDesigner({
           // Render table
           const rows = el.rows || 2;
           const cols = el.cols || 2;
-          let tableHTML = `<table style="width: 100%; height: 100%; border-collapse: collapse;">`;
-          for (let r = 0; r < rows; r++) {
-            tableHTML += `<tr>`;
-            for (let c = 0; c < cols; c++) {
-              tableHTML += `<td style="border: 1px solid #ddd; padding: 4px;"></td>`;
+          const cellPadding = el.cellPadding ?? 4;
+          // If explicit rowHeight is set, use it; otherwise distribute element height across rows
+          const rowHeight = el.rowHeight ?? Math.max(20, Math.floor((el.height || 30) / Math.max(1, rows)));
+          // Do not constrain table height to parent wrapper on print — let it grow and break across pages where needed
+          let tableHTML = `<table style="width: 100%; border-collapse: collapse;">`;
+          if ((el as any).repeat && Array.isArray((dataSource as any)[(el as any).repeat])) {
+            const dataRows = (dataSource as any)[(el as any).repeat] as Array<Record<string, any>>;
+            // Diagnostic: log repeat data size and pagination info for print
+            try {
+              console.log('[printDesign][table] id=', el.id, 'repeat=', (el as any).repeat, 'rows=', dataRows.length);
+              const pagePx = getPagePx(exportPageSize, exportOrientation);
+              const pageHeightPx = pagePx.h - ((exportMargins?.top ?? 0) + (exportMargins?.bottom ?? 0));
+              const relativeStart = Math.max(el.y, exportMargins?.top ?? 0) - (exportMargins?.top ?? 0);
+              const offsetInPage = relativeStart - Math.floor(relativeStart / pageHeightPx) * pageHeightPx;
+              const headerHeightCalc = (el as any).showHeader ? ((el as any).headerHeight ?? ((el as any).headerFontSize ?? 12) + (cellPadding * 2)) : 0;
+              const rowHeightCalc = (el as any).rowHeight ?? Math.max(20, Math.floor((el.height || 30) / Math.max(1, el.rows || 2)));
+              const remainingOnFirst = pageHeightPx - offsetInPage;
+              let firstPageRows = 0;
+              if (remainingOnFirst > headerHeightCalc) firstPageRows = Math.floor((remainingOnFirst - headerHeightCalc) / rowHeightCalc);
+              const rowsPerFullPage = Math.max(1, Math.floor((pageHeightPx - headerHeightCalc) / rowHeightCalc));
+              console.log('[printDesign][table] pagination', { headerHeightCalc, rowHeightCalc, pageHeightPx, offsetInPage, firstPageRows, rowsPerFullPage });
+
+              // Show a toast notification with counts so users immediately see table pagination behavior
+              try {
+                const name = (el as any).repeat || el.id || 'table';
+                if (dataRows.length > 0) {
+                  if (firstPageRows < dataRows.length) {
+                    toast({ title: `Table '${name}' will span pages`, description: `${dataRows.length} rows; first page shows ${firstPageRows} rows; ${rowsPerFullPage} rows per full page` });
+                  } else {
+                    toast({ title: `Table '${name}' fits on page`, description: `${dataRows.length} rows fit on current page` });
+                  }
+                }
+              } catch (t) {
+                console.warn('printDesign toast failed', t);
+              }
+
+            } catch (e) {
+              console.warn('printDesign table diagnostics failed', e);
             }
-            tableHTML += `</tr>`;
+
+            const columns = (el as any).columns && (el as any).columns.length > 0 ? (el as any).columns : (dataRows.length ? Object.keys(dataRows[0]) : Array.from({ length: cols }).map((_, i) => `col${i}`));
+            // Emit <colgroup> when explicit columnWidths present
+            const colWidths = (el as any).columnWidths && (el as any).columnWidths.length ? (el as any).columnWidths : [];
+            if (colWidths.length > 0) {
+              tableHTML += '<colgroup>';
+              for (let ci = 0; ci < colWidths.length; ci++) {
+                const w = Math.max(0, parseInt(colWidths[ci], 10) || 0);
+                if (w > 0) tableHTML += `<col style="width:${w}px" />`;
+                else tableHTML += '<col />';
+              }
+              tableHTML += '</colgroup>';
+            }
+
+            // Prepare column alignments
+            const colAligns = (el as any).columnAlignments && (el as any).columnAlignments.length ? (el as any).columnAlignments : Array.from({ length: columns.length }).map(() => 'left');
+
+            // optional header (render inside <thead> so browsers can repeat on printed pages)
+            if ((el as any).showHeader) {
+              const headerStyle = `background:${escapeHtml((el as any).headerBgColor || '#f3f4f6')}; color:${escapeHtml((el as any).headerFontColor || '#111827')}; font-size:${(el as any).headerFontSize || 12}px; font-weight:${escapeHtml((el as any).headerFontWeight || 'bold')};`;
+              const headerHeight = (el as any).headerHeight ?? ((el as any).headerFontSize || 12) + (cellPadding * 2);
+              const theadDisplay = (el as any).repeatHeaderOnEveryPage ? 'display: table-header-group;' : '';
+              tableHTML += `<thead style="${theadDisplay}"><tr style="height: ${headerHeight}px; ${headerStyle}">`;
+              for (let c = 0; c < columns.length; c++) {
+                const align = colAligns[c] || 'left';
+                tableHTML += `<th style="border: 1px solid #ddd; padding: ${cellPadding}px; text-align: ${align};">${escapeHtml(columns[c])}</th>`;
+              }
+              tableHTML += `</tr></thead>`;
+            }
+            // data rows (apply alternate row styling if provided)
+            dataRows.forEach((dr, ridx) => {
+              const isAlt = ridx % 2 === 1;
+              const altBg = isAlt ? (el as any).altRowBgColor || '' : '';
+              const altColor = isAlt ? (el as any).altRowFontColor || '' : '';
+              const rowStyle = `height: ${rowHeight}px; ${altBg ? `background:${escapeHtml(altBg)};` : ''} ${altColor ? `color:${escapeHtml(altColor)};` : ''}`;
+              tableHTML += `<tr style="${rowStyle}">`;
+              for (let c = 0; c < columns.length; c++) {
+                const key = columns[c];
+                const val = dr[key] !== undefined && dr[key] !== null ? String(dr[key]) : '';
+                const align = colAligns[c] || 'left';
+                tableHTML += `<td style="border: 1px solid #ddd; padding: ${cellPadding}px; height: ${rowHeight}px; vertical-align: top; text-align: ${align};">${escapeHtml(val)}</td>`;
+              }
+              tableHTML += `</tr>`;
+            });
+          } else {
+            // Non-repeat table: use explicit column widths/alignments if provided
+            const nonRepeatColWidths = (el as any).columnWidths && (el as any).columnWidths.length ? (el as any).columnWidths : [];
+            const nonRepeatColAligns = (el as any).columnAlignments && (el as any).columnAlignments.length ? (el as any).columnAlignments : Array.from({ length: cols }).map(() => 'left');
+
+            if (nonRepeatColWidths.length > 0) {
+              tableHTML += '<colgroup>';
+              for (let ci = 0; ci < nonRepeatColWidths.length; ci++) {
+                const w = Math.max(0, parseInt(nonRepeatColWidths[ci], 10) || 0);
+                if (w > 0) tableHTML += `<col style="width:${w}px" />`;
+                else tableHTML += '<col />';
+              }
+              tableHTML += '</colgroup>';
+            }
+
+            if ((el as any).showHeader) {
+              const headerHeight = (el as any).headerHeight ?? ((el as any).headerFontSize || 12) + (cellPadding * 2);
+              const headerStyle = `background:${escapeHtml((el as any).headerBgColor || '#f3f4f6')}; color:${escapeHtml((el as any).headerFontColor || '#111827')}; font-size:${(el as any).headerFontSize || 12}px; font-weight:${escapeHtml((el as any).headerFontWeight || 'bold')};`;
+              tableHTML += `<thead><tr style="height: ${headerHeight}px; ${headerStyle}">`;
+              for (let c = 0; c < cols; c++) {
+                const align = nonRepeatColAligns[c] || 'left';
+                tableHTML += `<th style="border: 1px solid #ddd; padding: ${cellPadding}px; text-align: ${align};"></th>`;
+              }
+              tableHTML += `</tr></thead>`;
+            }
+
+            for (let r = 0; r < rows; r++) {
+              tableHTML += `<tr style="height: ${rowHeight}px;">`;
+              for (let c = 0; c < cols; c++) {
+                const align = nonRepeatColAligns[c] || 'left';
+                tableHTML += `<td style="border: 1px solid #ddd; padding: ${cellPadding}px; height: ${rowHeight}px; vertical-align: top; text-align: ${align};"></td>`;
+              }
+              tableHTML += `</tr>`;
+            }
           }
           tableHTML += `</table>`;
           content = tableHTML;
@@ -1698,6 +1896,16 @@ export default function ReportDesigner({
         canvasHTML += `<div class="${elemClass}">${content}</div>\n`;
       });
 
+      // Helper to escape HTML inside table cells
+      function escapeHtml(str: string) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
       // Write HTML to print window
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -1706,6 +1914,11 @@ export default function ReportDesigner({
           <title>${templateName}</title>
           <style>
             * { box-sizing: border-box; }
+            /* Printing helpers: allow table headers to repeat on new pages and avoid breaking rows */
+            table { page-break-inside: auto; border-collapse: collapse; }
+            tr    { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
             html, body {
               margin: 0;
               padding: 0;
@@ -1737,7 +1950,8 @@ export default function ReportDesigner({
                 page-break-after: always;
                 box-shadow: none;
                 margin: 0;
-                padding: 0;
+                /* Keep container padding during print so element positions remain correct */
+                overflow: visible; /* Allow tables to flow across pages instead of being clipped */
               }
             }
           </style>
@@ -1799,6 +2013,8 @@ export default function ReportDesigner({
 
       console.log("Frontend request body:", requestBody);
       console.log("Design elements being sent:", design.elements);
+      // Detailed element positions for debug
+      design.elements.forEach((e) => console.log(`Element ${e.id}: type=${e.type} x=${e.x} y=${e.y} w=${e.width} h=${e.height} headerHeight=${(e as any).headerHeight} showHeader=${(e as any).showHeader} repeat=${(e as any).repeat}`));
       if (design.elements.length > 0) {
         console.log("First element:", design.elements[0]);
       }
@@ -1893,6 +2109,8 @@ export default function ReportDesigner({
 
   const selected = design.elements.find((el) => el.id === design.selectedId);
   
+    try {
+    console.log('ReportDesigner render start', { templateName, templateId, sectionQueries: (sectionQueries || []).map(s => s.sectionName), initialDesignLength: initialDesign ? initialDesign.length : 0, elementsCount: design.elements.length });
     return (
       <>
       <div className="flex flex-col h-screen bg-gray-50">
@@ -1972,7 +2190,7 @@ export default function ReportDesigner({
                   ...prev,
                   elements: [...updated, groupElement],
                   selectedId: groupId,
-                  selectedIds: [],
+                  selectedIds: [groupId], // select the newly created group so dragging it moves children
                   history: [...prev.history, [...updated, groupElement]],
                 }));
               }
@@ -2864,6 +3082,151 @@ export default function ReportDesigner({
                     </>
                   )}
 
+                  {selected.type === "table" && (
+                    <>
+                      <div>
+                        <Label className="text-xs">Rows</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={selected.rows || 2}
+                          onChange={(e) =>
+                            updateElement(selected.id, {
+                              rows: parseInt(e.target.value),
+                            })
+                          }
+                          className="text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Columns</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={selected.cols || 2}
+                          onChange={(e) =>
+                            updateElement(selected.id, {
+                              cols: parseInt(e.target.value),
+                            })
+                          }
+                          className="text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Cell Padding (px)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={50}
+                          value={selected.cellPadding ?? 4}
+                          onChange={(e) =>
+                            updateElement(selected.id, {
+                              cellPadding: parseInt(e.target.value),
+                            })
+                          }
+                          className="text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Row Height (px) — optional</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={2000}
+                          value={selected.rowHeight ?? Math.floor((selected.height || 30) / (selected.rows || 1))}
+                          onChange={(e) =>
+                            updateElement(selected.id, {
+                              rowHeight: e.target.value ? parseInt(e.target.value) : undefined,
+                            })
+                          }
+                          className="text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">You can also resize the table box to change overall cell width/height.</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Repeat Over (section)</Label>
+                        <select
+                          value={(selected as any).repeat || ''}
+                          onChange={(e) => updateElement(selected.id, { repeat: e.target.value || undefined })}
+                          className="w-full px-2 py-1 text-xs border rounded"
+                        >
+                          <option value="">(none)</option>
+                          {(sectionQueries || []).map((sq) => (
+                            <option key={sq.sectionName} value={sq.sectionName}>{sq.sectionName}</option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-muted-foreground mt-1">Choose a section whose query returns rows to repeat table rows for each result.</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Columns (comma-separated) — optional</Label>
+                        <Input
+                          type="text"
+                          value={(selected as any).columns ? (selected as any).columns.join(',') : ''}
+                          onChange={(e) => updateElement(selected.id, { columns: e.target.value ? e.target.value.split(',').map(s => s.trim()) : undefined })}
+                          className="text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Optional list of column keys to show (in order). If empty, keys from the first row are used.</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Show Header</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={(selected as any).showHeader === true}
+                            onChange={(e) => updateElement(selected.id, { showHeader: e.target.checked ? true : undefined })}
+                          />
+                          <span className="text-xs">Render a header row with column names</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Repeat Header on Every Page</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={(selected as any).repeatHeaderOnEveryPage === true}
+                            onChange={(e) => updateElement(selected.id, { repeatHeaderOnEveryPage: e.target.checked ? true : undefined })}
+                          />
+                          <span className="text-xs">When printing, repeat header on each printed page (HTML print)</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Header Height (px)</Label>
+                        <Input type="number" value={(selected as any).headerHeight || 28} onChange={(e) => updateElement(selected.id, { headerHeight: parseInt(e.target.value) })} className="text-xs" />
+                        <p className="text-xs text-muted-foreground mt-1">Set header row height in pixels for design & export.</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Header Design</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input type="color" value={(selected as any).headerBgColor || '#f3f4f6'} onChange={(e) => updateElement(selected.id, { headerBgColor: e.target.value })} className="w-12 h-8 text-xs" />
+                          <Input type="color" value={(selected as any).headerFontColor || '#111827'} onChange={(e) => updateElement(selected.id, { headerFontColor: e.target.value })} className="w-12 h-8 text-xs" />
+                          <Input type="number" value={(selected as any).headerFontSize || 12} onChange={(e) => updateElement(selected.id, { headerFontSize: parseInt(e.target.value) })} className="text-xs" />
+                          <select value={(selected as any).headerFontWeight || 'bold'} onChange={(e) => updateElement(selected.id, { headerFontWeight: e.target.value })} className="text-xs">
+                            <option value="normal">Normal</option>
+                            <option value="bold">Bold</option>
+                            <option value="600">600</option>
+                            <option value="700">700</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Alternate Row Design</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input type="color" value={(selected as any).altRowBgColor || '#ffffff'} onChange={(e) => updateElement(selected.id, { altRowBgColor: e.target.value })} className="w-12 h-8 text-xs" />
+                          <Input type="color" value={(selected as any).altRowFontColor || '#000000'} onChange={(e) => updateElement(selected.id, { altRowFontColor: e.target.value })} className="w-12 h-8 text-xs" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   {selected.type === "rectangle" && (
                     <>
                       <div>
@@ -3586,4 +3949,19 @@ export default function ReportDesigner({
       </div>
     </>
   );
+} catch (err) {
+  console.error("ReportDesigner render error:", err);
+  return (
+    <div className="p-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Error rendering Report Designer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="text-xs text-red-600">{String(err && (err as any).stack ? (err as any).stack : String(err))}</pre>
+        </CardContent>
+      </Card>
+    </div>
+  );
+} 
 }

@@ -139,6 +139,7 @@ namespace VendorRegistrationBackend.Controllers
 
         // ==================== TEMPLATE MANAGEMENT ====================
 
+        [AllowAnonymous]
         [HttpPost("templates/save")]
         public async Task<IActionResult> SaveTemplate([FromBody] ReportTemplate template)
         {

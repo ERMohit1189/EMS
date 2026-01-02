@@ -327,6 +327,10 @@ namespace VendorRegistrationBackend.Data
             appSettingsBuilder.Property(a => a.SmtpSecure).HasColumnName("smtp_secure");
             appSettingsBuilder.Property(a => a.FromEmail).HasColumnName("from_email");
             appSettingsBuilder.Property(a => a.FromName).HasColumnName("from_name");
+            appSettingsBuilder.Property(a => a.LetterheadImage).HasColumnName("letterhead_image");
+            appSettingsBuilder.Property(a => a.ApplyLetterheadToPO).HasColumnName("apply_letterhead_to_po");
+            appSettingsBuilder.Property(a => a.ApplyLetterheadToInvoice).HasColumnName("apply_letterhead_to_invoice");
+            appSettingsBuilder.Property(a => a.ApplyLetterheadToSalarySlip).HasColumnName("apply_letterhead_to_salary_slip");
             appSettingsBuilder.Property(a => a.CreatedAt).HasColumnName("created_at");
             appSettingsBuilder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
 

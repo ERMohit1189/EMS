@@ -18,6 +18,12 @@ namespace VendorRegistrationBackend.Models
         public string? FromEmail { get; set; }
         public string? FromName { get; set; }
 
+        // Letterhead settings
+        public string? LetterheadImage { get; set; } // Base64 encoded image
+        public bool ApplyLetterheadToPO { get; set; } = false;
+        public bool ApplyLetterheadToInvoice { get; set; } = false;
+        public bool ApplyLetterheadToSalarySlip { get; set; } = false;
+
         // Timestamps
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

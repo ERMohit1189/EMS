@@ -678,6 +678,11 @@ export default function InvoiceGeneration() {
     }
   };
 
+
+  const handleInvoicePrint = (invoice: InvoiceRecord) => {
+    window.open(`/vendor/invoice/print/${invoice.id}`, '_blank');
+  };
+
   const generateInvoices = async () => {
     if (selectedPOs.size === 0) {
       toast({ title: "Alert", description: "Please select at least one PO", variant: "destructive" });
@@ -1274,6 +1279,7 @@ export default function InvoiceGeneration() {
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs gap-1"
                             size="sm"
                             disabled={exportingPdf === invoice.id || printing === invoice.id}
+                            style={{ display: "none" }}
                           >
                             {exportingPdf === invoice.id ? (
                               <span className="animate-spin">⏳</span>
@@ -1282,7 +1288,7 @@ export default function InvoiceGeneration() {
                             )}
                           </Button>
                           <Button
-                            onClick={() => printInvoice(invoice)}
+                            onClick={() => handleInvoicePrint(invoice)}
                             variant="outline"
                             className="flex-1 h-8 text-xs gap-1"
                             size="sm"
@@ -1397,6 +1403,7 @@ export default function InvoiceGeneration() {
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs gap-1"
                             size="sm"
                             disabled={exportingPdf === invoice.id || printing === invoice.id}
+                            style={{ display: "none" }}
                           >
                             {exportingPdf === invoice.id ? (
                               <span className="animate-spin">⏳</span>
@@ -1405,7 +1412,7 @@ export default function InvoiceGeneration() {
                             )}
                           </Button>
                           <Button
-                            onClick={() => printInvoice(invoice)}
+                            onClick={() => handleInvoicePrint(invoice)}
                             variant="outline"
                             className="flex-1 h-8 text-xs gap-1"
                             size="sm"

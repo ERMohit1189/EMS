@@ -21,10 +21,12 @@ namespace VendorRegistrationBackend.Services
         /// </summary>
         public async Task<string> GenerateHtmlFromTemplateAsync(string templateId, Dictionary<string, object> parameters, string? designJson = null, string? queriesJson = null, int leftMargin = 0, int rightMargin = 0, int topMargin = 0, int bottomMargin = 0, string pageSize = "A4", string orientation = "portrait", bool autoFixOverlaps = false)
         {
-            // Fetch template
+            // Fetch template (allow missing template for ad-hoc exports)
             var template = _context.ReportTemplates.FirstOrDefault(t => t.Id == templateId);
             if (template == null)
-                throw new Exception("Template not found");
+            {
+                Console.WriteLine($"[ReportPdfService] Template '{templateId}' not found - proceeding with provided design/queries");
+            }
 
             // Use provided design/queries or fetch from template
             var designJsonToUse = designJson ?? template.DesignJson;
@@ -67,7 +69,7 @@ namespace VendorRegistrationBackend.Services
             }
 
             // Generate HTML (pass through page size, orientation and auto-fix flag)
-            var html = GenerateHtml(designElements, mergedData, template.Name, leftMargin, rightMargin, topMargin, bottomMargin, pageSize, orientation, autoFixOverlaps);
+            var html = GenerateHtml(designElements, mergedData, queryData, template?.Name ?? templateId, leftMargin, rightMargin, topMargin, bottomMargin, pageSize, orientation, autoFixOverlaps);
             Console.WriteLine($"[ReportPdfService] Generated HTML length: {html.Length}");
             Console.WriteLine($"[ReportPdfService] HTML preview (first 500 chars): {html.Substring(0, Math.Min(500, html.Length))}");
             return html;
@@ -81,6 +83,7 @@ namespace VendorRegistrationBackend.Services
             {
                 var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var queries = JsonSerializer.Deserialize<List<TemplateQuery>>(queriesJson, jsonOptions) ?? new List<TemplateQuery>();
+                Console.WriteLine($"[ReportPdfService] Parsed {queries.Count} queries: {string.Join(",", queries.Select(q => q.SectionName ?? q.Name ?? "(unnamed)"))}");
 
                 foreach (var query in queries)
                 {
@@ -92,6 +95,76 @@ namespace VendorRegistrationBackend.Services
 
                     try
                     {
+                        // Short-circuit: if TestResults present on the query, use them as the result set (useful for tests)
+                        if (query.TestResults != null && query.TestResults.Count > 0)
+                        {
+                            var rows = new List<Dictionary<string, object>>();
+                            foreach (var item in query.TestResults)
+                            {
+                                try
+                                {
+                                    if (item is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Object)
+                                    {
+                                        var dict = new Dictionary<string, object>();
+                                        foreach (var prop in je.EnumerateObject())
+                                        {
+                                            dict[prop.Name] = prop.Value.ValueKind switch
+                                            {
+                                                System.Text.Json.JsonValueKind.String => prop.Value.GetString() ?? "",
+                                                System.Text.Json.JsonValueKind.Number => prop.Value.GetDouble(),
+                                                System.Text.Json.JsonValueKind.True => true,
+                                                System.Text.Json.JsonValueKind.False => false,
+                                                System.Text.Json.JsonValueKind.Null => "",
+                                                _ => prop.Value.ToString() ?? ""
+                                            };
+                                        }
+                                        rows.Add(dict);
+                                    }
+                                    else if (item is Dictionary<string, object> dictObj)
+                                    {
+                                        rows.Add(new Dictionary<string, object>(dictObj));
+                                    }
+                                    else
+                                    {
+                                        // best-effort: attempt to serialize then parse
+                                        var s = System.Text.Json.JsonSerializer.Serialize(item);
+                                        var je2 = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(s);
+                                        if (je2.ValueKind == System.Text.Json.JsonValueKind.Object)
+                                        {
+                                            var dict = new Dictionary<string, object>();
+                                            foreach (var prop in je2.EnumerateObject())
+                                            {
+                                                dict[prop.Name] = prop.Value.ToString() ?? "";
+                                            }
+                                            rows.Add(dict);
+                                        }
+                                    }
+                                }
+                                catch (Exception ex2)
+                                {
+                                    Console.WriteLine($"[ReportPdfService] Error parsing TestResults item: {ex2.Message}");
+                                }
+                            }
+
+                            Console.WriteLine($"[ReportPdfService] Using TestResults for query '{query.SectionName}' - {rows.Count} rows");
+
+                            if (!string.IsNullOrWhiteSpace(query.SectionName))
+                            {
+                                result[query.SectionName] = rows;
+                            }
+                            else if (rows.Count > 0)
+                            {
+                                var first = rows[0];
+                                foreach (var kv in first)
+                                {
+                                    result[kv.Key] = kv.Value ?? "";
+                                }
+                            }
+
+                            // skip DB execution for this query
+                            continue;
+                        }
+
                         // Replace parameters in SQL
                         var sql = sqlText;
                         foreach (var param in parameters)
@@ -108,14 +181,31 @@ namespace VendorRegistrationBackend.Services
                             command.CommandText = sql;
                             using (var reader = await command.ExecuteReaderAsync())
                             {
-                                if (await reader.ReadAsync())
+                                var rows = new List<Dictionary<string, object>>();
+                                while (await reader.ReadAsync())
                                 {
-                                    // Get all columns from first row
+                                    var row = new Dictionary<string, object>();
                                     for (int i = 0; i < reader.FieldCount; i++)
                                     {
                                         var fieldName = reader.GetName(i);
-                                        var value = reader.GetValue(i);
-                                        result[fieldName] = value ?? "";
+                                        var value = reader.GetValue(i) ?? "";
+                                        row[fieldName] = value;
+                                    }
+                                    rows.Add(row);
+                                }
+
+                                // If a SectionName is provided, store the full result set under that key
+                                if (!string.IsNullOrWhiteSpace(query.SectionName))
+                                {
+                                    result[query.SectionName] = rows;
+                                }
+                                else if (rows.Count > 0)
+                                {
+                                    // If no section name, merge first row columns into root dictionary (backward compatibility)
+                                    var first = rows[0];
+                                    foreach (var kv in first)
+                                    {
+                                        result[kv.Key] = kv.Value ?? "";
                                     }
                                 }
                             }
@@ -138,7 +228,7 @@ namespace VendorRegistrationBackend.Services
             return result;
         }
 
-        private string GenerateHtml(List<DesignElement> elements, Dictionary<string, string> data, string templateName, int leftMargin = 0, int rightMargin = 0, int topMargin = 0, int bottomMargin = 0, string pageSize = "A4", string orientation = "portrait", bool autoFixOverlaps = false)
+        private string GenerateHtml(List<DesignElement> elements, Dictionary<string, string> data, Dictionary<string, object> queryData, string templateName, int leftMargin = 0, int rightMargin = 0, int topMargin = 0, int bottomMargin = 0, string pageSize = "A4", string orientation = "portrait", bool autoFixOverlaps = false)
         {
             var html = new System.Text.StringBuilder();
 
@@ -158,6 +248,11 @@ namespace VendorRegistrationBackend.Services
             html.AppendLine("    .element-field { font-weight: bold; }");
             html.AppendLine("    .element-line { border: none; }");
             html.AppendLine("    .element-rectangle { border-collapse: collapse; }");
+            html.AppendLine("    /* Table printing helpers: allow table headers to repeat on new pages and avoid breaking rows */");
+            html.AppendLine("    table { page-break-inside: auto; border-collapse: collapse; }");
+            html.AppendLine("    tr    { page-break-inside: avoid; page-break-after: auto; }");
+            html.AppendLine("    thead { display: table-header-group; }");
+            html.AppendLine("    tfoot { display: table-footer-group; }");
             html.AppendLine("    .element-table { border-collapse: collapse; width: 100%; height: 100%; }");
             html.AppendLine("    .element-table td { border: 1px solid #ddd; padding: 4px; }");
             html.AppendLine("    .element-image { width: 100%; height: 100%; object-fit: cover; }");
@@ -399,25 +494,143 @@ namespace VendorRegistrationBackend.Services
 
             html.AppendLine($"  <style> .page {{ padding: {topIn}in {rightIn}in {bottomIn}in {leftIn}in; }} </style>");
 
-            // Render adjusted elements (positions are relative to page content area; do not add margins to each element)
-            foreach (var el in adjustedElements)
-            {
-                string content = RenderElementContent(el, data);
-                string style = BuildElementStyle(el, 0, 0);
+            // Pagination: split oversized repeat-tables into page-sized fragments and shift subsequent elements down
+            var fragments = new List<(DesignElement el, int startRow, int maxRows)>();
+            double pageHeightContent = contentBottomFinal - contentTop; // available vertical space per page
 
-                html.AppendLine($"    <div class=\"element element-{el.Type}\" style=\"{style}\">");
-                html.AppendLine($"      {content}");
-                html.AppendLine("    </div>");
+            // Work on a copy so we can modify positions for later elements when an element expands
+            for (int i = 0; i < adjustedElements.Count; i++)
+            {
+                var el = adjustedElements[i];
+                Console.WriteLine($"[ReportPdfService] Processing element #{i} '{el.Id}' type='{el.Type}' X={el.X} Y={el.Y} W={el.Width} H={el.Height}");
+
+                // Only split repeat tables that have data
+                if (el.Type == "table" && !string.IsNullOrWhiteSpace(el.Repeat) && queryData != null && queryData.TryGetValue(el.Repeat, out var raw) && raw is List<Dictionary<string, object>> rowsData && rowsData.Count > 0)
+                {
+                    int totalRows = rowsData.Count;
+                    var cellPadding = el.CellPadding ?? 4;
+                    var headerHeight = el.ShowHeader == true ? (el.HeaderHeight ?? (el.HeaderFontSize ?? 12) + (cellPadding * 2)) : 0;
+                    var rowHeight = el.RowHeight ?? Math.Max(20, (el.Height > 0 ? el.Height / Math.Max(1, el.Rows ?? 2) : 20));
+
+                    // Compute pagination relative to the full page top (include header area)
+                    // relativeStart is the element Y measured from the top of the content area
+                    double relativeStart = Math.Max(el.Y, contentTop) - contentTop;
+                    int pageIndex = Math.Max(0, (int)Math.Floor(relativeStart / pageHeightContent));
+                    // offset inside the page's content area
+                    double offsetInPage = relativeStart - pageIndex * pageHeightContent;
+
+                    // rows that fit on the first page starting from offsetInPage
+                    double remainingOnFirst = pageHeightContent - offsetInPage;
+                    int firstPageRows = 0;
+                    if (remainingOnFirst > headerHeight)
+                        firstPageRows = (int)Math.Floor((remainingOnFirst - headerHeight) / (double)rowHeight);
+                    if (firstPageRows < 0) firstPageRows = 0;
+
+                    int rowsPerFullPage = (int)Math.Floor((pageHeightContent - headerHeight) / (double)rowHeight);
+                    if (rowsPerFullPage <= 0) rowsPerFullPage = 1;
+
+                    if (firstPageRows >= totalRows)
+                    {
+                        // fits on current element height/page
+                        Console.WriteLine($"[ReportPdfService][Pagination] Table '{el.Id}' fits on this page with {firstPageRows} rows.");
+                        fragments.Add((el, 0, totalRows));
+                    }
+                    else
+                    {
+                        // Build fragments
+                        int start = 0;
+                        // first fragment uses firstPageRows if any available, otherwise we'll place rows starting on next page
+                        if (firstPageRows > 0)
+                        {
+                            // clone element for first fragment and shrink height to actually-used height
+                            var firstFrag = CloneElement(el);
+                            firstFrag.Height = headerHeight + (firstPageRows * (int)rowHeight);
+                            Console.WriteLine($"[ReportPdfService][Pagination] Table '{el.Id}' first fragment rows=0..{firstPageRows-1} height={firstFrag.Height}");
+                            fragments.Add((firstFrag, 0, firstPageRows));
+                            start += firstPageRows;
+                        }
+
+                        // subsequent pages
+                        int fragIndex = 0;
+                        while (start < totalRows)
+                        {
+                            int take = Math.Min(rowsPerFullPage, totalRows - start);
+                            var frag = CloneElement(el);
+                            // Place fragment on subsequent page(s) at top content area
+                            fragIndex++;
+                            int fragPage = pageIndex + fragIndex;
+                            frag.Y = (int)(contentTop + fragPage * pageHeightContent + 0); // top of content area on this page
+                            frag.Height = headerHeight + (int)(take * rowHeight);
+                            Console.WriteLine($"[ReportPdfService][Pagination] Table '{el.Id}' fragment start={start} take={take} page={fragPage} Y={frag.Y} H={frag.Height}");
+                            fragments.Add((frag, start, take));
+                            start += take;
+                        }
+
+                        // Shift later elements down by the number of extra pages introduced
+                        int extraPages = Math.Max(0, fragments.Count - 1 - (firstPageRows > 0 ? 0 : 0));
+                        if (firstPageRows == 0 && fragments.Count > 0)
+                        {
+                            // all fragments start on next pages, so extra pages = fragments.Count
+                            extraPages = fragments.Count;
+                        }
+                        else
+                        {
+                            extraPages = Math.Max(0, fragments.Count - 1);
+                        }
+
+                        if (extraPages > 0)
+                        {
+                            double shiftBy = extraPages * pageHeightContent;
+                            Console.WriteLine($"[ReportPdfService][Pagination] Table '{el.Id}' introduced {extraPages} extra pages. Shifting subsequent elements by {shiftBy} px.");
+                            for (int j = i + 1; j < adjustedElements.Count; j++)
+                            {
+                                var prevY = adjustedElements[j].Y;
+                                adjustedElements[j].Y = (int)(adjustedElements[j].Y + shiftBy);
+                                Console.WriteLine($"[ReportPdfService][Pagination] Element '{adjustedElements[j].Id}' moved Y: {prevY} -> {adjustedElements[j].Y}");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    fragments.Add((el, 0, int.MaxValue));
+                }
             }
 
-            html.AppendLine("  </div>");
+            // Group fragments by page index and render each page separately
+            int maxPage = 0;
+            foreach (var f in fragments)
+            {
+                var pageIdx = Math.Max(0, (int)Math.Floor((f.el.Y - contentTop) / pageHeightContent));
+                if (pageIdx > maxPage) maxPage = pageIdx;
+            }
+
+            for (int p = 0; p <= maxPage; p++)
+            {
+                html.AppendLine("  <div class=\"page\">" );
+                // Render fragments that belong to this page
+                foreach (var f in fragments.Where(ff => Math.Max(0, (int)Math.Floor((ff.el.Y - contentTop) / pageHeightContent)) == p))
+                {
+                    var el = f.el;
+                    var startRow = f.startRow;
+                    var maxRows = f.maxRows;
+                    // Build style adjusted for this page (subtract page offset so top is relative to page)
+                    int pageOffset = p * (int)pageHeightContent;
+                    string style = BuildElementStyle(el, 0, -pageOffset);
+                    string content = RenderElementContent(el, data, queryData, startRow, maxRows == int.MaxValue ? int.MaxValue : maxRows);
+                    html.AppendLine($"    <div class=\"element element-{el.Type}\" style=\"{style}\">" );
+                    html.AppendLine($"      {content}");
+                    html.AppendLine("    </div>");
+                }
+                html.AppendLine("  </div>");
+            }
             html.AppendLine("</body>");
             html.AppendLine("</html>");
 
             return html.ToString();
         }
 
-        private string RenderElementContent(DesignElement element, Dictionary<string, string> data)
+        private string RenderElementContent(DesignElement element, Dictionary<string, string> data, Dictionary<string, object> queryData, int startRow = 0, int maxRows = int.MaxValue)
         {
             return element.Type switch
             {
@@ -427,7 +640,7 @@ namespace VendorRegistrationBackend.Services
                 "vline" => "",
                 "rectangle" => "",
                 "border" => "",
-                "table" => RenderTable(element),
+                "table" => RenderTable(element, queryData, startRow, maxRows),
                 "image" => $"<img src=\"{System.Net.WebUtility.HtmlEncode(element.ImageUrl ?? "")}\" class=\"element-image\" />",
                 _ => ""
             };
@@ -450,20 +663,110 @@ namespace VendorRegistrationBackend.Services
             return ""; // Return blank if not found
         }
 
-        private string RenderTable(DesignElement element)
+        private string RenderTable(DesignElement element, Dictionary<string, object> queryData, int startRow = 0, int maxRows = int.MaxValue)
         {
             var rows = element.Rows ?? 2;
             var cols = element.Cols ?? 2;
-            var table = "<table class=\"element-table\">";
+            var cellPadding = element.CellPadding ?? 4;
+            var rowHeight = element.RowHeight ?? Math.Max(20, (element.Height > 0 ? element.Height / Math.Max(1, rows) : 20));
 
-            for (int r = 0; r < rows; r++)
+            var table = "<table class=\"element-table\" style=\"width:100%;border-collapse:collapse;\">";
+
+            // Resolve column list: prefer configured Columns, fall back to first data row keys, or generic col0..colN
+            List<string> columns = null;
+            List<Dictionary<string, object>> dataRows = null;
+            if (!string.IsNullOrWhiteSpace(element.Repeat) && queryData != null && queryData.TryGetValue(element.Repeat, out var rawRows) && rawRows is List<Dictionary<string, object>> drs)
             {
-                table += "<tr>";
-                for (int c = 0; c < cols; c++)
+                dataRows = drs;
+            }
+
+            if (element.Columns != null && element.Columns.Count > 0)
+            {
+                columns = element.Columns;
+            }
+            else if (dataRows != null && dataRows.Count > 0)
+            {
+                columns = dataRows[0].Keys.ToList();
+            }
+            else
+            {
+                columns = Enumerable.Range(0, cols).Select(i => $"col{i}").ToList();
+            }
+
+            // Render header if requested (render even when no data rows so header is visible)
+// Emit <colgroup> if explicit column widths are provided so browsers respect them (helps PDF/print accuracy)
+                if (element.ColumnWidths != null && element.ColumnWidths.Count > 0)
                 {
-                    table += "<td></td>";
+                    table += "<colgroup>";
+                    for (int ci = 0; ci < element.ColumnWidths.Count; ci++)
+                    {
+                        var w = Math.Max(0, element.ColumnWidths[ci]);
+                        if (w > 0)
+                            table += $"<col style=\"width:{w}px;\" />";
+                        else
+                            table += "<col />";
+                    }
+                    table += "</colgroup>";
                 }
-                table += "</tr>";
+
+                // Prepare column alignments (default to left)
+                var colAligns = (element.ColumnAlignments != null && element.ColumnAlignments.Count > 0)
+                    ? element.ColumnAlignments
+                    : Enumerable.Range(0, columns.Count).Select(_ => "left").ToList();
+
+                if (element.ShowHeader == true)
+                {
+                    var headerBg = System.Net.WebUtility.HtmlEncode(element.HeaderBgColor ?? "#f3f4f6");
+                    var headerColor = System.Net.WebUtility.HtmlEncode(element.HeaderFontColor ?? "#111827");
+                    var headerFontSize = element.HeaderFontSize ?? 12;
+                    var headerFontWeight = System.Net.WebUtility.HtmlEncode(element.HeaderFontWeight ?? "bold");
+                    var theadDisplay = element.RepeatHeaderOnEveryPage == true ? "display: table-header-group;" : "";
+                    var headerStyle = $"background:{headerBg}; color:{headerColor}; font-size:{headerFontSize}px; font-weight:{headerFontWeight};";
+                    var headerHeightPx = element.HeaderHeight ?? (element.HeaderFontSize ?? 12) + (cellPadding * 2);
+                    table += $"<thead style=\"{theadDisplay}\"><tr style=\"height: {headerHeightPx}px; {headerStyle}\">";
+                    for (int ci = 0; ci < columns.Count; ci++)
+                    {
+                        var align = ci < colAligns.Count ? System.Net.WebUtility.HtmlEncode(colAligns[ci]) : "left";
+                        table += $"<th style=\"border:1px solid #ddd;padding:{cellPadding}px;text-align:{align};\">{System.Net.WebUtility.HtmlEncode(columns[ci])}</th>";
+                }
+                table += "</tr></thead>";
+            }
+
+            // Render data rows if available (respect startRow/maxRows), otherwise render placeholder empty rows
+            if (dataRows != null && dataRows.Count > 0)
+            {
+                Console.WriteLine($"[ReportPdfService][RenderTable] element='{element.Id}' rendering rows {startRow}..{(maxRows==int.MaxValue?"end":(startRow+maxRows-1).ToString())}");
+                var totalRows = dataRows.Count;
+                int endRow = Math.Min(totalRows, startRow + maxRows);
+                for (int ridx = startRow; ridx < endRow; ridx++)
+                {
+                    var dr = dataRows[ridx];
+                    var isAlt = ridx % 2 == 1;
+                    var altBg = isAlt && !string.IsNullOrWhiteSpace(element.AltRowBgColor) ? System.Net.WebUtility.HtmlEncode(element.AltRowBgColor) : string.Empty;
+                    var altColor = isAlt && !string.IsNullOrWhiteSpace(element.AltRowFontColor) ? System.Net.WebUtility.HtmlEncode(element.AltRowFontColor) : string.Empty;
+                    var rowStyle = $"height:{rowHeight}px; {(string.IsNullOrEmpty(altBg) ? "" : $"background:{altBg};")} {(string.IsNullOrEmpty(altColor) ? "" : $"color:{altColor};")}";
+                    table += $"<tr style=\"{rowStyle}\">";
+                    for (int ci = 0; ci < columns.Count; ci++)
+                    {
+                        var key = columns[ci];
+                        var val = dr.ContainsKey(key) && dr[key] != null ? dr[key].ToString() : string.Empty;
+                        var align = ci < colAligns.Count ? System.Net.WebUtility.HtmlEncode(colAligns[ci]) : "left";
+                        table += $"<td style=\"border:1px solid #ddd;padding:{cellPadding}px;vertical-align:top;height:{rowHeight}px;text-align:{align};\">{System.Net.WebUtility.HtmlEncode(val)}</td>";
+                    }
+                    table += "</tr>";
+                }
+            }
+            else
+            {
+                for (int r = 0; r < rows; r++)
+                {
+                    table += $"<tr style=\"height:{rowHeight}px;\">";
+                    for (int c = 0; c < columns.Count; c++)
+                    {
+                        table += $"<td style=\"border:1px solid #ddd;padding:{cellPadding}px;height:{rowHeight}px;vertical-align:top;\"></td>";
+                    }
+                    table += "</tr>";
+                }
             }
 
             table += "</table>";
@@ -519,6 +822,50 @@ namespace VendorRegistrationBackend.Services
 
             return style;
         }
+
+        // Clone a design element (shallow copy)
+        private DesignElement CloneElement(DesignElement src)
+        {
+            return new DesignElement
+            {
+                Id = src.Id,
+                Type = src.Type,
+                X = src.X,
+                Y = src.Y,
+                Width = src.Width,
+                Height = src.Height,
+                Content = src.Content,
+                FieldName = src.FieldName,
+                FontSize = src.FontSize,
+                FontColor = src.FontColor,
+                FontWeight = src.FontWeight,
+                FontStyle = src.FontStyle,
+                TextDecoration = src.TextDecoration,
+                BorderColor = src.BorderColor,
+                BgColor = src.BgColor,
+                BorderWidth = src.BorderWidth,
+                ImageUrl = src.ImageUrl,
+                Rows = src.Rows,
+                Cols = src.Cols,
+                Repeat = src.Repeat,
+                Columns = src.Columns == null ? null : new List<string>(src.Columns),
+                ShowHeader = src.ShowHeader,
+                RepeatHeaderOnEveryPage = src.RepeatHeaderOnEveryPage,
+                HeaderBgColor = src.HeaderBgColor,
+                HeaderFontSize = src.HeaderFontSize,
+                HeaderFontColor = src.HeaderFontColor,
+                HeaderFontWeight = src.HeaderFontWeight,
+                AltRowBgColor = src.AltRowBgColor,
+                AltRowFontColor = src.AltRowFontColor,
+                CellPadding = src.CellPadding,
+                RowHeight = src.RowHeight,
+                // Column layout metadata
+                ColumnWidths = src.ColumnWidths == null ? null : new List<int>(src.ColumnWidths),
+                ColumnAlignments = src.ColumnAlignments == null ? null : new List<string>(src.ColumnAlignments),
+                Rotation = src.Rotation,
+                Locked = src.Locked
+            };
+        }
     }
 
     // DTOs
@@ -562,6 +909,29 @@ namespace VendorRegistrationBackend.Services
 
         [System.Text.Json.Serialization.JsonConverter(typeof(IntNullableJsonConverter))]
         public int? Cols { get; set; }
+
+        // New table-related properties
+        public string? Repeat { get; set; }
+        public List<string>? Columns { get; set; }
+        public bool? ShowHeader { get; set; }
+        public bool? RepeatHeaderOnEveryPage { get; set; }
+        public string? HeaderBgColor { get; set; }
+        [System.Text.Json.Serialization.JsonConverter(typeof(IntNullableJsonConverter))]
+        public int? HeaderFontSize { get; set; }
+        public string? HeaderFontColor { get; set; }
+        public string? HeaderFontWeight { get; set; }
+        [System.Text.Json.Serialization.JsonConverter(typeof(IntNullableJsonConverter))]
+        public int? HeaderHeight { get; set; }
+        public string? AltRowBgColor { get; set; }
+        public string? AltRowFontColor { get; set; }
+        [System.Text.Json.Serialization.JsonConverter(typeof(IntNullableJsonConverter))]
+        public int? CellPadding { get; set; }
+        [System.Text.Json.Serialization.JsonConverter(typeof(IntNullableJsonConverter))]
+        public int? RowHeight { get; set; }
+
+        // Per-column layout: widths (px) and alignments ("left"|"center"|"right")
+        public List<int>? ColumnWidths { get; set; }
+        public List<string>? ColumnAlignments { get; set; }
 
         [System.Text.Json.Serialization.JsonConverter(typeof(IntNullableJsonConverter))]
         public int? Rotation { get; set; }

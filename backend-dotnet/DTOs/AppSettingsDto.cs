@@ -6,6 +6,10 @@ namespace VendorRegistrationBackend.DTOs
         public int? ApprovalsRequiredForAllowance { get; set; }
         public int? PoGenerationDate { get; set; }
         public int? InvoiceGenerationDate { get; set; }
+        public string? LetterheadImage { get; set; }
+        public bool? ApplyLetterheadToPO { get; set; }
+        public bool? ApplyLetterheadToInvoice { get; set; }
+        public bool? ApplyLetterheadToSalarySlip { get; set; }
     }
 
     public class EmailSettingsDto

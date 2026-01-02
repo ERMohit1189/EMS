@@ -87,10 +87,10 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.NameIdentifier, employee.Id),
             new Claim(ClaimTypes.Name, employee.Name ?? ""),
             new Claim(ClaimTypes.Email, employee.Email ?? ""),
-            new Claim(ClaimTypes.Role, (employee.Role ?? "user").ToLower())
-            //new Claim("UserType", "employee"),
-            //new Claim("IsReportingPerson", isReportingPerson ? "true" : "false"),
-            //new Claim("EmpCode", employee.EmpCode ?? "")
+            new Claim(ClaimTypes.Role, (employee.Role ?? "user").ToLower()),
+            new Claim("UserType", "employee"),
+            new Claim("IsReportingPerson", isReportingPerson ? "true" : "false"),
+            new Claim("EmpCode", employee.EmpCode ?? "")
         };
 
         if (reportingTeamIds?.Count > 0)
@@ -127,8 +127,8 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.Name, vendor.Name ?? ""),
             new Claim(ClaimTypes.Email, vendor.Email ?? ""),
             new Claim(ClaimTypes.Role, (vendor.Role ?? "vendor").ToLower()),
-            //new Claim("UserType", "vendor"),
-            //new Claim("VendorCode", vendor.VendorCode ?? "")
+            new Claim("UserType", "vendor"),
+            new Claim("VendorCode", vendor.VendorCode ?? "")
         };
 
         var token = new JwtSecurityToken(

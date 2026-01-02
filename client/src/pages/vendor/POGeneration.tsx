@@ -1804,6 +1804,7 @@ export default function POGeneration() {
                           exportPOToPDF(po.id, po.poNumber);
                         }}
                         data-testid={`button-export-pdf-${po.id}`}
+                        style={{ display: 'none' }}
                       >
                         <FileText className="h-3 w-3" />
                       </Button>
@@ -1848,7 +1849,7 @@ export default function POGeneration() {
 
             {/* Debug panel - visible only in development mode */}
             {import.meta.env.DEV && (
-              <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-xs">
+              <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-xs" style={{ display: 'none' }}>
                 <strong>Debug Info</strong>
                 <div className="mt-2 space-y-1">
                   <div>activeVendorId: <code>{String(activeVendorId)}</code></div>

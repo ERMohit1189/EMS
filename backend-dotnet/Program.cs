@@ -8,6 +8,7 @@ using Serilog;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using VendorRegistrationBackend.Data;
 using VendorRegistrationBackend.Middleware;
 using VendorRegistrationBackend.Services;
@@ -36,6 +37,7 @@ controllerBuilder.AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     o.JsonSerializerOptions.WriteIndented = true;
+    o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
 // -------------------- DB --------------------

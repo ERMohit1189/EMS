@@ -518,6 +518,7 @@ export default function ReportBuilder() {
 
   // Show full screen design view without other sections
   if (mode === "design" && currentTemplate) {
+    console.log('Entering design mode:', { templateId: currentTemplate.id, templateName: currentTemplate.name, queriesCount: sectionQueries.length, initialDesignLength: currentTemplate.design ? currentTemplate.design.length : 0 });
     return (
       <ReportDesigner
         templateName={currentTemplate.name}

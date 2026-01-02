@@ -29,6 +29,7 @@ const POGeneration = lazy(() => import("@/pages/vendor/POGeneration"));
 const POPrint = lazy(() => import("@/pages/vendor/POPrint"));
 const PrintSalary = lazy(() => import("@/pages/PrintSalary"));
 const InvoiceGeneration = lazy(() => import("@/pages/vendor/InvoiceGeneration"));
+const InvoicePrint = lazy(() => import("@/pages/vendor/InvoicePrint"));
 const EmployeeRegistration = lazy(() => import("@/pages/employee/EmployeeRegistration"));
 const EmployeeEdit = lazy(() => import("@/pages/employee/EmployeeEdit"));
 const EmployeeList = lazy(() => import("@/pages/employee/EmployeeList"));
@@ -61,7 +62,6 @@ const Allowances = lazy(() => import("@/pages/employee/Allowances"));
 const ExportHeaders = lazy(() => import("@/pages/vendor/ExportHeaders"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const EmailSettings = lazy(() => import("@/pages/admin/EmailSettings"));
-const AppSettingsPage = lazy(() => import("@/pages/admin/AppSettings"));
 const VendorRates = lazy(() => import("@/pages/vendor/VendorRates"));
 const EmployeeDashboard = lazy(() => import("@/pages/EmployeeDashboard"));
 const VendorDashboard = lazy(() => import("@/pages/VendorDashboard"));
@@ -416,6 +416,7 @@ function App() {
 
           {/* Print Routes - No Layout */}
           <Route path="/vendor/po/print/:id" component={POPrint} />
+        <Route path="/vendor/invoice/print/:id" component={InvoicePrint} />
           <Route path="/print-salary" component={PrintSalary} />
           
           {/* All other routes with Layout */}
@@ -726,13 +727,6 @@ function App() {
                   <Route path="/admin/email-settings">
                     <ProtectedRoute requiredUserType="superadmin">
                       <EmailSettings />
-                    </ProtectedRoute>
-                  </Route>
-
-                  {/* App Settings (Admin and Superadmin) */}
-                  <Route path="/admin/app-settings">
-                    <ProtectedRoute requiredUserType="admin">
-                      <AppSettingsPage />
                     </ProtectedRoute>
                   </Route>
 

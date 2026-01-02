@@ -1,0 +1,606 @@
+/* Base styles for InvoicePrint component */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+@media print {
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    width: 100%;
+    height: auto;
+  }
+
+  .print-wrapper {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  [style*="padding: 20px"],
+  [style*="flex: 1"],
+  [style*="backgroundColor"],
+  [style*="overflowY"] {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    background-color: white !important;
+    overflow: hidden !important;
+  }
+
+  [data-testid],
+  div[style*="position: fixed"],
+  div[style*="position: absolute"],
+  .react-devtools,
+  .react-devtools-portal,
+  [role="status"],
+  [aria-live] {
+    display: none !important;
+  }
+
+  [style*="padding: 48px"] {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    background: white;
+    padding: 0;
+    margin: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .invoice-container {
+    box-shadow: none !important;
+    page-break-after: always;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    background-image: none !important;
+    border: none !important;
+    break-inside: avoid;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .invoice-content {
+    padding: 15px !important;
+    padding-bottom: 15px !important;
+    position: relative;
+    z-index: 10;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+  }
+
+  .invoice-container {
+    page-break-after: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #003d7a;
+    padding-bottom: 10px;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+  }
+
+  .header.hidden {
+    visibility: hidden !important;
+    border-bottom: none !important;
+  }
+
+  .company-info {
+    max-width: 50% !important;
+    flex-shrink: 1 !important;
+    padding-left: 0 !important;
+  }
+
+  .company-info h1 {
+    color: #003d7a;
+    font-size: 24px;
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+
+  .company-info p {
+    color: #666;
+    font-size: 11px;
+    margin: 2px 0;
+  }
+
+  .invoice-title h2 {
+    font-size: 20px;
+    color: #003d7a;
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+
+  .invoice-title {
+    text-align: right;
+    max-width: 45% !important;
+    flex-shrink: 1 !important;
+  }
+
+  .invoice-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+    padding: 8px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  .meta-item {
+    font-size: 12px;
+  }
+
+  .meta-label {
+    font-weight: 600;
+    color: #003d7a;
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+  }
+
+  .meta-value {
+    color: #333;
+    font-size: 11px;
+  }
+
+  .parties-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .party-box {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background-color: #fafafa;
+    font-size: 9px;
+  }
+
+  .party-box h3 {
+    color: #003d7a;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .party-box p {
+    font-size: 9px;
+    color: #333;
+    margin: 1px 0;
+    line-height: 1.2;
+  }
+
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+    font-size: 10px;
+  }
+
+  .items-table thead {
+    background-color: #003d7a;
+    color: white;
+  }
+
+  .items-table th {
+    padding: 4px 5px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid #003d7a;
+    font-size: 10px;
+  }
+
+  .items-table td {
+    padding: 4px 5px;
+    border: 1px solid #ddd;
+    font-size: 10px;
+  }
+
+  .items-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+
+  .summary-section {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .summary-box {
+    width: 280px;
+    background-color: #f9f9f9;
+    border: 2px solid #003d7a;
+    border-radius: 3px;
+    padding: 8px;
+    font-size: 10px;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 11px;
+  }
+
+  .summary-row-label {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .summary-row-value {
+    text-align: right;
+    color: #333;
+  }
+
+  .summary-divider {
+    border-bottom: 1px solid #ddd;
+    margin: 5px 0;
+  }
+
+  .summary-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 5px;
+    border-top: 2px solid #003d7a;
+    font-size: 12px;
+    font-weight: 700;
+    color: #003d7a;
+  }
+
+  .remarks-section {
+    margin: 5px 0;
+    padding: 6px 10px;
+    background-color: #fffbf0;
+    border-left: 3px solid #ff9800;
+    font-size: 9px;
+  }
+
+  .remarks-section strong {
+    color: #ff9800;
+  }
+
+  .footer {
+    margin-top: auto !important;
+    padding-top: 6px;
+    border-top: 1px solid #ddd;
+    font-size: 8px;
+    color: #666;
+    flex-shrink: 0 !important;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+}
+
+.invoice-container {
+  width: 210mm;
+  max-width: 100%;
+  height: 297mm;
+  margin: 10px auto;
+  padding: 0;
+  background-color: #ffffff;
+  position: relative;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+  border: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.invoice-content {
+  padding: 25px;
+  padding-bottom: 80px;
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #003d7a;
+  padding-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.header.hidden {
+  visibility: hidden;
+  border-bottom: none;
+}
+
+.company-info h1 {
+  color: #003d7a;
+  font-size: 28px;
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+
+.company-info p {
+  color: #666;
+  font-size: 12px;
+  margin: 3px 0;
+}
+
+.invoice-title h2 {
+  font-size: 24px;
+  color: #003d7a;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.invoice-title {
+  text-align: right;
+}
+
+.invoice-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 5px;
+}
+
+.meta-item {
+  font-size: 13px;
+}
+
+.meta-label {
+  font-weight: 600;
+  color: #003d7a;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.meta-value {
+  color: #333;
+}
+
+.parties-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.party-box {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #fafafa;
+}
+
+.party-box h3 {
+  color: #003d7a;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.party-box p {
+  font-size: 12px;
+  color: #333;
+  margin: 3px 0;
+  line-height: 1.5;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+
+.items-table thead {
+  background-color: #003d7a;
+  color: white;
+}
+
+.items-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid #003d7a;
+}
+
+.items-table td {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+}
+
+.items-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.summary-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.summary-box {
+  width: 350px;
+  background-color: #f9f9f9;
+  border: 2px solid #003d7a;
+  border-radius: 5px;
+  padding: 20px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.summary-row-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.summary-row-value {
+  text-align: right;
+  color: #333;
+}
+
+.summary-divider {
+  border-bottom: 1px solid #ddd;
+  margin: 10px 0;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 2px solid #003d7a;
+  font-size: 15px;
+  font-weight: 700;
+  color: #003d7a;
+}
+
+.remarks-section {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #fffbf0;
+  border-left: 3px solid #ff9800;
+  font-size: 12px;
+}
+
+.remarks-section strong {
+  color: #ff9800;
+}
+
+.footer {
+  position: absolute;
+  bottom: 25px;
+  left: 25px;
+  right: 25px;
+  padding-top: 15px;
+  border-top: 1px solid #ddd;
+  font-size: 11px;
+  color: #666;
+}
+
+/* Toast styling for visibility on InvoicePrint */
+[role="status"],
+[role="alert"],
+.toast {
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999 !important;
+  padding: 16px !important;
+  bottom: 0px !important;
+  min-height: auto !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  min-width: 300px !important;
+  max-width: 400px !important;
+  overflow: visible !important;
+  word-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+/* Toast content padding */
+.toast li,
+.toast > * {
+  padding: 18px !important;
+}
+
+[role="status"] li,
+[role="status"] > * {
+  padding: 18px !important;
+}
+
+[role="alert"] li,
+[role="alert"] > * {
+  padding: 18px !important;
+}
+
+/* Grid styling */
+.grid {
+  gap: 0.25rem !important;
+  padding: 10px !important;
+}

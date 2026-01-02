@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { authenticatedFetch } from "@/lib/fetchWithLoader";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 
 export default function Settings() {
@@ -19,7 +19,14 @@ export default function Settings() {
   const [poGenerationDate, setPoGenerationDate] = useState('-1');
   const [invoiceGenerationDate, setInvoiceGenerationDate] = useState('-1');
   const [loadingSaveApprovals, setLoadingSaveApprovals] = useState(false);
+  const [savingLetterhead, setSavingLetterhead] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [letterhead, setLetterhead] = useState<{
+    letterheadImage?: string;
+    applyLetterheadToSalarySlip: boolean;
+  }>({
+    applyLetterheadToSalarySlip: false
+  });
   const [allowanceCaps, setAllowanceCaps] = useState({
     travelAllowance: '',
     foodAllowance: '',
@@ -63,6 +70,14 @@ export default function Settings() {
         setApprovalsRequired(data.approvalsRequiredForAllowance?.toString() || '1');
         setPoGenerationDate(data.poGenerationDate?.toString() || '-1');
         setInvoiceGenerationDate(data.invoiceGenerationDate?.toString() || '-1');
+
+        // Load letterhead settings
+        if (data.letterheadImage) {
+          setLetterhead({
+            letterheadImage: data.letterheadImage,
+            applyLetterheadToSalarySlip: data.applyLetterheadToSalarySlip || false
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching app settings:', error);
@@ -143,6 +158,85 @@ export default function Settings() {
     toast({
       title: "Success",
       description: 'Allowance caps updated successfully',
+    });
+  };
+
+  const handleLetterheadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid File',
+        description: 'Please upload an image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please upload an image smaller than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target?.result as string;
+      setLetterhead({
+        ...letterhead,
+        letterheadImage: base64String,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveLetterhead = async () => {
+    setSavingLetterhead(true);
+    try {
+      const response = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          letterheadImage: letterhead.letterheadImage || null,
+          applyLetterheadToSalarySlip: letterhead.applyLetterheadToSalarySlip,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: 'Letterhead settings saved successfully',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to save letterhead settings',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error saving letterhead:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save letterhead settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingLetterhead(false);
+    }
+  };
+
+  const handleRemoveLetterhead = () => {
+    setLetterhead({
+      letterheadImage: undefined,
+      applyLetterheadToSalarySlip: false,
     });
   };
 
@@ -464,6 +558,103 @@ export default function Settings() {
           </Button>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Letterhead Settings</CardTitle>
+          <CardDescription>Configure letterhead for salary slip documents</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Salary Slip Letterhead Image</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLetterheadFileChange}
+                className="hidden"
+                id="letterhead-input"
+                data-testid="input-letterhead-file"
+              />
+              <label htmlFor="letterhead-input" className="cursor-pointer block">
+                {letterhead.letterheadImage ? (
+                  <div className="text-center">
+                    <p className="text-sm text-green-600 font-semibold mb-2">Image Selected</p>
+                    <img
+                      src={letterhead.letterheadImage}
+                      alt="Letterhead Preview"
+                      className="max-h-40 mx-auto mb-2"
+                    />
+                    <p className="text-xs text-gray-500">Click to change image</p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-gray-700 mb-1">Upload Letterhead Image</p>
+                    <p className="text-xs text-gray-500">Drag and drop or click to select an image</p>
+                  </div>
+                )}
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Supported formats: JPG, PNG, GIF (Max size: 5MB)
+            </p>
+          </div>
+
+          {letterhead.letterheadImage && (
+            <div>
+              <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={letterhead.applyLetterheadToSalarySlip}
+                  onChange={(e) =>
+                    setLetterhead({
+                      ...letterhead,
+                      applyLetterheadToSalarySlip: e.target.checked,
+                    })
+                  }
+                  data-testid="checkbox-apply-letterhead-salary-slip"
+                  className="w-4 h-4"
+                />
+                Apply Letterhead to Salary Slips
+              </label>
+              <p className="text-xs text-muted-foreground">
+                When enabled, the letterhead image will be displayed on all salary slip documents
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSaveLetterhead}
+              disabled={savingLetterhead}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              data-testid="button-save-letterhead"
+            >
+              {savingLetterhead ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                'Save Letterhead'
+              )}
+            </Button>
+            {letterhead.letterheadImage && (
+              <Button
+                onClick={handleRemoveLetterhead}
+                disabled={savingLetterhead}
+                variant="outline"
+                className="flex-1"
+                data-testid="button-remove-letterhead"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Remove
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

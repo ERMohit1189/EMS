@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useLocation } from 'wouter';
 import { getApiBaseUrl } from '@/lib/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/fetchWithLoader';
 
 export default function AppSettings() {
@@ -29,8 +29,20 @@ export default function AppSettings() {
     gstin?: string;
   }>({});
 
+  const [letterhead, setLetterhead] = useState<{
+    letterheadImage?: string;
+    applyLetterheadToPO: boolean;
+    applyLetterheadToInvoice: boolean;
+    applyLetterheadToSalarySlip: boolean;
+  }>({
+    applyLetterheadToPO: false,
+    applyLetterheadToInvoice: false,
+    applyLetterheadToSalarySlip: false
+  });
+
   const [loadingCompany, setLoadingCompany] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
+  const [savingLetterhead, setSavingLetterhead] = useState(false);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const { toast } = useToast();
 
@@ -120,6 +132,36 @@ export default function AppSettings() {
         // Don't show error toast for company details, as it's optional
       } finally {
         setLoadingCompany(false);
+      }
+    })();
+  }, [isUnauthorized]);
+
+  // Load letterhead settings
+  useEffect(() => {
+    if (isUnauthorized) return;
+
+    (async () => {
+      try {
+        const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`);
+        const raw = await resp.text();
+        let js: any = null;
+        try {
+          js = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          /* invalid json, proceed with raw */
+        }
+        if (!resp.ok) {
+          throw new Error(js?.error || js?.message || raw || `Status ${resp.status}`);
+        }
+        setLetterhead({
+          letterheadImage: js?.letterheadImage || undefined,
+          applyLetterheadToPO: js?.applyLetterheadToPO ?? false,
+          applyLetterheadToInvoice: js?.applyLetterheadToInvoice ?? false,
+          applyLetterheadToSalarySlip: js?.applyLetterheadToSalarySlip ?? false
+        });
+      } catch (err: any) {
+        console.error('[AppSettings] load letterhead settings error:', err);
+        // Don't show error toast, as it's optional
       }
     })();
   }, [isUnauthorized]);
@@ -219,6 +261,85 @@ export default function AppSettings() {
       });
     } finally {
       setSavingCompany(false);
+    }
+  };
+
+  const handleLetterheadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'Error',
+        description: 'File size must be less than 2MB',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Check file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Error',
+        description: 'Only PNG, JPEG, and GIF images are supported',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setLetterhead({ ...letterhead, letterheadImage: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveLetterhead = async () => {
+    try {
+      setSavingLetterhead(true);
+      const body = {
+        letterheadImage: letterhead.letterheadImage || null,
+        applyLetterheadToPO: letterhead.applyLetterheadToPO,
+        applyLetterheadToInvoice: letterhead.applyLetterheadToInvoice,
+        applyLetterheadToSalarySlip: letterhead.applyLetterheadToSalarySlip
+      };
+      const resp = await authenticatedFetch(`${getApiBaseUrl()}/api/app-settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const raw = await resp.text();
+      let js: any = null;
+      try {
+        js = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        /* ignore parse error */
+      }
+      if (!resp.ok) {
+        throw new Error(js?.error || js?.message || raw || `Status ${resp.status}`);
+      }
+      setLetterhead({
+        letterheadImage: js?.letterheadImage || undefined,
+        applyLetterheadToPO: js?.applyLetterheadToPO ?? false,
+        applyLetterheadToInvoice: js?.applyLetterheadToInvoice ?? false,
+        applyLetterheadToSalarySlip: js?.applyLetterheadToSalarySlip ?? false
+      });
+      toast({
+        title: 'Saved',
+        description: 'Letterhead settings updated successfully'
+      });
+    } catch (err: any) {
+      console.error('[AppSettings] save letterhead error:', err);
+      toast({
+        title: 'Error',
+        description: err.message || 'Save failed',
+        variant: 'destructive'
+      });
+    } finally {
+      setSavingLetterhead(false);
     }
   };
 
@@ -483,6 +604,113 @@ export default function AppSettings() {
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Letterhead Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Letterhead Settings</CardTitle>
+          <CardDescription>
+            Upload a letterhead image to replace company header and footer in documents
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Upload Letterhead Image
+            </label>
+            <p className="text-xs text-muted-foreground mb-3">
+              Supports PNG, JPEG, and GIF. Maximum file size: 2MB
+            </p>
+            <div className="flex items-center gap-4">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/gif"
+                onChange={handleLetterheadFileChange}
+                className="flex-1 text-sm"
+              />
+              {letterhead.letterheadImage && (
+                <button
+                  onClick={() => setLetterhead({ ...letterhead, letterheadImage: undefined })}
+                  className="p-2 hover:bg-gray-100 rounded"
+                  title="Remove image"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {letterhead.letterheadImage && (
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <p className="text-sm font-medium mb-2">Preview:</p>
+              <img
+                src={letterhead.letterheadImage}
+                alt="Letterhead preview"
+                className="max-h-32 object-contain"
+              />
+            </div>
+          )}
+
+          <div className="space-y-3 border-t pt-4">
+            <p className="text-sm font-medium">Apply letterhead to:</p>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={letterhead.applyLetterheadToPO}
+                  onChange={(e) =>
+                    setLetterhead({
+                      ...letterhead,
+                      applyLetterheadToPO: e.target.checked
+                    })
+                  }
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Purchase Orders (PO)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={letterhead.applyLetterheadToInvoice}
+                  onChange={(e) =>
+                    setLetterhead({
+                      ...letterhead,
+                      applyLetterheadToInvoice: e.target.checked
+                    })
+                  }
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Invoices</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={letterhead.applyLetterheadToSalarySlip}
+                  onChange={(e) =>
+                    setLetterhead({
+                      ...letterhead,
+                      applyLetterheadToSalarySlip: e.target.checked
+                    })
+                  }
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Salary Slips</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button
+              onClick={handleSaveLetterhead}
+              disabled={savingLetterhead}
+              className="flex items-center gap-2"
+            >
+              {savingLetterhead && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save Letterhead Settings
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
