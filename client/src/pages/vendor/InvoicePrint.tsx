@@ -244,14 +244,14 @@ export default function InvoicePrint() {
               {/* Top Section: Company Info and Invoice Title */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div>
-                  <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#333', margin: '0 0 3px 0' }}>{invoice.exportHeaders?.companyName || 'COMPANY NAME'}</h1>
-                  <p style={{ fontSize: '9px', color: '#666', margin: '1px 0' }}>{invoice.exportHeaders?.address}</p>
-                  <p style={{ fontSize: '9px', color: '#666', margin: '1px 0' }}>{invoice.exportHeaders?.state}</p>
+                  <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', margin: '0 0 3px 0' }}>{invoice.exportHeaders?.companyName || 'COMPANY NAME'}</h1>
+                  <p style={{ fontSize: '13px', color: '#666', margin: '1px 0' }}>{invoice.exportHeaders?.address}</p>
+                  <p style={{ fontSize: '13px', color: '#666', margin: '1px 0' }}>{invoice.exportHeaders?.state}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <h2 style={{ fontSize: '26px', fontWeight: 'bold', color: '#d32f2f', margin: 0 }}>TAX INVOICE</h2>
-                  <p style={{ fontSize: '9px', color: '#666', margin: '3px 0 0 0' }}><strong>Invoice No:</strong> {invoice.invoiceNumber}</p>
-                  <p style={{ fontSize: '9px', color: '#666', margin: '2px 0' }}><strong>Date:</strong> {formatDate(invoice.invoiceDate)}</p>
+                  <h2 style={{ fontSize: '30px', fontWeight: 'bold', color: '#d32f2f', margin: 0 }}>TAX INVOICE</h2>
+                  <p style={{ fontSize: '13px', color: '#666', margin: '3px 0 0 0' }}><strong>Invoice No:</strong> {invoice.invoiceNumber}</p>
+                  <p style={{ fontSize: '13px', color: '#666', margin: '2px 0' }}><strong>Date:</strong> {formatDate(invoice.invoiceDate)}</p>
                 </div>
               </div>
             </div>
@@ -262,57 +262,57 @@ export default function InvoicePrint() {
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '20px 8px', width: 'calc(100% - 16px)', margin: '0 auto', backgroundColor: 'white', boxSizing: 'border-box' }}>
                 <div style={{ border: '1px solid #ddd', padding: '10px', backgroundColor: '#fafafa' }}>
-                  <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '6px', textTransform: 'uppercase' }}>Bill To</h3>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}><strong>{invoice.vendor?.name || 'Vendor Name'}</strong></p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>PAN No: {invoice.vendor?.pan || 'N/A'}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>State Code: {(invoice.vendor as any)?.stateCode || 'N/A'}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>GSTIN/UIN: {invoice.vendor?.gstin || 'N/A'}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>{invoice.vendor?.address || 'N/A'}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>{invoice.vendor?.city}, {invoice.vendor?.state}</p>
+                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '6px', textTransform: 'uppercase' }}>Bill To</h3>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}><strong>{invoice.vendor?.name || 'Vendor Name'}</strong></p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>PAN No: {invoice.vendor?.pan || 'N/A'}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>State Code: {(invoice.vendor as any)?.stateCode || 'N/A'}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>GSTIN/UIN: {invoice.vendor?.gstin || 'N/A'}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>{invoice.vendor?.address || 'N/A'}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>{invoice.vendor?.city}, {invoice.vendor?.state}</p>
                 </div>
 
                 <div style={{ border: '1px solid #ddd', padding: '10px', backgroundColor: '#fafafa' }}>
-                  <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '6px', textTransform: 'uppercase' }}>Ship To</h3>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}><strong>{invoice.exportHeaders?.companyName || 'COMPANY NAME'}</strong></p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>PAN No: {(invoice.exportHeaders as any)?.pan || 'N/A'}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>State Code: {(invoice.exportHeaders as any)?.stateCode || 'N/A'}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>GSTIN/UIN: {invoice.exportHeaders?.gstin || 'N/A'}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>{invoice.exportHeaders?.address}</p>
-                  <p style={{ fontSize: '10px', color: '#333', margin: '2px 0' }}>{invoice.exportHeaders?.city}, {invoice.exportHeaders?.state}</p>
+                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '6px', textTransform: 'uppercase' }}>Ship To</h3>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}><strong>{invoice.exportHeaders?.companyName || 'COMPANY NAME'}</strong></p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>PAN No: {(invoice.exportHeaders as any)?.pan || 'N/A'}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>State Code: {(invoice.exportHeaders as any)?.stateCode || 'N/A'}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>GSTIN/UIN: {invoice.exportHeaders?.gstin || 'N/A'}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>{invoice.exportHeaders?.address}</p>
+                  <p style={{ fontSize: '14px', color: '#333', margin: '2px 0' }}>{invoice.exportHeaders?.city}, {invoice.exportHeaders?.state}</p>
                 </div>
               </div>
 
               {/* Order Details - Below Bill To / Ship To */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd', borderLeft: '1px solid #ddd', borderRight: '1px solid #ddd', boxSizing: 'border-box' }}>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project Name</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.projectName || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>SO No.</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.soNumber || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project No.</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.projectNumber || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO No.</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.poNumber || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO Date</div>
                   <div style={{ color: '#666' }}>{formatDate((invoice as any)?.poDate) || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Payment Terms</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.paymentTerms || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Place of Supply</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.placeOfSupply || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '13px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>CIN</div>
                   <div style={{ color: '#666' }}>{(invoice.exportHeaders as any)?.cin || 'N/A'}</div>
                 </div>
@@ -321,16 +321,16 @@ export default function InvoicePrint() {
           )}
 
           {/* Items Table */}
-          <table style={{ width: 'calc(100% - 30px)', borderCollapse: 'collapse', margin: '20px 15px', fontSize: '12px', tableLayout: 'fixed' }}>
+          <table style={{ width: 'calc(100% - 30px)', borderCollapse: 'collapse', margin: '20px 15px', fontSize: '14px', tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ backgroundColor: '#333', color: 'white' }}>
-                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '4%' }}>SI. No.</th>
-                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '35%' }}>Product / Service Description</th>
-                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '10%' }}>HSN/SAC No.</th>
-                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '7%' }}>QTY</th>
-                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '11%' }}>Unit Price</th>
-                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '11%' }}>Amount</th>
-                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '11px', width: '12%' }}>Taxable Value</th>
+                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '13px', width: '4%' }}>SI. No.</th>
+                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '13px', width: '35%' }}>Product / Service Description</th>
+                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '13px', width: '10%' }}>HSN/SAC No.</th>
+                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '13px', width: '7%' }}>QTY</th>
+                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '13px', width: '11%' }}>Unit Price</th>
+                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '13px', width: '11%' }}>Amount</th>
+                <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', border: '1px solid #333', fontSize: '13px', width: '12%' }}>Taxable Value</th>
               </tr>
             </thead>
             <tbody>
@@ -346,13 +346,13 @@ export default function InvoicePrint() {
 
                   return (
                     <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9f9f9' }}>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '12px' }}>{globalIdx + 1}</td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', fontSize: '12px' }}>{item.description || 'Invoice Item'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '12px' }}>{item.hsnSacNo || '-'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '12px' }}>{item.quantity || 1}</td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '12px' }}>₹ {Number(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '12px' }}>₹ {Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '12px' }}>₹ {Number(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '14px' }}>{globalIdx + 1}</td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', fontSize: '14px' }}>{item.description || 'Invoice Item'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '14px' }}>{item.hsnSacNo || '-'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '14px' }}>{item.quantity || 1}</td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '14px' }}>₹ {Number(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '14px' }}>₹ {Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right', fontSize: '14px' }}>₹ {Number(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                     </tr>
                   );
                 })
@@ -367,7 +367,7 @@ export default function InvoicePrint() {
           {/* Totals - only on last page */}
           {pageIndex === pages - 1 && (
             <div style={{ padding: '0 8px', marginBottom: '30px', width: 'calc(100% - 16px)', margin: '0 auto 30px', boxSizing: 'border-box' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <tbody>
                   <tr>
                     <td style={{ padding: '8px 10px', border: '1px solid #ddd', textAlign: 'left', width: '85%' }}>Taxable Amount</td>
@@ -390,16 +390,16 @@ export default function InvoicePrint() {
           {pageIndex === pages - 1 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', backgroundColor: '#fafafa', border: '1px solid #ddd', boxSizing: 'border-box' }}>
               <div>
-                <h3 style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', marginBottom: '8px', textTransform: 'uppercase' }}>Bank Details for R.T.G.S./N.E.F.T</h3>
-                <p style={{ fontSize: '11px', color: '#333', margin: '3px 0' }}><strong>Bank Name:</strong> Bank of Baroda</p>
-                <p style={{ fontSize: '11px', color: '#333', margin: '3px 0' }}><strong>IFSC Code:</strong> BARB0INDLUC</p>
-                <p style={{ fontSize: '11px', color: '#333', margin: '3px 0' }}><strong>Bank A/C No.:</strong> 58000200000089</p>
+                <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', marginBottom: '8px', textTransform: 'uppercase' }}>Bank Details for R.T.G.S./N.E.F.T</h3>
+                <p style={{ fontSize: '13px', color: '#333', margin: '3px 0' }}><strong>Bank Name:</strong> Bank of Baroda</p>
+                <p style={{ fontSize: '13px', color: '#333', margin: '3px 0' }}><strong>IFSC Code:</strong> BARB0INDLUC</p>
+                <p style={{ fontSize: '13px', color: '#333', margin: '3px 0' }}><strong>Bank A/C No.:</strong> 58000200000089</p>
               </div>
               <div>
-                <h3 style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', marginBottom: '8px', textTransform: 'uppercase' }}>Contact Information</h3>
-                <p style={{ fontSize: '11px', color: '#333', margin: '3px 0' }}><strong>Phone:</strong> {invoice.exportHeaders?.contactPhone || 'N/A'}</p>
-                <p style={{ fontSize: '11px', color: '#333', margin: '3px 0' }}><strong>Email:</strong> {invoice.exportHeaders?.contactEmail || 'N/A'}</p>
-                <p style={{ fontSize: '11px', color: '#333', margin: '3px 0' }}><strong>Website:</strong> {invoice.exportHeaders?.website || 'N/A'}</p>
+                <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', marginBottom: '8px', textTransform: 'uppercase' }}>Contact Information</h3>
+                <p style={{ fontSize: '13px', color: '#333', margin: '3px 0' }}><strong>Phone:</strong> {invoice.exportHeaders?.contactPhone || 'N/A'}</p>
+                <p style={{ fontSize: '13px', color: '#333', margin: '3px 0' }}><strong>Email:</strong> {invoice.exportHeaders?.contactEmail || 'N/A'}</p>
+                <p style={{ fontSize: '13px', color: '#333', margin: '3px 0' }}><strong>Website:</strong> {invoice.exportHeaders?.website || 'N/A'}</p>
               </div>
             </div>
           )}
@@ -407,12 +407,12 @@ export default function InvoicePrint() {
           {/* Footer - only on last page */}
           {pageIndex === pages - 1 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '20px 8px', width: 'calc(100% - 16px)', margin: '0 auto', borderTop: '1px solid #ddd', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: '10px', color: '#666' }}>
+              <div style={{ fontSize: '14px', color: '#666' }}>
                 <p>Place & Date: {invoice.exportHeaders?.city || 'N/A'} - {formatDate(new Date().toISOString())}</p>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ borderTop: '1px solid #333', width: '150px', height: '40px', margin: '0 auto' }}></div>
-                <div style={{ fontSize: '10px', color: '#333', marginTop: '5px', fontWeight: 'bold' }}>AUTHORISED SIGNATORY</div>
+                <div style={{ fontSize: '14px', color: '#333', marginTop: '5px', fontWeight: 'bold' }}>AUTHORISED SIGNATORY</div>
               </div>
             </div>
           )}
