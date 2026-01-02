@@ -283,36 +283,36 @@ export default function InvoicePrint() {
               </div>
 
               {/* Order Details - Below Bill To / Ship To */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd', borderLeft: '1px solid #ddd', borderRight: '1px solid #ddd', boxSizing: 'border-box' }}>
-                <div style={{ fontSize: '13px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0', padding: '0', width: 'calc(100% - 16px)', margin: '0 auto', backgroundColor: 'white', border: '1px solid #ddd', boxSizing: 'border-box' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project Name</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.projectName || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>SO No.</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.soNumber || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project No.</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.projectNumber || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO No.</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.poNumber || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px', borderRight: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO Date</div>
                   <div style={{ color: '#666' }}>{formatDate((invoice as any)?.poDate) || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px', borderRight: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Payment Terms</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.paymentTerms || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px', borderRight: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Place of Supply</div>
                   <div style={{ color: '#666' }}>{(invoice as any)?.placeOfSupply || 'N/A'}</div>
                 </div>
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '13px', padding: '12px 15px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>CIN</div>
                   <div style={{ color: '#666' }}>{(invoice.exportHeaders as any)?.cin || 'N/A'}</div>
                 </div>
