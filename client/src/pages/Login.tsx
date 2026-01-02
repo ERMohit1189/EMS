@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/lib/api";
 import { Lock, Mail } from "lucide-react";
-import logo from "@assets/generated_images/abstract_geometric_logo_for_ems_portal.png";
+import logo from "@assets/generated_images/abstract_geometric_logo_for_ems_portal.svg";
 
 import { Footer } from "@/components/layout/Footer";
 

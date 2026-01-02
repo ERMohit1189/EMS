@@ -25,7 +25,7 @@ import {
   Circle,
   Mail,
 } from "lucide-react";
-import logo from "@assets/generated_images/abstract_geometric_logo_for_ems_portal.png";
+import logo from "@assets/generated_images/abstract_geometric_logo_for_ems_portal.svg";
 
 interface SidebarProps {
   isLoggedIn?: boolean;
