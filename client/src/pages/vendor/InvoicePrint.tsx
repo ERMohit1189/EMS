@@ -406,7 +406,7 @@ export default function InvoicePrint() {
 
           {/* Footer - only on last page */}
           {pageIndex === pages - 1 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '20px 15px', width: 'calc(100% - 30px)', margin: '0 auto', borderTop: '1px solid #ddd', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '20px 8px', width: 'calc(100% - 16px)', margin: '0 auto', borderTop: '1px solid #ddd', boxSizing: 'border-box' }}>
               <div style={{ fontSize: '10px', color: '#666' }}>
                 <p>Place & Date: {invoice.exportHeaders?.city || 'N/A'} - {formatDate(new Date().toISOString())}</p>
               </div>
