@@ -108,9 +108,32 @@ export default function InvoicePrint() {
       const headerRes = await authenticatedFetch(`${baseUrl}/api/export-headers`);
       const headerData = headerRes.ok ? await headerRes.json() : {};
 
+      // Fetch PurchaseOrder details
+      let poData = null;
+      if (invoiceData.poIds) {
+        try {
+          let poIds = [];
+          try {
+            poIds = JSON.parse(invoiceData.poIds);
+          } catch {
+            poIds = [invoiceData.poIds];
+          }
+
+          if (poIds.length > 0) {
+            const poRes = await authenticatedFetch(`${baseUrl}/api/purchase-orders/${poIds[0]}`);
+            if (poRes.ok) {
+              poData = await poRes.json();
+            }
+          }
+        } catch (poError) {
+          console.log('Could not fetch PO details:', poError);
+        }
+      }
+
       setInvoice({
         ...invoiceData,
-        exportHeaders: headerData
+        exportHeaders: headerData,
+        purchaseOrder: poData
       });
     } catch (error) {
       console.error('Error fetching invoice:', error);
@@ -286,31 +309,31 @@ export default function InvoicePrint() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0', padding: '0', width: 'calc(100% - 16px)', margin: '0 auto', backgroundColor: 'white', border: '1px solid #ddd', boxSizing: 'border-box' }}>
                 <div style={{ fontSize: '13px', padding: '18px 20px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project Name</div>
-                  <div style={{ color: '#666' }}>{(invoice as any)?.projectName || 'N/A'}</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.purchaseOrder?.projectName || (invoice as any)?.projectName || 'N/A'}</div>
                 </div>
                 <div style={{ fontSize: '13px', padding: '18px 20px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>SO No.</div>
-                  <div style={{ color: '#666' }}>{(invoice as any)?.soNumber || 'N/A'}</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.purchaseOrder?.soNumber || (invoice as any)?.soNumber || 'N/A'}</div>
                 </div>
                 <div style={{ fontSize: '13px', padding: '18px 20px', borderRight: '1px solid #ddd', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Project No.</div>
-                  <div style={{ color: '#666' }}>{(invoice as any)?.projectNumber || 'N/A'}</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.purchaseOrder?.projectNumber || (invoice as any)?.projectNumber || 'N/A'}</div>
                 </div>
                 <div style={{ fontSize: '13px', padding: '18px 20px', borderBottom: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO No.</div>
-                  <div style={{ color: '#666' }}>{(invoice as any)?.poNumber || 'N/A'}</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.purchaseOrder?.poNumber || (invoice as any)?.poNumber || 'N/A'}</div>
                 </div>
                 <div style={{ fontSize: '13px', padding: '18px 20px', borderRight: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>PO Date</div>
-                  <div style={{ color: '#666' }}>{formatDate((invoice as any)?.poDate) || 'N/A'}</div>
+                  <div style={{ color: '#666' }}>{formatDate((invoice as any)?.purchaseOrder?.poDate) || formatDate((invoice as any)?.poDate) || 'N/A'}</div>
                 </div>
                 <div style={{ fontSize: '13px', padding: '18px 20px', borderRight: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Payment Terms</div>
-                  <div style={{ color: '#666' }}>{(invoice as any)?.paymentTerms || 'N/A'}</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.purchaseOrder?.paymentTerms || (invoice as any)?.paymentTerms || 'N/A'}</div>
                 </div>
                 <div style={{ fontSize: '13px', padding: '18px 20px', borderRight: '1px solid #ddd' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>Place of Supply</div>
-                  <div style={{ color: '#666' }}>{(invoice as any)?.placeOfSupply || 'N/A'}</div>
+                  <div style={{ color: '#666' }}>{(invoice as any)?.purchaseOrder?.placeOfSupply || (invoice as any)?.placeOfSupply || 'N/A'}</div>
                 </div>
                 <div style={{ fontSize: '13px', padding: '18px 20px' }}>
                   <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '3px' }}>CIN</div>
