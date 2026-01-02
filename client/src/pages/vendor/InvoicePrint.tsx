@@ -278,24 +278,24 @@ export default function InvoicePrint() {
                 <table className="items-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '5%' }}>Line</th>
-                      <th style={{ width: '25%' }}>Description</th>
-                      <th style={{ width: '10%' }}>UOM</th>
-                      <th style={{ width: '12%' }}>Qty</th>
-                      <th style={{ width: '18%' }}>Unit Price (INR)</th>
-                      <th style={{ width: '18%' }}>Amount (INR)</th>
-                      <th style={{ width: '12%' }}>Tax %</th>
+                      <th style={{ width: '6%' }}>SI. No.</th>
+                      <th style={{ width: '28%' }}>PRODUCT / SERVICE DESCRIPTION</th>
+                      <th style={{ width: '12%' }}>HSN/SAC NO</th>
+                      <th style={{ width: '10%' }}>QTY</th>
+                      <th style={{ width: '14%' }}>Unit Price</th>
+                      <th style={{ width: '14%' }}>Amount</th>
+                      <th style={{ width: '16%' }}>TAXABLE VALUE</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td className="text-center">1</td>
                       <td>Invoice Item</td>
-                      <td className="text-center">Nos</td>
+                      <td className="text-center">-</td>
                       <td className="text-center">1</td>
                       <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                       <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="text-center">18%</td>
+                      <td className="text-right">₹ {Number(invoice.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                     </tr>
                   </tbody>
                 </table>
